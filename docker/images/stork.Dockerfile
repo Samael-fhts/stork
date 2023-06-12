@@ -205,12 +205,24 @@ RUN sed -i 's/<base href="\/">/<base href="\/stork\/">/g' /usr/share/stork/www/i
 HEALTHCHECK CMD ["curl", "--fail", "http://localhost:81"]
 
 # Hooks
-FROM codebase-backend AS hook-ldap
+FROM prepare AS hook-ldap-prepare
+WORKDIR /app/backend
+COPY backend/go.mod backend/go.sum ./
+WORKDIR /app/rakelib
+COPY rakelib/90_hooks.rake ./
 WORKDIR /app/hooks/stork-hook-ldap
 COPY hooks/stork-hook-ldap/go.sum hooks/stork-hook-ldap/go.mod ./
-RUN go mod download
+RUN rake hook:prepare
+
+FROM codebase-backend AS hook-ldap
+WORKDIR /app/tools/golang
+COPY --from=hook-ldap-prepare /app/tools/golang .
+WORKDIR /app/hooks/stork-hook-ldap
 COPY hooks/stork-hook-ldap/ .
-ENTRYPOINT [ "rake", "build" ]
+WORKDIR /app/rakelib
+COPY rakelib/90_hooks.rake ./
+WORKDIR /app
+ENTRYPOINT [ "cp", "hooks/*.so", "/hooks" ]
 
 #################################
 ### Kea / Bind9 + Stork Agent ###
