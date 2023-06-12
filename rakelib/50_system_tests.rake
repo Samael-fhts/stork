@@ -360,6 +360,13 @@ namespace :systemtest do
     task :check_etchosts do
         check_hosts_and_print_hint([docker_compose_file_abs])
     end
+
+    namespace :up do
+        desc 'Run Open-LDAP container.'
+        task :ldap do
+            Rake::Task["systemtest:sh"].invoke("up", "-d", "openldap")
+        end
+    end
 end
 
 namespace :gen do
