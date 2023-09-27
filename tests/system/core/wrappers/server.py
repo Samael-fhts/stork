@@ -284,7 +284,9 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
     def list_authentication_methods(self) -> List[AuthenticationMethod]:
         """List the authentication methods supported by the server."""
         api_instance = UsersApi(self._api_client)
-        authentication_methods: AuthenticationMethods = api_instance.get_authentication_methods()
+        authentication_methods: AuthenticationMethods = (
+            api_instance.get_authentication_methods()
+        )
         return authentication_methods["items"]
 
     def overview(self) -> DhcpOverview:
