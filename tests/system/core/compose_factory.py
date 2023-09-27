@@ -31,15 +31,14 @@ def detect_compose_binary():
 def detect_hooks():
     """Detect available hooks by directory lookup."""
     main_hook_directory = os.environ.get("HOOK_DIRECTORY", "hooks")
-    hook_directories = {
-        "stork-hook-ldap": "ldap",
-        "stork-hook-example": "example"
-    }
+    hook_directories = {"stork-hook-ldap": "ldap", "stork-hook-example": "example"}
 
     hooks = []
 
     for directory, name in hook_directories.items():
-        if os.path.exists(os.path.join(project_directory, main_hook_directory, directory)):
+        if os.path.exists(
+            os.path.join(project_directory, main_hook_directory, directory)
+        ):
             hooks.append(name)
     return hooks
 
