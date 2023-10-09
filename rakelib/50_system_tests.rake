@@ -303,6 +303,10 @@ namespace :systemtest do
             puts "Use the Kea premium containers"
             profiles.append "--profile", "premium"
         end
+        if Dir.exists? "hooks/stork-hook-ldap"
+            puts "Use the LDAP containers"
+            profiles.append "--profile", "ldap"
+        end
 
         sh *DOCKER_COMPOSE,
             "-f", docker_compose_file_abs,
@@ -356,6 +360,13 @@ namespace :systemtest do
     desc 'Checks the /etc/hosts file content'
     task :check_etchosts do
         check_hosts_and_print_hint([docker_compose_file_abs])
+    end
+
+    namespace :up do
+        desc 'Run Open-LDAP container.'
+        task :ldap do
+            Rake::Task["systemtest:sh"].invoke("up", "-d", "openldap")
+        end
     end
 end
 

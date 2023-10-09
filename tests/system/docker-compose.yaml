@@ -83,6 +83,19 @@ services:
     depends_on:
       - postgres
 
+  server-ldap:
+    extends: server-base
+    environment:
+      STORK_SERVER_HOOK_DIRECTORY: /app/hooks
+    volumes:
+      - hook-ldap-volume:/app/hooks:ro
+    profiles:
+      - ldap
+    depends_on:
+      - hook-ldap
+      - postgres
+      - openldap
+
   agent-kea-base:
     restart: always
     hostname: agent-kea
@@ -413,6 +426,16 @@ services:
     depends_on:
       - postgres
 
+  hook-ldap:
+    build:
+      context: .
+      dockerfile: $PWD/docker/images/stork.Dockerfile
+      target: hook-ldap
+    volumes:
+      - hook-ldap-volume:/hooks
+    profiles:
+      - ldap
+
   postgres:
     image: postgres:${POSTGRES_VERSION:-16}
     command: -c ssl=on -c ssl_cert_file=/etc/ssl/certs/ssl-cert-snakeoil.pem -c ssl_key_file=/etc/ssl/private/ssl-cert-snakeoil.key
@@ -433,6 +456,21 @@ services:
       - $PWD/tests/system/config/postgres/create_pgcrypto_extension.sql:/docker-entrypoint-initdb.d/create_pgcrypto_extension.sql
     ports:
       - "42432:5432"
+
+  openldap:
+    image: bitnami/openldap:2
+    environment:
+      - LDAP_ADMIN_USERNAME=admin
+      - LDAP_ADMIN_PASSWORD=adminpassword
+    ports:
+      - '1389:1389'
+      - '1636:1636'
+    profiles:
+      - ldap
+    networks:
+      - storknet
+    volumes:
+      - $PWD/tests/system/config/openldap/tree.ldif:/ldifs/tree.ldif
 
 networks:
   storknet:
@@ -463,3 +501,7 @@ networks:
     ipam:
       config:
         - subnet: 3001:db8:1:42::/64
+
+volumes:
+  hook-ldap-volume:
+    driver: local
