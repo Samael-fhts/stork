@@ -33,7 +33,7 @@ variables:
 # stages order
 stages:
   - checks
-  - system_tests
+  - extensive_tests
   - build
   - hooks
   - deploy
@@ -194,7 +194,7 @@ unittest_backend:
     - rake unittest:backend
 
 unittest_backend_race:
-  stage: system_tests
+  stage: extensive_tests
   extends: unittest_backend
   variables:
     RACE: "true"
@@ -536,7 +536,7 @@ install_apks_arm64:
 ### system testing ###
 
 system_testing:
-  stage: system_tests
+  stage: extensive_tests
   allow_failure: false
   tags:
     - docker
