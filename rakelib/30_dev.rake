@@ -119,6 +119,8 @@ namespace :unittest do
         SHORT - Run short test routine - default: false
         HEADLESS - Run in headless mode - default: false
         VERBOSE - Print results for successful cases - default: false
+        RACE - Run race detection - default: false
+        EXIT_FIRST - Stop on the first failure - default: false
         See "db:migrate" task for the database-related parameters
     '
     task :backend => [RICHGO, "db:remove_remaining", "db:migrate", "gen:backend:mocks"] + go_codebase do
@@ -126,23 +128,35 @@ namespace :unittest do
         benchmark = ENV["BENCHMARK"] || "false"
         short = ENV["SHORT"] || "false"
         verbose = ENV["VERBOSE"] || "false"
+        race = ENV["RACE"] || "false"
+        exit_first = ENV["EXIT_FIRST"] || "false"
 
         opts = []
 
         if !ENV["TEST"].nil?
-            opts += ["-run", ENV["TEST"]]
+            opts.append "-run", ENV["TEST"]
         end
 
         if benchmark == "true"
-            opts += ["-bench=."]
+            opts.append "-bench=."
         end
 
         if short == "true"
-            opts += ["-short"]
+            opts.append "-short"
         end
 
         if verbose == "true"
-            opts += ["-v"]
+            opts.append "-v"
+        end
+
+        if race == "true"
+            puts "Enable CGO because the race detection requires it."
+            ENV["CGO_ENABLED"] = "1"
+            opts.append "-race"
+        end
+
+        if exit_first == "true"
+            opts.append "-failfast"
         end
 
         with_cov_tests = scope == "./..." && ENV["TEST"].nil?
@@ -156,7 +170,7 @@ namespace :unittest do
         end
 
         Dir.chdir('backend') do
-            sh RICHGO, "test", *opts, "-race", scope
+            sh RICHGO, "test", *opts, scope
 
             if with_cov_tests
                 out = `"#{GO}" tool cover -func=coverage.out`
