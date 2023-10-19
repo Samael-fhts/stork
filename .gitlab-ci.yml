@@ -187,12 +187,17 @@ unittest_backend:
     - name: postgres:16-alpine
       alias: postgres
   variables:
-    # CGO is required by the race detector.
-    CGO_ENABLED: 1
+    EXIT_FIRST: "true"
   script:
     - echo 'postgres:*:*:storktest:storktest' > ~/.pgpass
     - chmod 600 ~/.pgpass
     - rake unittest:backend
+
+unittest_backend_race:
+  stage: system_tests
+  extends: unittest_backend
+  variables:
+    RACE: "true"
 
 lint_ui:
   extends: .base_build_debian
@@ -531,6 +536,7 @@ system_testing:
     USE_SYSTEM_NODEJS: "true"
     # It must be an alias of the docker:dind service.
     DEFAULT_MAPPED_ADDRESS: "docker"
+    EXIT_FIRST: "true"
   # Don't block if the artifacts from the previous stages expired.
   dependencies: []
   script:
