@@ -676,6 +676,8 @@ ENV["GOBIN"] = gobin
 ENV["PATH"] = "#{node_bin_dir}:#{tools_dir}:#{gobin}:#{ENV["PATH"]}"
 ENV["PYTHONPATH"] = pythonpath
 ENV["VIRTUAL_ENV"] = python_tools_dir
+# Disable CGO to avoid linking with the system libraries as GLIBC.
+ENV["CGO_ENABLED"] = ENV["STORK_CGO_ENABLED"] || "0"
 
 ### Detect Chrome
 # CHROME_BIN is required for UI unit tests and system tests. If it is
