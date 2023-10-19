@@ -175,7 +175,7 @@ file AGENT_BINARY_FILE => GO_AGENT_CODEBASE + [GO] do
         end
     end
     sh "touch", "-c", AGENT_BINARY_FILE
-    puts "Stork Agent build date: #{CURRENT_DATE} (timestamp: #{TIMESTAMP})"
+    puts "Stork Agent build date: #{CURRENT_DATE} (timestamp: #{TIMESTAMP}) (size: #{format_file_size(AGENT_BINARY_FILE)})"
 end
 add_go_os_arch_guard(AGENT_BINARY_FILE)
 CLEAN.append AGENT_BINARY_FILE
@@ -188,7 +188,7 @@ file SERVER_BINARY_FILE => GO_SERVER_CODEBASE + [GO] do
         end
     end
     sh "touch", "-c", SERVER_BINARY_FILE
-    puts "Stork Server build date: #{CURRENT_DATE} (timestamp: #{TIMESTAMP})"
+    puts "Stork Server build date: #{CURRENT_DATE} (timestamp: #{TIMESTAMP}) (size: #{format_file_size(SERVER_BINARY_FILE)})"
 end
 add_go_os_arch_guard(SERVER_BINARY_FILE)
 CLEAN.append SERVER_BINARY_FILE
@@ -201,7 +201,7 @@ file TOOL_BINARY_FILE => GO_TOOL_CODEBASE + [GO] do
         end
     end
     sh "touch", "-c", TOOL_BINARY_FILE
-    puts "Stork Tool build date: #{CURRENT_DATE} (timestamp: #{TIMESTAMP})"
+    puts "Stork Tool build date: #{CURRENT_DATE} (timestamp: #{TIMESTAMP}) (size: #{format_file_size(TOOL_BINARY_FILE)})"
 end
 add_go_os_arch_guard(TOOL_BINARY_FILE)
 CLEAN.append TOOL_BINARY_FILE

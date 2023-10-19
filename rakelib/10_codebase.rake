@@ -21,6 +21,17 @@ else
     TIMESTAMP = now.strftime("%y%m%d%H%M%S")
 end
 
+#################
+### Functions ###
+#################
+
+# Returns a human-readable size of the file.
+def format_file_size(path)
+    size = File.size(path)
+    e = Math.log10(size).to_i / 3
+    return '%.3f' % (size / 1024.0 ** e) + ['B', ' kiB', ' MiB', ' GiB'][e]
+end
+
 #############
 ### Clean ###
 #############
@@ -63,7 +74,7 @@ file CODE_GEN_BINARY_FILE => go_code_gen_codebase_without_binary + [GO] do
     Dir.chdir("backend/cmd/stork-code-gen") do
         sh GO, "build", "-ldflags=-X 'isc.org/stork.BuildDate=#{CURRENT_DATE}'"
     end
-    puts "Stork Code Gen build date: #{CURRENT_DATE} (timestamp: #{TIMESTAMP})"
+    puts "Stork Code Gen build date: #{CURRENT_DATE} (timestamp: #{TIMESTAMP} (size: #{format_file_size(CODE_GEN_BINARY_FILE)}))"
 end
 CLEAN.append CODE_GEN_BINARY_FILE
 
