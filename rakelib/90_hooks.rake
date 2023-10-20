@@ -221,8 +221,7 @@ namespace :hook do
         end
     end
 
-    desc "Run the unit tests for all hooks.
-        RACE - Run race detection - default: false"
+    desc "Run the unit tests for all hooks."
     task :unittest => [GO] do
         forEachHook do |dir_name|
             # Check if the unit test task exists.
@@ -230,11 +229,6 @@ namespace :hook do
             if stdout.nil? || stdout.strip.empty?
                 puts "Skipping #{dir_name} - no unit tests."
                 next
-            end
-
-            if ENV["RACE"] == "true"
-                puts "Enable CGO because the race detection requires it."
-                ENV["CGO_ENABLED"] = "1"
             end
 
             # Run the unit tests.
