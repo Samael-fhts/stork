@@ -1,0 +1,17 @@
+## installation
+pip install -r requirements.txt
+playwright install # install playwright tools and browsers
+
+
+## record new test
+playwright codegen https://stork.lab.isc.org/
+# generated code copy into tests/ui/playwright/test_basic.py 
+
+
+## run tests
+pytest --headed --base-url=https://stork.lab.isc.org/ --browser chromium --browser firefox --tracing on <path_to_test_file>
+# options can be added to pytest.ini 
+
+
+## debug failing tests
+playwright show-trace test-results/<test_name>/trace.zip
