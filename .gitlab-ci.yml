@@ -805,6 +805,9 @@ test_demo_connection:
     - aws
     - runner-manager
     - amd64
+  before_script:
+    - apt-get update -y
+    - apt-get install -y iputils-ping
   script:
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY_STORK" | base64 -d | ssh-add -
