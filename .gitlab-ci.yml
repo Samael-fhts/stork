@@ -797,6 +797,20 @@ upload_to_repo_hooks:
 
 ### demo deploy jobs ###
 
+test_demo_connection:
+  stage: checks
+  cache: []  
+  tags:
+    - linux
+    - aws
+    - runner-manager
+    - amd64
+  script:
+    - eval $(ssh-agent -s)
+    - echo "$SSH_PRIVATE_KEY_STORK" | base64 -d | ssh-add -
+    - ping stork.lab.isc.org
+    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker info
+
 deploy_demo:
   stage: deploy
   cache: []
