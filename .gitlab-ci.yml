@@ -811,7 +811,7 @@ test_demo_connection:
   script:
     - eval $(ssh-agent -s)
     - echo "$SSH_PRIVATE_KEY_STORK" | base64 -d | ssh-add -
-    - ping stork.lab.isc.org
+    - ping -c 5 stork.lab.isc.org
     - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker info
 
 deploy_demo:
