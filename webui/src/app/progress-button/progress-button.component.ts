@@ -1,4 +1,5 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core'
+import { MenuItem } from 'primeng/api'
 
 /**
  * Progress button component.
@@ -17,10 +18,10 @@ export class ProgressButtonComponent {
     @Input() value: number = 0
 
     /**
-     * Indicates if the progress is enabled.
+     * Indicates if the progress is active.
      * If true, the loading indicator is displayed.
      */
-    @Input() enabled: boolean = true
+    @Input() progressing: boolean = true
 
     /**
      * The count displayed in the badge.
@@ -39,6 +40,11 @@ export class ProgressButtonComponent {
      * class is always added.
      */
     @Input() styleClass: string = ''
+
+    /**
+     * Menu item model
+     */
+    @Input() model: MenuItem[] = null
 
     /**
      * Click handler.

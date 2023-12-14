@@ -1,8 +1,9 @@
 <p-button
+    *ngIf="model == null"
     [label]="label"
     [styleClass]="'p-button-outlined ' + styleClass"
     [badge]="badgeCount"
-    [icon]="enabled ? 'pi pi-spin pi-spinner' : null"
+    [icon]="progressing ? 'pi pi-spin pi-spinner' : null"
     badgeClass="p-badge-danger"
     (click)="onClick()"
 >
@@ -10,3 +11,20 @@
         [ngStyle]="{ right: 100 * (1 - value) + '%' }"
     ><!-- The inner content is not allowed here. --></div>
 </p-button>
+
+<p-splitButton
+    *ngIf="model != null"
+    [label]="label"
+    [styleClass]="'p-button-outlined ' + styleClass"
+    (onClick)="onClick()"
+    [model]="model"
+>
+    <ng-template pTemplate="content">
+        <div class="progress-button__cover"
+            [ngStyle]="{ right: 100 * (1 - value) + '%' }"
+        ><!-- The inner content is not allowed here. --></div>
+        <i class="pi pi-spin pi-spinner mr-2" *ngIf="progressing"></i>
+        <span>{{ label}}</span>
+        <p-badge [value]="badgeCount" severity="danger" class="flex" *ngIf="badgeCount !== 0"></p-badge>
+    </ng-template>
+</p-splitButton>

@@ -2,13 +2,19 @@ import { Meta, StoryObj, applicationConfig, moduleMetadata } from '@storybook/an
 import { ProgressButtonComponent } from './progress-button.component'
 import { ButtonModule } from 'primeng/button'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
+import { SplitButtonModule } from 'primeng/splitbutton'
+import { MenuItem } from 'primeng/api'
+import { MenuModule } from 'primeng/menu'
+import { BadgeModule } from 'primeng/badge'
+import { action } from '@storybook/addon-actions'
 
 interface Args {
     value: number
     badgeCount: number
     label: string
     styleClass: string
-    enabled: boolean
+    progressing: boolean
+    model: MenuItem[]
 }
 
 export default {
@@ -19,14 +25,14 @@ export default {
             providers: [],
         }),
         moduleMetadata({
-            imports: [ButtonModule, NoopAnimationsModule],
+            imports: [ButtonModule, SplitButtonModule, MenuModule, BadgeModule, NoopAnimationsModule],
         }),
     ],
     argTypes: {
         badgeCount: { control: 'number' },
         value: { control: { type: 'number', min: 0, max: 1, step: 0.1 } },
         label: { control: 'text' },
-        enabled: { control: 'boolean' },
+        progressing: { control: 'boolean' },
         styleClass: {
             control: 'select',
             options: [
@@ -40,7 +46,9 @@ export default {
                 'unknown'
             ],
         },
-        onClick: { action: 'clicked' },
+        onClick: {
+            action: 'onClick',
+        }
     },
 } as Meta<Args>
 
@@ -51,4 +59,36 @@ export const Primary: StoryObj<Args> = {
         label: 'Progress button',
         styleClass: 'p-button-success'
     },
+}
+
+export const SplitButton: StoryObj<Args> = {
+    args: {
+        value: 0.25,
+        badgeCount: 7,
+        label: 'Progress button',
+        styleClass: 'p-button-success',
+        model: [
+            {
+                label: 'Save',
+                icon: 'pi pi-check',
+                command: () => {
+                    action('Save')()
+                },
+            },
+            {
+                label: 'Update',
+                icon: 'pi pi-refresh',
+                command: () => {
+                    action('Update')()
+                },
+            },
+            {
+                label: 'Delete',
+                icon: 'pi pi-trash',
+                command: () => {
+                    action('Delete')()
+                },
+            },
+        ],
+    }
 }

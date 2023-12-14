@@ -49,6 +49,7 @@ import { ChipsModule } from 'primeng/chips'
 import { ChartModule } from 'primeng/chart'
 import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { AccordionModule } from 'primeng/accordion'
+import { BadgeModule } from 'primeng/badge'
 
 // Generated API modules
 import { ApiModule, BASE_PATH, Configuration, ConfigurationParameters } from './backend'
@@ -263,6 +264,7 @@ export function cfgFactory() {
         ChartModule,
         TriStateCheckboxModule,
         AccordionModule,
+        BadgeModule
     ],
     providers: [
         {
