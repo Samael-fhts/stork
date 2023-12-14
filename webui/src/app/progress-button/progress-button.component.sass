@@ -1,0 +1,35 @@
+.progress-button__cover
+    // Expand to full size of the wrapped button
+    position: absolute
+    left: 0
+    top: 0
+    bottom: 0
+    // The right side is dynamically change in the component to show the
+    // progress
+    right: 0
+    // Default background.
+    background-color: var(--primary-color)
+    // The background is transparent to make the button details visible.
+    opacity: 0.2
+    // Animate the progress bar for a better user experience.
+    transition: right 1s
+
+:host ::ng-deep .p-button-warning
+    .progress-button__cover
+        // The consistent color with the warning PrimeNG button style.
+        background-color: #ffba01
+
+:host ::ng-deep .p-button-danger
+    .progress-button__cover
+        // The consistent color with the danger PrimeNG button style.
+        background-color: #e91224
+
+:host ::ng-deep .p-button-success
+    .progress-button__cover
+        // The consistent color with the success PrimeNG button style.
+        background-color: #34A835
+
+:host ::ng-deep .p-button-secondary
+    .progress-button__cover
+        // The consistent color with the secondary PrimeNG button style.
+        background-color: #607D8B

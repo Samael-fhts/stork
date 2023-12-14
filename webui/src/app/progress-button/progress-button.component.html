@@ -1,0 +1,12 @@
+<p-button
+    [label]="label"
+    [styleClass]="'p-button-outlined ' + styleClass"
+    [badge]="badgeCount"
+    [icon]="enabled ? 'pi pi-spin pi-spinner' : null"
+    badgeClass="p-badge-danger"
+    (click)="onClick()"
+>
+    <div class="progress-button__cover"
+        [ngStyle]="{ right: 100 * (1 - value) + '%' }"
+    ><!-- The inner content is not allowed here. --></div>
+</p-button>
