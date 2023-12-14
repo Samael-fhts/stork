@@ -1,5 +1,10 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core'
 
+/**
+ * Progress button component.
+ * It is an outlined button that background is filled depending on the value.
+ * It can also display a badge with a count.
+ */
 @Component({
     selector: 'app-progress-button',
     templateUrl: './progress-button.component.html',
@@ -13,11 +18,13 @@ export class ProgressButtonComponent {
 
     /**
      * Indicates if the progress is enabled.
+     * If true, the loading indicator is displayed.
      */
     @Input() enabled: boolean = true
 
     /**
      * The count displayed in the badge.
+     * If 0, the badge is not displayed.
      */
     @Input() badgeCount: number = 0
 
@@ -28,6 +35,8 @@ export class ProgressButtonComponent {
 
     /**
      * Progress button style class.
+     * Accepts the same values as the p-button styleClass. The p-button-outline
+     * class is always added.
      */
     @Input() styleClass: string = ''
 

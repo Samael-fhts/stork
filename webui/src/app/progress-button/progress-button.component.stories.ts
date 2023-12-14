@@ -1,8 +1,7 @@
-import { Meta, StoryFn, StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
+import { Meta, StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { ProgressButtonComponent } from './progress-button.component'
 import { ButtonModule } from 'primeng/button'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { action } from '@storybook/addon-actions'
 
 interface Args {
     value: number
@@ -24,7 +23,7 @@ export default {
         }),
     ],
     argTypes: {
-        errorCount: { control: 'number' },
+        badgeCount: { control: 'number' },
         value: { control: { type: 'number', min: 0, max: 1, step: 0.1 } },
         label: { control: 'text' },
         enabled: { control: 'boolean' },
