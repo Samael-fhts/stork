@@ -5,6 +5,7 @@ const config = {
         '@storybook/addon-controls',
         '@storybook/addon-links',
         '@storybook/addon-interactions',
+        '@storybook/addon-actions',
         'storybook-addon-mock',
     ],
 
