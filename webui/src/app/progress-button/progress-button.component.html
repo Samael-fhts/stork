@@ -1,3 +1,4 @@
+<!-- Standard button without drop-down menu -->
 <p-button
     *ngIf="model == null"
     [label]="label"
@@ -12,6 +13,7 @@
     ><!-- The inner content is not allowed here. --></div>
 </p-button>
 
+<!-- Button with drop-down menu -->
 <p-splitButton
     *ngIf="model != null"
     [label]="label"
