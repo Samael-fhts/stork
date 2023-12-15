@@ -43,12 +43,12 @@ export default {
                 'p-button-warning',
                 'p-button-danger',
                 'p-button-secondary',
-                'unknown'
+                'unknown',
             ],
         },
         onClick: {
             action: 'onClick',
-        }
+        },
     },
 } as Meta<Args>
 
@@ -57,7 +57,7 @@ export const Primary: StoryObj<Args> = {
         value: 0.25,
         badgeCount: 7,
         label: 'Progress button',
-        styleClass: 'p-button-success'
+        styleClass: 'p-button-success',
     },
 }
 
@@ -90,5 +90,5 @@ export const SplitButton: StoryObj<Args> = {
                 },
             },
         ],
-    }
+    },
 }

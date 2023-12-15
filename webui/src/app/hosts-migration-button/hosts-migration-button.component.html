@@ -1,1 +1,71 @@
-<p>hosts-migration-button works!</p>
+<ng-container [ngSwitch]="state">
+    <app-progress-button
+        *ngSwitchCase="'initializing'"
+        [badgeCount]="0"
+        label="Checking migration status..."
+        value="0"
+    ></app-progress-button>
+    <app-progress-button
+        *ngSwitchCase="'ready'"
+        [badgeCount]="0"
+        label="Migrate reservations to Kea hosts database"
+        [progressing]="false"
+        value="0"
+        (click)="onStartMigrationClick()"
+    ></app-progress-button>
+    <app-progress-button
+        *ngSwitchCase="'migrating'"
+        [badgeCount]="migration.errors"
+        label="Migrating reservations..."
+        [value]="migration.progress"
+        [model]="[
+            {
+                label: 'Show errored hosts',
+                command: onShowErroredHostsClick
+            },
+            {
+                label: 'Show affected hosts',
+                command: onShowAffectedHostsClick
+            },
+            {
+                label: 'Cancel migration',
+                command: onCancelMigrationClick
+            }
+        ]"
+        ,
+        (click)="onRedirectToMigrationDetailsClick()"
+    ></app-progress-button>
+    <app-progress-button
+        *ngSwitchCase="'done'"
+        [badgeCount]="14"
+        label="Migration finished"
+        [value]="1"
+        [progressing]="false"
+        [model]="[
+            {
+                label: 'Show errored hosts',
+                command: onShowErroredHostsClick
+            },
+            {
+                label: 'Show affected hosts',
+                command: onShowAffectedHostsClick
+            },
+            {
+                label: 'Mark as read',
+                command: onMarkAsReadClick
+            }
+        ]"
+        ,
+        (click)="onRedirectToMigrationDetailsClick()"
+    ></app-progress-button>
+    <button
+        pButton
+        *ngSwitchCase="'error'"
+        type="button"
+        label="Migration status unavailable"
+        icon="pi pi-exclamation-circle"
+        class="p-button-danger"
+        pTooltip="Click to retry"
+        (click)="onRetryOnErrorClick()"
+    ></button>
+</ng-container>

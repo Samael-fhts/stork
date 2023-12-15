@@ -126,7 +126,7 @@ import { SharedParametersFormComponent } from './shared-parameters-form/shared-p
 import { SubnetFormComponent } from './subnet-form/subnet-form.component'
 import { AddressPoolFormComponent } from './address-pool-form/address-pool-form.component'
 import { PrefixPoolFormComponent } from './prefix-pool-form/prefix-pool-form.component'
-import { ArrayValueSetFormComponent } from './array-value-set-form/array-value-set-form.component';
+import { ArrayValueSetFormComponent } from './array-value-set-form/array-value-set-form.component'
 import { HostsMigrationButtonComponent } from './hosts-migration-button/hosts-migration-button.component'
 import { ProgressButtonComponent } from './progress-button/progress-button.component'
 
@@ -264,7 +264,7 @@ export function cfgFactory() {
         ChartModule,
         TriStateCheckboxModule,
         AccordionModule,
-        BadgeModule
+        BadgeModule,
     ],
     providers: [
         {
