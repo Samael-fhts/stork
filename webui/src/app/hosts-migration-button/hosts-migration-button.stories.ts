@@ -4,13 +4,14 @@ import { ButtonModule } from 'primeng/button'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { MenuModule } from 'primeng/menu'
 import { BadgeModule } from 'primeng/badge'
-import { NoopAnimationsModule } from '@angular/platform-browser/animations'
+import { BrowserAnimationsModule, NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ProgressButtonComponent } from '../progress-button/progress-button.component'
 import { toastDecorator } from '../utils-stories'
 import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
 import { ToastModule } from 'primeng/toast'
-import { MessageService } from 'primeng/api'
-import { Observable, concatMap, delay, generate, ignoreElements, interval, merge, of, throwError, timer } from 'rxjs'
+import { ConfirmationService, MessageService } from 'primeng/api'
+import { Observable, concatMap, delay, generate, ignoreElements, interval, map, merge, of, throwError, timer } from 'rxjs'
+import { ConfirmDialogModule } from 'primeng/confirmdialog'
 
 
 class MockHostsMigrationService implements Partial<HostsMigrationService> {
@@ -34,6 +35,7 @@ class MockHostsMigrationService implements Partial<HostsMigrationService> {
                 progress: i/100,
                 errors: Math.round(i / 10),
                 inProgress: i !== 100,
+                filter: `filter-${migrationId}`
             } as Migration),
         })
 
@@ -47,7 +49,7 @@ class MockHostsMigrationService implements Partial<HostsMigrationService> {
         return of(null).pipe(delay(2000));
     }
 
-    startMigration(): Observable<Migration> {
+    startMigration(filter: string): Observable<Migration> {
         this.startCount += 1
         if (this.startCount % 3 === 0) {
             return throwError(() => new Error('Could not start the migration')).
@@ -58,6 +60,7 @@ class MockHostsMigrationService implements Partial<HostsMigrationService> {
             errors: 0,
             inProgress: true,
             progress: 0,
+            filter: filter
         } as Migration).pipe(delay(5000))
     }
 }
@@ -67,14 +70,30 @@ interface Args {}
 export default {
     title: 'App/HostsMigrationButton',
     component: HostsMigrationButtonComponent,
+    argTypes: {
+        filter$: {
+            table: {
+                disable: true,
+            },
+        },
+    },
     decorators: [
         applicationConfig({
             providers: [
                 MessageService,
+                ConfirmationService
             ],
         }),
         moduleMetadata({
-            imports: [ButtonModule, SplitButtonModule, MenuModule, BadgeModule, NoopAnimationsModule, ToastModule],
+            imports: [
+                ButtonModule,
+                SplitButtonModule,
+                MenuModule,
+                BadgeModule,
+                BrowserAnimationsModule,
+                ToastModule,
+                ConfirmDialogModule
+            ],
             declarations: [ProgressButtonComponent],
             providers: [
                 {
@@ -87,4 +106,10 @@ export default {
     ],
 } as Meta<Args>
 
-export const Primary: StoryObj<Args> = {}
+export const Primary: StoryObj<Args> = {
+    args: {
+        'filter$': interval(3000).pipe(
+            map((v) => `filter-${v}`)
+        )
+    }
+}

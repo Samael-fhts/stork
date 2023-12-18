@@ -6,14 +6,22 @@
         [disabled]="true"
         value="0"
     ></app-progress-button>
-    <app-progress-button
-        *ngSwitchCase="'ready'"
-        [badgeCount]="0"
-        label="Migrate reservations to Kea hosts database"
-        [progressing]="false"
-        value="0"
-        (click)="onStartMigrationClick()"
-    ></app-progress-button>
+    <ng-container *ngSwitchCase="'ready'">
+        <app-progress-button
+            [badgeCount]="0"
+            label="Migrate reservations to Kea hosts database"
+            [progressing]="false"
+            value="0"
+            (click)="onStartMigrationClick()"
+        ></app-progress-button>
+        <p-confirmDialog
+            styleClass="w-4"
+            message="Migration will move the currently filtered host reservations from the Kea JSON configuration file to the hosts database. This operation cannot be undone. Host reservations filter: {{ currentFilter }}. Are you sure that you want to proceed?"
+            header="Confirmation"
+            icon="pi pi-truck"
+            rejectButtonStyleClass="p-button-text"
+        ></p-confirmDialog>
+    </ng-container>
     <app-progress-button
         *ngSwitchCase="'migrating'"
         [badgeCount]="migration.errors"

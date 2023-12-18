@@ -7,6 +7,7 @@ export interface Migration {
   progress: number
   errors: number
   inProgress: boolean
+  filter: string
 }
 
 
@@ -21,7 +22,7 @@ export class HostsMigrationService {
     return throwError(() => new Error('Not implemented'));
   }
 
-  startMigration(): Observable<Migration> {
+  startMigration(filter: string): Observable<Migration> {
     return throwError(() => new Error('Not implemented'));
   }
 

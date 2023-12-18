@@ -1,15 +1,8 @@
-import { Component, OnDestroy, OnInit } from '@angular/core'
-import { MessageService } from 'primeng/api'
-import { HostsMigrationService } from '../hosts-migration-service/hosts-migration.service'
-import { Subscription, lastValueFrom } from 'rxjs'
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core'
+import { ConfirmationService, MessageService } from 'primeng/api'
+import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
+import { Observable, Subscription, lastValueFrom } from 'rxjs'
 import { getErrorMessage } from '../utils'
-
-interface Migration {
-    id: number
-    progress: number
-    errors: number
-    inProgress: boolean
-}
 
 type State = 'initializing' | 'ready' | 'migrating' | 'done' | 'error'
 
@@ -19,13 +12,25 @@ type State = 'initializing' | 'ready' | 'migrating' | 'done' | 'error'
     styleUrls: ['./hosts-migration-button.component.sass'],
 })
 export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
-    // Component states.
+    // Component state.
     state: State
     migration: Migration = null
     updateSubscription: Subscription = null
     fetchingAPI: boolean = false
+    currentFilter: string = null
+    subscriptions: Subscription = new Subscription()
 
-    constructor(private messageService: MessageService, private migrationService: HostsMigrationService) {
+    // Component inputs.
+    @Input() filter$: Observable<string>
+
+    // Event emitters.
+    @Output() filterList = new EventEmitter<string>()
+
+    constructor(
+        private messageService: MessageService,
+        private confirmationService: ConfirmationService,
+        private migrationService: HostsMigrationService
+    ) {
         // The MenuItem commands must be bound to the component instance.
         this.onStartMigrationClick = this.onStartMigrationClick.bind(this)
         this.onShowErroredHostsClick = this.onShowErroredHostsClick.bind(this)
@@ -70,16 +75,18 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     }
 
     private transitionToMigrationRequestedState() {
+        const filter = this.currentFilter
         this.setState('migrating', {
             errors: 0,
             id: null,
             inProgress: true,
             progress: 0,
+            filter: filter
         })
         this.fetchingAPI = true
 
         // Start a new migration.
-        lastValueFrom(this.migrationService.startMigration())
+        lastValueFrom(this.migrationService.startMigration(filter))
             .finally(() => {
                 this.fetchingAPI = false
             })
@@ -122,15 +129,28 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     // Component lifecycle hooks.
 
     ngOnInit(): void {
+        if (this.filter$ != null) {
+            this.subscriptions.add(
+                this.filter$.subscribe((filter) => {
+                    this.currentFilter = filter
+                })
+            )
+        }
+
         this.transitionToInitializingState()
     }
     ngOnDestroy(): void {
         this.deregisterFromUpdates()
+        this.subscriptions.unsubscribe()
     }
 
     // UI event handlers.
     onStartMigrationClick() {
-        this.transitionToMigrationRequestedState()
+        this.confirmationService.confirm({
+            accept: () => {
+                this.transitionToMigrationRequestedState()
+            },
+        })
     }
 
     onRedirectToMigrationDetailsClick() {
@@ -175,8 +195,9 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     }
 
     // Event emitters.
-    private emitFilterList(filter: unknown, errorsOnly: boolean) {
-        // ToDo
+    private emitFilterList(filter: string, errorsOnly: boolean) {
+        filter = this.buildFilter(filter, errorsOnly)
+        this.filterList.emit(filter)
     }
 
     // Helpers.
@@ -189,5 +210,9 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
             this.updateSubscription.unsubscribe()
             this.updateSubscription = null
         }
+    }
+
+    private buildFilter(base: string, errorsOnly: boolean): string {
+        throw new Error('Method not implemented.')
     }
 }
