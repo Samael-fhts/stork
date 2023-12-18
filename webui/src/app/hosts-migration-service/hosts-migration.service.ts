@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, throwError } from 'rxjs';
 
 
-interface Migration {
+export interface Migration {
   id: number
   progress: number
   errors: number
@@ -13,7 +13,7 @@ interface Migration {
 @Injectable({
   providedIn: 'root'
 })
-export class HostsMigrationServiceService {
+export class HostsMigrationService {
 
   constructor() { }
 
@@ -25,7 +25,7 @@ export class HostsMigrationServiceService {
     return throwError(() => new Error('Not implemented'));
   }
 
-  cancelMigration(migrationId: number): Observable<Migration> {
+  cancelMigration(migrationId: number): Observable<void> {
     return throwError(() => new Error('Not implemented'));
   }
 

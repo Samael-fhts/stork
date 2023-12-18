@@ -1,5 +1,8 @@
 import { Component, OnDestroy, OnInit } from '@angular/core'
-import { MenuItem } from 'primeng/api'
+import { MessageService } from 'primeng/api'
+import { HostsMigrationService } from '../hosts-migration-service/hosts-migration.service'
+import { Subscription, lastValueFrom } from 'rxjs'
+import { getErrorMessage } from '../utils'
 
 interface Migration {
     id: number
@@ -19,6 +22,17 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     // Component states.
     state: State
     migration: Migration = null
+    updateSubscription: Subscription = null
+    fetchingAPI: boolean = false
+
+    constructor(private messageService: MessageService, private migrationService: HostsMigrationService) {
+        // The MenuItem commands must be bound to the component instance.
+        this.onStartMigrationClick = this.onStartMigrationClick.bind(this)
+        this.onShowErroredHostsClick = this.onShowErroredHostsClick.bind(this)
+        this.onShowAffectedHostsClick = this.onShowAffectedHostsClick.bind(this)
+        this.onCancelMigrationClick = this.onCancelMigrationClick.bind(this)
+        this.onMarkAsReadClick = this.onMarkAsReadClick.bind(this)
+    }
 
     private setState(state: State, migration: Migration = null) {
         this.state = state
@@ -28,9 +42,13 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
 
     private transitionToInitializingState() {
         this.setState('initializing')
+        this.fetchingAPI = true
 
         // Check the current migration status.
-        this.fetchCurrentMigration()
+        lastValueFrom(this.migrationService.getCurrentMigration())
+            .finally(() => {
+                this.fetchingAPI = false
+            })
             .then((migration) => {
                 if (migration) {
                     if (migration.inProgress) {
@@ -52,10 +70,19 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     }
 
     private transitionToMigrationRequestedState() {
-        this.setState('migrating')
+        this.setState('migrating', {
+            errors: 0,
+            id: null,
+            inProgress: true,
+            progress: 0,
+        })
+        this.fetchingAPI = true
 
         // Start a new migration.
-        this.startMigration()
+        lastValueFrom(this.migrationService.startMigration())
+            .finally(() => {
+                this.fetchingAPI = false
+            })
             .then((migration) => {
                 this.transitionToMigratingState(migration)
             })
@@ -68,28 +95,28 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         this.setState('migrating', migration)
 
         // Register for updates
-        this.registerForUpdates(this.migration.id)
-            .then(() => {
-                // Wait for updates.
-                // TODO
-            })
-            .catch((err) => {
-                this.transitionToErrorState(err)
-            })
+        this.updateSubscription = this.migrationService.getMigrationUpdates(migration.id).subscribe(m => {
+            this.migration = m
+            if (!m.inProgress) {
+                this.transitionToDoneState(m)
+            }
+        })
     }
 
     private transitionToDoneState(migration: Migration) {
         this.setState('done', migration)
-
-        // Unregister for updates
-        this.deregisterFromUpdates()
     }
 
     private transitionToErrorState(err: Error) {
         this.setState('error')
 
         // Generate an error message.
-        // TODO
+        const errorMessage = getErrorMessage(err)
+        this.messageService.add({
+            severity: 'error',
+            summary: 'Migration error',
+            detail: errorMessage,
+        })
     }
 
     // Component lifecycle hooks.
@@ -123,7 +150,10 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     }
 
     onCancelMigrationClick() {
-        this.cancelMigration(this.migration.id)
+        this.deregisterFromUpdates()
+        this.fetchingAPI = true
+        lastValueFrom(this.migrationService.cancelMigration(this.migration.id))
+            .finally(() => { this.fetchingAPI = false })
             .then(() => {
                 this.transitionToInitializingState()
             })
@@ -133,7 +163,9 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     }
 
     onMarkAsReadClick() {
-        this.removeMigration(this.migration.id)
+        this.fetchingAPI = true
+        lastValueFrom(this.migrationService.removeMigration(this.migration.id))
+            .finally(() => { this.fetchingAPI = false })
             .then(() => {
                 this.transitionToInitializingState()
             })
@@ -141,32 +173,6 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
                 this.transitionToErrorState(err)
             })
     }
-
-    // HTTP calls.
-    // All below function should be excluded to a dedicated service.
-    private async fetchCurrentMigration(): Promise<Migration> {
-        // TODO
-        return null
-    }
-
-    private async startMigration(): Promise<Migration> {
-        // TODO
-        return null
-    }
-
-    private async registerForUpdates(migrationId: number): Promise<void> {
-        // TODO
-    }
-
-    private deregisterFromUpdates() {
-        // TODO
-    }
-
-    private async cancelMigration(migrationId: number): Promise<void> {
-        // TODO
-    }
-
-    private async removeMigration(migrationId: number): Promise<void> {}
 
     // Event emitters.
     private emitFilterList(filter: unknown, errorsOnly: boolean) {
@@ -176,5 +182,12 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     // Helpers.
     private redirectToMigrationDetails(migrationId: number) {
         // ToDo
+    }
+
+    private deregisterFromUpdates() {
+        if (this.updateSubscription) {
+            this.updateSubscription.unsubscribe()
+            this.updateSubscription = null
+        }
     }
 }

@@ -3,6 +3,7 @@
         *ngSwitchCase="'initializing'"
         [badgeCount]="0"
         label="Checking migration status..."
+        [disabled]="true"
         value="0"
     ></app-progress-button>
     <app-progress-button
@@ -18,10 +19,12 @@
         [badgeCount]="migration.errors"
         label="Migrating reservations..."
         [value]="migration.progress"
+        [disabled]="fetchingAPI"
         [model]="[
             {
                 label: 'Show errored hosts',
-                command: onShowErroredHostsClick
+                command: onShowErroredHostsClick,
+                visible: migration.errors > 0
             },
             {
                 label: 'Show affected hosts',
@@ -29,10 +32,10 @@
             },
             {
                 label: 'Cancel migration',
-                command: onCancelMigrationClick
+                command: onCancelMigrationClick,
+                visible: migration.id != null
             }
         ]"
-        ,
         (click)="onRedirectToMigrationDetailsClick()"
     ></app-progress-button>
     <app-progress-button
@@ -40,11 +43,13 @@
         [badgeCount]="14"
         label="Migration finished"
         [value]="1"
-        [progressing]="false"
+        [progressing]="fetchingAPI"
+        [disabled]="fetchingAPI"
         [model]="[
             {
                 label: 'Show errored hosts',
-                command: onShowErroredHostsClick
+                command: onShowErroredHostsClick,
+                visible: migration.errors > 0
             },
             {
                 label: 'Show affected hosts',
@@ -55,7 +60,6 @@
                 command: onMarkAsReadClick
             }
         ]"
-        ,
         (click)="onRedirectToMigrationDetailsClick()"
     ></app-progress-button>
     <button

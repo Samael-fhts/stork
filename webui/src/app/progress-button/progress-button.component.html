@@ -5,6 +5,7 @@
     [styleClass]="'p-button-outlined ' + styleClass"
     [badge]="badgeCount"
     [icon]="progressing ? 'pi pi-spin pi-spinner' : null"
+    [disabled]="disabled"
     badgeClass="p-badge-danger"
     (click)="onClick()"
 >
@@ -20,6 +21,7 @@
     [styleClass]="'p-button-outlined ' + styleClass"
     (onClick)="onClick()"
     [model]="model"
+    [disabled]="disabled"
 >
     <ng-template pTemplate="content">
         <div class="progress-button__cover" [ngStyle]="{ right: 100 * (1 - value) + '%' }">

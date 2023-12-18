@@ -14,6 +14,7 @@ interface Args {
     label: string
     styleClass: string
     progressing: boolean
+    disabled: boolean
     model: MenuItem[]
 }
 
@@ -33,6 +34,7 @@ export default {
         value: { control: { type: 'number', min: 0, max: 1, step: 0.1 } },
         label: { control: 'text' },
         progressing: { control: 'boolean' },
+        disabled: { control: 'boolean' },
         styleClass: {
             control: 'select',
             options: [

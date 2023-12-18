@@ -47,6 +47,11 @@ export class ProgressButtonComponent {
     @Input() model: MenuItem[] = null
 
     /**
+     * Disable the button.
+     */
+    @Input() disabled: boolean = false
+
+    /**
      * Click handler.
      */
     @Output() click = new EventEmitter<void>()
