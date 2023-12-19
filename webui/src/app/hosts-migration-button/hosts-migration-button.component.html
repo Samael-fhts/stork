@@ -12,11 +12,13 @@
             label="Migrate reservations to Kea hosts database"
             [progressing]="false"
             value="0"
-            (click)="onStartMigrationClick()"
+            (outClick)="onStartMigrationClick()"
         ></app-progress-button>
         <p-confirmDialog
             styleClass="w-4"
-            message="Migration will move the currently filtered host reservations from the Kea JSON configuration file to the hosts database. This operation cannot be undone. Host reservations filter: {{ currentFilter }}. Are you sure that you want to proceed?"
+            message="Migration will move the currently filtered host reservations from the Kea JSON configuration file to the hosts database. This operation cannot be undone. Host reservations filter: {{
+                currentFilter
+            }}. Are you sure that you want to proceed?"
             header="Confirmation"
             icon="pi pi-truck"
             rejectButtonStyleClass="p-button-text"
@@ -40,11 +42,10 @@
             },
             {
                 label: 'Cancel migration',
-                command: onCancelMigrationClick,
-                visible: migration.id != null
+                command: onCancelMigrationClick
             }
         ]"
-        (click)="onRedirectToMigrationDetailsClick()"
+        (outClick)="onRedirectToMigrationDetailsClick()"
     ></app-progress-button>
     <app-progress-button
         *ngSwitchCase="'done'"
@@ -68,7 +69,7 @@
                 command: onMarkAsReadClick
             }
         ]"
-        (click)="onRedirectToMigrationDetailsClick()"
+        (outClick)="onRedirectToMigrationDetailsClick()"
     ></app-progress-button>
     <button
         pButton
@@ -78,6 +79,6 @@
         icon="pi pi-exclamation-circle"
         class="p-button-danger"
         pTooltip="Click to retry"
-        (click)="onRetryOnErrorClick()"
+        (outClick)="onRetryOnErrorClick()"
     ></button>
 </ng-container>

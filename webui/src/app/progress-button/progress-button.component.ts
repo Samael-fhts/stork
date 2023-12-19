@@ -54,12 +54,12 @@ export class ProgressButtonComponent {
     /**
      * Click handler.
      */
-    @Output() click = new EventEmitter<void>()
+    @Output() outClick = new EventEmitter<void>()
 
     /**
      * Click handler.
      */
     onClick() {
-        this.click.emit()
+        this.outClick.emit()
     }
 }

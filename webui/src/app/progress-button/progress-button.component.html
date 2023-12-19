@@ -1,6 +1,6 @@
 <!-- Standard button without drop-down menu -->
 <p-button
-    *ngIf="model == null"
+    *ngIf="model === null"
     [label]="label"
     [styleClass]="'p-button-outlined ' + styleClass"
     [badge]="badgeCount"
@@ -16,7 +16,7 @@
 
 <!-- Button with drop-down menu -->
 <p-splitButton
-    *ngIf="model != null"
+    *ngIf="model !== null"
     [label]="label"
     [styleClass]="'p-button-outlined ' + styleClass"
     (onClick)="onClick()"

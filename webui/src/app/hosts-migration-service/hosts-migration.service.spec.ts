@@ -1,16 +1,16 @@
-import { TestBed } from '@angular/core/testing';
+import { TestBed } from '@angular/core/testing'
 
-import { HostsMigrationService } from './hosts-migration.service';
+import { HostsMigrationService } from './hosts-migration.service'
 
 describe('HostsMigrationServiceService', () => {
-  let service: HostsMigrationService;
+    let service: HostsMigrationService
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
-    service = TestBed.inject(HostsMigrationService);
-  });
+    beforeEach(() => {
+        TestBed.configureTestingModule({})
+        service = TestBed.inject(HostsMigrationService)
+    })
 
-  it('should be created', () => {
-    expect(service).toBeTruthy();
-  });
-});
+    it('should be created', () => {
+        expect(service).toBeTruthy()
+    })
+})

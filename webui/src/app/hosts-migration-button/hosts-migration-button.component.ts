@@ -3,6 +3,7 @@ import { ConfirmationService, MessageService } from 'primeng/api'
 import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
 import { Observable, Subscription, lastValueFrom } from 'rxjs'
 import { getErrorMessage } from '../utils'
+import { Router } from '@angular/router'
 
 /**
  * The UI of this component is organized in the shape of a state machine.
@@ -45,12 +46,13 @@ import { getErrorMessage } from '../utils'
  *  |           \     \                       (start migration)      | 
  *  |            \     \                             |  |            | 
  *  |             \    (migration is running)        v  +------------+
- *  |              \                  \         +------------+--+    |
- *  |               \                  \        | requesting |  |  --+
- *  |                \                  \       +----v-------+  |    |
- *  |                 \                  ---->  |   migrating   |  --+
- +  +------------------*---(cancel) ----------  +---------------+    |
- *  |                   \                            |               |
+ *  |              \                 \                               |
+ *  |               \                 \         +------------+--+    |
+ *  |                \                 \        | requesting |  |  --+
+ *  |                 \                 \       +----v-------+  |    |
+ *  |                  \                 ---->  |   migrating   |  --+
+ +  +-------------------*--(cancel)-----------  +---------------+    |
+ *  |                    \                           |               |
  *  |                  (migration is done)           |               |
  *  |                               \            (finished)          |
  *  |                                \               |               |
@@ -63,9 +65,19 @@ import { getErrorMessage } from '../utils'
  *  |                                                |  |            |
  *  |                                            (mark as read)      |
  *  +------------------------------------------------+  +------------+
- */ 
+ */
 type State = 'initializing' | 'ready' | 'migrating' | 'done' | 'error'
 
+/**
+ * The hosts migration button component.
+ * It allows to control the host reservation migration and track its progress.
+ * It is built on top of the progress button component (mix of standard button,
+ * progress bar, and drop down menu).
+ *
+ * The UI look and behavior depends on the current state of the migration.
+ * The state and values of the related members are changed by the dedicated
+ * transition methods that ensure the consistency of the UI.
+ */
 @Component({
     selector: 'app-hosts-migration-button',
     templateUrl: './hosts-migration-button.component.html',
@@ -130,6 +142,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * Binds the MenuItem callbacks to the component instance.
      */
     constructor(
+        private router: Router,
         private messageService: MessageService,
         private confirmationService: ConfirmationService,
         private migrationService: HostsMigrationService
@@ -209,10 +222,9 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         const filter = this.currentFilter
         this.setState('migrating', {
             errors: 0,
-            id: null,
             inProgress: true,
             progress: 0,
-            filter: filter
+            filter: filter,
         })
         this.fetchingAPI = true
 
@@ -239,7 +251,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         this.setState('migrating', migration)
 
         // Register for updates
-        this.updateSubscription = this.migrationService.getMigrationUpdates(migration.id).subscribe(m => {
+        this.updateSubscription = this.migrationService.getMigrationUpdates().subscribe((m) => {
             this.migration = m
             if (!m.inProgress) {
                 this.transitionToDoneState(m)
@@ -323,7 +335,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * It redirects the user to the migration details page.
      */
     onRedirectToMigrationDetailsClick() {
-        this.redirectToMigrationDetails(this.migration.id)
+        this.redirectToMigrationDetails()
     }
 
     /**
@@ -370,16 +382,29 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     }
 
     // Event emitters.
+
+    /**
+     * Emits the event to filter the hosts table.
+     * @param filter The filter to apply.
+     * @param errorsOnly Indicates whether to show only the hosts that failed.
+     */
     private emitFilterList(filter: string, errorsOnly: boolean) {
         filter = this.buildFilter(filter, errorsOnly)
         this.filterList.emit(filter)
     }
 
     // Helpers.
-    private redirectToMigrationDetails(migrationId: number) {
-        // ToDo
+
+    /**
+     * Navigates to the migration details page.
+     */
+    private redirectToMigrationDetails() {
+        this.router.navigate(['/hosts/migration'])
     }
 
+    /**
+     * Unsubscribes from the migration updates (if subscribed).
+     */
     private deregisterFromUpdates() {
         if (this.updateSubscription) {
             this.updateSubscription.unsubscribe()
@@ -387,8 +412,13 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * Removes the current migration.
+     * It transitions to the 'initializing' state. If the removal failed, it
+     * transitions to the 'error' state.
+     */
     private removeMigration() {
-        if (!this.migration || !this.migration.id) {
+        if (!this.migration) {
             // Nothing to do.
             return
         }
@@ -398,8 +428,10 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
 
         // Remove the migration.
         this.fetchingAPI = true
-        lastValueFrom(this.migrationService.removeMigration(this.migration.id))
-            .finally(() => { this.fetchingAPI = false })
+        lastValueFrom(this.migrationService.removeMigration())
+            .finally(() => {
+                this.fetchingAPI = false
+            })
             .then(() => {
                 this.transitionToInitializingState()
             })
@@ -408,6 +440,12 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
             })
     }
 
+    /**
+     * Builds the filter to apply to the hosts table.
+     * @param base The base filter.
+     * @param errorsOnly Indicates whether to show only the hosts that failed.
+     * @returns The filter to apply.
+     */
     private buildFilter(base: string, errorsOnly: boolean): string {
         throw new Error('Method not implemented.')
     }
