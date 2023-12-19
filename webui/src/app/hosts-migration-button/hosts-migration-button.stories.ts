@@ -4,7 +4,7 @@ import { ButtonModule } from 'primeng/button'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { MenuModule } from 'primeng/menu'
 import { BadgeModule } from 'primeng/badge'
-import { BrowserAnimationsModule, NoopAnimationsModule } from '@angular/platform-browser/animations'
+import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { ProgressButtonComponent } from '../progress-button/progress-button.component'
 import { toastDecorator } from '../utils-stories'
 import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
@@ -16,10 +16,6 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog'
 
 class MockHostsMigrationService implements Partial<HostsMigrationService> {
     private startCount = 0
-
-    cancelMigration(migrationId: number): Observable<void> {
-        return of(null).pipe(delay(2000));
-    }
 
     getCurrentMigration(): Observable<Migration> {
         return of(null as Migration).pipe(delay(5000));
@@ -65,7 +61,9 @@ class MockHostsMigrationService implements Partial<HostsMigrationService> {
     }
 }
 
-interface Args {}
+interface Args {
+    filter$: Observable<string>
+}
 
 export default {
     title: 'App/HostsMigrationButton',

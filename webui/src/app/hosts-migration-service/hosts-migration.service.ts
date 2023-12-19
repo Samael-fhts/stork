@@ -26,10 +26,6 @@ export class HostsMigrationService {
     return throwError(() => new Error('Not implemented'));
   }
 
-  cancelMigration(migrationId: number): Observable<void> {
-    return throwError(() => new Error('Not implemented'));
-  }
-
   removeMigration(migrationId: number): Observable<void> {
     return throwError(() => new Error('Not implemented'));
   }
