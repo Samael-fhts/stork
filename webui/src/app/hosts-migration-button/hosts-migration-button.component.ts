@@ -16,7 +16,7 @@ import { Router } from '@angular/router'
  *              a link to the migration details page. More actions are
  *              available in the dropdown menu. The loading indicator is shown.
  *              The migration progress is updated in real time and can be
- *              cancelled. Tne migrating state has two phases:
+ *              stopped. Tne migrating state has two phases:
  *              - requesting migration: The new migration is created. It is
  *                only entered from the ready state. The loading indicator is
  *                shown. The button is disabled.
@@ -51,8 +51,8 @@ import { Router } from '@angular/router'
  *  |                \                 \        | requesting |  |  --+
  *  |                 \                 \       +----v-------+  |    |
  *  |                  \                 ---->  |   migrating   |  --+
- +  +-------------------*--(cancel)-----------  +---------------+    |
- *  |                    \                           |               |
+ +  +-------------------*--(stop)-------------  +---------------+    |
+ *  |                    \                                           |
  *  |                  (migration is done)           |               |
  *  |                               \            (finished)          |
  *  |                                \               |               |
@@ -151,7 +151,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         this.onStartMigrationClick = this.onStartMigrationClick.bind(this)
         this.onShowErroredHostsClick = this.onShowErroredHostsClick.bind(this)
         this.onShowAffectedHostsClick = this.onShowAffectedHostsClick.bind(this)
-        this.onCancelMigrationClick = this.onCancelMigrationClick.bind(this)
+        this.onStopMigrationClick = this.onStopMigrationClick.bind(this)
         this.onMarkAsReadClick = this.onMarkAsReadClick.bind(this)
     }
 
@@ -364,11 +364,11 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Called when the user requests to cancel the migration.
+     * Called when the user requests to stop the migration.
      * It removes the migration and then it transitions to the 'initializing'
      * state. If the removal failed, it transitions to the 'error' state.
      */
-    onCancelMigrationClick() {
+    onStopMigrationClick() {
         this.removeMigration()
     }
 
