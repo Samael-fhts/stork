@@ -74,7 +74,13 @@
 </ng-container>
 
 <!-- Confirmation dialog -->
-<p-dialog [(visible)]="showingConfirmation" styleClass="w-4">
+<p-dialog
+    [(visible)]="showingConfirmation"
+    styleClass="w-4"
+    [modal]="true"
+    [dismissableMask]="true"
+    closeOnEscape="true"
+    (onHide)="onCancelMigrationClick()">
     <ng-template pTemplate="header">
         Confirmation
     </ng-template>
