@@ -23,7 +23,7 @@ import {
     throwError,
     timer,
 } from 'rxjs'
-import { ConfirmDialogModule } from 'primeng/confirmdialog'
+import { DialogModule } from 'primeng/dialog'
 
 /**
  * A mock of the HostsMigrationService. It replaces the real service in the
@@ -132,7 +132,7 @@ export default {
                 BadgeModule,
                 BrowserAnimationsModule,
                 ToastModule,
-                ConfirmDialogModule,
+                DialogModule
             ],
             declarations: [ProgressButtonComponent],
             providers: [

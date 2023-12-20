@@ -6,24 +6,14 @@
         [disabled]="true"
         value="0"
     ></app-progress-button>
-    <ng-container *ngSwitchCase="'ready'">
-        <app-progress-button
-            [badgeCount]="0"
-            label="Migrate reservations to Kea hosts database"
-            [progressing]="false"
-            value="0"
-            (outClick)="onStartMigrationClick()"
-        ></app-progress-button>
-        <p-confirmDialog
-            styleClass="w-4"
-            message="Migration will move the currently filtered host reservations from the Kea JSON configuration file to the hosts database. This operation cannot be undone. Host reservations filter: {{
-                currentFilter
-            }}. Are you sure that you want to proceed?"
-            header="Confirmation"
-            icon="pi pi-truck"
-            rejectButtonStyleClass="p-button-text"
-        ></p-confirmDialog>
-    </ng-container>
+    <app-progress-button
+        *ngSwitchCase="'ready'"
+        [badgeCount]="0"
+        label="Migrate reservations to Kea hosts database"
+        [progressing]="false"
+        value="0"
+        (outClick)="onStartMigrationClick()"
+    ></app-progress-button>
     <app-progress-button
         *ngSwitchCase="'migrating'"
         [badgeCount]="migration.errors"
@@ -82,3 +72,42 @@
         (outClick)="onRetryOnErrorClick()"
     ></button>
 </ng-container>
+
+<!-- Confirmation dialog -->
+<p-dialog [(visible)]="showingConfirmation" styleClass="w-4">
+    <ng-template pTemplate="header">
+        Confirmation
+    </ng-template>
+    <!-- Content -->
+    <div class="text-justify">
+        <p>
+            Migration will move the currently filtered host reservations
+            from the Kea JSON configuration file to the hosts database.
+        </p>
+        <p>
+            This operation cannot be undone.
+        </p>
+        <p class="text-center">
+            <strong>
+                Host reservations filter: "{{ currentFilter }}".
+            </strong>
+        </p>
+        <p>
+            Are you sure that you want to proceed?
+        </p>
+    </div>
+    <!-- End of content -->
+    <ng-template pTemplate="footer">
+        <button pButton
+            type="button"
+            label="Cancel"
+            class="p-button-text"
+            (click)="onCancelMigrationClick()"
+        ></button>
+        <button pButton
+            type="button"
+            label="Confirm"
+            (click)="onConfirmMigrationClick()"
+        ></button>
+    </ng-template>
+</p-dialog>

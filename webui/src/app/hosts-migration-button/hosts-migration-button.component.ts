@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core'
-import { ConfirmationService, MessageService } from 'primeng/api'
+import { MessageService } from 'primeng/api'
 import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
 import { Observable, Subscription, lastValueFrom } from 'rxjs'
 import { getErrorMessage } from '../utils'
@@ -121,6 +121,11 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      */
     subscriptions: Subscription = new Subscription()
 
+    /**
+     * Indicates whether the confirmation dialog is shown.
+     */
+    showingConfirmation: boolean = false
+
     // Component inputs.
 
     /**
@@ -144,7 +149,6 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     constructor(
         private router: Router,
         private messageService: MessageService,
-        private confirmationService: ConfirmationService,
         private migrationService: HostsMigrationService
     ) {
         // The MenuItem commands must be bound to the component instance.
@@ -323,11 +327,16 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * 'migrating' state.
      */
     onStartMigrationClick() {
-        this.confirmationService.confirm({
-            accept: () => {
-                this.transitionToMigrationRequestedState()
-            },
-        })
+        this.showingConfirmation = true
+    }
+
+    onConfirmMigrationClick() {
+        this.showingConfirmation = false
+        this.transitionToMigrationRequestedState()
+    }
+
+    onCancelMigrationClick() {
+        this.showingConfirmation = false
     }
 
     /**
