@@ -18,6 +18,24 @@ python_requirement_files = [
     "tests/sim/requirements.in",
 ] + FileList["rakelib/init_deps/*.in"]
 
+#################
+### Functions ###
+#################
+
+# Opens a file in the default application.
+def open_file(path)
+    program = nil
+    if OS == "macos"
+        program = "open"
+    elsif OS == "linux" || OS == "FreeBSD"
+        program = "xdg-open"
+    else
+        fail "operating system (#{OS}) not supported"
+    end
+
+    system program, path
+end
+
 #############
 ### Tasks ###
 #############
@@ -93,6 +111,17 @@ namespace :unittest do
 
         Dir.chdir('webui') do
             sh NPX, "ng", "test", *opts
+        end
+    end
+
+    desc 'Run coverage tests for UI.'
+    task :ui_cov => [NPX] + WEBUI_CODEBASE do
+        Dir.chdir('webui') do
+            sh NPX, "ng", "test",
+                "--no-watch",
+                "--code-coverage",
+                "--browsers", "ChromeNoSandboxHeadless"
+            open_file "coverage/stork/index.html"
         end
     end
 
@@ -353,17 +382,8 @@ namespace :run do
 
     desc 'Open the documentation in the browser'
     task :doc => [DOC_USER_ROOT, DOC_DEV_ROOT] do
-        program = nil
-        if OS == "macos"
-            program = "open"
-        elsif OS == "linux" || OS == "FreeBSD"
-            program = "xdg-open"
-        else
-            fail "operating system (#{OS}) not supported"
-        end
-
-        system program, "#{DOC_USER_ROOT}/index.html"
-        system program, "#{DOC_DEV_ROOT}/index.html"
+        open_file "#{DOC_USER_ROOT}/index.html"
+        open_file "#{DOC_DEV_ROOT}/index.html"
     end
 end
 

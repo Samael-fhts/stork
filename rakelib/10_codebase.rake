@@ -225,6 +225,7 @@ GO_TOOL_CODEBASE = go_tool_codebase
         .exclude("backend/**/*mock_test.go")
 
 CLEAN.append *FileList["backend/**/*mock_test.go"]
+CLEAN.append "backend/coverage.out"
 
 ##############
 ### Python ###
@@ -323,6 +324,8 @@ WEBUI_CODEBASE = FileList["webui", "webui/**/*"]
     .exclude("webui/.angular")
     .exclude("webui/.angular/**/*")
     .exclude("webui/node_modules/**/*")
+    .exclude("webui/coverage")
+    .exclude("webui/coverage/**/*")
     .exclude(File.join(open_api_generator_webui_dir, "**/*"))
     .exclude("webui/dist")
     .exclude("webui/dist/**/*")
@@ -332,6 +335,8 @@ WEBUI_CODEBASE = FileList["webui", "webui/**/*"]
     .include(node_module_dir)
     .include(std_option_defs4_ts_file)
     .include(std_option_defs6_ts_file)
+
+CLEAN.append "webui/coverage"
 
 #############
 ### Tasks ###
