@@ -24,6 +24,7 @@ import {
     timer,
 } from 'rxjs'
 import { DialogModule } from 'primeng/dialog'
+import { RouterModule } from '@angular/router'
 
 /**
  * A mock of the HostsMigrationService. It replaces the real service in the
@@ -122,7 +123,7 @@ export default {
     },
     decorators: [
         applicationConfig({
-            providers: [MessageService, ConfirmationService],
+            providers: [MessageService],
         }),
         moduleMetadata({
             imports: [
@@ -132,7 +133,8 @@ export default {
                 BadgeModule,
                 BrowserAnimationsModule,
                 ToastModule,
-                DialogModule
+                DialogModule,
+                RouterModule
             ],
             declarations: [ProgressButtonComponent],
             providers: [

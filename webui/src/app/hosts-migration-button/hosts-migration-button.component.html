@@ -4,14 +4,14 @@
         [badgeCount]="0"
         label="Checking migration status..."
         [disabled]="true"
-        value="0"
+        [value]="0"
     ></app-progress-button>
     <app-progress-button
         *ngSwitchCase="'ready'"
         [badgeCount]="0"
         label="Migrate reservations to Kea hosts database"
         [progressing]="false"
-        value="0"
+        [value]="0"
         (outClick)="onStartMigrationClick()"
     ></app-progress-button>
     <app-progress-button
@@ -39,7 +39,7 @@
     ></app-progress-button>
     <app-progress-button
         *ngSwitchCase="'done'"
-        [badgeCount]="14"
+        [badgeCount]="migration.errors"
         label="Migration finished"
         [value]="1"
         [progressing]="fetchingAPI"
@@ -79,7 +79,7 @@
     styleClass="w-4"
     [modal]="true"
     [dismissableMask]="true"
-    closeOnEscape="true"
+    [closeOnEscape]="true"
     (onHide)="onCancelMigrationClick()">
     <ng-template pTemplate="header">
         Confirmation
@@ -107,11 +107,13 @@
         <button pButton
             type="button"
             label="Cancel"
+            icon="pi pi-times"
             class="p-button-text"
             (click)="onCancelMigrationClick()"
         ></button>
         <button pButton
             type="button"
+            icon="pi pi-check"
             label="Confirm"
             (click)="onConfirmMigrationClick()"
         ></button>
