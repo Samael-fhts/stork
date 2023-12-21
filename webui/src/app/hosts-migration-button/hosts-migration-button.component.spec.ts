@@ -283,9 +283,7 @@ describe('HostsMigrationButtonComponent', () => {
     it('should transition to the error state from ready state after failing to start a migration', fakeAsync(() => {
         // Prepare the spies.
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
-        spyOn(migrationService, 'startMigration').and.returnValue(
-            throwError(() => new Error('error'))
-        )
+        spyOn(migrationService, 'startMigration').and.returnValue(throwError(() => new Error('error')))
 
         // Go to the ready state.
         component.ngOnInit()
@@ -311,39 +309,43 @@ describe('HostsMigrationButtonComponent', () => {
     it('should receive migration updates', fakeAsync(() => {
         // Prepare the spies.
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
-        spyOn(migrationService, 'startMigration').and.returnValue(of({
+        spyOn(migrationService, 'startMigration').and.returnValue(
+            of({
                 errors: 0,
                 filter: null,
                 inProgress: true,
                 progress: 0,
-        } as Migration))
+            } as Migration)
+        )
         // Multiple updates are received.
-        spyOn(migrationService, 'getMigrationUpdates').and.returnValue(of(
-            {
-                errors: 0,
-                filter: null,
-                inProgress: true,
-                progress: 25,
-            } as Migration,
-            {
-                errors: 0,
-                filter: null,
-                inProgress: true,
-                progress: 50,
-            } as Migration,
-            {
-                errors: 0,
-                filter: null,
-                inProgress: true,
-                progress: 75,
-            } as Migration,
-            {
-                errors: 0,
-                filter: null,
-                inProgress: false,
-                progress: 100,
-            } as Migration,
-        ))
+        spyOn(migrationService, 'getMigrationUpdates').and.returnValue(
+            of(
+                {
+                    errors: 0,
+                    filter: null,
+                    inProgress: true,
+                    progress: 25,
+                } as Migration,
+                {
+                    errors: 0,
+                    filter: null,
+                    inProgress: true,
+                    progress: 50,
+                } as Migration,
+                {
+                    errors: 0,
+                    filter: null,
+                    inProgress: true,
+                    progress: 75,
+                } as Migration,
+                {
+                    errors: 0,
+                    filter: null,
+                    inProgress: false,
+                    progress: 100,
+                } as Migration
+            )
+        )
 
         // Go to the ready state.
         component.ngOnInit()
@@ -360,12 +362,14 @@ describe('HostsMigrationButtonComponent', () => {
     it('should receive the filter value updates', fakeAsync(() => {
         // Prepare the spies.
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
-        spyOn(migrationService, 'startMigration').and.returnValue(of({
+        spyOn(migrationService, 'startMigration').and.returnValue(
+            of({
                 errors: 0,
                 filter: null,
                 inProgress: true,
                 progress: 0,
-        } as Migration))
+            } as Migration)
+        )
 
         // Filter observable.
         const filterObservable = new Subject<string>()
@@ -466,9 +470,7 @@ describe('HostsMigrationButtonComponent', () => {
         component.onFilterErroredHostsClick()
 
         // Check the emitted event.
-        expect(component.filterList.emit).toHaveBeenCalledWith(
-            'filter&with-errors'
-        )
+        expect(component.filterList.emit).toHaveBeenCalledWith('filter&with-errors')
     }))
 
     it('should stop the migration on demand', fakeAsync(() => {
