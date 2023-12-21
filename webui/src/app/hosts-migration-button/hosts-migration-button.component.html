@@ -61,16 +61,15 @@
         ]"
         (outClick)="onRedirectToMigrationDetailsClick()"
     ></app-progress-button>
-    <button
-        pButton
+    <p-button
         *ngSwitchCase="'error'"
         type="button"
         label="Migration status unavailable"
         icon="pi pi-exclamation-circle"
-        class="p-button-danger"
+        styleClass="p-button-danger"
         pTooltip="Click to retry"
-        (outClick)="onRetryOnErrorClick()"
-    ></button>
+        (click)="onRetryOnErrorClick()"
+    ></p-button>
 </ng-container>
 
 <!-- Confirmation dialog -->
