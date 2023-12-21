@@ -330,11 +330,17 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         this.showingConfirmation = true
     }
 
+    /**
+     * Called when the user confirms the migration start.
+     */
     onConfirmStartingMigrationClick() {
         this.showingConfirmation = false
         this.transitionToMigrationRequestedState()
     }
 
+    /**
+     * Called when the user cancels the migration start.
+     */
     onCancelStartingMigrationClick() {
         this.showingConfirmation = false
     }
