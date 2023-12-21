@@ -23,12 +23,12 @@
         [model]="[
             {
                 label: 'Show errored hosts',
-                command: onShowErroredHostsClick,
+                command: onFilterErroredHostsClick,
                 visible: migration.errors > 0
             },
             {
                 label: 'Show affected hosts',
-                command: onShowAffectedHostsClick
+                command: onFilterAffectedHostsClick
             },
             {
                 label: 'Stop migration',
@@ -47,12 +47,12 @@
         [model]="[
             {
                 label: 'Show errored hosts',
-                command: onShowErroredHostsClick,
+                command: onFilterErroredHostsClick,
                 visible: migration.errors > 0
             },
             {
                 label: 'Show affected hosts',
-                command: onShowAffectedHostsClick
+                command: onFilterAffectedHostsClick
             },
             {
                 label: 'Mark as read',
@@ -80,7 +80,7 @@
     [modal]="true"
     [dismissableMask]="true"
     [closeOnEscape]="true"
-    (onHide)="onCancelMigrationClick()"
+    (onHide)="onCancelStartingMigrationClick()"
 >
     <ng-template pTemplate="header"> Confirmation </ng-template>
     <!-- Content -->
@@ -103,8 +103,8 @@
             label="Cancel"
             icon="pi pi-times"
             class="p-button-text"
-            (click)="onCancelMigrationClick()"
+            (click)="onCancelStartingMigrationClick()"
         ></button>
-        <button pButton type="button" icon="pi pi-check" label="Confirm" (click)="onConfirmMigrationClick()"></button>
+        <button pButton type="button" icon="pi pi-check" label="Confirm" (click)="onConfirmStartingMigrationClick()"></button>
     </ng-template>
 </p-dialog>

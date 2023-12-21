@@ -153,8 +153,8 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     ) {
         // The MenuItem commands must be bound to the component instance.
         this.onStartMigrationClick = this.onStartMigrationClick.bind(this)
-        this.onShowErroredHostsClick = this.onShowErroredHostsClick.bind(this)
-        this.onShowAffectedHostsClick = this.onShowAffectedHostsClick.bind(this)
+        this.onFilterErroredHostsClick = this.onFilterErroredHostsClick.bind(this)
+        this.onFilterAffectedHostsClick = this.onFilterAffectedHostsClick.bind(this)
         this.onStopMigrationClick = this.onStopMigrationClick.bind(this)
         this.onMarkAsReadClick = this.onMarkAsReadClick.bind(this)
     }
@@ -330,12 +330,12 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         this.showingConfirmation = true
     }
 
-    onConfirmMigrationClick() {
+    onConfirmStartingMigrationClick() {
         this.showingConfirmation = false
         this.transitionToMigrationRequestedState()
     }
 
-    onCancelMigrationClick() {
+    onCancelStartingMigrationClick() {
         this.showingConfirmation = false
     }
 
@@ -359,7 +359,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * Called when the user requests to see the hosts that failed to migrate.
      * It emits the event to filter the hosts table.
      */
-    onShowErroredHostsClick() {
+    onFilterErroredHostsClick() {
         this.emitFilterList('filter', true)
     }
 
@@ -368,7 +368,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * migration.
      * It emits the event to filter the hosts table.
      */
-    onShowAffectedHostsClick() {
+    onFilterAffectedHostsClick() {
         this.emitFilterList('filter', false)
     }
 
@@ -456,6 +456,14 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * @returns The filter to apply.
      */
     private buildFilter(base: string, errorsOnly: boolean): string {
-        throw new Error('Method not implemented.')
+        if (base == null && !errorsOnly) {
+            return null
+        } else if (base == null) {
+            return 'with-errors'
+        } else if (!errorsOnly) {
+            return base
+        } else {
+            return base + '&with-errors'
+        }
     }
 }

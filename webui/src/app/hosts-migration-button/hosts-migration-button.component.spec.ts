@@ -1,9 +1,9 @@
-import { ComponentFixture, TestBed, fakeAsync, flush, tick } from '@angular/core/testing'
+import { ComponentFixture, TestBed, fakeAsync, flush } from '@angular/core/testing'
 
 import { HostsMigrationButtonComponent } from './hosts-migration-button.component'
 import { ProgressButtonComponent } from '../progress-button/progress-button.component'
 import { By } from '@angular/platform-browser'
-import { ConfirmationService, MessageService } from 'primeng/api'
+import { MessageService } from 'primeng/api'
 import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
 import { ButtonModule } from 'primeng/button'
 import { SplitButtonModule } from 'primeng/splitbutton'
@@ -13,7 +13,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ToastModule } from 'primeng/toast'
 import { DialogModule } from 'primeng/dialog'
 import { RouterTestingModule } from '@angular/router/testing'
-import { EMPTY, Observable, Subject, concat, merge, of, throwError } from 'rxjs'
+import { EMPTY, Subject, of, throwError } from 'rxjs'
 
 describe('HostsMigrationButtonComponent', () => {
     let component: HostsMigrationButtonComponent
@@ -230,7 +230,7 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('ready')
 
         // Start a migration.
-        component.onConfirmMigrationClick()
+        component.onConfirmStartingMigrationClick()
         flush()
         fixture.detectChanges()
 
@@ -272,7 +272,7 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.showingConfirmation).toBeTrue()
 
         // Click the confirm button.
-        component.onConfirmMigrationClick()
+        component.onConfirmStartingMigrationClick()
         flush()
 
         // It should transition to the migrating state.
@@ -293,7 +293,7 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('ready')
 
         // Start a migration.
-        component.onConfirmMigrationClick()
+        component.onConfirmStartingMigrationClick()
         flush()
         fixture.detectChanges()
 
@@ -350,7 +350,7 @@ describe('HostsMigrationButtonComponent', () => {
         flush()
 
         // Start a migration.
-        component.onConfirmMigrationClick()
+        component.onConfirmStartingMigrationClick()
         flush()
 
         // Assert.
@@ -405,7 +405,7 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.showingConfirmation).toBeTrue()
 
         // Click the cancel button.
-        component.onCancelMigrationClick()
+        component.onCancelStartingMigrationClick()
 
         // It should be still in the ready state. The confirmation dialog
         // should be hidden.
@@ -433,13 +433,104 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('ready')
     }))
 
-    it('should emit the filter for affected reservations event', fakeAsync(() => {}))
+    it('should emit the filter events', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
+        spyOn(migrationService, 'startMigration').and.returnValue(
+            of({
+                errors: 0,
+                filter: 'filter',
+                inProgress: true,
+                progress: 0,
+            } as Migration)
+        )
+        spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
+        spyOn(component.filterList, 'emit')
 
-    it('should emit the filter for errored reservations event', fakeAsync(() => {}))
+        // Go to the ready state.
+        component.ngOnInit()
+        flush()
 
-    it('should stop the migration on demand', fakeAsync(() => {}))
+        // Go to the migrating state.
+        component.onConfirmStartingMigrationClick()
+        flush()
+        expect(component.state).toBe('migrating')
 
-    it('should remove the migration if it is marked as done', fakeAsync(() => {}))
+        // Filter by affected reservations.
+        component.onFilterAffectedHostsClick()
 
-    it('should attach the proper filter to the new migration', fakeAsync(() => {}))
+        // Check the emitted event.
+        expect(component.filterList.emit).toHaveBeenCalledWith('filter')
+
+        // Filter by errored reservations.
+        component.onFilterErroredHostsClick()
+
+        // Check the emitted event.
+        expect(component.filterList.emit).toHaveBeenCalledWith(
+            'filter&with-errors'
+        )
+    }))
+
+    it('should stop the migration on demand', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValues(
+            of({
+                errors: 42,
+                filter: 'filter',
+                inProgress: true,
+                progress: 0.84,
+            } as Migration),
+            of(null)
+        )
+        spyOn(migrationService, 'removeMigration').and.returnValue(of(null))
+        spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
+
+        // Go to the migrating state.
+        component.ngOnInit()
+        flush()
+        expect(component.state).toBe('migrating')
+
+        // Cancel the migration.
+        component.onStopMigrationClick()
+        flush()
+        fixture.detectChanges()
+
+        // Assert.
+        expect(component.state).toBe('ready')
+        expect(component.migration).toBeNull()
+        expect(component.fetchingAPI).toBe(false)
+        expect(component.updateSubscription).toBeNull()
+        expect(hasLoadingIndicator()).toBe(false)
+    }))
+
+    it('should remove the migration if it is marked as done', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValues(
+            of({
+                errors: 42,
+                filter: 'filter',
+                inProgress: false,
+                progress: 1,
+            } as Migration),
+            of(null)
+        )
+        spyOn(migrationService, 'removeMigration').and.returnValue(of(null))
+
+        // Go to the done state.
+        component.ngOnInit()
+        flush()
+        expect(component.state).toBe('done')
+
+        // Mark as read.
+        component.onMarkAsReadClick()
+        flush()
+        fixture.detectChanges()
+
+        // Assert.
+        expect(component.state).toBe('ready')
+        expect(component.migration).toBeNull()
+        expect(component.fetchingAPI).toBe(false)
+        expect(component.updateSubscription).toBeNull()
+        expect(hasLoadingIndicator()).toBe(false)
+    }))
 })
