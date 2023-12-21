@@ -11,10 +11,7 @@ describe('ProgressButtonComponent', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [ProgressButtonComponent],
-            imports: [
-                ButtonModule,
-                SplitButtonModule
-            ],
+            imports: [ButtonModule, SplitButtonModule],
         })
         fixture = TestBed.createComponent(ProgressButtonComponent)
         component = fixture.componentInstance

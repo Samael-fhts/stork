@@ -134,7 +134,7 @@ export default {
                 BrowserAnimationsModule,
                 ToastModule,
                 DialogModule,
-                RouterModule
+                RouterModule,
             ],
             declarations: [ProgressButtonComponent],
             providers: [

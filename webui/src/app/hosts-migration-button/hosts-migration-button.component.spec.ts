@@ -20,13 +20,17 @@ describe('HostsMigrationButtonComponent', () => {
     let fixture: ComponentFixture<HostsMigrationButtonComponent>
     let migrationService: HostsMigrationService
 
+    /**
+     * Retrieves the progress button component from the fixture.
+     */
     function getProgressButton(): ProgressButtonComponent | null {
-        const progressButton = fixture.debugElement.query(
-            By.directive(ProgressButtonComponent)
-        )
+        const progressButton = fixture.debugElement.query(By.directive(ProgressButtonComponent))
         return progressButton?.componentInstance
     }
 
+    /**
+     * Checks if the loading indicator is displayed.
+     */
     function hasLoadingIndicator(): boolean {
         const progressButton = getProgressButton()
         if (!progressButton) {
@@ -35,6 +39,9 @@ describe('HostsMigrationButtonComponent', () => {
         return progressButton.progressing
     }
 
+    /**
+     * Retrieves the error count from the progress button.
+     */
     function getErrorCount(): number {
         const progressButton = getProgressButton()
         if (!progressButton) {
@@ -43,6 +50,9 @@ describe('HostsMigrationButtonComponent', () => {
         return progressButton.badgeCount
     }
 
+    /**
+     * Checks if the button is disabled.
+     */
     function isDisabled(): boolean {
         const progressButton = getProgressButton()
         if (!progressButton) {
@@ -51,6 +61,9 @@ describe('HostsMigrationButtonComponent', () => {
         return progressButton.disabled
     }
 
+    /**
+     * Retrieves the progress value from the progress button.
+     */
     function getProgressValue(): number {
         const progressButton = getProgressButton()
         if (!progressButton) {
@@ -129,12 +142,14 @@ describe('HostsMigrationButtonComponent', () => {
 
     it('should transition to the migrating state if a migration is in progress', fakeAsync(() => {
         // Arrange
-        spyOn(migrationService, 'getCurrentMigration').and.returnValue(of({
-            errors: 42,
-            filter: 'filter',
-            inProgress: true,
-            progress: 0.84,
-        } as Migration))
+        spyOn(migrationService, 'getCurrentMigration').and.returnValue(
+            of({
+                errors: 42,
+                filter: 'filter',
+                inProgress: true,
+                progress: 0.84,
+            } as Migration)
+        )
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
 
         // Act
@@ -162,12 +177,14 @@ describe('HostsMigrationButtonComponent', () => {
 
     it('should transition to the done state if a migration is already done', fakeAsync(() => {
         // Arrange
-        spyOn(migrationService, 'getCurrentMigration').and.returnValue(of({
-            errors: 42,
-            filter: 'filter',
-            inProgress: false,
-            progress: 1,
-        } as Migration))
+        spyOn(migrationService, 'getCurrentMigration').and.returnValue(
+            of({
+                errors: 42,
+                filter: 'filter',
+                inProgress: false,
+                progress: 1,
+            } as Migration)
+        )
 
         // Act
         component.ngOnInit()
@@ -230,12 +247,14 @@ describe('HostsMigrationButtonComponent', () => {
     it('should display the confirmation dialog before starting a migration', fakeAsync(() => {
         // Prepare the spies.
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
-        spyOn(migrationService, 'startMigration').and.returnValue(of({
-            errors: 0,
-            filter: 'filter',
-            inProgress: true,
-            progress: 0,
-        } as Migration))
+        spyOn(migrationService, 'startMigration').and.returnValue(
+            of({
+                errors: 0,
+                filter: 'filter',
+                inProgress: true,
+                progress: 0,
+            } as Migration)
+        )
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
 
         // Go to the ready state.
@@ -261,33 +280,23 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.showingConfirmation).toBeFalse()
     }))
 
-    it('should transition to the error state from ready state after failing to start a migration', fakeAsync(() => {
-    }))
+    it('should transition to the error state from ready state after failing to start a migration', fakeAsync(() => {}))
 
-    it('should receive migration updates', fakeAsync(() => {
-    }))
+    it('should receive migration updates', fakeAsync(() => {}))
 
-    it('should receive the filter value updates', fakeAsync(() => {
-    }))
+    it('should receive the filter value updates', fakeAsync(() => {}))
 
-    it('should preserve the ready state if starting a migration is canceled', fakeAsync(() => {
-    }))
+    it('should preserve the ready state if starting a migration is canceled', fakeAsync(() => {}))
 
-    it('should transition to the initializing state on retry request', fakeAsync(() => {
-    }))
+    it('should transition to the initializing state on retry request', fakeAsync(() => {}))
 
-    it('should emit the filter for affected reservations event', fakeAsync(() => {
-    }))
+    it('should emit the filter for affected reservations event', fakeAsync(() => {}))
 
-    it('should emit the filter for errored reservations event', fakeAsync(() => {
-    }))
+    it('should emit the filter for errored reservations event', fakeAsync(() => {}))
 
-    it('should stop the migration on demand', fakeAsync(() => {
-    }))
+    it('should stop the migration on demand', fakeAsync(() => {}))
 
-    it('should remove the migration if it is marked as done', fakeAsync(() => {
-    }))
+    it('should remove the migration if it is marked as done', fakeAsync(() => {}))
 
-    it('should attach the proper filter to the new migration', fakeAsync(() => {
-    }))
+    it('should attach the proper filter to the new migration', fakeAsync(() => {}))
 })

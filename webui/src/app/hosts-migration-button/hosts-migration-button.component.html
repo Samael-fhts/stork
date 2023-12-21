@@ -80,42 +80,31 @@
     [modal]="true"
     [dismissableMask]="true"
     [closeOnEscape]="true"
-    (onHide)="onCancelMigrationClick()">
-    <ng-template pTemplate="header">
-        Confirmation
-    </ng-template>
+    (onHide)="onCancelMigrationClick()"
+>
+    <ng-template pTemplate="header"> Confirmation </ng-template>
     <!-- Content -->
     <div class="text-justify">
         <p>
-            Migration will move the currently filtered host reservations
-            from the Kea JSON configuration file to the hosts database.
+            Migration will move the currently filtered host reservations from the Kea JSON configuration file to the
+            hosts database.
         </p>
-        <p>
-            This operation cannot be undone.
-        </p>
+        <p>This operation cannot be undone.</p>
         <p class="text-center">
-            <strong>
-                Host reservations filter: "{{ currentFilter }}".
-            </strong>
+            <strong> Host reservations filter: "{{ currentFilter }}". </strong>
         </p>
-        <p>
-            Are you sure that you want to proceed?
-        </p>
+        <p>Are you sure that you want to proceed?</p>
     </div>
     <!-- End of content -->
     <ng-template pTemplate="footer">
-        <button pButton
+        <button
+            pButton
             type="button"
             label="Cancel"
             icon="pi pi-times"
             class="p-button-text"
             (click)="onCancelMigrationClick()"
         ></button>
-        <button pButton
-            type="button"
-            icon="pi pi-check"
-            label="Confirm"
-            (click)="onConfirmMigrationClick()"
-        ></button>
+        <button pButton type="button" icon="pi pi-check" label="Confirm" (click)="onConfirmMigrationClick()"></button>
     </ng-template>
 </p-dialog>
