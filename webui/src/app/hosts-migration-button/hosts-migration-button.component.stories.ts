@@ -13,7 +13,7 @@ import { Observable, interval, map } from 'rxjs'
 import { DialogModule } from 'primeng/dialog'
 import { RouterModule } from '@angular/router'
 import { MessageService } from 'primeng/api'
-import { MockHostsMigrationService } from '../hosts-migration-service/hosts-migration-mock.stories'
+import { MockHostsMigrationService } from '../hosts-migration-service/hosts-migration-mock.service'
 
 /**
  * Describes the component's arguments.
