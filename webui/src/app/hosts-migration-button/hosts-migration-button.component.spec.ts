@@ -13,7 +13,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ToastModule } from 'primeng/toast'
 import { DialogModule } from 'primeng/dialog'
 import { RouterTestingModule } from '@angular/router/testing'
-import { EMPTY, of } from 'rxjs'
+import { EMPTY, Subject, of, throwError } from 'rxjs'
 
 describe('HostsMigrationButtonComponent', () => {
     let component: HostsMigrationButtonComponent
@@ -280,11 +280,111 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.showingConfirmation).toBeFalse()
     }))
 
-    it('should transition to the error state from ready state after failing to start a migration', fakeAsync(() => {}))
+    it('should transition to the error state from ready state after failing to start a migration', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
+        spyOn(migrationService, 'startMigration').and.returnValue(
+            throwError(() => new Error('error'))
+        )
 
-    it('should receive migration updates', fakeAsync(() => {}))
+        // Go to the ready state.
+        component.ngOnInit()
+        flush()
+        expect(component.state).toBe('ready')
 
-    it('should receive the filter value updates', fakeAsync(() => {}))
+        // Start a migration.
+        component.onConfirmMigrationClick()
+        flush()
+        fixture.detectChanges()
+
+        // Assert.
+        expect(component.state).toBe('error')
+        expect(component.migration).toBeNull()
+        expect(component.fetchingAPI).toBe(false)
+        expect(component.updateSubscription).toBeNull()
+        expect(hasLoadingIndicator()).toBe(false)
+        expect(isDisabled()).toBe(false)
+        expect(getErrorCount()).toBeNull()
+        expect(getProgressValue()).toBeNull()
+    }))
+
+    it('should receive migration updates', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
+        spyOn(migrationService, 'startMigration').and.returnValue(of({
+                errors: 0,
+                filter: null,
+                inProgress: true,
+                progress: 0,
+        } as Migration))
+        // Multiple updates are received.
+        spyOn(migrationService, 'getMigrationUpdates').and.returnValue(of(
+            {
+                errors: 0,
+                filter: null,
+                inProgress: true,
+                progress: 25,
+            } as Migration,
+            {
+                errors: 0,
+                filter: null,
+                inProgress: true,
+                progress: 50,
+            } as Migration,
+            {
+                errors: 0,
+                filter: null,
+                inProgress: true,
+                progress: 75,
+            } as Migration,
+            {
+                errors: 0,
+                filter: null,
+                inProgress: false,
+                progress: 100,
+            } as Migration,
+        ))
+
+        // Go to the ready state.
+        component.ngOnInit()
+        flush()
+
+        // Start a migration.
+        component.onConfirmMigrationClick()
+        flush()
+
+        // Assert.
+        expect(component.state).toBe('done')
+    }))
+
+    it('should receive the filter value updates', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
+        spyOn(migrationService, 'startMigration').and.returnValue(of({
+                errors: 0,
+                filter: null,
+                inProgress: true,
+                progress: 0,
+        } as Migration))
+
+        // Filter observable.
+        const filterObservable = new Subject<string>()
+        component.filter$ = filterObservable.asObservable()
+
+        // Go to the ready state.
+        component.ngOnInit()
+        flush()
+        expect(component.state).toBe('ready')
+
+        // Check the initial filter value.
+        expect(component.currentFilter).toBeNull()
+
+        // Update the filter value.
+        filterObservable.next('filter')
+
+        // Assert.
+        expect(component.currentFilter).toBe('filter')
+    }))
 
     it('should preserve the ready state if starting a migration is canceled', fakeAsync(() => {}))
 
