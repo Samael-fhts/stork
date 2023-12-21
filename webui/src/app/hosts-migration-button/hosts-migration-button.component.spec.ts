@@ -13,7 +13,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ToastModule } from 'primeng/toast'
 import { DialogModule } from 'primeng/dialog'
 import { RouterTestingModule } from '@angular/router/testing'
-import { EMPTY, Subject, of, throwError } from 'rxjs'
+import { EMPTY, Observable, Subject, concat, merge, of, throwError } from 'rxjs'
 
 describe('HostsMigrationButtonComponent', () => {
     let component: HostsMigrationButtonComponent
@@ -386,9 +386,52 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.currentFilter).toBe('filter')
     }))
 
-    it('should preserve the ready state if starting a migration is canceled', fakeAsync(() => {}))
+    it('should preserve the ready state if starting a migration is canceled', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
 
-    it('should transition to the initializing state on retry request', fakeAsync(() => {}))
+        // Go to the ready state.
+        component.ngOnInit()
+        flush()
+        expect(component.state).toBe('ready')
+
+        // Click the start button.
+        component.onStartMigrationClick()
+        flush()
+
+        // It should display the confirmation dialog and be still in the ready
+        // state.
+        expect(component.state).toBe('ready')
+        expect(component.showingConfirmation).toBeTrue()
+
+        // Click the cancel button.
+        component.onCancelMigrationClick()
+
+        // It should be still in the ready state. The confirmation dialog
+        // should be hidden.
+        expect(component.state).toBe('ready')
+        expect(component.showingConfirmation).toBeFalse()
+    }))
+
+    it('should transition to the initializing state on retry request', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValues(
+            throwError(() => new Error('error')),
+            of(null)
+        )
+
+        // Go to the error state.
+        component.ngOnInit()
+        flush()
+        expect(component.state).toBe('error')
+
+        // Click the retry button.
+        component.onRetryOnErrorClick()
+        flush()
+
+        // Assert.
+        expect(component.state).toBe('ready')
+    }))
 
     it('should emit the filter for affected reservations event', fakeAsync(() => {}))
 
