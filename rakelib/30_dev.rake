@@ -96,17 +96,18 @@ namespace :unittest do
             # allows us to provide both a path relative to the root or webui
             # directory.
             test_path = ENV["TEST"].delete_prefix('webui/')
-            opts += ["--include", test_path]
+            opts.append "--include", test_path
         end
 
-        opts += ["--progress", debug]
-        opts += ["--watch", debug]
+        opts.append "--progress", debug
+        opts.append "--watch", debug
 
-        opts += ["--browsers"]
+        opts.append "--browsers"
         if debug == "true"
-            opts += ["Chrome"]
+            opts.append "Chrome"
         else
-            opts += ["ChromeNoSandboxHeadless"]
+            opts.append "ChromeNoSandboxHeadless"
+            opts.append "--code-coverage"
         end
 
         Dir.chdir('webui') do
