@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core'
 import { Observable, throwError } from 'rxjs'
+import { QueryParamsFilter } from '../hosts-page/query-params-filter'
 
 /**
  * The migration structure.
@@ -12,7 +13,7 @@ export interface Migration {
     // Indicates if the migration is in progress.
     inProgress: boolean
     // The host reservation filter related to the migration.
-    filter: string
+    filter: QueryParamsFilter
 }
 
 /**
@@ -36,8 +37,8 @@ export class HostsMigrationService {
      * @param filter The host reservation filter to apply during migration.
      * @returns An observable emitting the migration status.
      */
-    startMigration(filter: string): Observable<Migration> {
-        return throwError(() => new Error('Not implemented'))
+    startMigration(filter: QueryParamsFilter): Observable<Migration> {
+        return throwError(() => new Error(`Not implemented, got filter: ${filter}`))
     }
 
     /**

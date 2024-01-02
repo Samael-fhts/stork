@@ -4,6 +4,7 @@ import { HostsMigrationService, Migration } from '../hosts-migration-service/hos
 import { Observable, Subscription, lastValueFrom } from 'rxjs'
 import { getErrorMessage } from '../utils'
 import { Router } from '@angular/router'
+import { QueryParamsFilter } from '../hosts-page/query-params-filter'
 
 /**
  * The UI of this component is organized in the shape of a state machine.
@@ -113,7 +114,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     /**
      * The current value of the host reservation filter in the hosts table.
      */
-    currentFilter: string = null
+    currentFilter: QueryParamsFilter = null
 
     /**
      * The subscriptions subscribed by the component.
@@ -132,7 +133,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * The observable that emits the current value of the host reservation
      * filter in the hosts table.
      */
-    @Input() filter$: Observable<string>
+    @Input() filter$: Observable<QueryParamsFilter>
 
     // Event emitters.
 

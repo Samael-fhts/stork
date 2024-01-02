@@ -14,6 +14,7 @@ import { ToastModule } from 'primeng/toast'
 import { DialogModule } from 'primeng/dialog'
 import { RouterTestingModule } from '@angular/router/testing'
 import { EMPTY, Subject, of, throwError } from 'rxjs'
+import { QueryParamsFilter } from '../hosts-page/query-params-filter'
 
 describe('HostsMigrationButtonComponent', () => {
     let component: HostsMigrationButtonComponent
@@ -89,6 +90,15 @@ describe('HostsMigrationButtonComponent', () => {
         })
         fixture = TestBed.createComponent(HostsMigrationButtonComponent)
         component = fixture.componentInstance
+        component.currentFilter = {
+            appId: null,
+            conflict: null,
+            global: null,
+            keaSubnetId: null,
+            subnetId: null,
+            text: null,
+        }
+
         migrationService = TestBed.inject(HostsMigrationService)
         fixture.detectChanges()
     })
@@ -145,7 +155,14 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(
             of({
                 errors: 42,
-                filter: 'filter',
+                filter: {
+                    text: 'filter',
+                    appId: null,
+                    conflict: null,
+                    global: null,
+                    keaSubnetId: null,
+                    subnetId: null,
+                },
                 inProgress: true,
                 progress: 0.84,
             } as Migration)
@@ -162,7 +179,14 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('migrating')
         expect(component.migration).toEqual({
             errors: 42,
-            filter: 'filter',
+            filter: {
+                text: 'filter',
+                appId: null,
+                conflict: null,
+                global: null,
+                keaSubnetId: null,
+                subnetId: null,
+            },
             inProgress: true,
             progress: 0.84,
         } as Migration)
@@ -180,7 +204,14 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(
             of({
                 errors: 42,
-                filter: 'filter',
+                filter: {
+                    text: 'filter',
+                    appId: null,
+                    conflict: null,
+                    global: null,
+                    keaSubnetId: null,
+                    subnetId: null,
+                },
                 inProgress: false,
                 progress: 1,
             } as Migration)
@@ -196,7 +227,14 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('done')
         expect(component.migration).toEqual({
             errors: 42,
-            filter: 'filter',
+            filter: {
+                text: 'filter',
+                appId: null,
+                conflict: null,
+                global: null,
+                keaSubnetId: null,
+                subnetId: null,
+            },
             inProgress: false,
             progress: 1,
         } as Migration)
@@ -213,7 +251,7 @@ describe('HostsMigrationButtonComponent', () => {
         // Prepare the spies.
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
         spyOn(migrationService, 'startMigration').and.callFake((filter) => {
-            expect(filter).toBe('filter')
+            expect(filter.text).toBe('filter')
             return of({
                 errors: 0,
                 filter: filter,
@@ -222,7 +260,14 @@ describe('HostsMigrationButtonComponent', () => {
             } as Migration)
         })
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
-        component.currentFilter = 'filter'
+        component.currentFilter = {
+            text: 'filter',
+            appId: null,
+            conflict: null,
+            global: null,
+            keaSubnetId: null,
+            subnetId: null,
+        }
 
         // Go to the ready state.
         component.ngOnInit()
@@ -238,7 +283,14 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('migrating')
         expect(component.migration).toEqual({
             errors: 0,
-            filter: 'filter',
+            filter: {
+                text: 'filter',
+                appId: null,
+                conflict: null,
+                global: null,
+                keaSubnetId: null,
+                subnetId: null,
+            },
             inProgress: true,
             progress: 0,
         } as Migration)
@@ -250,7 +302,14 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'startMigration').and.returnValue(
             of({
                 errors: 0,
-                filter: 'filter',
+                filter: {
+                    text: 'filter',
+                    appId: null,
+                    conflict: null,
+                    global: null,
+                    keaSubnetId: null,
+                    subnetId: null,
+                },
                 inProgress: true,
                 progress: 0,
             } as Migration)
@@ -372,7 +431,7 @@ describe('HostsMigrationButtonComponent', () => {
         )
 
         // Filter observable.
-        const filterObservable = new Subject<string>()
+        const filterObservable = new Subject<QueryParamsFilter>()
         component.filter$ = filterObservable.asObservable()
 
         // Go to the ready state.
@@ -381,13 +440,22 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('ready')
 
         // Check the initial filter value.
-        expect(component.currentFilter).toBeNull()
+        for (const key of Object.keys(component.currentFilter)) {
+            expect(component.currentFilter[key]).toBeNull()
+        }
 
         // Update the filter value.
-        filterObservable.next('filter')
+        filterObservable.next({
+            text: 'filter',
+            appId: null,
+            conflict: null,
+            global: null,
+            keaSubnetId: null,
+            subnetId: null,
+        })
 
         // Assert.
-        expect(component.currentFilter).toBe('filter')
+        expect(component.currentFilter.text).toBe('filter')
     }))
 
     it('should preserve the ready state if starting a migration is canceled', fakeAsync(() => {
@@ -443,7 +511,14 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'startMigration').and.returnValue(
             of({
                 errors: 0,
-                filter: 'filter',
+                filter: {
+                    text: 'filter',
+                    appId: null,
+                    conflict: null,
+                    global: null,
+                    keaSubnetId: null,
+                    subnetId: null,
+                },
                 inProgress: true,
                 progress: 0,
             } as Migration)
@@ -478,7 +553,14 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'getCurrentMigration').and.returnValues(
             of({
                 errors: 42,
-                filter: 'filter',
+                filter: {
+                    text: 'filter',
+                    appId: null,
+                    conflict: null,
+                    global: null,
+                    keaSubnetId: null,
+                    subnetId: null,
+                },
                 inProgress: true,
                 progress: 0.84,
             } as Migration),
@@ -510,7 +592,14 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'getCurrentMigration').and.returnValues(
             of({
                 errors: 42,
-                filter: 'filter',
+                filter: {
+                    text: 'filter',
+                    appId: null,
+                    conflict: null,
+                    global: null,
+                    keaSubnetId: null,
+                    subnetId: null,
+                },
                 inProgress: false,
                 progress: 1,
             } as Migration),

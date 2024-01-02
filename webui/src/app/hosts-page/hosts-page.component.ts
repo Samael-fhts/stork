@@ -6,11 +6,12 @@ import { Table } from 'primeng/table'
 
 import { DHCPService } from '../backend/api/api'
 import { extractKeyValsAndPrepareQueryParams, getErrorMessage } from '../utils'
-import { concat, of, Subscription } from 'rxjs'
+import { BehaviorSubject, concat, of, Subscription } from 'rxjs'
 import { filter, take } from 'rxjs/operators'
 import { HostForm } from '../forms/host-form'
 import { Host, LocalHost } from '../backend'
 import { hasDifferentLocalHostData } from '../hosts'
+import { QueryParamsFilter } from './query-params-filter'
 
 /**
  * Enumeration for different host tab types displayed by the component.
@@ -20,19 +21,6 @@ export enum HostTabType {
     NewHost,
     EditHost,
     Host,
-}
-
-/**
- * Specifies the filter parameters for fetching hosts that may be specified
- * in the URL query parameters.
- */
-interface QueryParamsFilter {
-    text: string
-    appId: number
-    subnetId: number
-    keaSubnetId: number
-    global: boolean
-    conflict: boolean
 }
 
 /**
@@ -178,14 +166,14 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
     // filters
     filterText = ''
-    queryParams: QueryParamsFilter = {
+    queryParams$ = new BehaviorSubject<QueryParamsFilter>({
         text: null,
         appId: null,
         subnetId: null,
         keaSubnetId: null,
         global: null,
         conflict: null,
-    }
+    })
 
     /**
      * Array of tabs with host information.
@@ -358,31 +346,40 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * @param params query parameters received from activated route.
      */
     private updateQueryParams(params: ParamMap) {
-        this.queryParams.text = params.get('text')
+        const queryParams: QueryParamsFilter = {
+            text: null,
+            appId: null,
+            subnetId: null,
+            keaSubnetId: null,
+            global: null,
+            conflict: null,
+        }
+
+        queryParams.text = params.get('text')
 
         let filterTextFormatErrors: string[] = []
 
         // Convert appId to a number. It is NaN if the parameter doesn't exist
         // or it is malformed.
         const appId = parseInt(params.get('appId'), 10)
-        this.queryParams.appId = isNaN(appId) ? null : appId
-        if (params.get('appId') != null && this.queryParams.appId === null) {
+        queryParams.appId = isNaN(appId) ? null : appId
+        if (params.get('appId') != null && queryParams.appId === null) {
             filterTextFormatErrors.push('Please specify appId as a number (e.g., appId:2).')
         }
 
         // Convert subnetId to a number. It is NaN if the parameter doesn't exist
         // or it is malformed.
         const subnetId = parseInt(params.get('subnetId'), 10)
-        this.queryParams.subnetId = isNaN(subnetId) ? null : subnetId
-        if (params.get('subnetId') != null && this.queryParams.subnetId === null) {
+        queryParams.subnetId = isNaN(subnetId) ? null : subnetId
+        if (params.get('subnetId') != null && queryParams.subnetId === null) {
             filterTextFormatErrors.push('Please specify subnetId as a number (e.g., subnetId:2).')
         }
 
         // Convert keaSubnetId to a number. It is NaN if the parameter doesn't exist
         // or it is malformed.
         const keaSubnetId = parseInt(params.get('keaSubnetId'), 10)
-        this.queryParams.keaSubnetId = isNaN(keaSubnetId) ? null : keaSubnetId
-        if (params.get('keaSubnetId') != null && this.queryParams.keaSubnetId === null) {
+        queryParams.keaSubnetId = isNaN(keaSubnetId) ? null : keaSubnetId
+        if (params.get('keaSubnetId') != null && queryParams.keaSubnetId === null) {
             filterTextFormatErrors.push('Please specify keaSubnetId as a number (e.g., keaSubnetId:2).')
         }
 
@@ -390,13 +387,14 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
         // Global.
         const g = params.get('global')
-        this.queryParams.global = parseBoolean(g)
+        queryParams.global = parseBoolean(g)
 
         // Conflict.
         const c = params.get('conflict')
-        this.queryParams.conflict = parseBoolean(c)
+        queryParams.conflict = parseBoolean(c)
 
         this.filterTextFormatErrors = filterTextFormatErrors
+        this.queryParams$.next(queryParams)
     }
 
     /**
@@ -567,7 +565,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * not specified, the current values are used when available.
      */
     loadHosts(event?) {
-        const params = this.queryParams
+        const params = this.queryParams$.getValue()
         if (typeof event === 'undefined') {
             event = { first: 0, rows: 10 }
             if (this.hostsTable) {

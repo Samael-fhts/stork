@@ -14,12 +14,14 @@ import { DialogModule } from 'primeng/dialog'
 import { RouterModule } from '@angular/router'
 import { MessageService } from 'primeng/api'
 import { MockHostsMigrationService } from '../hosts-migration-service/hosts-migration-mock.service'
+import { PlaceholderPipe } from '../pipes/placeholder.pipe'
+import { QueryParamsFilter } from '../hosts-page/query-params-filter'
 
 /**
  * Describes the component's arguments.
  */
 interface Args {
-    filter$: Observable<string>
+    filter$: Observable<QueryParamsFilter>
 }
 
 /**
@@ -59,7 +61,7 @@ export default {
                 DialogModule,
                 RouterModule,
             ],
-            declarations: [ProgressButtonComponent],
+            declarations: [ProgressButtonComponent, PlaceholderPipe],
             providers: [
                 // Provide a mock service instead of the real one.
                 {
@@ -78,6 +80,13 @@ export default {
 export const Primary: StoryObj<Args> = {
     args: {
         // Generates a new filter every 3s.
-        filter$: interval(3000).pipe(map((v) => `filter-${v}`)),
+        filter$: interval(3000).pipe(map((v) => ({
+            appId: v % 5 === 0 ? v : null,
+            conflict: v % 7 === 0 ? (v % 2 == 0) : null,
+            global: v % 9 === 0 ? (v % 2 == 0) : null,
+            keaSubnetId: v % 11 === 0 ? v : null,
+            subnetId: v % 13 === 0 ? v : null,
+            text: v % 17 === 0 ? `filter-${v}` : null,
+        }))),
     },
 }

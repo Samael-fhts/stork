@@ -92,9 +92,50 @@
             hosts database.
         </p>
         <p>This operation cannot be undone.</p>
-        <p class="text-center">
-            <strong>Host reservations filter: {{ currentFilter | placeholder  }}.</strong>
-        </p>
+        <div class="grid">
+            <!-- App ID -->
+            <div class="col-6 font-semibold" *ngIf="currentFilter.appId">
+                App ID
+            </div>
+            <div class="col-6" *ngIf="currentFilter.appId">
+                {{ currentFilter.appId }}
+            </div>
+            <!-- Subnet ID -->
+            <div class="col-6 font-semibold" *ngIf="currentFilter.subnetId">
+                Subnet ID
+            </div> 
+            <div class="col-6" *ngIf="currentFilter.subnetId">
+                {{ currentFilter.subnetId }}
+            </div>
+            <!-- Kea subnet ID -->
+            <div class="col-6 font-semibold" *ngIf="currentFilter.keaSubnetId">
+                Kea subnet ID
+            </div>
+            <div class="col-6" *ngIf="currentFilter.keaSubnetId">
+                {{ currentFilter.keaSubnetId }}
+            </div>
+            <!-- Conflict -->
+            <div class="col-6 font-semibold" *ngIf="currentFilter.conflict">
+                Conflict
+            </div>
+            <div class="col-6" *ngIf="currentFilter.conflict">
+                {{ currentFilter.conflict }}
+            </div>
+            <!-- Global -->
+            <div class="col-6 font-semibold" *ngIf="currentFilter.global">
+                Global
+            </div>
+            <div class="col-6" *ngIf="currentFilter.global">
+                {{ currentFilter.global }}
+            </div>
+            <!-- Text -->
+            <div class="col-6 font-semibold" *ngIf="currentFilter.text">
+                Text
+            </div>
+            <div class="col-6" *ngIf="currentFilter.text">
+                {{ currentFilter.text }}
+            </div>
+        </div>
         <p>Are you sure that you want to proceed?</p>
     </div>
     <!-- End of content -->

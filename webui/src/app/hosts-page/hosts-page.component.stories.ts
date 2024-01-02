@@ -119,7 +119,17 @@ export default {
                 FormsModule,
                 TableModule,
                 HttpClientModule,
-                RouterTestingModule,
+                RouterTestingModule.withRoutes([
+                    {
+                        path: 'dhcp/hosts',
+                        pathMatch: 'full',
+                        redirectTo: 'dhcp/hosts/all',
+                    },
+                    {
+                        path: 'dhcp/hosts/:id',
+                        component: HostsPageComponent,
+                    },
+                ]),,
                 TabMenuModule,
                 BreadcrumbModule,
                 OverlayPanelModule,

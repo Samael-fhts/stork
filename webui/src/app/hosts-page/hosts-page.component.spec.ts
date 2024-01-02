@@ -40,6 +40,9 @@ import { DividerModule } from 'primeng/divider'
 import { HostDataSourceLabelComponent } from '../host-data-source-label/host-data-source-label.component'
 import { TagModule } from 'primeng/tag'
 import { MessagesModule } from 'primeng/messages'
+import { HostsMigrationButtonComponent } from '../hosts-migration-button/hosts-migration-button.component'
+import { DialogModule } from 'primeng/dialog'
+import { ProgressButtonComponent } from '../progress-button/progress-button.component'
 
 describe('HostsPageComponent', () => {
     let component: HostsPageComponent
@@ -91,6 +94,7 @@ describe('HostsPageComponent', () => {
                 TreeModule,
                 TagModule,
                 MessagesModule,
+                DialogModule,
             ],
             declarations: [
                 EntityLinkComponent,
@@ -106,6 +110,8 @@ describe('HostsPageComponent', () => {
                 DhcpOptionSetFormComponent,
                 DhcpOptionSetViewComponent,
                 HostDataSourceLabelComponent,
+                ProgressButtonComponent,
+                HostsMigrationButtonComponent,
             ],
         }).compileComponents()
     }))

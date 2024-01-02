@@ -1,5 +1,6 @@
 import { Observable, concatMap, delay, generate, ignoreElements, merge, of, throwError, timer } from 'rxjs'
 import { HostsMigrationService, Migration } from './hosts-migration.service'
+import { QueryParamsFilter } from '../hosts-page/query-params-filter'
 
 /**
  * A mock of the HostsMigrationService. It replaces the real service in the
@@ -33,7 +34,7 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
                     progress: i / 100,
                     errors: Math.round(i / 10),
                     inProgress: i !== 100,
-                    filter: `filter-${i}`,
+                    filter: { text: `filter-${i}` },
                 }) as Migration,
         })
 
@@ -52,7 +53,7 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
      * Returns an initial migration status after 5s.
      * Fails every 3rd call.
      */
-    startMigration(filter: string): Observable<Migration> {
+    startMigration(filter: QueryParamsFilter): Observable<Migration> {
         this.startCount += 1
         if (this.startCount % 3 === 0) {
             return throwError(() => new Error('Could not start the migration')).pipe(delay(2000))
