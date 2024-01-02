@@ -81,7 +81,10 @@
     [closeOnEscape]="true"
     (onHide)="onCancelStartingMigrationClick()"
 >
-    <ng-template pTemplate="header"> Confirmation </ng-template>
+    <ng-template pTemplate="header">
+        <i class="pi pi-question-circle"></i>
+        <span>Confirmation</span>
+    </ng-template>
     <!-- Content -->
     <div class="text-justify">
         <p>
@@ -90,7 +93,7 @@
         </p>
         <p>This operation cannot be undone.</p>
         <p class="text-center">
-            <strong> Host reservations filter: "{{ currentFilter }}". </strong>
+            <strong>Host reservations filter: {{ currentFilter | placeholder  }}.</strong>
         </p>
         <p>Are you sure that you want to proceed?</p>
     </div>
