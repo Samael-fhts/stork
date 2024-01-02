@@ -80,13 +80,15 @@ export default {
 export const Primary: StoryObj<Args> = {
     args: {
         // Generates a new filter every 3s.
-        filter$: interval(3000).pipe(map((v) => ({
-            appId: v % 5 === 0 ? v : null,
-            conflict: v % 7 === 0 ? (v % 2 == 0) : null,
-            global: v % 9 === 0 ? (v % 2 == 0) : null,
-            keaSubnetId: v % 11 === 0 ? v : null,
-            subnetId: v % 13 === 0 ? v : null,
-            text: v % 17 === 0 ? `filter-${v}` : null,
-        }))),
+        filter$: interval(3000).pipe(
+            map((v) => ({
+                appId: v % 5 === 0 ? v : null,
+                conflict: v % 7 === 0 ? v % 2 == 0 : null,
+                global: v % 9 === 0 ? v % 2 == 0 : null,
+                keaSubnetId: v % 11 === 0 ? v : null,
+                subnetId: v % 13 === 0 ? v : null,
+                text: v % 17 === 0 ? `filter-${v}` : null,
+            }))
+        ),
     },
 }
