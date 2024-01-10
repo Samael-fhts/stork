@@ -1,657 +1,582 @@
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Container Scanning customization: https://docs.gitlab.com/ee/user/application_security/container_scanning/#customizing-the-container-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
 image: registry.gitlab.isc.org/isc-projects/stork/ci-base:3
-
-# Only create pipelines for merge requests and pushes/merges to the main branch
 workflow:
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
-
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
 variables:
   POSTGRES_ADDR: postgres:5432
   POSTGRES_DB: storktest
   POSTGRES_USER: storktest
   POSTGRES_PASSWORD: storktest
-  STORK_DATABASE_MAINTENANCE_NAME: "postgres"
-  STORK_DATABASE_MAINTENANCE_USER_NAME: "storktest"
-  STORK_DATABASE_MAINTENANCE_PASSWORD: "storktest"
-
-  # this is used to build docker images of stork (using DIND)
+  STORK_DATABASE_MAINTENANCE_NAME: postgres
+  STORK_DATABASE_MAINTENANCE_USER_NAME: storktest
+  STORK_DATABASE_MAINTENANCE_PASSWORD: storktest
   DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: ""  # this is workaround for TLS problem https://about.gitlab.com/blog/2019/07/31/docker-in-docker-with-docker-19-dot-03/
-
-  # Force Unicode
+  DOCKER_TLS_CERTDIR: ''
   LC_ALL: C.UTF-8
   LANG: C.UTF-8
-
-  # The hooks are specified as the git submodules. It allows us to pin the
-  # specific commit to release. It is beneficial as the hook development may
-  # not be in sync with the main project development.
-  # The hooks are not needed in the most of CI tasks, so the repositories are
-  # not cloned by default.
   GIT_SUBMODULE_STRATEGY: none
-
-# stages order
 stages:
-  - checks
-  - system_tests
-  - build
-  - hooks
-  - deploy
-
-### build jobs ###
-
-# common parts used in build jobs
-.base_build_debian:
+- checks
+- system_tests
+- build
+- hooks
+- deploy
+".base_build_debian":
   stage: checks
   rules:
-    - when: always
+  - when: always
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   cache:
-    key: $CI_PROJECT_NAME-debian-$CI_COMMIT_REF_SLUG
+    key: "$CI_PROJECT_NAME-debian-$CI_COMMIT_REF_SLUG"
     paths:
-      - tools/
-      - webui/node_modules/
-      - /root/.cache/go-build
-      - /var/lib/dpkg/info
+    - tools/
+    - webui/node_modules/
+    - "/root/.cache/go-build"
+    - "/var/lib/dpkg/info"
     fallback_keys:
-      - $CI_PROJECT_NAME-debian-$CI_DEFAULT_BRANCH
+    - "$CI_PROJECT_NAME-debian-$CI_DEFAULT_BRANCH"
   before_script:
-    - sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    - sysctl -w net.ipv6.conf.default.disable_ipv6=1
-    - rake prepare
-    - rake prepare:deps
-
-.base_build_debian_arm:
-  extends: .base_build_debian
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - rake prepare
+  - rake prepare:deps
+".base_build_debian_arm":
+  extends: ".base_build_debian"
   cache:
-    key: $CI_PROJECT_NAME-debian-arm-$CI_COMMIT_REF_SLUG
+    key: "$CI_PROJECT_NAME-debian-arm-$CI_COMMIT_REF_SLUG"
     paths:
-      - tools/
-      - webui/node_modules/
-      - /root/.cache/go-build
-      - /var/lib/dpkg/info
+    - tools/
+    - webui/node_modules/
+    - "/root/.cache/go-build"
+    - "/var/lib/dpkg/info"
     fallback_keys:
-      - $CI_PROJECT_NAME-debian-arm-$CI_DEFAULT_BRANCH
+    - "$CI_PROJECT_NAME-debian-arm-$CI_DEFAULT_BRANCH"
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - aarch64
-
-.base_build_ubi:
+  - linux
+  - aws
+  - runner-manager
+  - aarch64
+".base_build_ubi":
   stage: checks
   rules:
-    - when: always
+  - when: always
   cache:
-    key: $CI_PROJECT_NAME-ubi-$CI_COMMIT_REF_SLUG
+    key: "$CI_PROJECT_NAME-ubi-$CI_COMMIT_REF_SLUG"
     paths:
-      - tools/
-      - webui/node_modules/
-      - /root/.cache/go-build
+    - tools/
+    - webui/node_modules/
+    - "/root/.cache/go-build"
     fallback_keys:
-      - $CI_PROJECT_NAME-ubi-$CI_DEFAULT_BRANCH
+    - "$CI_PROJECT_NAME-ubi-$CI_DEFAULT_BRANCH"
   image: registry.gitlab.isc.org/isc-projects/stork/pkgs-redhat-ubi8:2
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   before_script:
-    - sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    - sysctl -w net.ipv6.conf.default.disable_ipv6=1
-    - rake prepare
-    - rake prepare:deps
-
-.base_build_ubi_arm:
-  extends: .base_build_ubi
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - rake prepare
+  - rake prepare:deps
+".base_build_ubi_arm":
+  extends: ".base_build_ubi"
   cache:
-    key: $CI_PROJECT_NAME-ubi-arm-$CI_COMMIT_REF_SLUG
+    key: "$CI_PROJECT_NAME-ubi-arm-$CI_COMMIT_REF_SLUG"
     paths:
-      - tools/
-      - webui/node_modules/
-      - /root/.cache/go-build
+    - tools/
+    - webui/node_modules/
+    - "/root/.cache/go-build"
     fallback_keys:
-      - $CI_PROJECT_NAME-ubi-arm-$CI_DEFAULT_BRANCH
+    - "$CI_PROJECT_NAME-ubi-arm-$CI_DEFAULT_BRANCH"
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - aarch64
-
-.base_build_alpine:
+  - linux
+  - aws
+  - runner-manager
+  - aarch64
+".base_build_alpine":
   stage: checks
   rules:
-    - when: always
+  - when: always
   cache:
-    key: $CI_PROJECT_NAME-alpine-$CI_COMMIT_REF_SLUG
+    key: "$CI_PROJECT_NAME-alpine-$CI_COMMIT_REF_SLUG"
     paths:
-      - webui/node_modules/
-      - tools/
+    - webui/node_modules/
+    - tools/
     fallback_keys:
-      - $CI_PROJECT_NAME-alpine-$CI_DEFAULT_BRANCH
+    - "$CI_PROJECT_NAME-alpine-$CI_DEFAULT_BRANCH"
   image: registry.gitlab.isc.org/isc-projects/stork/pkgs-alpine:2
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   before_script:
-    - sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    - sysctl -w net.ipv6.conf.default.disable_ipv6=1
-    - rake prepare:dist
-    - rake prepare:deps
-
-.base_build_alpine_arm:
-  extends: .base_build_alpine
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - rake prepare:dist
+  - rake prepare:deps
+".base_build_alpine_arm":
+  extends: ".base_build_alpine"
   cache:
-    key: $CI_PROJECT_NAME-alpine-arm-$CI_COMMIT_REF_SLUG
+    key: "$CI_PROJECT_NAME-alpine-arm-$CI_COMMIT_REF_SLUG"
     paths:
-      - tools/
-      - webui/node_modules/
-      - /root/.cache/go-build
+    - tools/
+    - webui/node_modules/
+    - "/root/.cache/go-build"
     fallback_keys:
-      - $CI_PROJECT_NAME-alpine-arm-$CI_DEFAULT_BRANCH
+    - "$CI_PROJECT_NAME-alpine-arm-$CI_DEFAULT_BRANCH"
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - aarch64
-
+  - linux
+  - aws
+  - runner-manager
+  - aarch64
 lint_backend:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake lint:backend
-
+  - rake lint:backend
 lint_python_pylint:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake lint:python:pylint
-
+  - rake lint:python:pylint
 lint_python_flake8:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake lint:python:flake8
-
+  - rake lint:python:flake8
 lint_python_black:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake lint:python:black
-
+  - rake lint:python:black
 unittest_backend:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   services:
-    - name: postgres:16-alpine
-      alias: postgres
+  - name: postgres:16-alpine
+    alias: postgres
   variables:
-    # CGO is required by the race detector.
     CGO_ENABLED: 1
   script:
-    - echo 'postgres:*:*:storktest:storktest' > ~/.pgpass
-    - chmod 600 ~/.pgpass
-    - rake unittest:backend
-
+  - echo 'postgres:*:*:storktest:storktest' > ~/.pgpass
+  - chmod 600 ~/.pgpass
+  - rake unittest:backend
 lint_ui:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake lint:ui
-
+  - rake lint:ui
 unittest_ui:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake unittest:ui
-
+  - rake unittest:ui
 build_ui:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake build:ui
+  - rake build:ui
   artifacts:
-    name: "ui"
+    name: ui
     expire_in: 1 week
     paths:
-      - webui/dist/stork/
-
+    - webui/dist/stork/
 build_doc:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake build:doc
+  - rake build:doc
   artifacts:
-    name: "doc"
+    name: doc
     expire_in: 1 week
     paths:
-      - doc/build/
-
+    - doc/build/
 build_backend:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake build:backend
+  - rake build:backend
   artifacts:
     untracked: true
     expire_in: 1 hour
-
 build_backend_legacy:
   stage: checks
   rules:
-    - when: on_success
+  - when: on_success
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
-  # Use image based on Ubuntu 20.04. It is required to build the binaries with
-  # the older GLIBC version.
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   image: registry.gitlab.isc.org/isc-projects/stork/ci-base:1
   needs:
-    - build_backend
+  - build_backend
   script:
-    - rake rebuild:backend SUPPRESS_PREREQUISITES=true
+  - rake rebuild:backend SUPPRESS_PREREQUISITES=true
   artifacts:
-    name: "backend"
+    name: backend
     expire_in: 1 week
     paths:
-      - backend/cmd/stork-agent/stork-agent
-      - backend/cmd/stork-server/stork-server
-      - backend/cmd/stork-tool/stork-tool
-
+    - backend/cmd/stork-agent/stork-agent
+    - backend/cmd/stork-server/stork-server
+    - backend/cmd/stork-tool/stork-tool
 danger:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   stage: checks
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+  - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   before_script:
-    - export CI_MERGE_REQUEST_ID=$(git ls-remote -q origin merge-requests\*\head | grep $CI_COMMIT_SHA | sed 's/.*refs\/merge-requests\/\([0-9]*\)\/head/\1/g')
-    - export CI_PROJECT_PATH=$CI_PROJECT_ID #some version of gitlab has problems with searching by project path
-    - export DANGER_GITLAB_HOST=gitlab.isc.org
-    - export DANGER_GITLAB_API_BASE_URL=https://gitlab.isc.org/api/v4
+  - export CI_MERGE_REQUEST_ID=$(git ls-remote -q origin merge-requests\*\head | grep
+    $CI_COMMIT_SHA | sed 's/.*refs\/merge-requests\/\([0-9]*\)\/head/\1/g')
+  - export CI_PROJECT_PATH=$CI_PROJECT_ID
+  - export DANGER_GITLAB_HOST=gitlab.isc.org
+  - export DANGER_GITLAB_API_BASE_URL=https://gitlab.isc.org/api/v4
   script:
-    - sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    - sysctl -w net.ipv6.conf.default.disable_ipv6=1
-    - rake lint:git
-
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - rake lint:git
 lint_shell:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   script:
-    - rake lint:shell
-
+  - rake lint:shell
 tarball:
   stage: build
   rules:
-    - when: always
+  - when: always
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   script:
-    - rake release:tarball
+  - rake release:tarball
   artifacts:
     paths:
-      - stork-*.tar.gz
+    - stork-*.tar.gz
     expire_in: 1 week
-
-
-### build rpm & deb packages ###
-
 build_debs_amd64:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   stage: checks
   needs:
-    # Use the binaries compiled by the legacy image.
-    - build_backend_legacy
+  - build_backend_legacy
   script:
-    - rake build:agent_pkg SUPPRESS_PREREQUISITES=true
-    - rake build:server_pkg SUPPRESS_PREREQUISITES=true
-    - cp dist/pkgs/*.deb ./
+  - rake build:agent_pkg SUPPRESS_PREREQUISITES=true
+  - rake build:server_pkg SUPPRESS_PREREQUISITES=true
+  - cp dist/pkgs/*.deb ./
   artifacts:
     paths:
-      - isc-stork-*.deb
+    - isc-stork-*.deb
     expire_in: 1 hour
-
 build_debs_arm64:
-  extends: .base_build_debian_arm
+  extends: ".base_build_debian_arm"
   stage: checks
   script:
-    - rake build:agent_pkg
-    - rake build:server_pkg
-    - cp dist/pkgs/*.deb ./
+  - rake build:agent_pkg
+  - rake build:server_pkg
+  - cp dist/pkgs/*.deb ./
   artifacts:
     paths:
-      - isc-stork-*.deb
+    - isc-stork-*.deb
     expire_in: 1 hour
-
 build_rpms_amd64:
-  extends: .base_build_ubi
+  extends: ".base_build_ubi"
   stage: checks
   script:
-    - rake build:agent_pkg
-    - rake build:server_pkg
-    - cp dist/pkgs/*.rpm ./
+  - rake build:agent_pkg
+  - rake build:server_pkg
+  - cp dist/pkgs/*.rpm ./
   artifacts:
     paths:
-      - isc-stork-*.rpm
+    - isc-stork-*.rpm
     expire_in: 1 hour
-
 build_rpms_arm64:
-  extends: .base_build_ubi_arm
+  extends: ".base_build_ubi_arm"
   stage: checks
   script:
-    - rake build:agent_pkg
-    - rake build:server_pkg
-    - cp dist/pkgs/*.rpm ./
+  - rake build:agent_pkg
+  - rake build:server_pkg
+  - cp dist/pkgs/*.rpm ./
   artifacts:
     paths:
-      - isc-stork-*.rpm
+    - isc-stork-*.rpm
     expire_in: 1 hour
-
 build_apks_amd64:
-  extends: .base_build_alpine
+  extends: ".base_build_alpine"
   script:
-    - rake build:agent_pkg
-    - rake build:server_pkg
-    - cp dist/pkgs/*.apk ./
+  - rake build:agent_pkg
+  - rake build:server_pkg
+  - cp dist/pkgs/*.apk ./
   artifacts:
     paths:
-      - isc-stork-*.apk
+    - isc-stork-*.apk
     expire_in: 1 hour
-
 build_apks_arm64:
-  extends: .base_build_alpine_arm
+  extends: ".base_build_alpine_arm"
   script:
-    - rake build:agent_pkg
-    - rake build:server_pkg
-    - cp dist/pkgs/*.apk ./
+  - rake build:agent_pkg
+  - rake build:server_pkg
+  - cp dist/pkgs/*.apk ./
   artifacts:
     paths:
-      - isc-stork-*.apk
+    - isc-stork-*.apk
     expire_in: 1 hour
-
 packages:
   stage: checks
   rules:
-    - when: on_success
+  - when: on_success
   needs:
-    - build_debs_amd64
-    - build_debs_arm64
-    - build_rpms_amd64
-    - build_rpms_arm64
-    - build_apks_amd64
-    - build_apks_arm64
+  - build_debs_amd64
+  - build_debs_arm64
+  - build_rpms_amd64
+  - build_rpms_arm64
+  - build_apks_amd64
+  - build_apks_arm64
   script:
-    - ":"
+  - ":"
   artifacts:
     paths:
-      - isc-stork-*
+    - isc-stork-*
     expire_in: 1 week
-
-### install packages ###
-
 install_debs_amd64:
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   stage: build
   before_script:
-    - sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
   variables:
     ARCH: amd64
   script:
-    - "dpkg -i isc-stork-*${ARCH}.deb"
-    - "stork-agent --version"
-    - "stork-server --version"
-    - "stork-tool --version"
-    - "dpkg -i isc-stork-*${ARCH}.deb"
-    - "stork-agent --version"
-    - "stork-server --version"
-    - "stork-tool --version"
-    - "man stork-agent > /dev/null"
-    - "man stork-server > /dev/null"
-    - "man stork-tool > /dev/null"
-    - "dpkg -r isc-stork-agent"
-    - "dpkg -r isc-stork-server"
+  - dpkg -i isc-stork-*${ARCH}.deb
+  - stork-agent --version
+  - stork-server --version
+  - stork-tool --version
+  - dpkg -i isc-stork-*${ARCH}.deb
+  - stork-agent --version
+  - stork-server --version
+  - stork-tool --version
+  - man stork-agent > /dev/null
+  - man stork-server > /dev/null
+  - man stork-tool > /dev/null
+  - dpkg -r isc-stork-agent
+  - dpkg -r isc-stork-server
   needs:
-    - build_debs_amd64
-
+  - build_debs_amd64
 install_debs_amd64_ubuntu_lts:
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   stage: build
   image: ubuntu:20.04
   before_script:
-    - sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
   variables:
     ARCH: amd64
   script:
-    - "dpkg -i isc-stork-*${ARCH}.deb"
-    - "stork-agent --version"
-    - "stork-server --version"
-    - "stork-tool --version"
-    - "dpkg -i isc-stork-*${ARCH}.deb"
-    - "stork-agent --version"
-    - "stork-server --version"
-    - "stork-tool --version"
-    - "man stork-agent > /dev/null"
-    - "man stork-server > /dev/null"
-    - "man stork-tool > /dev/null"
-    - "dpkg -r isc-stork-agent"
-    - "dpkg -r isc-stork-server"
+  - dpkg -i isc-stork-*${ARCH}.deb
+  - stork-agent --version
+  - stork-server --version
+  - stork-tool --version
+  - dpkg -i isc-stork-*${ARCH}.deb
+  - stork-agent --version
+  - stork-server --version
+  - stork-tool --version
+  - man stork-agent > /dev/null
+  - man stork-server > /dev/null
+  - man stork-tool > /dev/null
+  - dpkg -r isc-stork-agent
+  - dpkg -r isc-stork-server
   needs:
-    - build_debs_amd64
-
+  - build_debs_amd64
 install_debs_arm64:
   extends: install_debs_amd64
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - aarch64
+  - linux
+  - aws
+  - runner-manager
+  - aarch64
   variables:
     ARCH: arm64
   needs:
-    - build_debs_arm64
-
+  - build_debs_arm64
 install_rpms_amd64:
   image: registry.gitlab.isc.org/isc-projects/stork/pkgs-redhat-ubi8:2
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   stage: build
   variables:
     ARCH: x86_64
   before_script:
-    - sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
   script:
-    - "rpm -i isc-stork-*${ARCH}.rpm"
-    - "stork-agent --version"
-    - "stork-server --version"
-    - "stork-tool --version"
-    - "rpm -U --force isc-stork-*${ARCH}.rpm"
-    - "stork-agent --version"
-    - "stork-server --version"
-    - "stork-tool --version"
-    - "man stork-agent > /dev/null"
-    - "man stork-server > /dev/null"
-    - "man stork-tool > /dev/null"
-    - "rpm -e isc-stork-agent"
-    - "rpm -e isc-stork-server"
+  - rpm -i isc-stork-*${ARCH}.rpm
+  - stork-agent --version
+  - stork-server --version
+  - stork-tool --version
+  - rpm -U --force isc-stork-*${ARCH}.rpm
+  - stork-agent --version
+  - stork-server --version
+  - stork-tool --version
+  - man stork-agent > /dev/null
+  - man stork-server > /dev/null
+  - man stork-tool > /dev/null
+  - rpm -e isc-stork-agent
+  - rpm -e isc-stork-server
   needs:
-    - build_rpms_amd64
-
+  - build_rpms_amd64
 install_rpms_arm64:
   extends: install_rpms_amd64
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - aarch64
+  - linux
+  - aws
+  - runner-manager
+  - aarch64
   variables:
     ARCH: aarch64
   needs:
-    - build_rpms_arm64
-
+  - build_rpms_arm64
 install_apks_amd64:
   image: registry.gitlab.isc.org/isc-projects/stork/pkgs-alpine:2
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   stage: build
   variables:
     ARCH: amd64
   script:
-    - "apk add --no-cache --allow-untrusted isc-stork-*${ARCH}.apk"
-    - "stork-agent --version"
-    - "stork-server --version"
-    - "stork-tool --version"
-    - "apk add --no-cache --allow-untrusted isc-stork-*${ARCH}.apk"
-    - "stork-agent --version"
-    - "stork-server --version"
-    - "stork-tool --version"
-    - "man stork-agent > /dev/null"
-    - "man stork-server > /dev/null"
-    - "man stork-tool > /dev/null"
-    - "apk del isc-stork-agent"
-    - "apk del isc-stork-server"
+  - apk add --no-cache --allow-untrusted isc-stork-*${ARCH}.apk
+  - stork-agent --version
+  - stork-server --version
+  - stork-tool --version
+  - apk add --no-cache --allow-untrusted isc-stork-*${ARCH}.apk
+  - stork-agent --version
+  - stork-server --version
+  - stork-tool --version
+  - man stork-agent > /dev/null
+  - man stork-server > /dev/null
+  - man stork-tool > /dev/null
+  - apk del isc-stork-agent
+  - apk del isc-stork-server
   needs:
-    - build_apks_amd64
+  - build_apks_amd64
   artifacts:
     paths:
-      - core.*
+    - core.*
     expire_in: 1 week
     when: always
-
 install_apks_arm64:
   extends: install_apks_amd64
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - aarch64
+  - linux
+  - aws
+  - runner-manager
+  - aarch64
   variables:
     ARCH: arm64
   needs:
-    - build_apks_arm64
-
-### system testing ###
-
+  - build_apks_arm64
 system_testing:
   stage: system_tests
   allow_failure: false
   tags:
-    - docker
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - docker
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   services:
-    - docker:dind
+  - docker:dind
   rules:
-    - when: on_success
+  - when: on_success
   image: registry.gitlab.isc.org/isc-projects/stork/pkgs-compose:2
   cache:
-    key: $CI_PROJECT_NAME-compose-$CI_COMMIT_REF_SLUG
+    key: "$CI_PROJECT_NAME-compose-$CI_COMMIT_REF_SLUG"
     paths:
-      - tools/
+    - tools/
     fallback_keys:
-      - $CI_PROJECT_NAME-compose-$CI_DEFAULT_BRANCH
+    - "$CI_PROJECT_NAME-compose-$CI_DEFAULT_BRANCH"
   before_script:
-    - ip -6 route del default
-    - rake prepare:systemtest
+  - ip -6 route del default
+  - rake prepare:systemtest
   variables:
-    # Alpine uses the libc-musl library, which isn't compatible with the NodeJS
-    # binary fetched by the Rake script. Additionally, the binaries for alpine
-    # are missing on the NodeJS page. We cannot use the image based on Debian
-    # because it is out-of-date.
-    USE_SYSTEM_NODEJS: "true"
-    # It must be an alias of the docker:dind service.
-    DEFAULT_MAPPED_ADDRESS: "docker"
-  # Don't block if the artifacts from the previous stages expired.
+    USE_SYSTEM_NODEJS: 'true'
+    DEFAULT_MAPPED_ADDRESS: docker
   dependencies: []
   script:
-    # - rake system_tests_ui
-    - rake systemtest
+  - rake systemtest
   artifacts:
     paths:
-      - tests/system/test-results/**/*.log
+    - tests/system/test-results/**/*.log
     expire_in: 1 week
     when: always
-
-### hooks ###
 build_hooks:
   stage: hooks
   when: manual
   needs:
-    - build_backend
+  - build_backend
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   script:
-    - rake hook:build
+  - rake hook:build
   artifacts:
     untracked: true
     expire_in: 1 hour
-
 build_hooks_legacy:
   stage: hooks
   rules:
-    - when: on_success
+  - when: on_success
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
-  # Use image based on Ubuntu 20.04. It is required to build the binaries with
-  # the older GLIBC version.
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   image: registry.gitlab.isc.org/isc-projects/stork/ci-base:1
   needs:
-    - build_hooks
-  # The submodules are not included in the artifacts even if the `untracked`
-  # option is set. It is a bug in GitLab: https://gitlab.com/gitlab-org/gitlab-runner/-/issues/2457
-  # We clone the fresh copy of the submodules. As long as our hooks need only
-  # Golang to compile, it shouldn't be a problem.
+  - build_hooks
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   script:
-    # The hook:build rebuilds the binaries every time.
-    - rake hook:build
+  - rake hook:build
   artifacts:
     paths:
-      - hooks/*.so
+    - hooks/*.so
     expire_in: 1 hour
-
 unittest_hooks:
   stage: hooks
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: manual
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
-      when: always
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    when: manual
+  - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+    when: always
   allow_failure: true
   needs:
-    - unittest_backend
+  - unittest_backend
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   script:
-    - rake hook:unittest
-
+  - rake hook:unittest
 tarball_hooks:
   stage: hooks
   when: manual
@@ -659,256 +584,235 @@ tarball_hooks:
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   script:
-    - rake hook:tarball
+  - rake hook:tarball
   artifacts:
     paths:
-      - stork-*-*.tar.gz
+    - stork-*-*.tar.gz
     expire_in: 1 week
-
 build_hooks_debs_amd64:
-  extends: .base_build_debian
+  extends: ".base_build_debian"
   stage: hooks
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   rules:
-    - when: on_success
+  - when: on_success
   needs:
-    - unittest_hooks
-    # Use the binaries compiled by the legacy image.
-    - build_hooks_legacy
+  - unittest_hooks
+  - build_hooks_legacy
   script:
-    - rake hook:build_pkg SUPPRESS_PREREQUISITES=true
-    - cp dist/hook-pkgs/*.deb ./
+  - rake hook:build_pkg SUPPRESS_PREREQUISITES=true
+  - cp dist/hook-pkgs/*.deb ./
   artifacts:
     paths:
-      - isc-stork-*.deb
+    - isc-stork-*.deb
     expire_in: 1 hour
-
 build_hooks_debs_arm64:
-  extends: .base_build_debian_arm
+  extends: ".base_build_debian_arm"
   stage: hooks
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   rules:
-    - when: on_success
+  - when: on_success
   needs:
-    - job: build_hooks
-      artifacts: false
-    - unittest_hooks
+  - job: build_hooks
+    artifacts: false
+  - unittest_hooks
   script:
-    - rake hook:build_pkg
-    - cp dist/hook-pkgs/*.deb ./
+  - rake hook:build_pkg
+  - cp dist/hook-pkgs/*.deb ./
   artifacts:
     paths:
-      - isc-stork-*.deb
+    - isc-stork-*.deb
     expire_in: 1 hour
-
 build_hooks_rpms_amd64:
-  extends: .base_build_ubi
+  extends: ".base_build_ubi"
   stage: hooks
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   rules:
-    - when: on_success
+  - when: on_success
   needs:
-    - job: build_hooks
-      artifacts: false
-    - unittest_hooks
+  - job: build_hooks
+    artifacts: false
+  - unittest_hooks
   script:
-    - rake hook:build_pkg
-    - cp dist/hook-pkgs/*.rpm ./
+  - rake hook:build_pkg
+  - cp dist/hook-pkgs/*.rpm ./
   artifacts:
     paths:
-      - isc-stork-*.rpm
+    - isc-stork-*.rpm
     expire_in: 1 hour
-
 build_hooks_rpms_arm64:
-  extends: .base_build_ubi_arm
+  extends: ".base_build_ubi_arm"
   stage: hooks
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   rules:
-    - when: on_success
+  - when: on_success
   needs:
-    - job: build_hooks
-      artifacts: false
-    - unittest_hooks
+  - job: build_hooks
+    artifacts: false
+  - unittest_hooks
   script:
-    - rake hook:build_pkg
-    - cp dist/hook-pkgs/*.rpm ./
+  - rake hook:build_pkg
+  - cp dist/hook-pkgs/*.rpm ./
   artifacts:
     paths:
-      - isc-stork-*.rpm
+    - isc-stork-*.rpm
     expire_in: 1 hour
-
 build_hooks_apks_amd64:
-  extends: .base_build_alpine
+  extends: ".base_build_alpine"
   stage: hooks
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   rules:
-    - when: on_success
+  - when: on_success
   needs:
-    - job: build_hooks
-      artifacts: false
-    - unittest_hooks
+  - job: build_hooks
+    artifacts: false
+  - unittest_hooks
   script:
-    - rake hook:build_pkg
-    - cp dist/hook-pkgs/*.apk ./
+  - rake hook:build_pkg
+  - cp dist/hook-pkgs/*.apk ./
   artifacts:
     paths:
-      - isc-stork-*.apk
+    - isc-stork-*.apk
     expire_in: 1 hour
-
 build_hooks_apks_arm64:
-  extends: .base_build_alpine_arm
+  extends: ".base_build_alpine_arm"
   stage: hooks
   variables:
     GIT_SUBMODULE_STRATEGY: normal
   rules:
-    - when: on_success
+  - when: on_success
   needs:
-    - job: build_hooks
-      artifacts: false
-    - unittest_hooks
+  - job: build_hooks
+    artifacts: false
+  - unittest_hooks
   script:
-    - rake hook:build_pkg
-    - cp dist/hook-pkgs/*.apk ./
+  - rake hook:build_pkg
+  - cp dist/hook-pkgs/*.apk ./
   artifacts:
     paths:
-      - isc-stork-*.apk
+    - isc-stork-*.apk
     expire_in: 1 hour
-
 packages_hooks:
   stage: hooks
   rules:
-    - when: on_success
+  - when: on_success
   needs:
-    - build_hooks_debs_amd64
-    - build_hooks_debs_arm64
-    - build_hooks_rpms_amd64
-    - build_hooks_rpms_arm64
-    - build_hooks_apks_amd64
-    - build_hooks_apks_arm64
+  - build_hooks_debs_amd64
+  - build_hooks_debs_arm64
+  - build_hooks_rpms_amd64
+  - build_hooks_rpms_arm64
+  - build_hooks_apks_amd64
+  - build_hooks_apks_arm64
   script:
-    - ":"
+  - ":"
   artifacts:
     paths:
-      - isc-stork-*
+    - isc-stork-*
     expire_in: 1 week
-
-### upload release notes and tarball to repo.isc.org ###
-
 upload_to_repo:
   stage: deploy
   when: manual
   allow_failure: true
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
-    - stork-repo
+  - linux
+  - aws
+  - runner-manager
+  - amd64
+  - stork-repo
   needs:
-    - tarball
+  - tarball
   script:
-    - eval $(ssh-agent -s)
-    - echo "${REPO_SSH_PRIVATE_KEY}" | base64 -d | ssh-add -
-    - ssh-keyscan -4 repo.isc.org >> ~/.ssh/known_hosts
-    - rake release:notes
-    - rake release:tarball:upload HOST=storkpush@repo.isc.org TARGET=/data/shared/sweng/stork/releases
+  - eval $(ssh-agent -s)
+  - echo "${REPO_SSH_PRIVATE_KEY}" | base64 -d | ssh-add -
+  - ssh-keyscan -4 repo.isc.org >> ~/.ssh/known_hosts
+  - rake release:notes
+  - rake release:tarball:upload HOST=storkpush@repo.isc.org TARGET=/data/shared/sweng/stork/releases
   artifacts:
     name: release-notes
     expire_in: 1 week
     paths:
-      - Stork-*-ReleaseNotes.txt
-
+    - Stork-*-ReleaseNotes.txt
 upload_to_repo_hooks:
   extends: upload_to_repo
   needs:
-    - tarball_hooks
-
-### demo deploy jobs ###
-
+  - tarball_hooks
 deploy_demo:
   stage: deploy
   cache: []
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-      when: manual
-    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH'
-      when: always
+  - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    when: manual
+  - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == $CI_DEFAULT_BRANCH
+    when: always
   allow_failure: true
   tags:
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   needs:
-    - danger
+  - danger
   before_script:
-    - eval $(ssh-agent -s)
-    - echo "$SSH_PRIVATE_KEY_STORK" | base64 -d | ssh-add -
+  - eval $(ssh-agent -s)
+  - echo "$SSH_PRIVATE_KEY_STORK" | base64 -d | ssh-add -
   script:
-    # Print Docker info
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker info
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker version
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker-compose version
-    # Stop all containers
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org "docker ps -q | xargs docker kill || true"
-    # Force network cleanup and to make sure we have clean state do restart docker service
-    # They can be replaced with docker-compose down after migration from the old demo.
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker container prune -f
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker network prune -f
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker volume prune -f
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org sudo systemctl restart docker
-    # Copy source code
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org rm -rf deploy/*
-    - scp -o StrictHostKeyChecking=no -r $PWD/* jenkins@stork.lab.isc.org:~/deploy
-    # Build & Start Docker containers
-    - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org CS_REPO_ACCESS_TOKEN=$CLOUDSMITH_REPO_ACCESS_TOKEN deploy/stork-demo.sh --no-prompt
-
-### upload packages to cloudsmith.io ###
-
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker info
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker version
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker-compose version
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org "docker ps -q | xargs
+    docker kill || true"
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker container prune
+    -f
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker network prune
+    -f
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org docker volume prune
+    -f
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org sudo systemctl restart
+    docker
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org rm -rf deploy/*
+  - scp -o StrictHostKeyChecking=no -r $PWD/* jenkins@stork.lab.isc.org:~/deploy
+  - ssh -o StrictHostKeyChecking=no jenkins@stork.lab.isc.org CS_REPO_ACCESS_TOKEN=$CLOUDSMITH_REPO_ACCESS_TOKEN
+    deploy/stork-demo.sh --no-prompt
 upload_packages:
   stage: deploy
   rules:
-    - when: manual
+  - when: manual
   allow_failure: true
   image: registry.gitlab.isc.org/isc-projects/stork/pkgs-cloudsmith:2
   tags:
-    - docker
-    - linux
-    - aws
-    - runner-manager
-    - amd64
+  - docker
+  - linux
+  - aws
+  - runner-manager
+  - amd64
   needs:
-    - packages
+  - packages
   variables:
     REPO: stork
     COMPONENTS: isc-stork-server,isc-stork-agent
   before_script:
-    - sysctl -w net.ipv6.conf.all.disable_ipv6=1
-    - sysctl -w net.ipv6.conf.default.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.all.disable_ipv6=1
+  - sysctl -w net.ipv6.conf.default.disable_ipv6=1
   script:
-    - export LANG='en_US.UTF-8' LC_ALL='en_US.UTF-8'
-    - rake release:packages:upload
-
+  - export LANG='en_US.UTF-8' LC_ALL='en_US.UTF-8'
+  - rake release:packages:upload
 upload_packages_hooks:
   extends: upload_packages
   needs:
-    - packages_hooks
+  - packages_hooks
   variables:
-    # TODO: Append `isc-stork-agent-hook` after a comma when any agent hook
-    # will be ready.
     COMPONENTS: isc-stork-server-hook
-
 upload_test_packages:
   extends: upload_packages
   variables:
     REPO: stork-testing
-
 upload_test_packages_hooks:
   extends: upload_packages_hooks
   variables:
     REPO: stork-testing
+include:
+- template: Security/Secret-Detection.gitlab-ci.yml
