@@ -37,6 +37,7 @@ stages:
   - build
   - hooks
   - deploy
+  - test # the test stage is required for secret scanning.
 
 ### build jobs ###
 
