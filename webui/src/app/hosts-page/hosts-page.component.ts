@@ -251,13 +251,15 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         this.tabs = [{ label: 'Host Reservations', routerLink: '/dhcp/hosts/all' }]
 
         // If filtering parameters are specified in the query, apply the filtering.
-        this.initFilterText()
+        this.updateQueryParams(this.route.snapshot.queryParamMap)
+        this.updateFilterText(this.queryParams$.getValue())
 
         // Subscribe to the changes of the filtering parameters.
         this.subscriptions.add(
             this.route.queryParamMap.subscribe(
                 (params) => {
                     this.updateQueryParams(params)
+                    this.updateFilterText(this.queryParams$.getValue())
                     this.loadHosts()
                 },
                 (error) => {
@@ -318,23 +320,29 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * - keaSubnetId
      * - global (translated to is:global or not:global filtering text).
      */
-    private initFilterText() {
-        const ssParams = this.route.snapshot.queryParamMap
+    private updateFilterText(filter: QueryParamsFilter) {
         let text = ''
-        if (ssParams.get('text')) {
-            text += ' ' + ssParams.get('text')
+        if (filter.text) {
+            text = filter.text
         }
-        for (const paramName of ['appId', 'subnetId', 'keaSubnetId']) {
-            const param = ssParams.get(paramName)
-            if (param) {
-                text += ` ${paramName}:${param}`
-            }
+        if (filter.appId) {
+            text += ` appId:${filter.appId}`
         }
-        const g = ssParams.get('global')
-        if (g === 'true') {
+        if (filter.subnetId) {
+            text += ` subnetId:${filter.subnetId}`
+        }
+        if (filter.keaSubnetId) {
+            text += ` keaSubnetId:${filter.keaSubnetId}`
+        }
+        if (filter.global === true) {
             text += ' is:global'
-        } else if (g === 'false') {
+        } else if (filter.global === false) {
             text += ' not:global'
+        }
+        if (filter.conflict === true) {
+            text += ' conflict:true'
+        } else if (filter.conflict === false) {
+            text += ' conflict:false'
         }
         this.filterText = text.trim()
     }
@@ -675,6 +683,15 @@ export class HostsPageComponent implements OnInit, OnDestroy {
                 queryParamsHandling: 'merge',
             })
         }
+    }
+
+    /**
+     * Event handler triggered when a host list needs to be filtered.
+     */
+    onRequestedFiltering(filter: QueryParamsFilter) {
+        this.updateFilterText(filter)
+        this.queryParams$.next(filter)
+        this.loadHosts()
     }
 
     /**

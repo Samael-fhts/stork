@@ -113,7 +113,10 @@
             <div class="flex">
                 <div>
                     <span class="block mr-2">
-                        <app-hosts-migration-button [filter$]="queryParams$"></app-hosts-migration-button>
+                        <app-hosts-migration-button
+                            [filter$]="queryParams$"
+                            (filterList)="onRequestedFiltering($event)"
+                        ></app-hosts-migration-button>
                     </span>
                 </div>
                 <div>

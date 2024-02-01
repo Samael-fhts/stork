@@ -39,6 +39,7 @@ import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { HostDataSourceLabelComponent } from '../host-data-source-label/host-data-source-label.component'
 import { EntityLinkComponent } from '../entity-link/entity-link.component'
+import { BadgeModule } from 'primeng/badge'
 
 /**
  * Mocks the HostsMigrationService to use in the component's stories.
@@ -168,6 +169,7 @@ export default {
                 ToastModule,
                 DialogModule,
                 SplitButtonModule,
+                BadgeModule,
             ],
             declarations: [
                 HelpTipComponent,
