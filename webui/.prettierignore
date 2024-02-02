@@ -18,3 +18,4 @@ documentation.json
 src/app/*.ts.template
 .npmrc
 .browserlistrc
+coverage/
