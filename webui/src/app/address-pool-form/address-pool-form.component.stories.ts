@@ -144,12 +144,12 @@ AddressPool4.args = {
                     [new FormControl<string>('foo'), new FormControl<string>('bar')]
                 ),
                 poolID: new SharedParameterFormGroup(
-                {
-                    type: 'number',
-                },
-                [new FormControl(123), new FormControl(123)]
-            ),
-            requireClientClasses: new SharedParameterFormGroup(
+                    {
+                        type: 'number',
+                    },
+                    [new FormControl(123), new FormControl(123)]
+                ),
+                requireClientClasses: new SharedParameterFormGroup(
                     {
                         type: 'client-classes',
                     },
@@ -218,12 +218,12 @@ AddressPool6.args = {
                     [new FormControl<string>('foo'), new FormControl<string>('bar')]
                 ),
                 poolID: new SharedParameterFormGroup(
-                {
-                    type: 'number',
-                },
-                [new FormControl(123), new FormControl(123)]
-            ),
-            requireClientClasses: new SharedParameterFormGroup(
+                    {
+                        type: 'number',
+                    },
+                    [new FormControl(123), new FormControl(123)]
+                ),
+                requireClientClasses: new SharedParameterFormGroup(
                     {
                         type: 'client-classes',
                     },
