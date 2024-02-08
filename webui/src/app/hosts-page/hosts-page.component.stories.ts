@@ -49,21 +49,19 @@ class MockDHCPService implements Partial<DHCPService> {
      * Returns a fixed list of hosts.
      */
     getHosts(
-     start?: number,
-     limit?: number,
-     appId?: number
-    )
-     /** Not used arguments:
-      * subnetId?: number,
-      * localSubnetId?: number,
-      * text?: string,
-      * global?: boolean,
-      * conflict?: boolean,
-      * observe: any = 'body',
-      * reportProgress: boolean = false,
-      * options?: { httpHeaderAccept?: 'application/json' }
-      */
-    : Observable<any> {
+        start?: number,
+        limit?: number,
+        appId?: number /** Not used arguments:
+         * subnetId?: number,
+         * localSubnetId?: number,
+         * text?: string,
+         * global?: boolean,
+         * conflict?: boolean,
+         * observe: any = 'body',
+         * reportProgress: boolean = false,
+         * options?: { httpHeaderAccept?: 'application/json' }
+         */
+    ): Observable<any> {
         const hosts: Host[] = [
             {
                 id: 1,
@@ -111,9 +109,7 @@ class MockDHCPService implements Partial<DHCPService> {
 
         let selectedHosts = hosts
         if (appId) {
-            selectedHosts = selectedHosts.filter(
-                h => h.localHosts.some(lh => lh.appId === appId)
-            )
+            selectedHosts = selectedHosts.filter((h) => h.localHosts.some((lh) => lh.appId === appId))
         }
         selectedHosts = selectedHosts.slice(start, start + limit)
 
