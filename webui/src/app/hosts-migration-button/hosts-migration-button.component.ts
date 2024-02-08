@@ -140,7 +140,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     /**
      * Emits the event to request the hosts table to filter the hosts.
      */
-    @Output() filterList = new EventEmitter<string>()
+    @Output() filterList = new EventEmitter<QueryParamsFilter>()
 
     /**
      * Accepts the external services including the host reservation migration
@@ -367,7 +367,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * It emits the event to filter the hosts table.
      */
     onFilterErroredHostsClick() {
-        this.emitFilterList('filter', true)
+        this.emitFilterList(this.migration.filter, true)
     }
 
     /**
@@ -376,7 +376,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * It emits the event to filter the hosts table.
      */
     onFilterAffectedHostsClick() {
-        this.emitFilterList('filter', false)
+        this.emitFilterList(this.migration.filter, false)
     }
 
     /**
@@ -404,7 +404,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * @param filter The filter to apply.
      * @param errorsOnly Indicates whether to show only the hosts that failed.
      */
-    private emitFilterList(filter: string, errorsOnly: boolean) {
+    private emitFilterList(filter: QueryParamsFilter, errorsOnly: boolean) {
         filter = this.buildFilter(filter, errorsOnly)
         this.filterList.emit(filter)
     }
@@ -462,15 +462,12 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * @param errorsOnly Indicates whether to show only the hosts that failed.
      * @returns The filter to apply.
      */
-    private buildFilter(base: string, errorsOnly: boolean): string {
-        if (base == null && !errorsOnly) {
-            return null
-        } else if (base == null) {
-            return 'with-errors'
-        } else if (!errorsOnly) {
-            return base
-        } else {
-            return base + '&with-errors'
+    private buildFilter(base: QueryParamsFilter, errorsOnly: boolean): QueryParamsFilter {
+        // Copy the filter object.
+        base = { ...base }
+        if (errorsOnly) {
+            throw new Error('Not implemented')
         }
+        return base
     }
 }

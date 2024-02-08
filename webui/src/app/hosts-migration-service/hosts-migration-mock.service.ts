@@ -11,6 +11,7 @@ import { QueryParamsFilter } from '../hosts-page/query-params-filter'
  */
 export class MockHostsMigrationService implements Partial<HostsMigrationService> {
     private startCount = 0
+    private currentFilter: QueryParamsFilter = null
 
     /**
      * There is no migration in progress.
@@ -34,7 +35,7 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
                     progress: i / 100,
                     errors: Math.round(i / 10),
                     inProgress: i !== 100,
-                    filter: { text: `filter-${i}` },
+                    filter: this.currentFilter,
                 }) as Migration,
         })
 
@@ -46,6 +47,7 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
      * Delayed by 2s to simulate a backend call.
      */
     removeMigration(): Observable<void> {
+        this.currentFilter = null
         return of(null).pipe(delay(2000))
     }
 
@@ -58,6 +60,7 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
         if (this.startCount % 3 === 0) {
             return throwError(() => new Error('Could not start the migration')).pipe(delay(2000))
         }
+        this.currentFilter = filter
         return of({
             id: this.startCount,
             errors: 0,
