@@ -4,7 +4,7 @@ import { HttpClientModule } from '@angular/common/http'
 import { MessageService } from 'primeng/api'
 import { ToastModule } from 'primeng/toast'
 import { BrowserAnimationsModule, NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { DHCPService, Hosts } from '../backend'
+import { DHCPService, Host, Hosts } from '../backend'
 import { toastDecorator } from '../utils-stories'
 import { RouterTestingModule } from '@angular/router/testing'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
@@ -48,66 +48,78 @@ class MockDHCPService implements Partial<DHCPService> {
     /**
      * Returns a fixed list of hosts.
      */
-    getHosts() /** Not used arguments:
-     * start?: number,
-     * limit?: number,
-     * appId?: number,
-     * subnetId?: number,
-     * localSubnetId?: number,
-     * text?: string,
-     * global?: boolean,
-     * conflict?: boolean,
-     * observe: any = 'body',
-     * reportProgress: boolean = false,
-     * options?: { httpHeaderAccept?: 'application/json' }
-     */
+    getHosts(
+     start?: number,
+     limit?: number,
+     appId?: number
+    )
+     /** Not used arguments:
+      * subnetId?: number,
+      * localSubnetId?: number,
+      * text?: string,
+      * global?: boolean,
+      * conflict?: boolean,
+      * observe: any = 'body',
+      * reportProgress: boolean = false,
+      * options?: { httpHeaderAccept?: 'application/json' }
+      */
     : Observable<any> {
+        const hosts: Host[] = [
+            {
+                id: 1,
+                hostIdentifiers: [
+                    {
+                        idType: 'duid',
+                        idHexValue: '01:02:03:04',
+                    },
+                ],
+                addressReservations: [
+                    {
+                        address: '192.0.2.1',
+                    },
+                ],
+                localHosts: [
+                    {
+                        appId: 1,
+                        appName: 'frog',
+                        dataSource: 'config',
+                    },
+                ],
+            },
+            {
+                id: 2,
+                hostIdentifiers: [
+                    {
+                        idType: 'duid',
+                        idHexValue: '11:12:13:14',
+                    },
+                ],
+                addressReservations: [
+                    {
+                        address: '192.0.2.2',
+                    },
+                ],
+                localHosts: [
+                    {
+                        appId: 2,
+                        appName: 'mouse',
+                        dataSource: 'config',
+                    },
+                ],
+            },
+        ]
+
+        let selectedHosts = hosts
+        if (appId) {
+            selectedHosts = selectedHosts.filter(
+                h => h.localHosts.some(lh => lh.appId === appId)
+            )
+        }
+        selectedHosts = selectedHosts.slice(start, start + limit)
+
         return of({
-            total: 1,
-            items: [
-                {
-                    id: 1,
-                    hostIdentifiers: [
-                        {
-                            idType: 'duid',
-                            idHexValue: '01:02:03:04',
-                        },
-                    ],
-                    addressReservations: [
-                        {
-                            address: '192.0.2.1',
-                        },
-                    ],
-                    localHosts: [
-                        {
-                            appId: 1,
-                            appName: 'frog',
-                            dataSource: 'config',
-                        },
-                    ],
-                },
-                {
-                    id: 2,
-                    hostIdentifiers: [
-                        {
-                            idType: 'duid',
-                            idHexValue: '11:12:13:14',
-                        },
-                    ],
-                    addressReservations: [
-                        {
-                            address: '192.0.2.2',
-                        },
-                    ],
-                    localHosts: [
-                        {
-                            appId: 2,
-                            appName: 'mouse',
-                            dataSource: 'config',
-                        },
-                    ],
-                },
-            ],
+            total: selectedHosts.length,
+            items: selectedHosts,
         } as Hosts)
     }
 }
