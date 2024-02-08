@@ -98,8 +98,8 @@
                 currentFilter.appId ||
                     currentFilter.subnetId ||
                     currentFilter.keaSubnetId ||
-                    currentFilter.conflict ||
-                    currentFilter.global ||
+                    currentFilter.conflict != null ||
+                    currentFilter.global != null ||
                     currentFilter.text;
                 else noFiltersSpecified
             "
@@ -126,13 +126,13 @@
                 {{ currentFilter.keaSubnetId }}
             </div>
             <!-- Conflict -->
-            <div class="col-6 font-semibold" *ngIf="currentFilter.conflict">Conflict</div>
-            <div class="col-6" *ngIf="currentFilter.conflict">
+            <div class="col-6 font-semibold" *ngIf="currentFilter.conflict != null">Conflict</div>
+            <div class="col-6" *ngIf="currentFilter.conflict != null">
                 {{ currentFilter.conflict }}
             </div>
             <!-- Global -->
-            <div class="col-6 font-semibold" *ngIf="currentFilter.global">Global</div>
-            <div class="col-6" *ngIf="currentFilter.global">
+            <div class="col-6 font-semibold" *ngIf="currentFilter.global != null">Global</div>
+            <div class="col-6" *ngIf="currentFilter.global != null">
                 {{ currentFilter.global }}
             </div>
             <!-- Text -->

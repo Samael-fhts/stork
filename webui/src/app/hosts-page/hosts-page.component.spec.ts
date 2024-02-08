@@ -43,6 +43,7 @@ import { MessagesModule } from 'primeng/messages'
 import { HostsMigrationButtonComponent } from '../hosts-migration-button/hosts-migration-button.component'
 import { DialogModule } from 'primeng/dialog'
 import { ProgressButtonComponent } from '../progress-button/progress-button.component'
+import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 
 describe('HostsPageComponent', () => {
     let component: HostsPageComponent
@@ -112,6 +113,7 @@ describe('HostsPageComponent', () => {
                 HostDataSourceLabelComponent,
                 ProgressButtonComponent,
                 HostsMigrationButtonComponent,
+                PlaceholderPipe,
             ],
         }).compileComponents()
     }))

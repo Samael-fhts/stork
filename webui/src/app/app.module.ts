@@ -210,7 +210,7 @@ export function cfgFactory() {
         ArrayValueSetFormComponent,
         HostDataSourceLabelComponent,
         HostsMigrationButtonComponent,
-        ProgressButtonComponent,
+        ProgressButtonComponent
     ],
     imports: [
         BrowserModule,

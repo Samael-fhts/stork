@@ -340,9 +340,9 @@ export class HostsPageComponent implements OnInit, OnDestroy {
             text += ' not:global'
         }
         if (filter.conflict === true) {
-            text += ' conflict:true'
+            text += ' is:conflict'
         } else if (filter.conflict === false) {
-            text += ' conflict:false'
+            text += ' not:conflict'
         }
         this.filterText = text.trim()
     }
