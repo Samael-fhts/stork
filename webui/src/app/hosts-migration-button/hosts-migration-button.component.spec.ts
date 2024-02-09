@@ -292,7 +292,7 @@ describe('HostsMigrationButtonComponent', () => {
                 global: null,
                 keaSubnetId: null,
                 subnetId: null,
-                migrationErrors: null
+                migrationErrors: null,
             },
             inProgress: true,
             progress: 0,

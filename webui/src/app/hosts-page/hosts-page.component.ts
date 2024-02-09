@@ -414,7 +414,6 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
         this.filterTextFormatErrors = filterTextFormatErrors
         this.queryParams$.next(queryParams)
-
     }
 
     /**
