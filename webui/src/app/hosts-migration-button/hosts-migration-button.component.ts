@@ -466,7 +466,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         // Copy the filter object.
         base = { ...base }
         if (errorsOnly) {
-            throw new Error('Not implemented')
+            base.migrationErrors = true
         }
         return base
     }

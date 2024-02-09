@@ -97,6 +97,7 @@ describe('HostsMigrationButtonComponent', () => {
             keaSubnetId: null,
             subnetId: null,
             text: null,
+            migrationErrors: null,
         }
 
         migrationService = TestBed.inject(HostsMigrationService)
@@ -267,6 +268,7 @@ describe('HostsMigrationButtonComponent', () => {
             global: null,
             keaSubnetId: null,
             subnetId: null,
+            migrationErrors: null,
         }
 
         // Go to the ready state.
@@ -290,6 +292,7 @@ describe('HostsMigrationButtonComponent', () => {
                 global: null,
                 keaSubnetId: null,
                 subnetId: null,
+                migrationErrors: null
             },
             inProgress: true,
             progress: 0,
@@ -452,6 +455,7 @@ describe('HostsMigrationButtonComponent', () => {
             global: null,
             keaSubnetId: null,
             subnetId: null,
+            migrationErrors: null,
         })
 
         // Assert.
@@ -518,6 +522,7 @@ describe('HostsMigrationButtonComponent', () => {
                     global: null,
                     keaSubnetId: null,
                     subnetId: null,
+                    migrationErrors: null,
                 },
                 inProgress: true,
                 progress: 0,
@@ -539,13 +544,29 @@ describe('HostsMigrationButtonComponent', () => {
         component.onFilterAffectedHostsClick()
 
         // Check the emitted event.
-        expect(component.filterList.emit).toHaveBeenCalledWith('filter')
+        expect(component.filterList.emit).toHaveBeenCalledWith({
+            text: 'filter',
+            appId: null,
+            conflict: null,
+            global: null,
+            keaSubnetId: null,
+            subnetId: null,
+            migrationErrors: null,
+        })
 
         // Filter by errored reservations.
         component.onFilterErroredHostsClick()
 
         // Check the emitted event.
-        expect(component.filterList.emit).toHaveBeenCalledWith('filter&with-errors')
+        expect(component.filterList.emit).toHaveBeenCalledWith({
+            text: 'filter',
+            appId: null,
+            conflict: null,
+            global: null,
+            keaSubnetId: null,
+            subnetId: null,
+            migrationErrors: true,
+        })
     }))
 
     it('should stop the migration on demand', fakeAsync(() => {

@@ -9,4 +9,5 @@ export interface QueryParamsFilter {
     keaSubnetId: number
     global: boolean
     conflict: boolean
+    migrationErrors: boolean
 }

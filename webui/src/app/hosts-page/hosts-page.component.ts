@@ -173,6 +173,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         keaSubnetId: null,
         global: null,
         conflict: null,
+        migrationErrors: null,
     })
 
     /**
@@ -344,6 +345,11 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         } else if (filter.conflict === false) {
             text += ' not:conflict'
         }
+        if (filter.migrationErrors === true) {
+            text += ' is:error'
+        } else if (filter.migrationErrors === false) {
+            text += ' not:error'
+        }
         this.filterText = text.trim()
     }
 
@@ -361,6 +367,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
             keaSubnetId: null,
             global: null,
             conflict: null,
+            migrationErrors: null,
         }
 
         queryParams.text = params.get('text')
@@ -401,8 +408,13 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         const c = params.get('conflict')
         queryParams.conflict = parseBoolean(c)
 
+        // Migration errors.
+        const me = params.get('migrationErrors')
+        queryParams.migrationErrors = parseBoolean(me)
+
         this.filterTextFormatErrors = filterTextFormatErrors
         this.queryParams$.next(queryParams)
+
     }
 
     /**
@@ -676,7 +688,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
             const queryParams = extractKeyValsAndPrepareQueryParams<QueryParamsFilter>(
                 this.filterText,
                 ['appId', 'subnetId', 'keaSubnetId'],
-                ['global', 'conflict']
+                ['global', 'conflict', 'migrationErrors']
             )
             this.router.navigate(['/dhcp/hosts'], {
                 queryParams,
