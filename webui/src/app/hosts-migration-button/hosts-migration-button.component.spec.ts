@@ -90,15 +90,7 @@ describe('HostsMigrationButtonComponent', () => {
         })
         fixture = TestBed.createComponent(HostsMigrationButtonComponent)
         component = fixture.componentInstance
-        component.currentFilter = {
-            appId: null,
-            conflict: null,
-            global: null,
-            keaSubnetId: null,
-            subnetId: null,
-            text: null,
-            migrationErrors: null,
-        }
+        component.currentFilter = {}
 
         migrationService = TestBed.inject(HostsMigrationService)
         fixture.detectChanges()
@@ -156,14 +148,7 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(
             of({
                 errors: 42,
-                filter: {
-                    text: 'filter',
-                    appId: null,
-                    conflict: null,
-                    global: null,
-                    keaSubnetId: null,
-                    subnetId: null,
-                },
+                filter: { text: 'filter' },
                 inProgress: true,
                 progress: 0.84,
             } as Migration)
@@ -180,14 +165,7 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('migrating')
         expect(component.migration).toEqual({
             errors: 42,
-            filter: {
-                text: 'filter',
-                appId: null,
-                conflict: null,
-                global: null,
-                keaSubnetId: null,
-                subnetId: null,
-            },
+            filter: { text: 'filter' },
             inProgress: true,
             progress: 0.84,
         } as Migration)
@@ -205,14 +183,7 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'getCurrentMigration').and.returnValue(
             of({
                 errors: 42,
-                filter: {
-                    text: 'filter',
-                    appId: null,
-                    conflict: null,
-                    global: null,
-                    keaSubnetId: null,
-                    subnetId: null,
-                },
+                filter: { text: 'filter' },
                 inProgress: false,
                 progress: 1,
             } as Migration)
@@ -228,14 +199,7 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('done')
         expect(component.migration).toEqual({
             errors: 42,
-            filter: {
-                text: 'filter',
-                appId: null,
-                conflict: null,
-                global: null,
-                keaSubnetId: null,
-                subnetId: null,
-            },
+            filter: { text: 'filter' },
             inProgress: false,
             progress: 1,
         } as Migration)
@@ -261,15 +225,7 @@ describe('HostsMigrationButtonComponent', () => {
             } as Migration)
         })
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
-        component.currentFilter = {
-            text: 'filter',
-            appId: null,
-            conflict: null,
-            global: null,
-            keaSubnetId: null,
-            subnetId: null,
-            migrationErrors: null,
-        }
+        component.currentFilter = { text: 'filter' }
 
         // Go to the ready state.
         component.ngOnInit()
@@ -285,15 +241,7 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.state).toBe('migrating')
         expect(component.migration).toEqual({
             errors: 0,
-            filter: {
-                text: 'filter',
-                appId: null,
-                conflict: null,
-                global: null,
-                keaSubnetId: null,
-                subnetId: null,
-                migrationErrors: null,
-            },
+            filter: { text: 'filter' },
             inProgress: true,
             progress: 0,
         } as Migration)
@@ -305,14 +253,7 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'startMigration').and.returnValue(
             of({
                 errors: 0,
-                filter: {
-                    text: 'filter',
-                    appId: null,
-                    conflict: null,
-                    global: null,
-                    keaSubnetId: null,
-                    subnetId: null,
-                },
+                filter: { text: 'filter' },
                 inProgress: true,
                 progress: 0,
             } as Migration)
@@ -448,15 +389,7 @@ describe('HostsMigrationButtonComponent', () => {
         }
 
         // Update the filter value.
-        filterObservable.next({
-            text: 'filter',
-            appId: null,
-            conflict: null,
-            global: null,
-            keaSubnetId: null,
-            subnetId: null,
-            migrationErrors: null,
-        })
+        filterObservable.next({ text: 'filter' })
 
         // Assert.
         expect(component.currentFilter.text).toBe('filter')
@@ -515,15 +448,7 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'startMigration').and.returnValue(
             of({
                 errors: 0,
-                filter: {
-                    text: 'filter',
-                    appId: null,
-                    conflict: null,
-                    global: null,
-                    keaSubnetId: null,
-                    subnetId: null,
-                    migrationErrors: null,
-                },
+                filter: { text: 'filter' },
                 inProgress: true,
                 progress: 0,
             } as Migration)
@@ -545,13 +470,7 @@ describe('HostsMigrationButtonComponent', () => {
 
         // Check the emitted event.
         expect(component.filterList.emit).toHaveBeenCalledWith({
-            text: 'filter',
-            appId: null,
-            conflict: null,
-            global: null,
-            keaSubnetId: null,
-            subnetId: null,
-            migrationErrors: null,
+            text: 'filter'
         })
 
         // Filter by errored reservations.
@@ -559,13 +478,7 @@ describe('HostsMigrationButtonComponent', () => {
 
         // Check the emitted event.
         expect(component.filterList.emit).toHaveBeenCalledWith({
-            text: 'filter',
-            appId: null,
-            conflict: null,
-            global: null,
-            keaSubnetId: null,
-            subnetId: null,
-            migrationErrors: true,
+            text: 'filter'
         })
     }))
 
@@ -574,14 +487,7 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'getCurrentMigration').and.returnValues(
             of({
                 errors: 42,
-                filter: {
-                    text: 'filter',
-                    appId: null,
-                    conflict: null,
-                    global: null,
-                    keaSubnetId: null,
-                    subnetId: null,
-                },
+                filter: { text: 'filter' },
                 inProgress: true,
                 progress: 0.84,
             } as Migration),
@@ -613,14 +519,7 @@ describe('HostsMigrationButtonComponent', () => {
         spyOn(migrationService, 'getCurrentMigration').and.returnValues(
             of({
                 errors: 42,
-                filter: {
-                    text: 'filter',
-                    appId: null,
-                    conflict: null,
-                    global: null,
-                    keaSubnetId: null,
-                    subnetId: null,
-                },
+                filter: { text: 'filter' },
                 inProgress: false,
                 progress: 1,
             } as Migration),

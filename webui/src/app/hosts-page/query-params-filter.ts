@@ -3,11 +3,27 @@
  * in the URL query parameters.
  */
 export interface QueryParamsFilter {
-    text: string
-    appId: number
-    subnetId: number
-    keaSubnetId: number
-    global: boolean
-    conflict: boolean
-    migrationErrors: boolean
+    text?: string
+    appId?: number
+    subnetId?: number
+    keaSubnetId?: number
+    global?: boolean
+    conflict?: boolean
+    migrationErrors?: boolean
+}
+
+/**
+ * Returns the keys of the boolean properties of the QueryParamsFilter.
+ * @returns List of keys.
+ */
+export function getBooleanQueryParamsFilterKeys(): (keyof QueryParamsFilter)[] {
+    return ['global', 'conflict', 'migrationErrors']
+}
+
+/**
+ * Returns the keys of the numeric properties of the QueryParamsFilter.
+ * @returns List of keys.
+ */
+export function getNumericQueryParamsFilterKeys(): (keyof QueryParamsFilter)[] {
+    return ['appId', 'subnetId', 'keaSubnetId']
 }

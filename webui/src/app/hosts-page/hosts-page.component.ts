@@ -6,12 +6,12 @@ import { Table } from 'primeng/table'
 
 import { DHCPService } from '../backend/api/api'
 import { extractKeyValsAndPrepareQueryParams, getErrorMessage } from '../utils'
-import { BehaviorSubject, concat, of, Subscription } from 'rxjs'
-import { filter, take } from 'rxjs/operators'
+import { BehaviorSubject, concat, EMPTY, of, Subscription } from 'rxjs'
+import { catchError, filter, map, take } from 'rxjs/operators'
 import { HostForm } from '../forms/host-form'
 import { Host, LocalHost } from '../backend'
 import { hasDifferentLocalHostData } from '../hosts'
-import { QueryParamsFilter } from './query-params-filter'
+import { QueryParamsFilter, getBooleanQueryParamsFilterKeys, getNumericQueryParamsFilterKeys } from './query-params-filter'
 
 /**
  * Enumeration for different host tab types displayed by the component.
@@ -164,17 +164,32 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      */
     hostsLoading = false
 
-    // filters
-    filterText = ''
-    queryParams$ = new BehaviorSubject<QueryParamsFilter>({
-        text: null,
-        appId: null,
-        subnetId: null,
-        keaSubnetId: null,
-        global: null,
-        conflict: null,
-        migrationErrors: null,
+    /**
+     * The filter input box content.
+     */
+    filterText: string = ''
+
+    /**
+     * The provided filter.
+     * The source property indicates where the filter comes from:
+     * - init - the filter is set during the component initialization,
+     * - input - the filter is set by the user in the input box,
+     * - callback - the filter is set by the child component,
+     * - query - the filter is set by the URL query parameters.
+     */
+    hostFilter$ = new BehaviorSubject<{ source: 'init' | 'input' | 'callback' | 'query', filter: QueryParamsFilter}>({
+        source: 'init', filter: {}
     })
+
+    /**
+     * The filter applied to the hosts list. Only filters that pass the
+     * validation are used.
+     */
+    validHostFilter$ = this.hostFilter$.pipe(
+        // Valid filter has no validation errors.
+        filter(f => this.validateFilter(f.filter).length === 0),
+        map(f => f.filter)
+    )
 
     /**
      * Array of tabs with host information.
@@ -251,26 +266,43 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         // Initially, there is only a tab with hosts list.
         this.tabs = [{ label: 'Host Reservations', routerLink: '/dhcp/hosts/all' }]
 
-        // If filtering parameters are specified in the query, apply the filtering.
-        this.updateQueryParams(this.route.snapshot.queryParamMap)
-        this.updateFilterText(this.queryParams$.getValue())
+        // Update the list of hosts when the filtering parameters change.
+        this.subscriptions.add(
+            this.validHostFilter$.subscribe(filter => {
+                this.loadHosts()
+            })
+        )
+
+        // Update the filter representation when the filtering parameters change.
+        this.subscriptions.add(
+            this.hostFilter$.subscribe(f => {
+                // Update the URL.
+                if (f.source != 'query') {
+                    // TBD
+                }
+                // Update the input box.
+                if (f.source != 'input') {
+                    this.updateFilterText(f.filter)
+                }
+
+                this.filterTextFormatErrors = this.validateFilter(f.filter)
+            })
+        )
 
         // Subscribe to the changes of the filtering parameters.
         this.subscriptions.add(
-            this.route.queryParamMap.subscribe(
+            this.route.queryParamMap.pipe(catchError((err) => {
+                const msg = getErrorMessage(err)
+                this.messageService.add({
+                    severity: 'error',
+                    summary: 'Cannot process the query params',
+                    detail: 'Error processing the query params: ' + msg,
+                    life: 10000,
+                })
+                return EMPTY
+            })).subscribe(
                 (params) => {
-                    this.updateQueryParams(params)
-                    this.updateFilterText(this.queryParams$.getValue())
-                    this.loadHosts()
-                },
-                (error) => {
-                    const msg = getErrorMessage(error)
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Cannot process the query params',
-                        detail: 'Error processing the query params: ' + msg,
-                        life: 10000,
-                    })
+                    this.updateFilterFromQueryParameters(params)
                 }
             )
         )
@@ -312,108 +344,102 @@ export class HostsPageComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Apply filtering according to the query parameters.
+     * Updates the filter input content based on the provided filter.
      *
-     * The following parameters are taken into account:
-     * - text
-     * - appId
-     * - subnetId
-     * - keaSubnetId
-     * - global (translated to is:global or not:global filtering text).
+     * The numeric and booleans parameters are taken into account. The boolean
+     * ones are translated to is:foo or not:foo filtering text.
      */
     private updateFilterText(filter: QueryParamsFilter) {
-        let text = ''
+        const numericKeys = getNumericQueryParamsFilterKeys()
+        const booleanKeys = getBooleanQueryParamsFilterKeys()
+        const parameters = []
+
+        for (let key of numericKeys) {
+            if (filter.hasOwnProperty(key)) {
+                parameters.push(` ${key}:${filter[key]}`)
+            }
+        }
+
+        for (let key of booleanKeys) {
+            if (filter.hasOwnProperty(key)) {
+                if (filter[key] === true) {
+                    parameters.push(`is:${key}`)
+                } else if (filter[key] === false) {
+                    parameters.push(`not:${key}`)
+                } else {
+                    parameters.push(`:${filter[key]}`)
+                }
+            }
+        }
+
         if (filter.text) {
-            text = filter.text
+            parameters.push(filter.text)
         }
-        if (filter.appId) {
-            text += ` appId:${filter.appId}`
-        }
-        if (filter.subnetId) {
-            text += ` subnetId:${filter.subnetId}`
-        }
-        if (filter.keaSubnetId) {
-            text += ` keaSubnetId:${filter.keaSubnetId}`
-        }
-        if (filter.global === true) {
-            text += ' is:global'
-        } else if (filter.global === false) {
-            text += ' not:global'
-        }
-        if (filter.conflict === true) {
-            text += ' is:conflict'
-        } else if (filter.conflict === false) {
-            text += ' not:conflict'
-        }
-        if (filter.migrationErrors === true) {
-            text += ' is:error'
-        } else if (filter.migrationErrors === false) {
-            text += ' not:error'
-        }
-        this.filterText = text.trim()
+        this.filterText = parameters.map(p => p.trim()).join(' ')
     }
 
     /**
-     * Updates queryParams structure using query parameters.
+     * Updates the filter structure using URL query parameters.
      *
-     * This update is triggered when user types in the filter box.
+     * This update is triggered when the URL changes.
      * @param params query parameters received from activated route.
      */
-    private updateQueryParams(params: ParamMap) {
-        const queryParams: QueryParamsFilter = {
-            text: null,
-            appId: null,
-            subnetId: null,
-            keaSubnetId: null,
-            global: null,
-            conflict: null,
-            migrationErrors: null,
-        }
+    private updateFilterFromQueryParameters(params: ParamMap) {
+        const numericKeys = getNumericQueryParamsFilterKeys()
+        const booleanKeys = getBooleanQueryParamsFilterKeys()
 
-        queryParams.text = params.get('text')
+        const filter: QueryParamsFilter = {}
+        filter.text = params.get('text')
 
-        let filterTextFormatErrors: string[] = []
-
-        // Convert appId to a number. It is NaN if the parameter doesn't exist
-        // or it is malformed.
-        const appId = parseInt(params.get('appId'), 10)
-        queryParams.appId = isNaN(appId) ? null : appId
-        if (params.get('appId') != null && queryParams.appId === null) {
-            filterTextFormatErrors.push('Please specify appId as a number (e.g., appId:2).')
-        }
-
-        // Convert subnetId to a number. It is NaN if the parameter doesn't exist
-        // or it is malformed.
-        const subnetId = parseInt(params.get('subnetId'), 10)
-        queryParams.subnetId = isNaN(subnetId) ? null : subnetId
-        if (params.get('subnetId') != null && queryParams.subnetId === null) {
-            filterTextFormatErrors.push('Please specify subnetId as a number (e.g., subnetId:2).')
-        }
-
-        // Convert keaSubnetId to a number. It is NaN if the parameter doesn't exist
-        // or it is malformed.
-        const keaSubnetId = parseInt(params.get('keaSubnetId'), 10)
-        queryParams.keaSubnetId = isNaN(keaSubnetId) ? null : keaSubnetId
-        if (params.get('keaSubnetId') != null && queryParams.keaSubnetId === null) {
-            filterTextFormatErrors.push('Please specify keaSubnetId as a number (e.g., keaSubnetId:2).')
+        for (let key of numericKeys) {
+            // Convert the value to a number. It is NaN if the parameter
+            // doesn't exist or it is malformed.
+            if (params.has(key)) {
+                const value = parseInt(params.get(key))
+                filter[key as any] = isNaN(value) ? null : value
+            }
         }
 
         const parseBoolean = (val: string) => (val === 'true' ? true : val === 'false' ? false : null)
 
-        // Global.
-        const g = params.get('global')
-        queryParams.global = parseBoolean(g)
+        for (let key of booleanKeys) {
+            if (params.has(key)) {
+                const value = parseBoolean(params.get(key))
+                filter[key as any] = value
+            }
+        }
 
-        // Conflict.
-        const c = params.get('conflict')
-        queryParams.conflict = parseBoolean(c)
+        this.hostFilter$.next({
+            source: 'query',
+            filter: filter
+        })
+    }
 
-        // Migration errors.
-        const me = params.get('migrationErrors')
-        queryParams.migrationErrors = parseBoolean(me)
+    /**
+     * Checks if the provided filter is valid.
+     * @param filter A filter to validate
+     * @returns List of validation issues. If the list is empty, the filter is
+     * valid.
+     */
+    private validateFilter(filter: QueryParamsFilter): string[] {
+        const numericKeys = getNumericQueryParamsFilterKeys()
+        const booleanKeys = getBooleanQueryParamsFilterKeys()
 
-        this.filterTextFormatErrors = filterTextFormatErrors
-        this.queryParams$.next(queryParams)
+        const errors: string[] = []
+
+        for (let key of numericKeys) {
+            if (filter.hasOwnProperty(key) && filter[key] == null) {
+                errors.push(`Please specify ${key} as a number (e.g., ${key}:2).`)
+            }
+        }
+
+        for (let key of booleanKeys) {
+            if (filter.hasOwnProperty(key) && filter[key] == null) {
+                errors.push(`Please specify ${key} as a boolean (e.g., is:${key} or not:${key}).`)
+            }
+        }
+
+        return errors
     }
 
     /**
@@ -584,7 +610,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * not specified, the current values are used when available.
      */
     loadHosts(event?) {
-        const params = this.queryParams$.getValue()
+        const params = this.hostFilter$.getValue().filter
         if (typeof event === 'undefined') {
             event = { first: 0, rows: 10 }
             if (this.hostsTable) {
@@ -684,14 +710,15 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      */
     keyUpFilterText(event: Pick<KeyboardEvent, 'key'>) {
         if (this.filterText.length >= 2 || event.key === 'Enter') {
-            const queryParams = extractKeyValsAndPrepareQueryParams<QueryParamsFilter>(
+            const filter = extractKeyValsAndPrepareQueryParams<QueryParamsFilter>(
                 this.filterText,
-                ['appId', 'subnetId', 'keaSubnetId'],
-                ['global', 'conflict', 'migrationErrors']
+                getNumericQueryParamsFilterKeys(),
+                getBooleanQueryParamsFilterKeys()
             )
-            this.router.navigate(['/dhcp/hosts'], {
-                queryParams,
-                queryParamsHandling: 'merge',
+
+            this.hostFilter$.next({
+                source: 'input',
+                filter: filter
             })
         }
     }
@@ -700,9 +727,10 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * Event handler triggered when a host list needs to be filtered.
      */
     onRequestedFiltering(filter: QueryParamsFilter) {
-        this.updateFilterText(filter)
-        this.queryParams$.next(filter)
-        this.loadHosts()
+        this.hostFilter$.next({
+            source: 'callback',
+            filter
+        })
     }
 
     /**

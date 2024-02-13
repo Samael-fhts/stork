@@ -114,7 +114,7 @@
                 <div>
                     <span class="block mr-2">
                         <app-hosts-migration-button
-                            [filter$]="queryParams$"
+                            [filter$]="validHostFilter$"
                             (filterList)="onRequestedFiltering($event)"
                         ></app-hosts-migration-button>
                     </span>
