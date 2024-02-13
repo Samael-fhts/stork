@@ -273,7 +273,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
         // Update the list of hosts when the filtering parameters change.
         this.subscriptions.add(
-            this.validHostFilter$.subscribe((filter) => {
+            this.validHostFilter$.subscribe(() => {
                 this.loadHosts()
             })
         )
