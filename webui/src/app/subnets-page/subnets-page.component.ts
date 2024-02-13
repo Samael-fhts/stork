@@ -354,10 +354,10 @@ export class SubnetsPageComponent implements OnInit, OnDestroy {
      */
     keyupFilterText(event) {
         if (this.filterText.length >= 2 || event.key === 'Enter') {
-            const queryParams = extractKeyValsAndPrepareQueryParams<QueryParamsFilter>(
-                this.filterText,
-                ['appId', 'subnetId']
-            )
+            const queryParams = extractKeyValsAndPrepareQueryParams<QueryParamsFilter>(this.filterText, [
+                'appId',
+                'subnetId',
+            ])
             this.router.navigate(['/dhcp/subnets'], {
                 queryParams,
                 queryParamsHandling: 'merge',

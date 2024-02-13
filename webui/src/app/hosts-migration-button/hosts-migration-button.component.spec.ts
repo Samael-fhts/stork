@@ -470,7 +470,7 @@ describe('HostsMigrationButtonComponent', () => {
 
         // Check the emitted event.
         expect(component.filterList.emit).toHaveBeenCalledWith({
-            text: 'filter'
+            text: 'filter',
         })
 
         // Filter by errored reservations.
@@ -478,7 +478,7 @@ describe('HostsMigrationButtonComponent', () => {
 
         // Check the emitted event.
         expect(component.filterList.emit).toHaveBeenCalledWith({
-            text: 'filter'
+            text: 'filter',
         })
     }))
 

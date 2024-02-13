@@ -11,7 +11,11 @@ import { catchError, filter, map, take } from 'rxjs/operators'
 import { HostForm } from '../forms/host-form'
 import { Host, LocalHost } from '../backend'
 import { hasDifferentLocalHostData } from '../hosts'
-import { QueryParamsFilter, getBooleanQueryParamsFilterKeys, getNumericQueryParamsFilterKeys } from './query-params-filter'
+import {
+    QueryParamsFilter,
+    getBooleanQueryParamsFilterKeys,
+    getNumericQueryParamsFilterKeys,
+} from './query-params-filter'
 
 /**
  * Enumeration for different host tab types displayed by the component.
@@ -177,8 +181,9 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * - callback - the filter is set by the child component,
      * - query - the filter is set by the URL query parameters.
      */
-    hostFilter$ = new BehaviorSubject<{ source: 'init' | 'input' | 'callback' | 'query', filter: QueryParamsFilter}>({
-        source: 'init', filter: {}
+    hostFilter$ = new BehaviorSubject<{ source: 'init' | 'input' | 'callback' | 'query'; filter: QueryParamsFilter }>({
+        source: 'init',
+        filter: {},
     })
 
     /**
@@ -187,8 +192,8 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      */
     validHostFilter$ = this.hostFilter$.pipe(
         // Valid filter has no validation errors.
-        filter(f => this.validateFilter(f.filter).length === 0),
-        map(f => f.filter)
+        filter((f) => this.validateFilter(f.filter).length === 0),
+        map((f) => f.filter)
     )
 
     /**
@@ -268,14 +273,14 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
         // Update the list of hosts when the filtering parameters change.
         this.subscriptions.add(
-            this.validHostFilter$.subscribe(filter => {
+            this.validHostFilter$.subscribe((filter) => {
                 this.loadHosts()
             })
         )
 
         // Update the filter representation when the filtering parameters change.
         this.subscriptions.add(
-            this.hostFilter$.subscribe(f => {
+            this.hostFilter$.subscribe((f) => {
                 // Update the URL.
                 if (f.source != 'query') {
                     // TBD
@@ -291,20 +296,22 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
         // Subscribe to the changes of the filtering parameters.
         this.subscriptions.add(
-            this.route.queryParamMap.pipe(catchError((err) => {
-                const msg = getErrorMessage(err)
-                this.messageService.add({
-                    severity: 'error',
-                    summary: 'Cannot process the query params',
-                    detail: 'Error processing the query params: ' + msg,
-                    life: 10000,
-                })
-                return EMPTY
-            })).subscribe(
-                (params) => {
+            this.route.queryParamMap
+                .pipe(
+                    catchError((err) => {
+                        const msg = getErrorMessage(err)
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Cannot process the query params',
+                            detail: 'Error processing the query params: ' + msg,
+                            life: 10000,
+                        })
+                        return EMPTY
+                    })
+                )
+                .subscribe((params) => {
                     this.updateFilterFromQueryParameters(params)
-                }
-            )
+                })
         )
         // Apply to the changes of the host id, e.g. from /dhcp/hosts/all to
         // /dhcp/hosts/1. Those changes are triggered by switching between the
@@ -375,7 +382,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         if (filter.text) {
             parameters.push(filter.text)
         }
-        this.filterText = parameters.map(p => p.trim()).join(' ')
+        this.filterText = parameters.map((p) => p.trim()).join(' ')
     }
 
     /**
@@ -411,7 +418,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
         this.hostFilter$.next({
             source: 'query',
-            filter: filter
+            filter: filter,
         })
     }
 
@@ -718,7 +725,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
             this.hostFilter$.next({
                 source: 'input',
-                filter: filter
+                filter: filter,
             })
         }
     }
@@ -729,7 +736,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
     onRequestedFiltering(filter: QueryParamsFilter) {
         this.hostFilter$.next({
             source: 'callback',
-            filter
+            filter,
         })
     }
 
