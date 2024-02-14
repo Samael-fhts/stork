@@ -548,7 +548,7 @@ describe('HostsMigrationButtonComponent', () => {
     it('should exclude the migration errors from filter', fakeAsync(() => {
         const filter: Observable<QueryParamsFilter> = of({
             appId: 42,
-            migrationError: true
+            migrationError: true,
         })
         component.filter$ = filter
 

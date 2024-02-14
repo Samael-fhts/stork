@@ -1,7 +1,11 @@
-import { QueryParamsFilter, getBooleanQueryParamsFilterKeys, getNumericQueryParamsFilterKeys } from "./query-params-filter"
+import {
+    QueryParamsFilter,
+    getBooleanQueryParamsFilterKeys,
+    getNumericQueryParamsFilterKeys,
+} from './query-params-filter'
 
 describe('QueryParamsFilter', () => {
-    let filter: Required<QueryParamsFilter> 
+    let filter: Required<QueryParamsFilter>
 
     beforeEach(() => {
         filter = {
@@ -11,7 +15,7 @@ describe('QueryParamsFilter', () => {
             keaSubnetId: 0,
             migrationError: false,
             subnetId: 0,
-            text: ''
+            text: '',
         }
     })
 
