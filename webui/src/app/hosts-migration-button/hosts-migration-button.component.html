@@ -93,10 +93,10 @@
         </p>
         <p>This operation cannot be undone.</p>
         <!-- Filters -->
-        <div *ngIf="!isCurrentFilterEmpty(); else noFiltersSpecified">
+        <div *ngIf="!isFilterEmpty(); else noFiltersSpecified">
             <h4>The below filters will be applied to select the hosts to migrate:</h4>
             <div class="grid">
-                <ng-container *ngFor="let item of currentFilterAsDict | keyvalue">
+                <ng-container *ngFor="let item of filterAsDict | keyvalue">
                     <div class="col-6 font-semibold" *ngIf="item.value !== undefined && item.value !== null">
                         {{ item.key }}:
                     </div>

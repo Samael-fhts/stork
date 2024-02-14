@@ -6,7 +6,7 @@ import { Table } from 'primeng/table'
 
 import { DHCPService } from '../backend/api/api'
 import { extractKeyValsAndPrepareQueryParams, getErrorMessage } from '../utils'
-import { BehaviorSubject, concat, EMPTY, of, Subscription } from 'rxjs'
+import { concat, EMPTY, of, Subject, Subscription } from 'rxjs'
 import { catchError, filter, map, take } from 'rxjs/operators'
 import { HostForm } from '../forms/host-form'
 import { Host, LocalHost } from '../backend'
@@ -181,20 +181,13 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * - callback - the filter is set by the child component,
      * - query - the filter is set by the URL query parameters.
      */
-    hostFilter$ = new BehaviorSubject<{ source: 'init' | 'input' | 'callback' | 'query'; filter: QueryParamsFilter }>({
-        source: 'init',
-        filter: {},
-    })
+    hostFilter$ = new Subject<{ source: 'input' | 'callback' | 'query'; filter: QueryParamsFilter }>()
 
     /**
-     * The filter applied to the hosts list. Only filters that pass the
+     * The recent filter applied to the hosts list. Only filters that pass the
      * validation are used.
      */
-    validHostFilter$ = this.hostFilter$.pipe(
-        // Valid filter has no validation errors.
-        filter((f) => this.validateFilter(f.filter).length === 0),
-        map((f) => f.filter)
-    )
+    validHostFilter: QueryParamsFilter = {}
 
     /**
      * Array of tabs with host information.
@@ -246,6 +239,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
     ) {}
 
     ngOnDestroy(): void {
+        this.hostFilter$.complete()
         this.subscriptions.unsubscribe()
     }
 
@@ -271,9 +265,9 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         // Initially, there is only a tab with hosts list.
         this.tabs = [{ label: 'Host Reservations', routerLink: '/dhcp/hosts/all' }]
 
-        // Update the list of hosts when the filtering parameters change.
+        // Pipe the valid filter to the hostFilter$ subject.
         this.subscriptions.add(
-            this.validHostFilter$.subscribe(() => {
+                    filter((f) => this.validateFilter(f.filter).length === 0),
                 this.loadHosts()
             })
         )
@@ -617,7 +611,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * not specified, the current values are used when available.
      */
     loadHosts(event?) {
-        const params = this.hostFilter$.getValue().filter
+        const params = this.validHostFilter
         if (typeof event === 'undefined') {
             event = { first: 0, rows: 10 }
             if (this.hostsTable) {

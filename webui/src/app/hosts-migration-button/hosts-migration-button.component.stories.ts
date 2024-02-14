@@ -9,7 +9,6 @@ import { ProgressButtonComponent } from '../progress-button/progress-button.comp
 import { toastDecorator } from '../utils-stories'
 import { HostsMigrationService } from '../hosts-migration-service/hosts-migration.service'
 import { ToastModule } from 'primeng/toast'
-import { Observable, interval, map } from 'rxjs'
 import { DialogModule } from 'primeng/dialog'
 import { RouterModule } from '@angular/router'
 import { MessageService } from 'primeng/api'
@@ -21,7 +20,7 @@ import { QueryParamsFilter } from '../hosts-page/query-params-filter'
  * Describes the component's arguments.
  */
 interface Args {
-    filter$: Observable<QueryParamsFilter>
+    filter: QueryParamsFilter
 }
 
 /**
@@ -38,14 +37,6 @@ interface Args {
 export default {
     title: 'App/HostsMigrationButton',
     component: HostsMigrationButtonComponent,
-    argTypes: {
-        // This property has a complex type, so it cannot be defined manually.
-        filter$: {
-            table: {
-                disable: true,
-            },
-        },
-    },
     decorators: [
         applicationConfig({
             providers: [MessageService],
@@ -80,16 +71,13 @@ export default {
 export const Primary: StoryObj<Args> = {
     args: {
         // Generates a new filter every 3s.
-        filter$: interval(3000).pipe(
-            map((v) => ({
-                appId: v % 5 === 0 ? v : null,
-                conflict: v % 7 === 0 ? v % 2 == 0 : null,
-                global: v % 9 === 0 ? v % 2 == 0 : null,
-                keaSubnetId: v % 11 === 0 ? v : null,
-                subnetId: v % 13 === 0 ? v : null,
-                text: v % 17 === 0 ? `filter-${v}` : null,
-                migrationError: null,
-            }))
-        ),
+        filter: {
+            appId: 42,
+            conflict: true,
+            global: false,
+            keaSubnetId: 24,
+            subnetId: 4224,
+            text: 'foobar',
+        },
     },
 }

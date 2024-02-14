@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core'
 import { MessageService } from 'primeng/api'
 import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
-import { Observable, Subscription, lastValueFrom } from 'rxjs'
+import { Subscription, lastValueFrom } from 'rxjs'
 import { getErrorMessage } from '../utils'
 import { Router } from '@angular/router'
 import { QueryParamsFilter } from '../hosts-page/query-params-filter'
@@ -112,11 +112,6 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     fetchingAPI: boolean = false
 
     /**
-     * The current value of the host reservation filter in the hosts table.
-     */
-    currentFilter: QueryParamsFilter = null
-
-    /**
      * The subscriptions subscribed by the component.
      * It doesn't include the subscription to the migration updates.
      */
@@ -133,7 +128,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * The observable that emits the current value of the host reservation
      * filter in the hosts table.
      */
-    @Input() filter$: Observable<QueryParamsFilter>
+    @Input() filter: QueryParamsFilter
 
     // Event emitters.
 
@@ -224,7 +219,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * If the migration creation failed, it transitions to the 'error' state.
      */
     private transitionToMigrationRequestedState() {
-        const filter = this.currentFilter
+        const filter = this.filter
         this.setState('migrating', {
             errors: 0,
             inProgress: true,
@@ -295,23 +290,13 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
 
     /**
      * Called when the component is initialized by Angular.
-     * It subscribes to changes of the host reservation filter in the hosts
-     * table (if the observable was provided). Then it transitions to the
-     * 'initializing' state.
+     * It transitions to the 'initializing' state.
      */
     ngOnInit(): void {
-        if (this.filter$ != null) {
-            this.subscriptions.add(
-                this.filter$.subscribe((filter) => {
-                    this.currentFilter = filter
-                    // We cannot filter the hosts to migrate by the migration
-                    // errors because the existing migration must be removed
-                    // first.
-                    delete this.currentFilter.migrationError
-                })
-            )
-        }
-
+        // We cannot filter the hosts to migrate by the migration
+        // errors because the existing migration must be removed
+        // first.
+        delete this.filter.migrationError
         this.transitionToInitializingState()
     }
 
@@ -405,16 +390,16 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * The filter is expected to be a plain object so the conversion is not
      * necessary. This method is only for the type checker.
      */
-    get currentFilterAsDict(): Record<string, any> {
-        return this.currentFilter
+    get filterAsDict(): Record<string, any> {
+        return this.filter
     }
 
     /**
      * Returns true if the filter is empty - it has no properties or all
      * properties are null or undefined.
      */
-    isCurrentFilterEmpty(): boolean {
-        return Object.values(this.currentFilter).every((v) => v == null)
+    isFilterEmpty(): boolean {
+        return Object.values(this.filter).every((v) => v == null)
     }
 
     // Event emitters.
