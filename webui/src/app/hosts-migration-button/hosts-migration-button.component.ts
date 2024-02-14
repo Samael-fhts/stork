@@ -401,6 +401,22 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         this.removeMigration()
     }
 
+    /**
+     * The filter is expected to be a plain object so the conversion is not
+     * necessary. This method is only for the type checker.
+     */
+    get currentFilterAsDict(): Record<string, any> {
+        return this.currentFilter
+    }
+
+    /**
+     * Returns true if the filter is empty - it has no properties or all
+     * properties are null or undefined.
+     */
+    isCurrentFilterEmpty(): boolean {
+        return Object.values(this.currentFilter).every((v) => v == null)
+    }
+
     // Event emitters.
 
     /**
