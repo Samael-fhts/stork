@@ -13,7 +13,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ToastModule } from 'primeng/toast'
 import { DialogModule } from 'primeng/dialog'
 import { RouterTestingModule } from '@angular/router/testing'
-import { EMPTY, Subject, of, throwError } from 'rxjs'
+import { EMPTY, Observable, Subject, of, throwError } from 'rxjs'
 import { QueryParamsFilter } from '../hosts-page/query-params-filter'
 
 describe('HostsMigrationButtonComponent', () => {
@@ -543,5 +543,18 @@ describe('HostsMigrationButtonComponent', () => {
         expect(component.fetchingAPI).toBe(false)
         expect(component.updateSubscription).toBeNull()
         expect(hasLoadingIndicator()).toBe(false)
+    }))
+
+    it('should exclude the migration errors from filter', fakeAsync(() => {
+        const filter: Observable<QueryParamsFilter> = of({
+            appId: 42,
+            migrationError: true
+        })
+        component.filter$ = filter
+
+        component.ngOnInit()
+        flush()
+
+        expect(component.currentFilter).toEqual({ appId: 42 })
     }))
 })
