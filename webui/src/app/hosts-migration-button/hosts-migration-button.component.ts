@@ -304,6 +304,10 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
             this.subscriptions.add(
                 this.filter$.subscribe((filter) => {
                     this.currentFilter = filter
+                    // We cannot filter the hosts to migrate by the migration
+                    // errors because the existing migration must be removed
+                    // first.
+                    delete this.currentFilter.migrationErrors
                 })
             )
         }
