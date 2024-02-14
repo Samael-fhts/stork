@@ -1115,7 +1115,7 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, 2, null, null, null, null, null)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, 2, undefined, undefined, undefined, undefined, undefined)
 
         expect(fixture.debugElement.query(By.css('.p-error'))).toBeFalsy()
     }))
@@ -1131,7 +1131,7 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null)
+        expect(dhcpApi.getHosts).not.toHaveBeenCalled()
 
         const errMsg = fixture.debugElement.query(By.css('.p-error'))
         expect(errMsg).toBeTruthy()
@@ -1149,7 +1149,7 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, 89, null, null, null, null)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, undefined, 89, undefined, undefined, undefined, undefined)
 
         expect(fixture.debugElement.query(By.css('.p-error'))).toBeFalsy()
     }))
@@ -1165,7 +1165,7 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null)
+        expect(dhcpApi.getHosts).not.toHaveBeenCalled()
 
         const errMsg = fixture.debugElement.query(By.css('.p-error'))
         expect(errMsg).toBeTruthy()
@@ -1183,7 +1183,16 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, true)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(
+            0,
+            10,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            true
+        )
 
         expect(fixture.debugElement.query(By.css('.p-error'))).toBeFalsy()
     }))
@@ -1199,7 +1208,16 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, false)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(
+            0,
+            10,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            undefined,
+            false
+        )
 
         expect(fixture.debugElement.query(By.css('.p-error'))).toBeFalsy()
     }))
@@ -1215,7 +1233,7 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, 101, null, null, null)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, undefined, undefined, 101, undefined, undefined, undefined)
 
         expect(fixture.debugElement.query(By.css('.p-error'))).toBeFalsy()
     }))
@@ -1231,7 +1249,7 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null)
+        expect(dhcpApi.getHosts).not.toHaveBeenCalledWith()
 
         const errMsg = fixture.debugElement.query(By.css('.p-error'))
         expect(errMsg).toBeTruthy()
@@ -1249,7 +1267,7 @@ describe('HostsPageComponent', () => {
         tick()
         fixture.detectChanges()
 
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null)
+        expect(dhcpApi.getHosts).not.toHaveBeenCalled()
 
         const errMsgs = fixture.debugElement.queryAll(By.css('.p-error'))
         expect(errMsgs.length).toBe(3)
