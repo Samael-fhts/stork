@@ -27,9 +27,8 @@
 # generated documentation
 /doc/build
 
-# output from unit tests coverage
+# output from backend unit tests coverage
 /backend/coverage.out
-/webui/coverage
 
 # ctags
 TAGS

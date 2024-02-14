@@ -18,24 +18,6 @@ python_requirement_files = [
     "tests/sim/requirements.in",
 ] + FileList["rakelib/init_deps/*.in"]
 
-#################
-### Functions ###
-#################
-
-# Opens a file in the default application.
-def open_file(path)
-    program = nil
-    if OS == "macos"
-        program = "open"
-    elsif OS == "linux" || OS == "FreeBSD"
-        program = "xdg-open"
-    else
-        fail "operating system (#{OS}) not supported"
-    end
-
-    system program, path
-end
-
 #############
 ### Tasks ###
 #############
@@ -96,33 +78,21 @@ namespace :unittest do
             # allows us to provide both a path relative to the root or webui
             # directory.
             test_path = ENV["TEST"].delete_prefix('webui/')
-            opts.append "--include", test_path
+            opts += ["--include", test_path]
         end
 
-        opts.append "--progress", debug
-        opts.append "--watch", debug
+        opts += ["--progress", debug]
+        opts += ["--watch", debug]
 
-        opts.append "--browsers"
+        opts += ["--browsers"]
         if debug == "true"
-            opts.append "Chrome"
+            opts += ["Chrome"]
         else
-            opts.append "ChromeNoSandboxHeadless"
-            opts.append "--code-coverage"
+            opts += ["ChromeNoSandboxHeadless"]
         end
 
         Dir.chdir('webui') do
             sh NPX, "ng", "test", *opts
-        end
-    end
-
-    desc 'Run coverage tests for UI.'
-    task :ui_cov => [NPX] + WEBUI_CODEBASE do
-        Dir.chdir('webui') do
-            sh NPX, "ng", "test",
-                "--no-watch",
-                "--code-coverage",
-                "--browsers", "ChromeNoSandboxHeadless"
-            open_file "coverage/stork/index.html"
         end
     end
 
@@ -383,8 +353,17 @@ namespace :run do
 
     desc 'Open the documentation in the browser'
     task :doc => [DOC_USER_ROOT, DOC_DEV_ROOT] do
-        open_file "#{DOC_USER_ROOT}/index.html"
-        open_file "#{DOC_DEV_ROOT}/index.html"
+        program = nil
+        if OS == "macos"
+            program = "open"
+        elsif OS == "linux" || OS == "FreeBSD"
+            program = "xdg-open"
+        else
+            fail "operating system (#{OS}) not supported"
+        end
+
+        system program, "#{DOC_USER_ROOT}/index.html"
+        system program, "#{DOC_DEV_ROOT}/index.html"
     end
 end
 
