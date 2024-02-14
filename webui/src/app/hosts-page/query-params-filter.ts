@@ -9,7 +9,7 @@ export interface QueryParamsFilter {
     keaSubnetId?: number
     global?: boolean
     conflict?: boolean
-    migrationErrors?: boolean
+    migrationError?: boolean
 }
 
 /**
@@ -17,7 +17,7 @@ export interface QueryParamsFilter {
  * @returns List of keys.
  */
 export function getBooleanQueryParamsFilterKeys(): (keyof QueryParamsFilter)[] {
-    return ['global', 'conflict', 'migrationErrors']
+    return ['global', 'conflict', 'migrationError']
 }
 
 /**

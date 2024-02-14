@@ -88,7 +88,7 @@ export const Primary: StoryObj<Args> = {
                 keaSubnetId: v % 11 === 0 ? v : null,
                 subnetId: v % 13 === 0 ? v : null,
                 text: v % 17 === 0 ? `filter-${v}` : null,
-                migrationErrors: null,
+                migrationError: null,
             }))
         ),
     },

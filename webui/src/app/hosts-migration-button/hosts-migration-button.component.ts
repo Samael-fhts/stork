@@ -307,7 +307,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
                     // We cannot filter the hosts to migrate by the migration
                     // errors because the existing migration must be removed
                     // first.
-                    delete this.currentFilter.migrationErrors
+                    delete this.currentFilter.migrationError
                 })
             )
         }
@@ -470,7 +470,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
         // Copy the filter object.
         base = { ...base }
         if (errorsOnly) {
-            base.migrationErrors = true
+            base.migrationError = true
         }
         return base
     }
