@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core'
-import { Router, ActivatedRoute, ParamMap } from '@angular/router'
+import { Router, ActivatedRoute, ParamMap, EventType } from '@angular/router'
 
 import { MenuItem, MessageService } from 'primeng/api'
 import { Table } from 'primeng/table'
@@ -16,6 +16,7 @@ import {
     getBooleanQueryParamsFilterKeys,
     getNumericQueryParamsFilterKeys,
 } from './query-params-filter'
+import { Location } from '@angular/common'
 
 /**
  * Enumeration for different host tab types displayed by the component.
@@ -176,7 +177,6 @@ export class HostsPageComponent implements OnInit, OnDestroy {
     /**
      * The provided filter.
      * The source property indicates where the filter comes from:
-     * - init - the filter is set during the component initialization,
      * - input - the filter is set by the user in the input box,
      * - callback - the filter is set by the child component,
      * - query - the filter is set by the URL query parameters.
@@ -235,7 +235,8 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         private route: ActivatedRoute,
         private router: Router,
         private dhcpApi: DHCPService,
-        private messageService: MessageService
+        private messageService: MessageService,
+        private location: Location
     ) {}
 
     ngOnDestroy(): void {
@@ -267,9 +268,18 @@ export class HostsPageComponent implements OnInit, OnDestroy {
 
         // Pipe the valid filter to the hostFilter$ subject.
         this.subscriptions.add(
+            this.hostFilter$
+                .pipe(
+                    // Valid filter has no validation errors.
                     filter((f) => this.validateFilter(f.filter).length === 0),
-                this.loadHosts()
-            })
+                    map((f) => f.filter)
+                )
+                .subscribe((filter) => {
+                    // Remember the filter.
+                    this.validHostFilter = filter
+                    // Update the list of hosts when the filtering parameters change.
+                    this.loadHosts()
+                })
         )
 
         // Update the filter representation when the filtering parameters change.
@@ -277,7 +287,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
             this.hostFilter$.subscribe((f) => {
                 // Update the URL.
                 if (f.source != 'query') {
-                    // TBD
+                    this.updateQueryParameters(f.filter)
                 }
                 // Update the input box.
                 if (f.source != 'input') {
@@ -288,34 +298,59 @@ export class HostsPageComponent implements OnInit, OnDestroy {
             })
         )
 
-        // Subscribe to the changes of the filtering parameters.
         this.subscriptions.add(
-            this.route.queryParamMap
+            // This component is responsible for routing of multiple
+            // components: hosts list, host details, and host forms.
+            // We want to preserve the filtering parameters when switching
+            // between the tabs. So we need to know both URL and query
+            // parameters in the same time.
+            //
+            // If we register to the `route.queryParamMap` and `route.paramMap`
+            // separately or we merge them using the `combineLatest` operator,
+            // we may get the situation when the query parameters are updated
+            // after the segment parameters. In this case, the filtering
+            // parameters are updated twice: first with the new query
+            // parameters but with old segment parameters and then with the new
+            // query and segment parameters.
+            //
+            // We need to differently treat the situation when the user
+            // switches to detail tab (preserve the filtering parameters and
+            // clear the query parameters), when the user back to the list tab
+            // (restore the query parameters) and when the user changes the
+            // query parameters in URL bar (update the filtering parameters).
+            //
+            // We need a guarantee that the change of the segment and query
+            // parameters are notified in the same time. It is achieved by
+            // registering to the `navigation end` event.
+            //
+            // See: https://stackoverflow.com/a/45765143
+            this.router.events
                 .pipe(
+                    filter((event) => event.type === EventType.NavigationEnd),
                     catchError((err) => {
                         const msg = getErrorMessage(err)
                         this.messageService.add({
                             severity: 'error',
-                            summary: 'Cannot process the query params',
-                            detail: 'Error processing the query params: ' + msg,
+                            summary: 'Cannot process the URL query',
+                            detail: msg,
                             life: 10000,
                         })
                         return EMPTY
                     })
                 )
-                .subscribe((params) => {
-                    this.updateFilterFromQueryParameters(params)
-                })
-        )
-        // Apply to the changes of the host id, e.g. from /dhcp/hosts/all to
-        // /dhcp/hosts/1. Those changes are triggered by switching between the
-        // tabs.
-        this.subscriptions.add(
-            this.route.paramMap.subscribe(
-                (params) => {
+                .subscribe(() => {
+                    const paramMap = this.route.snapshot.paramMap
+                    const queryParamMap = this.route.snapshot.queryParamMap
+
+                    // Apply to the changes of the host id, e.g. from /dhcp/hosts/all to
+                    // /dhcp/hosts/1. Those changes are triggered by switching between the
+                    // tabs.
+
                     // Get host id.
-                    const id = params.get('id')
+                    const id = paramMap.get('id')
                     if (!id || id === 'all') {
+                        // Update the filter only if the target is host list.
+                        this.updateFilterFromQueryParameters(queryParamMap)
                         this.switchToTab(0)
                         return
                     }
@@ -330,17 +365,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
                         // to this tab if it has been already opened.
                         this.openHostTab(numericId)
                     }
-                },
-                (error) => {
-                    const msg = getErrorMessage(error)
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Cannot process the URL params',
-                        detail: 'Error processing the URL params: ' + msg,
-                        life: 10000,
-                    })
-                }
-            )
+                })
         )
     }
 
@@ -377,6 +402,25 @@ export class HostsPageComponent implements OnInit, OnDestroy {
             parameters.push(filter.text)
         }
         this.filterText = parameters.map((p) => p.trim()).join(' ')
+    }
+
+    /**
+     * Update the URL query parameters based on the provided filter.
+     *
+     * This function uses the Location provider instead Router or
+     * ActivatedRoute to avoid re-rendering the component.
+     */
+    private updateQueryParameters(filter: QueryParamsFilter) {
+        const params = []
+
+        for (let key of Object.keys(filter)) {
+            if (filter[key] != null) {
+                params.push(`${encodeURIComponent(key)}=${encodeURIComponent(filter[key])}`)
+            }
+        }
+
+        const baseUrl = this.router.url.split('?')[0]
+        this.location.go(baseUrl, params.join('&'))
     }
 
     /**
