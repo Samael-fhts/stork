@@ -326,7 +326,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
             // See: https://stackoverflow.com/a/45765143
             this.router.events
                 .pipe(
-                    filter((event) => event.type === EventType.NavigationEnd),
+                    filter((event, idx) => idx === 0 || event.type === EventType.NavigationEnd),
                     catchError((err) => {
                         const msg = getErrorMessage(err)
                         this.messageService.add({
