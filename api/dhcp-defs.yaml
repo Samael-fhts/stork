@@ -285,6 +285,11 @@
 
   HostMigration:
     type: object
+    required:
+      - progress
+      - errors
+      - inProgress
+      - filter
     properties:
       progress:
         type: integer

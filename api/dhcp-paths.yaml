@@ -115,7 +115,7 @@
       description: >-
         This call starts the host migration. It returns the details of the
         migration that is in progress.
-      operationId: postHostMigration
+      operationId: createHostMigration
       tags:
         - DHCP
       parameters:
