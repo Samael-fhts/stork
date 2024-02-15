@@ -194,12 +194,12 @@ the service. For the complete manual page, please see
 :ref:`man-stork-tool`.
 
 To debug migrations, another useful feature is SQL tracing using the ``--db-trace-queries`` parameter.
-The options are either "all" (trace all SQL operations, including migrations and runtime) or "run" (only
-trace runtime operations and skip migrations). If specified without any parameters, "all" is assumed. With it enabled,
-``stork-tool`` prints out all its SQL queries on stderr. For example, these commands can be used
-to generate an SQL script that updates the schema. Note that for some migrations, the steps are
-dependent on the contents of the database, so this is not a universal Stork schema. This parameter
-is also supported by the ``Stork Server``.
+The options are either "all" (trace all SQL operations, including migrations and runtime), "run" (only
+trace runtime operations and skip migrations), or "errors" (only trace erred SQL operations). If
+specified without any parameters, "all" is assumed. With it enabled, ``stork-tool`` prints out all its
+SQL queries on stderr. For example, these commands can be used to generate an SQL script that updates
+the schema. Note that for some migrations, the steps are dependent on the contents of the database, so
+this is not a universal Stork schema. This parameter is also supported by the ``Stork Server``.
 
 .. code-block:: console
 

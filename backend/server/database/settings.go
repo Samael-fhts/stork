@@ -30,12 +30,14 @@ const (
 	LoggingQueryPresetRuntime LoggingQueryPreset = "run"
 	// Disable SQL query logging.
 	LoggingQueryPresetNone LoggingQueryPreset = "none"
+	// Print only erred SQL queries.
+	LoggingQueryPresetErrors LoggingQueryPreset = "errors"
 )
 
 // Converts a raw string into the logging query preset enum.
 func newLoggingQueryPreset(raw string) LoggingQueryPreset {
 	switch raw {
-	case string(LoggingQueryPresetRuntime), string(LoggingQueryPresetAll):
+	case string(LoggingQueryPresetRuntime), string(LoggingQueryPresetAll), string(LoggingQueryPresetErrors):
 		return LoggingQueryPreset(raw)
 	default:
 		return LoggingQueryPresetNone

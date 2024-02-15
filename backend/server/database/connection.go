@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-pg/pg/v10"
@@ -31,7 +32,10 @@ type TxI interface {
 
 // Defines the go-pg hooks to enable the SQL query logging.
 // It implements the "pg.QueryHook" interface.
-type DBLogger struct{}
+type DBLogger struct {
+	// If set to true, only the queries that have errored will be logged.
+	onlyErrors bool
+}
 
 // The type used to define context keys for database handling.
 type contextKeywordDB string
@@ -44,28 +48,50 @@ func (d DBLogger) BeforeQuery(c context.Context, q *pg.QueryEvent) (context.Cont
 		return c, nil
 	}
 
+	queryErr := errors.Wrap(q.Err, "query error")
+
+	if d.onlyErrors && queryErr == nil {
+		// Ignore non-errored queries.
+		return c, nil
+	}
+
 	// When making queries on the system_user table we want to make sure that
 	// we don't expose actual data in the logs, especially password.
+	var query []byte
+	var formatErr error
 	if model, ok := q.Model.(orm.TableModel); ok {
 		if model != nil {
 			table := model.Table()
 			if table != nil && table.SQLName == "system_user" {
 				// Query on the system_user table. Don't print the actual data.
-				fmt.Println(q.UnformattedQuery())
-				return c, nil
+				query, formatErr = q.UnformattedQuery()
 			}
 		}
 	}
-	query, err := q.FormattedQuery()
-	// FormattedQuery returns a tuple of query and error. The error in most cases is nil, and
-	// we don't want to print it. On the other hand, all logging is printed on stdout. We want
-	// to print here to stderr, so it's possible to redirect just the queries to a file.
-	if err != nil {
-		// Let's print errors as SQL comments. This will allow trying to run the export as a script.
-		fmt.Fprintf(os.Stderr, "%s -- error:%s\n", string(query), err)
-	} else {
-		fmt.Fprintln(os.Stderr, string(query))
+	if query == nil {
+		query, formatErr = q.FormattedQuery()
 	}
+	if formatErr != nil {
+		formatErr = errors.Wrap(formatErr, "unable to extract query")
+	}
+
+	// There is query error and formatting error. The errors in most cases are
+	// nil, and we don't want to print it. On the other hand, all logging is
+	// printed on stdout. We want to print here to stderr, so it's possible to
+	// redirect just the queries to a file.
+	line := []string{string(query)}
+	if queryErr != nil || formatErr != nil {
+		// Let's print errors as SQL comments. This will allow trying to run the export as a script.
+		line = append(line, "--")
+	}
+	if queryErr != nil {
+		line = append(line, fmt.Sprintf("query-error:%v", queryErr))
+	}
+	if formatErr != nil {
+		line = append(line, fmt.Sprintf("format-error:%v", formatErr))
+	}
+	fmt.Fprintln(os.Stderr, strings.Join(line, " "))
+
 	return c, nil
 }
 
@@ -84,7 +110,7 @@ func NewPgDBConn(settings *DatabaseSettings) (*PgDB, error) {
 	db := pg.Connect(pgParams)
 	// Add tracing hooks if requested.
 	if settings.TraceSQL != LoggingQueryPresetNone {
-		db.AddQueryHook(DBLogger{})
+		db.AddQueryHook(DBLogger{onlyErrors: settings.TraceSQL == LoggingQueryPresetErrors})
 	}
 
 	log.Printf("Checking connection to database")

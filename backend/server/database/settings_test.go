@@ -213,6 +213,7 @@ func TestNewLoggingQueryPreset(t *testing.T) {
 	require.EqualValues(t, LoggingQueryPresetAll, newLoggingQueryPreset("all"))
 	require.EqualValues(t, LoggingQueryPresetRuntime, newLoggingQueryPreset("run"))
 	require.EqualValues(t, LoggingQueryPresetNone, newLoggingQueryPreset("none"))
+	require.EqualValues(t, LoggingQueryPresetErrors, newLoggingQueryPreset("errors"))
 	require.EqualValues(t, LoggingQueryPresetNone, newLoggingQueryPreset(""))
 	require.EqualValues(t, LoggingQueryPresetNone, newLoggingQueryPreset("nil"))
 	require.EqualValues(t, LoggingQueryPresetNone, newLoggingQueryPreset("false"))
