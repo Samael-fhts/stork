@@ -1008,8 +1008,8 @@ func TestGetHostsByPageConflict(t *testing.T) {
 	}
 }
 
-// Test that page of the hosts contains hosts with conflicted and duplicated
-// local hosts if both conflicted and duplicated DHCP data filter are set.
+// Test that page of the hosts contains no hosts if both conflicted and
+// duplicated DHCP data filter are set.
 func TestGetHostsByPageConflictAndDuplicate(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
@@ -1051,10 +1051,79 @@ func TestGetHostsByPageConflictAndDuplicate(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
-	require.EqualValues(t, 2, total)
-	require.Len(t, returned, 2)
-	require.EqualValues(t, host0.ID, returned[0].ID)
-	require.EqualValues(t, host1.ID, returned[1].ID)
+	require.Zero(t, total)
+	require.Empty(t, returned)
+}
+
+// Test that page of the hosts contains only global hosts belonging to the
+// specific app if both global and app ID filters are set.
+func TestGetHostsByPageGlobalAndAppID(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	apps := addTestSubnetApps(t, db)
+
+	// Create two global hosts. The global hosts have no subnet ID.
+	hosts := []Host{
+		{
+			HostIdentifiers: []HostIdentifier{
+				{
+					Type:  "hw-address",
+					Value: []byte{1, 2, 3, 4, 5, 6},
+				},
+			},
+			IPReservations: []IPReservation{
+				{
+					Address: "192.0.2.56",
+				},
+			},
+			LocalHosts: []LocalHost{
+				{
+					DaemonID:   apps[0].Daemons[0].ID,
+					DataSource: HostDataSourceAPI,
+				},
+			},
+		},
+		{
+			HostIdentifiers: []HostIdentifier{
+				{
+					Type:  "client-id",
+					Value: []byte{1, 2, 3, 4},
+				},
+			},
+			IPReservations: []IPReservation{
+				{
+					Address: "192.0.2.156",
+				},
+			},
+			LocalHosts: []LocalHost{
+				{
+					DaemonID:   apps[1].Daemons[0].ID,
+					DataSource: HostDataSourceAPI,
+				},
+			},
+		},
+	}
+
+	err := db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
+		return CommitGlobalHostsIntoDB(tx, hosts)
+	})
+	require.NoError(t, err)
+
+	// Act
+	filters := HostsByPageFilters{
+		Global: storkutil.Ptr(true),
+		AppID:  &apps[0].ID,
+	}
+
+	returned, total, err := GetHostsByPage(db, 0, 10, filters, "", SortDirAny)
+
+	// Assert
+	require.NoError(t, err)
+	require.EqualValues(t, 1, total)
+	require.Len(t, returned, 1)
+	require.EqualValues(t, hosts[0].ID, returned[0].ID)
 }
 
 // Test that the combinations of the conflict and duplicate filters return
@@ -1130,7 +1199,7 @@ func TestGetHostsByPageConflictDuplicateCombinations(t *testing.T) {
 		require.EqualValues(t, hostDuplicate.ID, returned[0].ID)
 	})
 
-	// Filter by conflict AND duplicate -> Return conflicted and duplicated.
+	// Filter by conflict AND duplicate -> Return no data.
 	t.Run("Conflict and duplicate", func(t *testing.T) {
 		filters := HostsByPageFilters{
 			DHCPDataConflict:  storkutil.Ptr(true),
@@ -1142,10 +1211,8 @@ func TestGetHostsByPageConflictDuplicateCombinations(t *testing.T) {
 
 		// Assert
 		require.NoError(t, err)
-		require.EqualValues(t, 2, total)
-		require.Len(t, returned, 2)
-		require.Contains(t, []int64{hostConflict.ID, hostDuplicate.ID}, returned[0].ID)
-		require.Contains(t, []int64{hostConflict.ID, hostDuplicate.ID}, returned[1].ID)
+		require.Zero(t, total)
+		require.Empty(t, returned)
 	})
 
 	// Filter by NOT conflict -> Return duplicated and single.
@@ -1201,7 +1268,7 @@ func TestGetHostsByPageConflictDuplicateCombinations(t *testing.T) {
 		require.Contains(t, hostStandardIDs, returned[0].ID)
 	})
 
-	// Filter by conflict AND NOT duplicate -> Return conflicted and single.
+	// Filter by conflict AND NOT duplicate -> Return conflicted.
 	t.Run("Conflict and not duplicate", func(t *testing.T) {
 		filters := HostsByPageFilters{
 			DHCPDataConflict:  storkutil.Ptr(true),
@@ -1213,13 +1280,12 @@ func TestGetHostsByPageConflictDuplicateCombinations(t *testing.T) {
 
 		// Assert
 		require.NoError(t, err)
-		require.EqualValues(t, 1+len(hostStandardIDs), total)
-		require.Len(t, returned, 1+len(hostStandardIDs))
-		require.Contains(t, append(hostStandardIDs, hostConflict.ID), returned[0].ID)
-		require.Contains(t, append(hostStandardIDs, hostConflict.ID), returned[1].ID)
+		require.EqualValues(t, 1, total)
+		require.Len(t, returned, 1)
+		require.EqualValues(t, hostConflict.ID, returned[0].ID)
 	})
 
-	// Filter by NOT conflict AND duplicate -> Return duplicated and single.
+	// Filter by NOT conflict AND duplicate -> Return duplicated.
 	t.Run("Not conflict and duplicate", func(t *testing.T) {
 		filters := HostsByPageFilters{
 			DHCPDataConflict:  storkutil.Ptr(false),
@@ -1231,10 +1297,9 @@ func TestGetHostsByPageConflictDuplicateCombinations(t *testing.T) {
 
 		// Assert
 		require.NoError(t, err)
-		require.EqualValues(t, 1+len(hostStandardIDs), total)
-		require.Len(t, returned, 1+len(hostStandardIDs))
-		require.Contains(t, append(hostStandardIDs, hostDuplicate.ID), returned[0].ID)
-		require.Contains(t, append(hostStandardIDs, hostDuplicate.ID), returned[1].ID)
+		require.EqualValues(t, 1, total)
+		require.Len(t, returned, 1)
+		require.EqualValues(t, hostDuplicate.ID, returned[0].ID)
 	})
 }
 

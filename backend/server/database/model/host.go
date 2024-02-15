@@ -562,31 +562,40 @@ func GetHostsByPage(dbi dbops.DBI, offset, limit int64, filters HostsByPageFilte
 			// Single - the hosts that have only one local host.
 			//
 			// Filter by conflict -> Return conflicted.
-			// Filter by duplicate -> Return duplicated.
-			// Filter by conflict AND duplicate -> Return conflicted and duplicated.
 			// Filter by NOT conflict -> Return duplicated and single.
+			// Filter by duplicate -> Return duplicated.
 			// Filter by NOT duplicate -> Return conflicted and single.
+			// Filter by conflict AND duplicate -> No data. They are exclusive.
 			// Filter by NOT conflict AND NOT duplicate -> Return single.
-			// Filter by conflict AND NOT duplicate -> Return conflicted and single.
-			// Filter by NOT conflict AND duplicate -> Return duplicated and single.
-			// Note: Above AND doesn't mean logical AND but rather a combination of filters.
+			// Filter by conflict AND NOT duplicate -> Return conflicted.
+			// Filter by NOT conflict AND duplicate -> Return duplicated.
 
-			// Filter by conflict or filter by NOT duplicate.
-			if (filters.DHCPDataConflict != nil && *filters.DHCPDataConflict) ||
-				(filters.DHCPDataConflict == nil && filters.DHCPDataDuplicate != nil && !*filters.DHCPDataDuplicate) {
-				q = q.WhereOr("duplicate.conflict = TRUE")
+			// Filter by conflict or filter by NOT conflict.
+			if filters.DHCPDataConflict != nil {
+				if *filters.DHCPDataConflict {
+					q = q.Where("duplicate.conflict = TRUE")
+				} else {
+					q = q.WhereGroup(func(q *orm.Query) (*orm.Query, error) {
+						q.WhereOr("duplicate.conflict = FALSE")
+						q.WhereOr("duplicate.conflict IS NULL")
+						return q, nil
+					})
+				}
 			}
 
-			// Filter by duplicate or filter by NOT conflict.
-			if (filters.DHCPDataDuplicate != nil && *filters.DHCPDataDuplicate) ||
-				(filters.DHCPDataDuplicate == nil && filters.DHCPDataConflict != nil && !*filters.DHCPDataConflict) {
-				q = q.WhereOr("duplicate.conflict = FALSE")
+			// Filter by duplicate or filter by NOT duplicate.
+			if filters.DHCPDataDuplicate != nil {
+				if *filters.DHCPDataDuplicate {
+					q = q.Where("duplicate.conflict = FALSE")
+				} else {
+					q = q.WhereGroup(func(q *orm.Query) (*orm.Query, error) {
+						q.WhereOr("duplicate.conflict = TRUE")
+						q.WhereOr("duplicate.conflict IS NULL")
+						return q, nil
+					})
+				}
 			}
 
-			// Filter by NOT conflict or filter by NOT duplicate.
-			if (filters.DHCPDataConflict != nil && !*filters.DHCPDataConflict) || (filters.DHCPDataDuplicate != nil && !*filters.DHCPDataDuplicate) {
-				q = q.WhereOr("duplicate.conflict IS NULL")
-			}
 			return q, nil
 		})
 	}
@@ -605,7 +614,7 @@ func GetHostsByPage(dbi dbops.DBI, offset, limit int64, filters HostsByPageFilte
 
 	// Filter global or non-global hosts.
 	if (filters.Global != nil && *filters.Global) || (filters.SubnetID != nil && *filters.SubnetID == 0) {
-		q = q.WhereOr("host.subnet_id IS NULL")
+		q = q.Where("host.subnet_id IS NULL")
 	}
 	if filters.Global != nil && !*filters.Global {
 		q = q.WhereOr("host.subnet_id IS NOT NULL")
