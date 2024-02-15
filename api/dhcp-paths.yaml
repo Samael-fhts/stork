@@ -88,6 +88,76 @@
           schema:
             $ref: "#/definitions/ApiError"
 
+  /hosts/migration:
+    get:
+      summary: Get details of the current host migration.
+      description: >-
+        This call returns the details of the current host migration. Only one
+        migration can be in progress at a time.
+      operationId: getHostMigration
+      tags:
+        - DHCP
+      responses:
+        200:
+          description: Details of the current host migration.
+          schema:
+            $ref: "#/definitions/HostMigration"
+        404:
+          description: No migration in progress.
+          schema:
+            $ref: "#/definitions/ApiError"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    post:
+      summary: Start host migration.
+      description: >-
+        This call starts the host migration. It returns the details of the
+        migration that is in progress.
+      operationId: postHostMigration
+      tags:
+        - DHCP
+      parameters:
+        - in: body
+          name: filter
+          description: Parameters to select the host reservations to migrate.
+          required: true
+          schema:
+            $ref: "#/definitions/HostMigrationFilter"
+      responses:
+        200:
+          description: Host migration successfully started.
+          schema:
+            $ref: "#/definitions/HostMigration"
+        409:
+          description: Migration already in progress.
+          schema:
+            $ref: "#/definitions/ApiError"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+    delete:
+      summary: Cancel host migration.
+      description: >-
+        This call cancels the current host migration.
+      operationId: deleteHostMigration
+      tags:
+        - DHCP
+      responses:
+        200:
+          description: Host migration successfully canceled.
+        404:
+          description: No migration in progress.
+          schema:
+            $ref: "#/definitions/ApiError"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
+
+
   /hosts/{id}:
     get:
       summary: Get host reservation by ID.
