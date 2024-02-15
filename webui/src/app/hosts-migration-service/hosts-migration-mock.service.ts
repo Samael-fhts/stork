@@ -1,6 +1,7 @@
 import { Observable, concatMap, delay, generate, ignoreElements, merge, of, throwError, timer } from 'rxjs'
-import { HostsMigrationService, Migration } from './hosts-migration.service'
+import { HostsMigrationService } from './hosts-migration.service'
 import { QueryParamsFilter } from '../hosts-page/query-params-filter'
+import { HostMigration, HostMigrationFilter } from '../backend'
 
 /**
  * A mock of the HostsMigrationService. It replaces the real service in the
@@ -17,15 +18,15 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
      * There is no migration in progress.
      * Delayed by 5s to simulate a backend call.
      */
-    getCurrentMigration(): Observable<Migration> {
-        return of(null as Migration).pipe(delay(5000))
+    getCurrentMigration(): Observable<HostMigration> {
+        return of(null).pipe(delay(5000))
     }
 
     /**
      * Returns a stream of migration updates.
      * The updates are generated every 250ms.
      */
-    getMigrationUpdates(): Observable<Migration> {
+    getMigrationUpdates(): Observable<HostMigration> {
         const progress$ = generate({
             initialState: 0,
             condition: (i) => i <= 100,
@@ -36,7 +37,7 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
                     errors: Math.round(i / 10),
                     inProgress: i !== 100,
                     filter: this.currentFilter,
-                }) as Migration,
+                }),
         })
 
         const bound$ = timer(250).pipe(ignoreElements())
@@ -55,7 +56,7 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
      * Returns an initial migration status after 5s.
      * Fails every 3rd call.
      */
-    startMigration(filter: QueryParamsFilter): Observable<Migration> {
+    startMigration(filter: HostMigrationFilter): Observable<HostMigration> {
         this.startCount += 1
         if (this.startCount % 3 === 0) {
             return throwError(() => new Error('Could not start the migration')).pipe(delay(2000))
@@ -67,6 +68,6 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
             inProgress: true,
             progress: 0,
             filter: filter,
-        } as Migration).pipe(delay(5000))
+        }).pipe(delay(5000))
     }
 }

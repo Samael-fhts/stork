@@ -1,10 +1,11 @@
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from '@angular/core'
 import { MessageService } from 'primeng/api'
-import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
+import { HostsMigrationService } from '../hosts-migration-service/hosts-migration.service'
 import { Subscription, lastValueFrom } from 'rxjs'
 import { getErrorMessage } from '../utils'
 import { Router } from '@angular/router'
 import { QueryParamsFilter } from '../hosts-page/query-params-filter'
+import { HostMigration, HostMigrationFilter } from '../backend'
 
 /**
  * The UI of this component is organized in the shape of a state machine.
@@ -96,7 +97,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * The current migration.
      * It is empty when the state is 'initializing', 'ready', or 'error'.
      */
-    migration: Migration = null
+    migration: HostMigration = null
 
     /**
      * The subscription to the migration updates.
@@ -128,7 +129,20 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * The observable that emits the current value of the host reservation
      * filter in the hosts table.
      */
-    @Input() filter: QueryParamsFilter
+    private _filter: HostMigrationFilter
+    @Input() set filter(filter: QueryParamsFilter) {
+        this._filter = {
+            appId: filter.appId,
+            conflict: filter.conflict,
+            global: filter.global,
+            subnetId: filter.subnetId,
+            localSubnetId: filter.keaSubnetId,
+            text: filter.text,
+        }
+    }
+    get filter(): HostMigrationFilter {
+        return this._filter
+    }
 
     // Event emitters.
 
@@ -163,7 +177,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * @param state The state label
      * @param migration The migration object to set (optional).
      */
-    private setState(state: State, migration: Migration = null) {
+    private setState(state: State, migration: HostMigration = null) {
         this.state = state
         this.migration = migration
         this.deregisterFromUpdates()
@@ -247,14 +261,19 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * to finish and transitions to the 'done' state.
      * @param migration The initial migration object.
      */
-    private transitionToMigratingState(migration: Migration) {
+    private transitionToMigratingState(migration: HostMigration) {
         this.setState('migrating', migration)
 
         // Register for updates
-        this.updateSubscription = this.migrationService.getMigrationUpdates().subscribe((m) => {
-            this.migration = m
-            if (!m.inProgress) {
-                this.transitionToDoneState(m)
+        this.updateSubscription = this.migrationService.getMigrationUpdates().subscribe({
+            next: (m) => {
+                this.migration = m
+                if (!m.inProgress) {
+                    this.transitionToDoneState(m)
+                }
+            },
+            error: (err) => {
+                this.transitionToErrorState(err)
             }
         })
     }
@@ -264,7 +283,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * It waits for the user to click the button to mark the migration as read.
      * @param migration The final migration object.
      */
-    private transitionToDoneState(migration: Migration) {
+    private transitionToDoneState(migration: HostMigration) {
         this.setState('done', migration)
     }
 
@@ -293,10 +312,6 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * It transitions to the 'initializing' state.
      */
     ngOnInit(): void {
-        // We cannot filter the hosts to migrate by the migration
-        // errors because the existing migration must be removed
-        // first.
-        delete this.filter.migrationError
         this.transitionToInitializingState()
     }
 
@@ -409,7 +424,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * @param filter The filter to apply.
      * @param errorsOnly Indicates whether to show only the hosts that failed.
      */
-    private emitFilterList(filter: QueryParamsFilter, errorsOnly: boolean) {
+    private emitFilterList(filter: HostMigrationFilter, errorsOnly: boolean) {
         filter = this.buildFilter(filter, errorsOnly)
         this.filterList.emit(filter)
     }
@@ -467,12 +482,18 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * @param errorsOnly Indicates whether to show only the hosts that failed.
      * @returns The filter to apply.
      */
-    private buildFilter(base: QueryParamsFilter, errorsOnly: boolean): QueryParamsFilter {
+    private buildFilter(base: HostMigrationFilter, errorsOnly: boolean): QueryParamsFilter {
         // Copy the filter object.
-        base = { ...base }
-        if (errorsOnly) {
-            base.migrationError = true
+        const filter: QueryParamsFilter = {
+            appId: base.appId,
+            conflict: base.conflict,
+            global: base.global,
+            subnetId: base.subnetId,
+            text: base.text,
+
+            keaSubnetId: base.localSubnetId,
+            migrationError: errorsOnly,
         }
-        return base
+        return filter
     }
 }

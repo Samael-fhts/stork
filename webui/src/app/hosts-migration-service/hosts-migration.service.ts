@@ -1,20 +1,6 @@
 import { Injectable } from '@angular/core'
-import { Observable, throwError } from 'rxjs'
-import { QueryParamsFilter } from '../hosts-page/query-params-filter'
-
-/**
- * The migration structure.
- */
-export interface Migration {
-    // The progress in migration, from 0 to 1.
-    progress: number
-    // Count of errors encountered during migration.
-    errors: number
-    // Indicates if the migration is in progress.
-    inProgress: boolean
-    // The host reservation filter related to the migration.
-    filter: QueryParamsFilter
-}
+import { Observable, concatAll, interval, map, takeWhile } from 'rxjs'
+import { DHCPService, HostMigration, HostMigrationFilter } from '../backend'
 
 /**
  * The migration service to interact with the backend.
@@ -23,13 +9,15 @@ export interface Migration {
     providedIn: 'root',
 })
 export class HostsMigrationService {
+    constructor(private dhcpApi: DHCPService) {}
+
     /**
      * Checks the status of the current migration. It's empty if there is no
      * migration in progress.
      * @returns An observable emitting the current migration status.
      */
-    getCurrentMigration(): Observable<Migration> {
-        return throwError(() => new Error('Not implemented'))
+    getCurrentMigration(): Observable<HostMigration> {
+        return this.dhcpApi.getHostMigration()
     }
 
     /**
@@ -37,8 +25,8 @@ export class HostsMigrationService {
      * @param filter The host reservation filter to apply during migration.
      * @returns An observable emitting the migration status.
      */
-    startMigration(filter: QueryParamsFilter): Observable<Migration> {
-        return throwError(() => new Error(`Not implemented, got filter: ${filter}`))
+    startMigration(filter: HostMigrationFilter): Observable<HostMigration> {
+        return this.dhcpApi.createHostMigration(filter)
     }
 
     /**
@@ -46,14 +34,21 @@ export class HostsMigrationService {
      * @returns An observable emitting nothing.
      */
     removeMigration(): Observable<void> {
-        return throwError(() => new Error('Not implemented'))
+        return this.dhcpApi.deleteHostMigration()
     }
 
     /**
      * Returns a stream of migration updates.
      * @returns An observable emitting migration updates.
      */
-    getMigrationUpdates(): Observable<Migration> {
-        return throwError(() => new Error('Not implemented'))
+    getMigrationUpdates(): Observable<HostMigration> {
+        // Creates an observable that emits in a regular interval. Each
+        // emission fetches the current migration status. If the migration is
+        // finished (inProgress = false), the observable completes.
+        return interval(1000).pipe(
+            map(() => this.dhcpApi.getHostMigration()),
+            concatAll(),
+            takeWhile((m) => m.inProgress, true)
+        )
     }
 }

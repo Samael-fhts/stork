@@ -4,7 +4,7 @@ import { HostsMigrationButtonComponent } from './hosts-migration-button.componen
 import { ProgressButtonComponent } from '../progress-button/progress-button.component'
 import { By } from '@angular/platform-browser'
 import { MessageService } from 'primeng/api'
-import { HostsMigrationService, Migration } from '../hosts-migration-service/hosts-migration.service'
+import { HostsMigrationService } from '../hosts-migration-service/hosts-migration.service'
 import { ButtonModule } from 'primeng/button'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { MenuModule } from 'primeng/menu'
@@ -14,6 +14,8 @@ import { ToastModule } from 'primeng/toast'
 import { DialogModule } from 'primeng/dialog'
 import { RouterTestingModule } from '@angular/router/testing'
 import { EMPTY, of, throwError } from 'rxjs'
+import { HostMigration } from '../backend'
+import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('HostsMigrationButtonComponent', () => {
     let component: HostsMigrationButtonComponent
@@ -77,6 +79,7 @@ describe('HostsMigrationButtonComponent', () => {
             declarations: [HostsMigrationButtonComponent, ProgressButtonComponent],
             providers: [MessageService, HostsMigrationService],
             imports: [
+                HttpClientTestingModule,
                 ButtonModule,
                 SplitButtonModule,
                 MenuModule,
@@ -150,7 +153,7 @@ describe('HostsMigrationButtonComponent', () => {
                 filter: { text: 'filter' },
                 inProgress: true,
                 progress: 0.84,
-            } as Migration)
+            } as HostMigration)
         )
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
 
@@ -167,7 +170,7 @@ describe('HostsMigrationButtonComponent', () => {
             filter: { text: 'filter' },
             inProgress: true,
             progress: 0.84,
-        } as Migration)
+        } as HostMigration)
 
         expect(component.fetchingAPI).toBe(false)
         expect(component.updateSubscription).not.toBeNull()
@@ -185,7 +188,7 @@ describe('HostsMigrationButtonComponent', () => {
                 filter: { text: 'filter' },
                 inProgress: false,
                 progress: 1,
-            } as Migration)
+            } as HostMigration)
         )
 
         // Act
@@ -201,7 +204,7 @@ describe('HostsMigrationButtonComponent', () => {
             filter: { text: 'filter' },
             inProgress: false,
             progress: 1,
-        } as Migration)
+        } as HostMigration)
 
         expect(component.fetchingAPI).toBe(false)
         expect(component.updateSubscription).toBeNull()
@@ -221,7 +224,7 @@ describe('HostsMigrationButtonComponent', () => {
                 filter: filter,
                 inProgress: true,
                 progress: 0,
-            } as Migration)
+            } as HostMigration)
         })
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
         component.filter = { text: 'filter' }
@@ -243,7 +246,7 @@ describe('HostsMigrationButtonComponent', () => {
             filter: { text: 'filter' },
             inProgress: true,
             progress: 0,
-        } as Migration)
+        } as HostMigration)
     }))
 
     it('should display the confirmation dialog before starting a migration', fakeAsync(() => {
@@ -255,7 +258,7 @@ describe('HostsMigrationButtonComponent', () => {
                 filter: { text: 'filter' },
                 inProgress: true,
                 progress: 0,
-            } as Migration)
+            } as HostMigration)
         )
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
 
@@ -317,7 +320,7 @@ describe('HostsMigrationButtonComponent', () => {
                 filter: null,
                 inProgress: true,
                 progress: 0,
-            } as Migration)
+            } as HostMigration)
         )
         // Multiple updates are received.
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(
@@ -327,25 +330,25 @@ describe('HostsMigrationButtonComponent', () => {
                     filter: null,
                     inProgress: true,
                     progress: 25,
-                } as Migration,
+                } as HostMigration,
                 {
                     errors: 0,
                     filter: null,
                     inProgress: true,
                     progress: 50,
-                } as Migration,
+                } as HostMigration,
                 {
                     errors: 0,
                     filter: null,
                     inProgress: true,
                     progress: 75,
-                } as Migration,
+                } as HostMigration,
                 {
                     errors: 0,
                     filter: null,
                     inProgress: false,
                     progress: 100,
-                } as Migration
+                } as HostMigration
             )
         )
 
@@ -417,7 +420,7 @@ describe('HostsMigrationButtonComponent', () => {
                 filter: { text: 'filter' },
                 inProgress: true,
                 progress: 0,
-            } as Migration)
+            } as HostMigration)
         )
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
         spyOn(component.filterList, 'emit')
@@ -456,7 +459,7 @@ describe('HostsMigrationButtonComponent', () => {
                 filter: { text: 'filter' },
                 inProgress: true,
                 progress: 0.84,
-            } as Migration),
+            } as HostMigration),
             of(null)
         )
         spyOn(migrationService, 'removeMigration').and.returnValue(of(null))
@@ -480,6 +483,25 @@ describe('HostsMigrationButtonComponent', () => {
         expect(hasLoadingIndicator()).toBe(false)
     }))
 
+    it('should transition to the error state if the update stream fails', fakeAsync(() => {
+        // Prepare the spies.
+        spyOn(migrationService, 'getCurrentMigration').and.returnValues(
+            of({
+                errors: 42,
+                filter: { text: 'filter' },
+                inProgress: true,
+                progress: 0.84,
+            } as HostMigration),
+            of(null)
+        )
+        spyOn(migrationService, 'getMigrationUpdates').and.returnValue(throwError(() => new Error('error')))
+
+        // Go to the error state.
+        component.ngOnInit()
+        flush()
+        expect(component.state).toBe('error')
+    }))
+
     it('should remove the migration if it is marked as done', fakeAsync(() => {
         // Prepare the spies.
         spyOn(migrationService, 'getCurrentMigration').and.returnValues(
@@ -488,7 +510,7 @@ describe('HostsMigrationButtonComponent', () => {
                 filter: { text: 'filter' },
                 inProgress: false,
                 progress: 1,
-            } as Migration),
+            } as HostMigration),
             of(null)
         )
         spyOn(migrationService, 'removeMigration').and.returnValue(of(null))
