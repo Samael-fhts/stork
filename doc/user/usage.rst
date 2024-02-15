@@ -366,7 +366,7 @@ The filtering mechanism also recognizes a set of keywords that can be
 used in combination with integer values to search host reservations by
 selected properties. For example, type:
 
-   - ``appId:2`` to search the host reservrations belonging to the app with ID 2.
+   - ``appId:2`` to search the host reservations belonging to the app with ID 2.
    - ``subnetId:78`` to search the host reservations in subnet with ID 78. In this
      case the ID is the one assigned to the subnet by Stork.
    - ``keaSubnetId:123`` to search the host reservations in subnets with ID 123
@@ -530,7 +530,7 @@ boot fields, client classes and DHCP options). By default, creating a new
 host reservation for several servers sends an identical copy of the host
 reservation to each. You may choose to specify a different set of boot fields,
 client classes or options for different servers by selecting
-``Configure individual server vaues`` at the top of the form. In this case,
+``Configure individual server values`` at the top of the form. In this case,
 you must specify the complete sets of boot fields, client classes and options
 for each DHCP server. Leaving them blank for some servers means that these
 servers receive no boot fields, classes or DHCP options with the reservation.
@@ -828,7 +828,7 @@ possible scenarios when the mismatch between the configurations is not detected,
 but it is still desired to fetch and repopulate the configurations from the Kea
 servers to Stork.
 
-There are many internal operations in Stork occuring when the configuration change
+There are many internal operations in Stork occurring when the configuration change
 has been detected (e.g., populating host reservations, log viewer initialization,
 configuration reviews, and many others). Resynchronizing the configurations from Kea
 triggers all these tasks. It may possibly correct some data integrity issues that
