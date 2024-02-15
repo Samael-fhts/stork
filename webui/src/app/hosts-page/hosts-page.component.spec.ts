@@ -1,4 +1,4 @@
-import { ComponentFixture, fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing'
+import { ComponentFixture, fakeAsync, flush, TestBed, tick, waitForAsync } from '@angular/core/testing'
 
 import { HostsPageComponent } from './hosts-page.component'
 import { EntityLinkComponent } from '../entity-link/entity-link.component'
@@ -7,7 +7,7 @@ import { ConfirmationService, MessageService } from 'primeng/api'
 import { TableModule } from 'primeng/table'
 import { DHCPService, Host, LocalHost } from '../backend'
 import { HttpClientTestingModule } from '@angular/common/http/testing'
-import { ActivatedRoute, convertToParamMap } from '@angular/router'
+import { ActivatedRoute, ActivatedRouteSnapshot, convertToParamMap, NavigationEnd, Router } from '@angular/router'
 import { RouterTestingModule } from '@angular/router/testing'
 import { By } from '@angular/platform-browser'
 import { of, throwError, BehaviorSubject } from 'rxjs'
@@ -49,10 +49,10 @@ describe('HostsPageComponent', () => {
     let component: HostsPageComponent
     let fixture: ComponentFixture<HostsPageComponent>
     let route: ActivatedRoute
+    let router: Router
     let dhcpApi: DHCPService
     let messageService: MessageService
-    let paramMap: any
-    let paramMapSubject: BehaviorSubject<any>
+    let routerEventSubject: BehaviorSubject<NavigationEnd>
 
     beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
@@ -122,13 +122,37 @@ describe('HostsPageComponent', () => {
         fixture = TestBed.createComponent(HostsPageComponent)
         component = fixture.componentInstance
         route = fixture.debugElement.injector.get(ActivatedRoute)
+        router = fixture.debugElement.injector.get(Router)
         dhcpApi = fixture.debugElement.injector.get(DHCPService)
         messageService = fixture.debugElement.injector.get(MessageService)
-        paramMap = convertToParamMap({})
-        paramMapSubject = new BehaviorSubject(paramMap)
-        spyOnProperty(route, 'paramMap').and.returnValue(paramMapSubject)
+
+        route.snapshot = {
+            paramMap: convertToParamMap({}),
+            queryParamMap: convertToParamMap({}),
+        } as ActivatedRouteSnapshot
+
+        routerEventSubject = new BehaviorSubject(new NavigationEnd(1, 'dhcp/hosts', 'dhcp/hosts/all'))
+        spyOnProperty(router, 'events').and.returnValue(routerEventSubject)
+
         fixture.detectChanges()
     })
+
+    /**
+     * Triggers the component handler called when the route changes.
+     * @param params The parameters to pass to the route.
+     */
+    function navigate(params: { id?: number | string }) {
+        route.snapshot = {
+            paramMap: convertToParamMap(params),
+            queryParamMap: convertToParamMap({}),
+        } as ActivatedRouteSnapshot
+
+        const eid = routerEventSubject.getValue().id + 1
+        routerEventSubject.next(new NavigationEnd(eid, `dhcp/hosts/${params.id}`, `dhcp/hosts/${params.id}`))
+
+        flush()
+        fixture.detectChanges()
+    }
 
     it('should create', () => {
         expect(component).toBeTruthy()
@@ -156,7 +180,7 @@ describe('HostsPageComponent', () => {
         expect(appLinkAnchor.properties.pathname).toBe('/apps/kea/1')
     })
 
-    it('should open and close host tabs', () => {
+    it('should open and close host tabs', fakeAsync(() => {
         // Create a list with two hosts.
         component.hosts = [
             {
@@ -210,38 +234,32 @@ describe('HostsPageComponent', () => {
         spyOn(dhcpApi, 'getHost')
 
         // Open tab with host with id 1.
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         expect(component.tabs.length).toBe(2)
         expect(component.activeTabIndex).toBe(1)
 
         // Open the tab for creating a host.
-        paramMapSubject.next(convertToParamMap({ id: 'new' }))
-        fixture.detectChanges()
+        navigate({ id: 'new' })
         expect(component.tabs.length).toBe(3)
         expect(component.activeTabIndex).toBe(2)
 
         // Open tab with host with id 2.
-        paramMapSubject.next(convertToParamMap({ id: 2 }))
-        fixture.detectChanges()
+        navigate({ id: 2 })
         expect(component.tabs.length).toBe(4)
         expect(component.activeTabIndex).toBe(3)
 
         // Navigate back to the hosts list in the first tab.
-        paramMapSubject.next(convertToParamMap({}))
-        fixture.detectChanges()
+        navigate({})
         expect(component.tabs.length).toBe(4)
         expect(component.activeTabIndex).toBe(0)
 
         // Navigate to the existing tab with host with id 1.
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         expect(component.tabs.length).toBe(4)
         expect(component.activeTabIndex).toBe(1)
 
         // navigate to the existing tab for adding new host.
-        paramMapSubject.next(convertToParamMap({ id: 'new' }))
-        fixture.detectChanges()
+        navigate({ id: 'new' })
         expect(component.tabs.length).toBe(4)
         expect(component.activeTabIndex).toBe(2)
 
@@ -262,12 +280,11 @@ describe('HostsPageComponent', () => {
         fixture.detectChanges()
         expect(component.tabs.length).toBe(1)
         expect(component.activeTabIndex).toBe(0)
-    })
+    }))
 
     it('should emit error message when there is an error deleting transaction for new host', fakeAsync(() => {
         // Open the tab for creating a host.
-        paramMapSubject.next(convertToParamMap({ id: 'new' }))
-        fixture.detectChanges()
+        navigate({ id: 'new' })
         expect(component.tabs.length).toBe(2)
         expect(component.activeTabIndex).toBe(1)
 
@@ -285,7 +302,7 @@ describe('HostsPageComponent', () => {
         expect(messageService.add).toHaveBeenCalled()
     }))
 
-    it('should switch a tab to host editing mode', () => {
+    it('should switch a tab to host editing mode', fakeAsync(() => {
         // Create a list with two hosts.
         component.hosts = [
             {
@@ -339,8 +356,7 @@ describe('HostsPageComponent', () => {
         spyOn(dhcpApi, 'getHost')
 
         // Open tab with host with id 1.
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         expect(component.tabs.length).toBe(2)
         expect(component.activeTabIndex).toBe(1)
 
@@ -355,8 +371,7 @@ describe('HostsPageComponent', () => {
         expect(form).toBeTruthy()
 
         // Open tab with host with id 2.
-        paramMapSubject.next(convertToParamMap({ id: 2 }))
-        fixture.detectChanges()
+        navigate({ id: 2 })
         expect(component.tabs.length).toBe(3)
         expect(component.activeTabIndex).toBe(2)
         // This tab should have no form.
@@ -364,13 +379,12 @@ describe('HostsPageComponent', () => {
         expect(form).toBeFalsy()
 
         // Return to the previous tab and make sure the form is still open.
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         expect(component.tabs.length).toBe(3)
         expect(component.activeTabIndex).toBe(1)
         form = fixture.debugElement.query(By.css('form'))
         expect(form).toBeTruthy()
-    })
+    }))
 
     it('should emit an error when deleting transaction for updating a host fails', fakeAsync(() => {
         // Create a list with two hosts.
@@ -405,8 +419,7 @@ describe('HostsPageComponent', () => {
         spyOn(dhcpApi, 'getHost')
 
         // Open tab with host with id 1.
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         expect(component.tabs.length).toBe(2)
         expect(component.activeTabIndex).toBe(1)
 
@@ -430,7 +443,7 @@ describe('HostsPageComponent', () => {
         expect(messageService.add).toHaveBeenCalled()
     }))
 
-    it('should open a tab when hosts have not been loaded', () => {
+    it('should open a tab when hosts have not been loaded', fakeAsync(() => {
         const host: any = {
             id: 1,
             hostIdentifiers: [
@@ -456,24 +469,22 @@ describe('HostsPageComponent', () => {
         // host information from the server. The component should send the
         // request to the server to get the host.
         spyOn(dhcpApi, 'getHost').and.returnValue(of(host))
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         // There should be two tabs opened. One with the list of hosts and one
         // with the host details.
         expect(component.tabs.length).toBe(2)
-    })
+    }))
 
-    it('should not open a tab when getting host information erred', () => {
+    it('should not open a tab when getting host information erred', fakeAsync(() => {
         // Simulate the getHost call to return an error.
         spyOn(dhcpApi, 'getHost').and.returnValue(throwError({ status: 404 }))
         spyOn(messageService, 'add')
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         // There should still be one tab open with a list of hosts.
         expect(component.tabs.length).toBe(1)
         // Ensure that the error message was displayed.
         expect(messageService.add).toHaveBeenCalled()
-    })
+    }))
 
     it('should generate a label from host information', () => {
         const host0 = {
@@ -674,13 +685,8 @@ describe('HostsPageComponent', () => {
         spyOn(dhcpApi, 'createHostBegin').and.returnValue(of(createHostBeginResp))
         spyOn(dhcpApi, 'createHostDelete').and.returnValue(of(okResp))
 
-        paramMapSubject.next(convertToParamMap({ id: 'new' }))
-        tick()
-        fixture.detectChanges()
-
-        paramMapSubject.next(convertToParamMap({}))
-        tick()
-        fixture.detectChanges()
+        navigate({ id: 'new' })
+        navigate({})
 
         expect(component.openedTabs.length).toBe(1)
         expect(component.openedTabs[0].form.hasOwnProperty('transactionId')).toBeTrue()
@@ -725,13 +731,8 @@ describe('HostsPageComponent', () => {
         spyOn(dhcpApi, 'createHostBegin').and.returnValue(of(createHostBeginResp))
         spyOn(dhcpApi, 'createHostDelete').and.returnValue(of(okResp))
 
-        paramMapSubject.next(convertToParamMap({ id: 'new' }))
-        tick()
-        fixture.detectChanges()
-
-        paramMapSubject.next(convertToParamMap({}))
-        tick()
-        fixture.detectChanges()
+        navigate({ id: 'new' })
+        navigate({})
 
         expect(component.openedTabs.length).toBe(1)
         expect(component.openedTabs[0].form.hasOwnProperty('transactionId')).toBeTrue()
@@ -777,13 +778,8 @@ describe('HostsPageComponent', () => {
         spyOn(dhcpApi, 'createHostBegin').and.returnValue(of(createHostBeginResp))
         spyOn(dhcpApi, 'createHostDelete').and.returnValue(of(okResp))
 
-        paramMapSubject.next(convertToParamMap({ id: 'new' }))
-        tick()
-        fixture.detectChanges()
-
-        paramMapSubject.next(convertToParamMap({}))
-        tick()
-        fixture.detectChanges()
+        navigate({ id: 'new' })
+        navigate({})
 
         expect(component.openedTabs.length).toBe(1)
         expect(component.openedTabs[0].form.hasOwnProperty('transactionId')).toBeTrue()
@@ -833,8 +829,7 @@ describe('HostsPageComponent', () => {
         spyOn(dhcpApi, 'getHost')
 
         // Open tab with host with id 1.
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         expect(component.tabs.length).toBe(2)
         expect(component.activeTabIndex).toBe(1)
         expect(component.openedTabs.length).toBe(1)
@@ -925,8 +920,7 @@ describe('HostsPageComponent', () => {
         spyOn(dhcpApi, 'getHost')
 
         // Open tab with host with id 1.
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         expect(component.tabs.length).toBe(2)
         expect(component.activeTabIndex).toBe(1)
         expect(component.openedTabs.length).toBe(1)
@@ -985,7 +979,7 @@ describe('HostsPageComponent', () => {
         expect(fixture.debugElement.query(By.css('app-host-tab'))).toBeTruthy()
     }))
 
-    it('should close a tab after deleting a host', () => {
+    it('should close a tab after deleting a host', fakeAsync(() => {
         // Create a list with two hosts.
         component.hosts = [
             {
@@ -1034,14 +1028,12 @@ describe('HostsPageComponent', () => {
         fixture.detectChanges()
 
         // Open tab with host with id 1.
-        paramMapSubject.next(convertToParamMap({ id: 1 }))
-        fixture.detectChanges()
+        navigate({ id: 1 })
         expect(component.tabs.length).toBe(2)
         expect(component.activeTabIndex).toBe(1)
 
         // Open tab with host with id 2.
-        paramMapSubject.next(convertToParamMap({ id: 2 }))
-        fixture.detectChanges()
+        navigate({ id: 2 })
         expect(component.tabs.length).toBe(3)
         expect(component.activeTabIndex).toBe(2)
 
@@ -1082,7 +1074,7 @@ describe('HostsPageComponent', () => {
         expect(component.tabs.length).toBe(1)
         expect(component.activeTabIndex).toBe(0)
         expect(dhcpApi.getHosts).toHaveBeenCalledTimes(1)
-    })
+    }))
 
     it('should contain a refresh button', () => {
         const refreshBtn = fixture.debugElement.query(By.css('[label="Refresh List"]'))

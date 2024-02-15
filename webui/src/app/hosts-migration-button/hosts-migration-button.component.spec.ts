@@ -13,8 +13,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ToastModule } from 'primeng/toast'
 import { DialogModule } from 'primeng/dialog'
 import { RouterTestingModule } from '@angular/router/testing'
-import { EMPTY, Observable, Subject, of, throwError } from 'rxjs'
-import { QueryParamsFilter } from '../hosts-page/query-params-filter'
+import { EMPTY, of, throwError } from 'rxjs'
 
 describe('HostsMigrationButtonComponent', () => {
     let component: HostsMigrationButtonComponent
@@ -90,7 +89,7 @@ describe('HostsMigrationButtonComponent', () => {
         })
         fixture = TestBed.createComponent(HostsMigrationButtonComponent)
         component = fixture.componentInstance
-        component.currentFilter = {}
+        component.filter = {}
 
         migrationService = TestBed.inject(HostsMigrationService)
         fixture.detectChanges()
@@ -225,7 +224,7 @@ describe('HostsMigrationButtonComponent', () => {
             } as Migration)
         })
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
-        component.currentFilter = { text: 'filter' }
+        component.filter = { text: 'filter' }
 
         // Go to the ready state.
         component.ngOnInit()
@@ -360,39 +359,6 @@ describe('HostsMigrationButtonComponent', () => {
 
         // Assert.
         expect(component.state).toBe('done')
-    }))
-
-    it('should receive the filter value updates', fakeAsync(() => {
-        // Prepare the spies.
-        spyOn(migrationService, 'getCurrentMigration').and.returnValue(of(null))
-        spyOn(migrationService, 'startMigration').and.returnValue(
-            of({
-                errors: 0,
-                filter: null,
-                inProgress: true,
-                progress: 0,
-            } as Migration)
-        )
-
-        // Filter observable.
-        const filterObservable = new Subject<QueryParamsFilter>()
-        component.filter$ = filterObservable.asObservable()
-
-        // Go to the ready state.
-        component.ngOnInit()
-        flush()
-        expect(component.state).toBe('ready')
-
-        // Check the initial filter value.
-        for (const key of Object.keys(component.currentFilter)) {
-            expect(component.currentFilter[key]).toBeNull()
-        }
-
-        // Update the filter value.
-        filterObservable.next({ text: 'filter' })
-
-        // Assert.
-        expect(component.currentFilter.text).toBe('filter')
     }))
 
     it('should preserve the ready state if starting a migration is canceled', fakeAsync(() => {
@@ -546,15 +512,14 @@ describe('HostsMigrationButtonComponent', () => {
     }))
 
     it('should exclude the migration errors from filter', fakeAsync(() => {
-        const filter: Observable<QueryParamsFilter> = of({
+        component.filter = {
             appId: 42,
             migrationError: true,
-        })
-        component.filter$ = filter
+        }
 
         component.ngOnInit()
         flush()
 
-        expect(component.currentFilter).toEqual({ appId: 42 })
+        expect(component.filter).toEqual({ appId: 42 })
     }))
 })
