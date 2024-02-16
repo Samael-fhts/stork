@@ -612,3 +612,41 @@ func (r *RestAPI) DeleteHost(ctx context.Context, params dhcp.DeleteHostParams) 
 	rsp := dhcp.NewDeleteHostOK()
 	return rsp
 }
+
+// Implements the GET call to fetch host migration information (hosts/migration).
+// It starts the migration process for the host reservations that match the specified
+// filters.
+// Only one migration process can be started at a time. If the migration process is
+// already running, the call will return HTTP 409 Conflict error.
+func (r *RestAPI) CreateHostMigration(ctx context.Context, params dhcp.CreateHostMigrationParams) middleware.Responder {
+	msg := "CreateHostMigration is not implemented yet"
+	log.Error(msg)
+	rsp := dhcp.NewCreateHostMigrationDefault(http.StatusNotImplemented).WithPayload(&models.APIError{
+		Message: &msg,
+	})
+	return rsp
+}
+
+// Implements the DELETE call to cancel host migration process (hosts/migration).
+// It stops the migration process if it is running. Otherwise, it returns HTTP 404
+// Not Found error.
+func (r *RestAPI) DeleteHostMigration(ctx context.Context, params dhcp.DeleteHostMigrationParams) middleware.Responder {
+	msg := "DeleteHostMigration migration is not implemented yet"
+	log.Error(msg)
+	rsp := dhcp.NewDeleteHostMigrationDefault(http.StatusNotImplemented).WithPayload(&models.APIError{
+		Message: &msg,
+	})
+	return rsp
+}
+
+// Implements the GET call to fetch the current host migration details (hosts/migration).
+// It returns the current status of the migration process. If the migration
+// process is not running, it returns HTTP 404 Not Found error.
+func (r *RestAPI) GetHostMigration(ctx context.Context, params dhcp.GetHostMigrationParams) middleware.Responder {
+	msg := "GetHostMigration migration is not implemented yet"
+	log.Error(msg)
+	rsp := dhcp.NewGetHostMigrationDefault(http.StatusNotImplemented).WithPayload(&models.APIError{
+		Message: &msg,
+	})
+	return rsp
+}
