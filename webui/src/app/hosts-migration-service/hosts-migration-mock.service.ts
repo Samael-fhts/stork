@@ -31,13 +31,12 @@ export class MockHostsMigrationService implements Partial<HostsMigrationService>
             initialState: 0,
             condition: (i) => i <= 100,
             iterate: (i) => i + 1,
-            resultSelector: (i) =>
-                ({
-                    progress: i / 100,
-                    errors: Math.round(i / 10),
-                    inProgress: i !== 100,
-                    filter: this.currentFilter,
-                }),
+            resultSelector: (i) => ({
+                progress: i / 100,
+                errors: Math.round(i / 10),
+                inProgress: i !== 100,
+                filter: this.currentFilter,
+            }),
         })
 
         const bound$ = timer(250).pipe(ignoreElements())

@@ -1,7 +1,7 @@
 /**
  * Specifies the filter parameters for fetching hosts that may be specified
  * in the URL query parameters.
- * 
+ *
  * The undefined values of the properties are used to indicate that the
  * particular filter is not provided.
  * The null values of the properties are used to indicate that the particular
@@ -28,9 +28,8 @@ export function getEmptyQueryParamsFilter(): QueryParamsFilter {
         keaSubnetId: undefined,
         global: undefined,
         conflict: undefined,
-        migrationError: undefined
+        migrationError: undefined,
     }
-
 }
 
 /**

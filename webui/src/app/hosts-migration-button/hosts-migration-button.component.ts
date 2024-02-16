@@ -283,7 +283,7 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
             },
             error: (err) => {
                 this.transitionToErrorState(err)
-            }
+            },
         })
     }
 
@@ -499,10 +499,10 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
             global: base.global,
             subnetId: base.subnetId,
             text: base.text,
-            
+
             keaSubnetId: base.localSubnetId,
 
-            migrationError: undefined
+            migrationError: undefined,
         }
 
         if (errorsOnly) {
