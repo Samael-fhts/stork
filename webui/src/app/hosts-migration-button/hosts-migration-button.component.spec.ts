@@ -14,8 +14,9 @@ import { ToastModule } from 'primeng/toast'
 import { DialogModule } from 'primeng/dialog'
 import { RouterTestingModule } from '@angular/router/testing'
 import { EMPTY, of, throwError } from 'rxjs'
-import { HostMigration } from '../backend'
+import { HostMigration, HostMigrationFilter } from '../backend'
 import { HttpClientTestingModule } from '@angular/common/http/testing'
+import { getEmptyQueryParamsFilter } from '../hosts-page/query-params-filter'
 
 describe('HostsMigrationButtonComponent', () => {
     let component: HostsMigrationButtonComponent
@@ -92,7 +93,7 @@ describe('HostsMigrationButtonComponent', () => {
         })
         fixture = TestBed.createComponent(HostsMigrationButtonComponent)
         component = fixture.componentInstance
-        component.filter = {}
+        component.filter = getEmptyQueryParamsFilter()
 
         migrationService = TestBed.inject(HostsMigrationService)
         fixture.detectChanges()
@@ -227,7 +228,8 @@ describe('HostsMigrationButtonComponent', () => {
             } as HostMigration)
         })
         spyOn(migrationService, 'getMigrationUpdates').and.returnValue(EMPTY)
-        component.filter = { text: 'filter' }
+        component.filter = getEmptyQueryParamsFilter()
+        component.filter.text = 'filter'
 
         // Go to the ready state.
         component.ngOnInit()
@@ -241,12 +243,20 @@ describe('HostsMigrationButtonComponent', () => {
 
         // Assert.
         expect(component.state).toBe('migrating')
-        expect(component.migration).toEqual({
+        const expectedMigration: HostMigration = {
             errors: 0,
-            filter: { text: 'filter' },
+            filter: {
+                text: 'filter',
+                appId: undefined,
+                conflict: undefined,
+                global: undefined,
+                localSubnetId: undefined,
+                subnetId: undefined,
+            },
             inProgress: true,
             progress: 0,
-        } as HostMigration)
+        }
+        expect(component.migration).toEqual(expectedMigration)
     }))
 
     it('should display the confirmation dialog before starting a migration', fakeAsync(() => {
@@ -439,6 +449,7 @@ describe('HostsMigrationButtonComponent', () => {
 
         // Check the emitted event.
         expect(component.filterList.emit).toHaveBeenCalledWith({
+            ...getEmptyQueryParamsFilter(),
             text: 'filter',
         })
 
@@ -447,6 +458,7 @@ describe('HostsMigrationButtonComponent', () => {
 
         // Check the emitted event.
         expect(component.filterList.emit).toHaveBeenCalledWith({
+            ...getEmptyQueryParamsFilter(),
             text: 'filter',
         })
     }))
@@ -535,6 +547,7 @@ describe('HostsMigrationButtonComponent', () => {
 
     it('should exclude the migration errors from filter', fakeAsync(() => {
         component.filter = {
+            ...getEmptyQueryParamsFilter(),
             appId: 42,
             migrationError: true,
         }
@@ -542,6 +555,14 @@ describe('HostsMigrationButtonComponent', () => {
         component.ngOnInit()
         flush()
 
-        expect(component.filter).toEqual({ appId: 42 })
+        const expectedFilter: HostMigrationFilter = {
+            appId: 42,
+            conflict: undefined,
+            global: undefined,
+            localSubnetId: undefined,
+            subnetId: undefined,
+            text: undefined,
+        }
+        expect(component.filter).toEqual(expectedFilter)
     }))
 })

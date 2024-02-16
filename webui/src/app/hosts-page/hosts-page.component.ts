@@ -14,6 +14,7 @@ import { hasDifferentLocalHostData } from '../hosts'
 import {
     QueryParamsFilter,
     getBooleanQueryParamsFilterKeys,
+    getEmptyQueryParamsFilter,
     getNumericQueryParamsFilterKeys,
 } from './query-params-filter'
 import { Location } from '@angular/common'
@@ -187,7 +188,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      * The recent filter applied to the hosts list. Only filters that pass the
      * validation are used.
      */
-    validHostFilter: QueryParamsFilter = {}
+    validHostFilter: QueryParamsFilter = getEmptyQueryParamsFilter()
 
     /**
      * Array of tabs with host information.
@@ -381,13 +382,13 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         const parameters = []
 
         for (let key of numericKeys) {
-            if (filter.hasOwnProperty(key)) {
+            if (filter[key] !== undefined) {
                 parameters.push(` ${key}:${filter[key]}`)
             }
         }
 
         for (let key of booleanKeys) {
-            if (filter.hasOwnProperty(key)) {
+            if (filter[key] !== undefined) {
                 if (filter[key] === true) {
                     parameters.push(`is:${key}`)
                 } else if (filter[key] === false) {
@@ -433,7 +434,7 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         const numericKeys = getNumericQueryParamsFilterKeys()
         const booleanKeys = getBooleanQueryParamsFilterKeys()
 
-        const filter: QueryParamsFilter = {}
+        const filter: QueryParamsFilter = getEmptyQueryParamsFilter()
         filter.text = params.get('text')
 
         for (let key of numericKeys) {
@@ -473,13 +474,13 @@ export class HostsPageComponent implements OnInit, OnDestroy {
         const errors: string[] = []
 
         for (let key of numericKeys) {
-            if (filter.hasOwnProperty(key) && filter[key] == null) {
+            if (filter[key] === null) {
                 errors.push(`Please specify ${key} as a number (e.g., ${key}:2).`)
             }
         }
 
         for (let key of booleanKeys) {
-            if (filter.hasOwnProperty(key) && filter[key] == null) {
+            if (filter[key] === null) {
                 errors.push(`Please specify ${key} as a boolean (e.g., is:${key} or not:${key}).`)
             }
         }
@@ -755,11 +756,15 @@ export class HostsPageComponent implements OnInit, OnDestroy {
      */
     keyUpFilterText(event: Pick<KeyboardEvent, 'key'>) {
         if (this.filterText.length >= 2 || event.key === 'Enter') {
-            const filter = extractKeyValsAndPrepareQueryParams<QueryParamsFilter>(
+            const partialFilter = extractKeyValsAndPrepareQueryParams<QueryParamsFilter>(
                 this.filterText,
                 getNumericQueryParamsFilterKeys(),
                 getBooleanQueryParamsFilterKeys()
             )
+            const filter = {
+                ...getEmptyQueryParamsFilter(),
+                ...partialFilter,
+            }
 
             this.hostFilter$.next({
                 source: 'input',

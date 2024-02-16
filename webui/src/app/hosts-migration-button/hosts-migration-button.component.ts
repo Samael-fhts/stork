@@ -126,20 +126,29 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
     // Component inputs.
 
     /**
-     * The observable that emits the current value of the host reservation
-     * filter in the hosts table.
+     * The filter to apply to the hosts when the migration starts.
      */
     private _filter: HostMigrationFilter
-    @Input() set filter(filter: QueryParamsFilter) {
-        this._filter = {
-            appId: filter.appId,
-            conflict: filter.conflict,
-            global: filter.global,
-            subnetId: filter.subnetId,
-            localSubnetId: filter.keaSubnetId,
-            text: filter.text,
+
+    /**
+     * We accept the filter in format used by the hosts page. Then we convert
+     * it to the format used by the migration service.
+     */
+    @Input() set filter(listFilter: QueryParamsFilter) {
+        const filter: Required<HostMigrationFilter> = {
+            appId: listFilter.appId,
+            conflict: listFilter.conflict,
+            global: listFilter.global,
+            subnetId: listFilter.subnetId,
+            localSubnetId: listFilter.keaSubnetId,
+            text: listFilter.text,
         }
+        this._filter = filter
     }
+
+    /**
+     * Returns the filter in the format used by the migration service.
+     */
     get filter(): HostMigrationFilter {
         return this._filter
     }
@@ -425,8 +434,8 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
      * @param errorsOnly Indicates whether to show only the hosts that failed.
      */
     private emitFilterList(filter: HostMigrationFilter, errorsOnly: boolean) {
-        filter = this.buildFilter(filter, errorsOnly)
-        this.filterList.emit(filter)
+        const listFilter = this.buildFilter(filter, errorsOnly)
+        this.filterList.emit(listFilter)
     }
 
     // Helpers.
@@ -490,10 +499,16 @@ export class HostsMigrationButtonComponent implements OnInit, OnDestroy {
             global: base.global,
             subnetId: base.subnetId,
             text: base.text,
-
+            
             keaSubnetId: base.localSubnetId,
-            migrationError: errorsOnly,
+
+            migrationError: undefined
         }
+
+        if (errorsOnly) {
+            filter.migrationError = true
+        }
+
         return filter
     }
 }
