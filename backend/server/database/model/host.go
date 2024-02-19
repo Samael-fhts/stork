@@ -439,7 +439,13 @@ func GetHostsByDaemonID(dbi dbops.DBI, daemonID int64, dataSource HostDataSource
 //
 // Filtering text allows for searching hosts by reserved IP addresses, host identifiers
 // (using hexadecimal digits or a textual format) and hostnames. It is allowed to specify
-// colons while searching for hosts by host identifiers. If Global flag is true then only
+// colons while searching for hosts by host identifiers.
+//
+// The Source field is used to filter hosts by the data source. The available values are
+// defined in the HostDataSource type. If the value is unspecified then all hosts are
+// returned.
+//
+// If Global flag is true then only
 // hosts from the global scope are returned (i.e. not assigned to any subnet), if false
 // then only hosts from subnets are returned.
 //
@@ -453,6 +459,7 @@ type HostsByPageFilters struct {
 	SubnetID          *int64
 	LocalSubnetID     *int64
 	FilterText        *string
+	Source            *string
 	Global            *bool
 	DHCPDataConflict  *bool
 	DHCPDataDuplicate *bool
@@ -606,10 +613,19 @@ func GetHostsByPage(dbi dbops.DBI, offset, limit int64, filters HostsByPageFilte
 		q = q.Where("host.subnet_id = ?", *filters.SubnetID)
 	}
 
+	// Join local subnet table if needed.
+	if filters.LocalSubnetID != nil || filters.Source != nil {
+		q = q.Join("JOIN local_subnet").JoinOn("local_subnet.subnet_id = host.subnet_id")
+	}
+
 	// Filter by local subnet ID.
 	if filters.LocalSubnetID != nil {
-		q = q.Join("JOIN local_subnet").JoinOn("local_subnet.subnet_id = host.subnet_id")
 		q = q.Where("local_subnet.local_subnet_id = ?", *filters.LocalSubnetID)
+	}
+
+	// Filter by data source.
+	if filters.Source != nil {
+		q = q.Where("local_host.data_source = ?", *filters.Source)
 	}
 
 	// Filter global or non-global hosts.

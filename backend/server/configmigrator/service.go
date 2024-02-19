@@ -7,12 +7,12 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
 )
 
 type Service struct {
-	filter     dbmodel.HostsByPageFilters
+	migrator Migrator
+
 	totalCount int64
 	startDate  time.Time
 
@@ -24,15 +24,12 @@ type Service struct {
 	endDate     storkutil.AtomicTime
 
 	cancelSignal func()
-	cancelWg     sync.WaitGroup
-
-	limit int64
+	finishWg     sync.WaitGroup
 }
 
 func NewService() *Service {
 	return &Service{
 		errors: make(map[int64]error),
-		limit:  100,
 	}
 }
 
@@ -55,19 +52,14 @@ func (s *Service) HasMigration() bool {
 	return s.startDate != time.Time{}
 }
 
-func (s *Service) GetFilter() dbmodel.HostsByPageFilters {
-	return s.filter
-}
-
-func (s *Service) Start(filter dbmodel.HostsByPageFilters) error {
+func (s *Service) Start() error {
 	if s.HasMigration() {
 		return errors.New("Migration already started")
 	}
 
-	s.filter = filter
 	s.startDate = time.Now()
 
-	total, err := s.countTotal()
+	total, err := s.migrator.CountTotal()
 	if err != nil {
 		s.endDate.Store(time.Now())
 		return err
@@ -102,7 +94,6 @@ func (s *Service) Clear() error {
 		return errors.New("Migration in progress")
 	}
 
-	s.filter = dbmodel.HostsByPageFilters{}
 	s.totalCount = 0
 	s.processedCount.Store(0)
 	s.errors = make(map[int64]error)
@@ -111,44 +102,30 @@ func (s *Service) Clear() error {
 	s.generalErrors = []error{}
 
 	s.cancelSignal = nil
-	s.cancelWg.Done()
+	s.finishWg.Done()
 
 	return nil
-}
-
-func (s *Service) countTotal() (int64, error) {
-
-}
-
-func (s *Service) loadChunk(offset int64) ([]any, error) {
-
-}
-
-func (s *Service) getID(item any) int64 {
-
-}
-
-func (s *Service) migrate(item any) error {
-
 }
 
 func (s *Service) cancel() error {
 	s.cancelSignal()
-	s.cancelWg.Wait()
+	s.finishWg.Wait()
 	return nil
 }
 
 func (s *Service) execute(ctx context.Context) {
-	s.cancelWg.Add(1)
+	s.finishWg.Add(1)
 
 	go func(ctx context.Context) {
 		offset := int64(0)
+		canceled := false
 
 		// The label is needed to break the loop inside the select statement.
 	LOOP:
 		for {
 			select {
 			case <-ctx.Done():
+				canceled = true
 				break LOOP
 			default:
 				processed, done := s.executeIteration(int64(offset))
@@ -160,33 +137,44 @@ func (s *Service) execute(ctx context.Context) {
 			}
 		}
 
-		s.cancelWg.Done()
+		if !canceled {
+			// The migration was not interrupted.
+			s.migrator.Finish()
+		}
+
+		s.finishWg.Done()
 		s.endDate.Store(time.Now())
 	}(ctx)
 
 }
 
 func (s *Service) executeIteration(offset int64) (int64, bool) {
-	items, err := s.loadChunk(offset)
+	loadedCount, err := s.migrator.LoadItems(offset)
 	if err != nil {
-		s.errorsMutex.Lock()
-		defer s.errorsMutex.Unlock()
-		s.generalErrors = append(s.generalErrors, err)
-		return s.limit, false
+		s.appendGeneralError(err)
+		return loadedCount, false
 	}
 
-	itemsCount := len(items)
-	if itemsCount == 0 {
+	if loadedCount == 0 {
 		return 0, true
 	}
 
-	for _, item := range items {
-		err := s.migrate(item)
-		if err != nil {
-			s.errorsMutex.Lock()
-			defer s.errorsMutex.Unlock()
-			s.errors[s.getID(item)] = err
-		}
+	errs := s.migrator.Migrate()
+
+	s.appendMigrationErrors(errs)
+	return loadedCount, false
+}
+
+func (s *Service) appendGeneralError(err error) {
+	s.errorsMutex.Lock()
+	defer s.errorsMutex.Unlock()
+	s.generalErrors = append(s.generalErrors, err)
+}
+
+func (s *Service) appendMigrationErrors(errs map[int64]error) {
+	s.errorsMutex.Lock()
+	defer s.errorsMutex.Unlock()
+	for id, err := range errs {
+		s.errors[id] = err
 	}
-	return int64(itemsCount), false
 }
