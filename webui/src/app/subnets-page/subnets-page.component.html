@@ -14,7 +14,13 @@
 
 <p-tabMenu [model]="tabs" [activeItem]="tabs[activeTabIndex]" class="mt-2">
     <ng-template pTemplate="item" let-item let-i="index">
-        <a role="menuitem" pRipple [routerLink]="item.routerLink" class="p-ripple p-element p-menuitem-link">
+        <a
+            role="menuitem"
+            pRipple
+            [routerLink]="item.routerLink"
+            [queryParams]="i === 0 ? validFilter : null"
+            class="p-ripple p-element p-menuitem-link"
+        >
             <div class="flex justify-content-space-between">
                 <div class="p-menuitem-icon" [ngClass]="item.icon" *ngIf="item.icon"></div>
                 <div class="p-menuitem-text">
@@ -34,59 +40,9 @@
 <!-- Subnet list tab -->
 <div *ngIf="activeTabIndex === 0; else openedTabBlock">
     <div style="margin: 0 0 10px 5px; display: flex; justify-content: space-between">
-        <div style="display: flex; align-items: center">
-            <div>
-                <i class="fa fa-search" style="margin: 4px 4px 0 0"></i>
-                Filter subnets:
-                <input
-                    type="text"
-                    id="filter-subnets-text-field"
-                    pInputText
-                    [(ngModel)]="filterText"
-                    placeholder="subnet or any other field"
-                    (keyup)="keyupFilterText($event)"
-                />
-                <app-help-tip title="filtering" id="filtering-help-button">
-                    <p>
-                        Subnets in the table below can be filtered by entering a text in the search box; the table shows
-                        all subnets matching the filter text. Currently supported fields for such filtering are:
-                    </p>
-                    <ul>
-                        <li>Subnet Prefix</li>
-                        <li>Lower and Upper Bound of Pools</li>
-                        <li>Shared Network Name</li>
-                    </ul>
-                    <p>
-                        The table can present subnets that meet certain criteria, e.g. <b>192.0</b> will show all
-                        subnets that contain 192.0 octets. It can also filter by shared network name and/or pools.
-                    </p>
-                    <p>
-                        In addition, subnets can be filtered by an explicitly selected field using the expression:
-                        <i>field:value</i>, e.g.: <i class="monospace">appId:2</i>. Currently supported fields for
-                        explicit filtering are:
-                    </p>
-                    <ul>
-                        <li class="monospace">appId</li>
-                        <li>
-                            <span class="monospace">subnetId</span> - the subnet ID assigned in the Kea DHCP daemon
-                            configuration
-                        </li>
-                    </ul>
-                </app-help-tip>
-            </div>
-            <div style="margin: 0 10px 0 40px; padding-top: 5px">Protocol:</div>
-            <div>
-                <p-dropdown
-                    [options]="[
-                        { label: 'any', value: null, id: 'any-menu' },
-                        { label: 'DHCPv4', value: '4', id: 'dhcpv4-menu' },
-                        { label: 'DHCPv6', value: '6', id: 'dhcpv6-menu' }
-                    ]"
-                    id="protocol-dropdown-menu"
-                    [(ngModel)]="queryParams.dhcpVersion"
-                    [style]="{ width: '10em' }"
-                    (onChange)="filterByDhcpVersion()"
-                ></p-dropdown>
+        <div class="flex align-items-center">
+            <div *ngIf="filterTextFormatErrors?.length > 0">
+                <small *ngFor="let err of filterTextFormatErrors" class="p-error block">{{ err }}</small>
             </div>
         </div>
         <div>
@@ -100,6 +56,14 @@
                 pButton
             ></a>
         </div>
+        <div>
+            <p-button
+                label="Refresh List"
+                icon="pi pi-refresh"
+                styleClass="block p-button-primary no-underline ml-2"
+                (onClick)="reloadData(subnetsTable)"
+            ></p-button>
+        </div>
     </div>
 
     <!-- Subnet list -->
@@ -110,16 +74,130 @@
             [paginator]="true"
             [rows]="10"
             [lazy]="true"
-            [loading]="loading"
-            (onLazyLoad)="loadSubnets($event)"
-            [totalRecords]="totalSubnets"
+            [loading]="dataLoading"
+            (onLazyLoad)="loadData($event)"
+            [lazyLoadOnInit]="false"
+            (onStateRestore)="stateRestored($event, subnetsTable)"
+            (onStateSave)="stateSaved(subnetsTable)"
+            (onFilter)="onFilter()"
+            [totalRecords]="totalRecords"
             [rowsPerPageOptions]="[10, 30, 100]"
             [showCurrentPageReport]="true"
-            currentPageReportTemplate="{currentPage} of {totalPages} pages"
+            [currentPageReportTemplate]="currentPageReportTemplate"
             stateStorage="session"
-            stateKey="subnets-table-session"
+            [stateKey]="stateKey"
             styleClass="alternate-list"
         >
+            <ng-template pTemplate="caption">
+                <div class="flex flex-wrap gap-3 row-gap-5 mt-3">
+                    <button
+                        pButton
+                        label="Clear"
+                        class="p-button-outlined"
+                        icon="pi pi-filter-slash"
+                        (click)="clearFilters(subnetsTable)"
+                    ></button>
+                    <div class="flex-auto"></div>
+                    <div class="flex-initial align-items-center">
+                        <p-columnFilter
+                            field="appId"
+                            matchMode="equals"
+                            [showMenu]="false"
+                            [showClearButton]="!hasPrefilter()"
+                        >
+                            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                                <span class="p-float-label">
+                                    <p-inputNumber
+                                        inputId="app-id"
+                                        mode="decimal"
+                                        [useGrouping]="false"
+                                        (onInput)="filter($event.value)"
+                                        [ngModel]="value"
+                                        [disabled]="hasPrefilter()"
+                                    ></p-inputNumber>
+                                    <label for="app-id">Kea App Id</label>
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                    </div>
+                    <div class="flex-initial align-items-center">
+                        <p-columnFilter field="subnetId" matchMode="equals" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                                <span class="p-float-label">
+                                    <p-inputNumber
+                                        inputId="subnet-id"
+                                        mode="decimal"
+                                        [useGrouping]="false"
+                                        (onInput)="filter($event.value)"
+                                        [ngModel]="value"
+                                    ></p-inputNumber>
+                                    <label for="subnet-id">Kea Subnet Id</label>
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                    </div>
+                    <div class="flex-initial align-items-center">
+                        <p-columnFilter field="dhcpVersion" matchMode="equals" [showMenu]="false">
+                            <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                                <span class="p-float-label">
+                                    <p-dropdown
+                                        [options]="[
+                                            { name: 'DHCPv4', value: '4' },
+                                            { name: 'DHCPv6', value: '6' }
+                                        ]"
+                                        optionLabel="name"
+                                        optionValue="value"
+                                        [ngModel]="value"
+                                        [style]="{ width: '10em' }"
+                                        (onChange)="filter($event.value)"
+                                        placeholder="Any"
+                                        inputId="protocol"
+                                    ></p-dropdown>
+                                    <label for="protocol">Protocol</label>
+                                </span>
+                            </ng-template>
+                        </p-columnFilter>
+                    </div>
+                    <span class="p-input-icon-left">
+                        <i class="pi pi-search"></i>
+                        <input
+                            pInputText
+                            type="text"
+                            (input)="subnetsTable.filter($event.target.value, 'text', 'contains')"
+                            [value]="subnetsTable.filters.text?.[0]?.value"
+                            placeholder="Subnet or any other field"
+                        />
+                    </span>
+                    <app-help-tip title="filtering" id="filtering-help-button">
+                        <p>
+                            Subnets in the table below can be filtered by entering a text in the search box; the table
+                            shows all subnets matching the filter text. Currently supported fields for such filtering
+                            are:
+                        </p>
+                        <ul>
+                            <li>Subnet Prefix</li>
+                            <li>Lower and Upper Bound of Pools</li>
+                            <li>Shared Network Name</li>
+                        </ul>
+                        <p>
+                            The table can present subnets that meet certain criteria, e.g. <b>192.0</b> will show all
+                            subnets that contain 192.0 octets. It can also filter by shared network name and/or pools.
+                        </p>
+                        <p>
+                            In addition, subnets can be filtered by an explicitly selected field using the expression:
+                            <i>field:value</i>, e.g.: <i class="monospace">appId:2</i>. Currently supported fields for
+                            explicit filtering are:
+                        </p>
+                        <ul>
+                            <li class="monospace">appId</li>
+                            <li>
+                                <span class="monospace">subnetId</span> - the subnet ID assigned in the Kea DHCP daemon
+                                configuration
+                            </li>
+                        </ul>
+                    </app-help-tip>
+                </div>
+            </ng-template>
             <ng-template pTemplate="header">
                 <tr>
                     <th rowspan="2" style="width: 11rem">Subnet</th>
@@ -235,12 +313,28 @@
             </ng-template>
             <ng-template pTemplate="emptymessage">
                 <tr>
+                    <td colspan="8">
+                        No subnets found.
+                        <span *ngIf="hasFilter(subnetsTable)">
+                            Try to clear filtering.
+                            <button
+                                pButton
+                                label="Clear"
+                                class="p-button-outlined"
+                                icon="pi pi-filter-slash"
+                                (click)="clearFilters(subnetsTable)"
+                            ></button>
+                        </span>
+                    </td>
+                </tr>
+            </ng-template>
+            <ng-template pTemplate="emptymessage">
+                <tr>
                     <td colspan="9">No subnets found.</td>
                 </tr>
             </ng-template>
             <ng-template pTemplate="paginatorright" let-state>
-                Total: {{ state.totalRecords > 0 ? state.totalRecords : '0' }}
-                {{ state.totalRecords === 1 ? 'subnet' : 'subnets' }}
+                Total: {{ state.totalRecords | pluralize: 'subnet' }}
             </ng-template>
         </p-table>
     </div>

@@ -296,7 +296,7 @@ describe('SubnetsPageComponent', () => {
 
     it('should not fail on empty statistics', async () => {
         // Act
-        component.loadSubnets({})
+        component.loadData({})
         await fixture.whenStable()
 
         // Assert
@@ -414,7 +414,7 @@ describe('SubnetsPageComponent', () => {
     })
 
     it('should close new subnet form when form is submitted', fakeAsync(() => {
-        component.loadSubnets({})
+        component.loadData({})
         tick()
         fixture.detectChanges()
 
@@ -487,7 +487,7 @@ describe('SubnetsPageComponent', () => {
     }))
 
     it('should close subnet update form when form is submitted', fakeAsync(() => {
-        component.loadSubnets({})
+        component.loadData({})
         tick()
         fixture.detectChanges()
 
@@ -560,7 +560,7 @@ describe('SubnetsPageComponent', () => {
     }))
 
     it('should keep the tab open when getting a subnet after submission fails', fakeAsync(() => {
-        component.loadSubnets({})
+        component.loadData({})
         tick()
         fixture.detectChanges()
 
@@ -633,7 +633,7 @@ describe('SubnetsPageComponent', () => {
     }))
 
     it('should cancel a new subnet transaction when a tab is closed', fakeAsync(() => {
-        component.loadSubnets({})
+        component.loadData({})
         tick()
         fixture.detectChanges()
 
@@ -683,7 +683,7 @@ describe('SubnetsPageComponent', () => {
     }))
 
     it('should cancel an update transaction when a tab is closed', async () => {
-        component.loadSubnets({})
+        component.loadData({})
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -754,7 +754,7 @@ describe('SubnetsPageComponent', () => {
     })
 
     it('should cancel a new subnet transaction when cancel button is clicked', fakeAsync(() => {
-        component.loadSubnets({})
+        component.loadData({})
         tick()
         fixture.detectChanges()
 
@@ -806,7 +806,7 @@ describe('SubnetsPageComponent', () => {
     }))
 
     it('should cancel transaction when cancel button is clicked', async () => {
-        component.loadSubnets({})
+        component.loadData({})
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -880,7 +880,7 @@ describe('SubnetsPageComponent', () => {
     })
 
     it('should show error message when transaction canceling fails', fakeAsync(() => {
-        component.loadSubnets({})
+        component.loadData({})
         tick()
         fixture.detectChanges()
 
@@ -921,7 +921,7 @@ describe('SubnetsPageComponent', () => {
     }))
 
     it('should show error message when transaction canceling fails', async () => {
-        component.loadSubnets({})
+        component.loadData({})
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -983,7 +983,7 @@ describe('SubnetsPageComponent', () => {
     })
 
     it('should close subnet tab when subnet is deleted', fakeAsync(() => {
-        component.loadSubnets({})
+        component.loadData({})
         tick()
         fixture.detectChanges()
 
