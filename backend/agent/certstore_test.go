@@ -264,6 +264,22 @@ func TestCertStoreIsValid(t *testing.T) {
 	require.NoError(t, err)
 }
 
+// Test that the cert store is not recognized as valid if the server cert
+// fingerprint is zero.
+func TestCertStoreIsNotValidForZeroServerFingerprint(t *testing.T) {
+	// Arrange
+	teardown, _ := GenerateSelfSignedCerts()
+	defer teardown()
+	store := NewCertStoreDefault()
+	_ = store.WriteServerCertFingerprint([32]byte{})
+
+	// Act
+	err := store.IsValid()
+
+	// Assert
+	require.ErrorContains(t, err, "file content contains a zero fingerprint")
+}
+
 // Test that the cert store is not recognized as valid if any cert file is missing.
 func TestCertStoreIsNotValidForMissingFiles(t *testing.T) {
 	// Arrange
@@ -288,6 +304,28 @@ func TestCertStoreIsNotValidForMissingFiles(t *testing.T) {
 			require.ErrorContains(t, err, "store is not valid")
 		})
 	}
+}
+
+// Test that the cert store can conditionally ignore the missing server
+// fingerprint file during the validation.
+func TestCertStoreMayBeConditionallyValidIfServerFingerprintIsMissing(t *testing.T) {
+	// Arrange
+	teardown, _ := GenerateSelfSignedCerts()
+	defer teardown()
+	store := NewCertStoreDefault()
+	_ = os.Remove(store.serverCertFingerprintPath)
+
+	// Act
+	errAllow := store.IsConditionallyValid(ValidationOptions{
+		AllowMissingServerCertFingerprint: true,
+	})
+	errDeny := store.IsConditionallyValid(ValidationOptions{
+		AllowMissingServerCertFingerprint: false,
+	})
+
+	// Assert
+	require.NoError(t, errAllow)
+	require.ErrorContains(t, errDeny, "could not read the server cert fingerprint")
 }
 
 // Test that the cert store is recognized as empty if all cert files don't
@@ -427,32 +465,50 @@ func TestReadCACertFingerprintForInvalidCA(t *testing.T) {
 	require.Zero(t, fingerprint)
 }
 
-// Test that the existence of the server certificate fingerprint file is
-// recognized properly.
-func TestIsServerCertFingerprintFileExist(t *testing.T) {
+// Test that the non-zero server cert fingerprint is not recognized as zero.
+func TestIsServerCertFingerprintZeroForNonZeroFingerprint(t *testing.T) {
 	// Arrange
 	teardown, _ := GenerateSelfSignedCerts()
 	defer teardown()
 	store := NewCertStoreDefault()
 
-	t.Run("exists", func(t *testing.T) {
-		// Act
-		exists, err := store.IsServerCertFingerprintFileExist()
+	// Act
+	isZero, err := store.IsServerCertFingerprintZero()
 
-		// Assert
-		require.NoError(t, err)
-		require.True(t, exists)
-	})
+	// Assert
+	require.NoError(t, err)
+	require.False(t, isZero)
+}
 
-	t.Run("not exists", func(t *testing.T) {
-		// Arrange
-		_ = os.Remove(ServerCertFingerprintFile)
+// Test that the zero server cert fingerprint is recognized as zero.
+func TestIsServerCertFingerprintZeroForZeroFingerprint(t *testing.T) {
+	// Arrange
+	teardown, _ := GenerateSelfSignedCerts()
+	defer teardown()
+	store := NewCertStoreDefault()
+	_ = store.WriteServerCertFingerprint([32]byte{})
 
-		// Act
-		exists, err := store.IsServerCertFingerprintFileExist()
+	// Act
+	isZero, err := store.IsServerCertFingerprintZero()
 
-		// Assert
-		require.NoError(t, err)
-		require.False(t, exists)
-	})
+	// Assert
+	require.NoError(t, err)
+	require.True(t, isZero)
+}
+
+// Test that the error is returned if the server cert fingerprint file is
+// missing.
+func TestIsServerCertFingerprintZeroForMissingFile(t *testing.T) {
+	// Arrange
+	teardown, _ := GenerateSelfSignedCerts()
+	defer teardown()
+	store := NewCertStoreDefault()
+	_ = os.Remove(store.serverCertFingerprintPath)
+
+	// Act
+	isZero, err := store.IsServerCertFingerprintZero()
+
+	// Assert
+	require.ErrorContains(t, err, "could not read the server cert fingerprint")
+	require.False(t, isZero)
 }
