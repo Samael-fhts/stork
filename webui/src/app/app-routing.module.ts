@@ -176,7 +176,7 @@ export class CustomRouteReuseStrategy implements RouteReuseStrategy {
      *
      * @private
      */
-    private specificComponents: any[] = [HostsPageComponent]
+    private specificComponents: any[] = [HostsPageComponent, SubnetsPageComponent]
 
     /**
      * The point of this CustomRouteReuseStrategy is to skip route reuse in specific cases.
@@ -230,15 +230,6 @@ export class CustomRouteReuseStrategy implements RouteReuseStrategy {
             //   - curr and future routes display list view tab (tab index 0)
             //   - future route queryParamMap contains 'text' key i.e. global search was used
             //     (e.g. future route looks like dhcp/hosts/all?text=foobar).
-            return false
-        } else if (
-            future.component === SubnetsPageComponent &&
-            curr.component === SubnetsPageComponent &&
-            curr.paramMap.get('id')?.includes('all') &&
-            future.paramMap.get('id')?.includes('all')
-        ) {
-            // Do not reuse route when navigation happens between SubnetsPageComponent
-            // and when curr and future routes display list of hosts (tab index 0).
             return false
         }
         return future.routeConfig === curr.routeConfig
