@@ -1,10 +1,10 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core'
-import { Router, ActivatedRoute, ParamMap } from '@angular/router'
+import { Router, ActivatedRoute, EventType } from '@angular/router'
 
-import { Table } from 'primeng/table'
+import { Table, TableLazyLoadEvent } from 'primeng/table'
 
 import { DHCPService } from '../backend/api/api'
-import { extractKeyValsAndPrepareQueryParams, getErrorMessage } from '../utils'
+import { getErrorMessage } from '../utils'
 import {
     getTotalAddresses,
     getAssignedAddresses,
@@ -13,19 +13,21 @@ import {
     extractUniqueSharedNetworkPools,
     SharedNetworkWithUniquePools,
 } from '../subnets'
-import { Subscription, lastValueFrom } from 'rxjs'
-import { map } from 'rxjs/operators'
+import { Subscription, lastValueFrom, EMPTY } from 'rxjs'
+import { catchError, filter, map } from 'rxjs/operators'
 import { SharedNetwork } from '../backend'
 import { MenuItem, MessageService } from 'primeng/api'
+import { PrefilteredTable } from '../table'
+import { Location } from '@angular/common'
 
 /**
  * Specifies the filter parameters for fetching shared networks that may be
  * specified in the URL query parameters.
  */
 interface QueryParamsFilter {
-    text: string
-    dhcpVersion: '4' | '6'
-    appId: string
+    text?: string
+    dhcpVersion?: 4 | 6
+    appId?: string
 }
 
 /**
@@ -36,24 +38,20 @@ interface QueryParamsFilter {
     templateUrl: './shared-networks-page.component.html',
     styleUrls: ['./shared-networks-page.component.sass'],
 })
-export class SharedNetworksPageComponent implements OnInit, OnDestroy {
-    private subscriptions = new Subscription()
+export class SharedNetworksPageComponent extends PrefilteredTable<QueryParamsFilter> implements OnInit, OnDestroy {
+    subscriptions = new Subscription()
     breadcrumbs = [{ label: 'DHCP' }, { label: 'Shared Networks' }]
 
-    @ViewChild('networksTable') networksTable: Table
+    @ViewChild('networksTable') table: Table
+    prefilterKey: keyof QueryParamsFilter = 'appId'
+    queryParamBooleanKeys: (keyof QueryParamsFilter)[] = []
+    queryParamNumericKeys: (keyof QueryParamsFilter)[] = ['dhcpVersion']
+    stateKey: string = 'networks-table-session-all'
+    filterBooleanKeys: (keyof QueryParamsFilter)[] = []
+    filterNumericKeys: (keyof QueryParamsFilter)[] = ['appId', 'dhcpVersion']
 
     // networks
     networks: SharedNetworkWithUniquePools[] = []
-    totalNetworks = 0
-
-    // filters
-    filterText = ''
-    dhcpVersions: any[]
-    queryParams: QueryParamsFilter = {
-        text: null,
-        dhcpVersion: null,
-        appId: null,
-    }
 
     // Tab menu
 
@@ -78,11 +76,6 @@ export class SharedNetworksPageComponent implements OnInit, OnDestroy {
     activeTabIndex = 0
 
     /**
-     * Indicates if the component is loading data from the server.
-     */
-    loading: boolean = false
-
-    /**
      * Holds the information about specific shared networks presented in the tabs.
      *
      * The entry corresponding to shared networks list is not related to any specific
@@ -97,13 +90,17 @@ export class SharedNetworksPageComponent implements OnInit, OnDestroy {
      * @param messageService message service.
      * @param router router.
      * @param dhcpApi a service for communication with the server.
+     * @param location location service used to update queryParams
      */
     constructor(
         private route: ActivatedRoute,
         private messageService: MessageService,
         private router: Router,
-        private dhcpApi: DHCPService
-    ) {}
+        private dhcpApi: DHCPService,
+        private location: Location
+    ) {
+        super(router, location)
+    }
 
     /**
      * A component lifecycle hook invoked when the component instance is destroyed.
@@ -111,6 +108,7 @@ export class SharedNetworksPageComponent implements OnInit, OnDestroy {
      * It unsubscribes from all subscriptions.
      */
     ngOnDestroy(): void {
+        this.filter$.complete()
         this.subscriptions.unsubscribe()
     }
 
@@ -118,80 +116,72 @@ export class SharedNetworksPageComponent implements OnInit, OnDestroy {
      * A component lifecycle hook invoked when the component is initialized.
      */
     ngOnInit() {
-        // prepare list of DHCP versions, this is used in networks filtering
-        this.dhcpVersions = [
-            { label: 'any', value: null },
-            { label: 'DHCPv4', value: '4' },
-            { label: 'DHCPv6', value: '6' },
-        ]
+        this.dataLoading = true
 
-        const ssParams = this.route.snapshot.queryParamMap
-        let text = ''
-        if (ssParams.get('text')) {
-            text += ' ' + ssParams.get('text')
+        const paramMap = this.route.snapshot.paramMap
+        const queryParamMap = this.route.snapshot.queryParamMap
+
+        // Get host id and appId.
+        const id = paramMap.get('id')
+        if (!id || id === 'all') {
+            this.parseIdFromQueryParam(queryParamMap)
+            if (this.hasPrefilter()) {
+                this.stateKey = `networks-table-session-${this.prefilterValue}`
+            }
         }
-        if (ssParams.get('appId')) {
-            text += ' appId:' + ssParams.get('appId')
-        }
-        this.filterText = text.trim()
+
+        this.subscribeFilterValidation()
+        this.subscribeFilterHandler()
 
         // subscribe to subsequent changes to query params
         this.subscriptions.add(
-            this.route.queryParamMap.subscribe(
-                (params) => {
-                    this.updateOurQueryParams(params)
-                    let event = { first: 0, rows: 10 }
-                    if (this.networksTable) {
-                        // When filtering is applied, go by default to first page after filtering.
-                        this.networksTable.first = 0
-                        event = this.networksTable.createLazyLoadMetadata()
-                    }
-                    this.loadNetworks(event)
-                },
-                // ToDo: Silent error catching
-                (error) => {
-                    console.log(error)
-                }
-            )
-        )
-
-        // Subscribe to the shared network id changes, e.g. from /dhcp/shared-networks/all to
-        // /dhcp/shared-networks/1. These changes are triggered by switching between the
-        // tabs.
-        this.subscriptions.add(
-            this.route.paramMap.subscribe(
-                (params) => {
-                    // Get shared network id.
-                    const id = params.get('id')
-                    let numericId = parseInt(id, 10)
-                    if (Number.isNaN(numericId)) {
-                        numericId = 0
-                    }
-                    this.openTabBySharedNetworkId(numericId)
-                },
-                (error) => {
-                    this.messageService.add({
-                        severity: 'error',
-                        summary: 'Cannot process URL segment parameters',
-                        detail: getErrorMessage(error),
+            this.router.events
+                .pipe(
+                    filter((event, idx) => idx === 0 || event.type === EventType.NavigationEnd),
+                    catchError((err) => {
+                        const msg = getErrorMessage(err)
+                        this.messageService.add({
+                            severity: 'error',
+                            summary: 'Cannot process the URL query',
+                            detail: msg,
+                            life: 10000,
+                        })
+                        return EMPTY
                     })
-                }
-            )
-        )
-    }
+                )
+                .subscribe(() => {
+                    const paramMap = this.route.snapshot.paramMap
+                    const queryParamMap = this.route.snapshot.queryParamMap
 
-    /**
-     * Update various component's query parameters from the URL
-     * query parameters.
-     *
-     * @param params query parameters.
-     */
-    updateOurQueryParams(params: ParamMap) {
-        if (['4', '6'].includes(params.get('dhcpVersion'))) {
-            this.queryParams.dhcpVersion = params.get('dhcpVersion') as '4' | '6'
-        }
-        this.queryParams.text = params.get('text') || null
-        this.queryParams.appId = params.get('appId') || null
+                    // Apply to the changes of the host id, e.g. from /dhcp/shared-networks/all to
+                    // /dhcp/shared-networks/1. Those changes are triggered by switching between the
+                    // tabs.
+
+                    // Get shared-network id.
+                    const id = paramMap.get('id')
+                    if (!id || id === 'all') {
+                        // Update the filter only if the target is shared-networks list.
+                        this.updateFilterFromQueryParameters(queryParamMap)
+                        this.switchToTab(0)
+                        return
+                    }
+                    // if (id === 'new') {
+                    //     this.openNewNetwork()
+                    //     return
+                    // }
+                    const numericId = parseInt(id, 10)
+                    if (!Number.isNaN(numericId)) {
+                        // The path has a numeric id indicating that we should
+                        // open a tab with selected shared-network information or switch
+                        // to this tab if it has been already opened.
+                        this.openTabBySharedNetworkId(numericId)
+                    } else {
+                        // In case of failed Id parsing, open list tab.
+                        this.switchToTab(0)
+                        this.filter$.next({ filter: {} })
+                    }
+                })
+        )
     }
 
     /**
@@ -200,18 +190,17 @@ export class SharedNetworksPageComponent implements OnInit, OnDestroy {
      * @param event Event object containing index of the first row, maximum number
      *              of rows to be returned, dhcp version and text for networks filtering.
      */
-    loadNetworks(event) {
-        this.loading = true
+    loadData(event: TableLazyLoadEvent) {
+        this.dataLoading = true
 
-        const params = this.queryParams
         lastValueFrom(
             this.dhcpApi
                 .getSharedNetworks(
                     event.first,
                     event.rows,
-                    Number(params.appId) || null,
-                    Number(params.dhcpVersion) || null,
-                    params.text
+                    this.prefilterValue ?? this.getTableFilterValue('appId', event.filters),
+                    this.getTableFilterValue('dhcpVersion', event.filters),
+                    this.getTableFilterValue('text', event.filters)
                 )
                 .pipe(
                     map((sharedNetworks) => {
@@ -221,43 +210,16 @@ export class SharedNetworksPageComponent implements OnInit, OnDestroy {
                 )
         )
             .then((data) => {
-                this.networks = data.items
-                this.totalNetworks = data.total ?? 0
+                this.networks = data.items ?? []
+                this.totalRecords = data.total ?? 0
             })
             .catch((error) => {
                 // ToDo: Silent error catching. We should display a message to the user.
                 console.log(error)
             })
             .finally(() => {
-                this.loading = false
+                this.dataLoading = false
             })
-    }
-
-    /**
-     * Filters the list of shared networks by DHCP versions. Filtering is performed
-     * by the server.
-     */
-    filterByDhcpVersion() {
-        this.router.navigate(['/dhcp/shared-networks'], {
-            queryParams: { dhcpVersion: this.queryParams.dhcpVersion },
-            queryParamsHandling: 'merge',
-        })
-    }
-
-    /**
-     * Filters the list of shared networks by text. The text may contain key=val
-     * pairs allowing filtering by various keys. Filtering is performed by
-     * the server.
-     */
-    keyupFilterText(event) {
-        if (this.filterText.length >= 2 || event.key === 'Enter') {
-            const queryParams = extractKeyValsAndPrepareQueryParams<QueryParamsFilter>(this.filterText, ['appId'], null)
-
-            this.router.navigate(['/dhcp/shared-networks'], {
-                queryParams,
-                queryParamsHandling: 'merge',
-            })
-        }
     }
 
     /**
@@ -376,7 +338,7 @@ export class SharedNetworksPageComponent implements OnInit, OnDestroy {
      * @param sharedNetworkId Shared network ID.
      */
     private createTab(sharedNetworkId: number): Promise<void> {
-        this.loading = true
+        this.dataLoading = true
         return (
             lastValueFrom(
                 // Fetch data from API.
@@ -406,7 +368,7 @@ export class SharedNetworksPageComponent implements OnInit, OnDestroy {
                     })
                 })
                 .finally(() => {
-                    this.loading = false
+                    this.dataLoading = false
                 })
         )
     }

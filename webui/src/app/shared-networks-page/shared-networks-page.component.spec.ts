@@ -349,7 +349,7 @@ describe('SharedNetworksPageComponent', () => {
 
     it('should not fail on empty statistics', async () => {
         // Act
-        component.loadNetworks({})
+        component.loadData({})
         await fixture.whenStable()
 
         // Assert
@@ -384,9 +384,9 @@ describe('SharedNetworksPageComponent', () => {
     })
 
     it('should display proper utilization bars', async () => {
-        component.loadNetworks({})
+        component.loadData({})
         await fixture.whenStable()
-        component.loadNetworks({})
+        component.loadData({})
         await fixture.whenStable()
         await fixture.whenStable()
         fixture.detectChanges()
