@@ -142,8 +142,8 @@
                                 <span class="p-float-label">
                                     <p-dropdown
                                         [options]="[
-                                            { name: 'DHCPv4', value: '4' },
-                                            { name: 'DHCPv6', value: '6' }
+                                            { name: 'DHCPv4', value: 4 },
+                                            { name: 'DHCPv6', value: 6 }
                                         ]"
                                         optionLabel="name"
                                         optionValue="value"
@@ -313,7 +313,7 @@
             </ng-template>
             <ng-template pTemplate="emptymessage">
                 <tr>
-                    <td colspan="8">
+                    <td colspan="9">
                         No subnets found.
                         <span *ngIf="hasFilter(subnetsTable)">
                             Try to clear filtering.
@@ -326,11 +326,6 @@
                             ></button>
                         </span>
                     </td>
-                </tr>
-            </ng-template>
-            <ng-template pTemplate="emptymessage">
-                <tr>
-                    <td colspan="9">No subnets found.</td>
                 </tr>
             </ng-template>
             <ng-template pTemplate="paginatorright" let-state>

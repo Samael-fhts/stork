@@ -113,7 +113,7 @@ interface QueryParamsFilter {
 })
 export class SubnetsPageComponent extends PrefilteredTable<QueryParamsFilter> implements OnInit, OnDestroy {
     prefilterKey: keyof QueryParamsFilter = 'appId'
-    stateKey: string = 'subnets-table-session'
+    stateKey: string = 'subnets-table-session-all'
     filterNumericKeys: (keyof QueryParamsFilter)[] = ['dhcpVersion', 'appId', 'subnetId']
     filterBooleanKeys: (keyof QueryParamsFilter)[] = []
     queryParamNumericKeys: (keyof QueryParamsFilter)[] = ['dhcpVersion']
@@ -128,12 +128,6 @@ export class SubnetsPageComponent extends PrefilteredTable<QueryParamsFilter> im
 
     // filters
     filterText = ''
-    queryParams: QueryParamsFilter = {
-        text: null,
-        dhcpVersion: null,
-        appId: null,
-        subnetId: null,
-    }
 
     // Tab menu
 
@@ -214,7 +208,9 @@ export class SubnetsPageComponent extends PrefilteredTable<QueryParamsFilter> im
         const id = paramMap.get('id')
         if (!id || id === 'all') {
             this.parseIdFromQueryParam(queryParamMap)
-            this.stateKey = this.hasPrefilter() ? `subnets-table-session-${this.tableId}` : 'subnets-table-session-all'
+            if (this.hasPrefilter()) {
+                this.stateKey = `subnets-table-session-${this.prefilterValue}`
+            }
         }
 
         this.subscribeFilterValidation()
@@ -264,7 +260,7 @@ export class SubnetsPageComponent extends PrefilteredTable<QueryParamsFilter> im
                     } else {
                         // In case of failed Id parsing, open list tab.
                         this.switchToTab(0)
-                        this.filter$.next({ source: 'callback', filter: {} })
+                        this.filter$.next({ filter: {} })
                     }
                 })
         )
@@ -284,10 +280,10 @@ export class SubnetsPageComponent extends PrefilteredTable<QueryParamsFilter> im
                 .getSubnets(
                     event.first,
                     event.rows,
-                    this.tableId ?? this.getTableFilterVal('appId'),
-                    this.getTableFilterVal('subnetId'),
-                    this.getTableFilterVal('dhcpVersion'),
-                    this.getTableFilterVal('text')
+                    this.prefilterValue ?? this.getTableFilterValue('appId', event.filters),
+                    this.getTableFilterValue('subnetId', event.filters),
+                    this.getTableFilterValue('dhcpVersion', event.filters),
+                    this.getTableFilterValue('text', event.filters)
                 )
                 // Custom parsing for statistics
                 .pipe(
