@@ -441,6 +441,7 @@ services:
       context: .
       dockerfile: $PWD/docker/images/stork.Dockerfile
       target: radius
+    command: -X
     networks:
       - storknet
     volumes:
