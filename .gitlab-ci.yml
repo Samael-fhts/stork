@@ -604,6 +604,7 @@ system_test:
     # It must be an alias of the docker:dind service.
     DEFAULT_MAPPED_ADDRESS: "docker"
     EXIT_FIRST: "true"
+    TEST: test_agent_over_ipv6
   script:
     # - rake system_tests_ui
     - rake systemtest
