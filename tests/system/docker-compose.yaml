@@ -156,7 +156,7 @@ services:
     extends: agent-kea
     networks:
       storknet:
-        ipv6_address: 3009:db8:1:42::100
+        ipv6_address: 3000:db8:1:42::100
     environment:
       STORK_AGENT_HOST: 3000:db8:1:42::100
 
