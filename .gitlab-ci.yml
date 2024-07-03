@@ -603,6 +603,7 @@ system_test:
     USE_SYSTEM_NODEJS: "true"
     # It must be an alias of the docker:dind service.
     DEFAULT_MAPPED_ADDRESS: "docker"
+    EXIT_FIRST: "true"
   script:
     # - rake system_tests_ui
     - rake systemtest
