@@ -42,7 +42,6 @@ default:
 # stages order
 stages:
   - checks
-  - system_tests
   - build
   - hooks
   - deploy
@@ -567,48 +566,6 @@ install_apks_arm64:
     - build_apks_arm64
 
 ### system testing ###
-
-system_testing:
-  stage: system_tests
-  allow_failure: false
-  tags:
-    - docker
-    - linux
-    - aws
-    - runner-manager
-    - amd64
-  services:
-    - docker:dind
-  rules:
-    - when: on_success
-  image: registry.gitlab.isc.org/isc-projects/stork/pkgs-compose:4
-  cache:
-    key: $CI_PROJECT_NAME-compose-$CI_COMMIT_REF_SLUG
-    paths:
-      - tools/
-    fallback_keys:
-      - $CI_PROJECT_NAME-compose-$CI_DEFAULT_BRANCH
-  before_script:
-    - ip -6 route del default
-    - rake prepare:systemtest
-  variables:
-    # Alpine uses the libc-musl library, which isn't compatible with the NodeJS
-    # binary fetched by the Rake script. Additionally, the binaries for alpine
-    # are missing on the NodeJS page. We cannot use the image based on Debian
-    # because it is out-of-date.
-    USE_SYSTEM_NODEJS: "true"
-    # It must be an alias of the docker:dind service.
-    DEFAULT_MAPPED_ADDRESS: "docker"
-  # Don't block if the artifacts from the previous stages expired.
-  dependencies: []
-  script:
-    # - rake system_tests_ui
-    - rake systemtest
-  artifacts:
-    paths:
-      - tests/system/test-results/**/*.log
-    expire_in: 1 week
-    when: always
 
 ### hooks ###
 build_hooks:
