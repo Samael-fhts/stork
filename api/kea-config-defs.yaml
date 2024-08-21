@@ -221,7 +221,7 @@
     type: object
     properties:
       sharedNetworkLevelParameters:
-        $ref: '#/definitions/KeaConfigSubnetDerivedParameters'
+        $ref: '#/definitions/KeaConfigSharedNetworkParameters'
       globalParameters:
         $ref: '#/definitions/KeaConfigSubnetDerivedParameters'
 
@@ -301,3 +301,4 @@
       - $ref: '#/definitions/KeaConfigExpiredLeasesProcessingParameters'
       - $ref: '#/definitions/KeaConfigReservationParameters'
       - $ref: '#/definitions/KeaConfigValidLifetimeParameters'
+      - $ref: '#/definitions/DHCPOptions'
