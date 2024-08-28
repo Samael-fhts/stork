@@ -23,10 +23,11 @@ const (
 	FqdnOption        DHCPOptionType = "fqdn"
 	TupleOption       DHCPOptionType = "tuple"
 	RecordOption      DHCPOptionType = "record"
+	BinaryOption      DHCPOptionType = "binary"
 )
 
 // DHCP option definition in the format used by Kea.
-type dhcpOptionDefinition struct {
+type DHCPOptionDefinition struct {
 	Array       bool             `json:"array,omitempty"`
 	Code        uint16           `json:"code"`
 	Encapsulate string           `json:"encapsulate"`
@@ -36,8 +37,8 @@ type dhcpOptionDefinition struct {
 	OptionType  DHCPOptionType   `json:"type"`
 }
 
-// DHCP option definition interface.
-type DHCPOptionDefinition interface {
+// DHCP option definition interface to access its fields.
+type DHCPOptionDefinitionAccessor interface {
 	GetArray() bool
 	GetCode() uint16
 	GetEncapsulate() string
@@ -53,41 +54,41 @@ type DHCPOptionDefinitionLookup interface {
 	// given daemon.
 	DefinitionExists(int64, dhcpmodel.DHCPOptionAccessor) bool
 	// Searches for an option definition for the specified daemon ID and option value.
-	Find(int64, dhcpmodel.DHCPOptionAccessor) DHCPOptionDefinition
+	Find(int64, dhcpmodel.DHCPOptionAccessor) DHCPOptionDefinitionAccessor
 }
 
 // Checks if the option is an array (has an array of option fields).
-func (def dhcpOptionDefinition) GetArray() bool {
+func (def DHCPOptionDefinition) GetArray() bool {
 	return def.Array
 }
 
 // Returns option code.
-func (def dhcpOptionDefinition) GetCode() uint16 {
+func (def DHCPOptionDefinition) GetCode() uint16 {
 	return def.Code
 }
 
 // Returns option space encapsulated by the option.
-func (def dhcpOptionDefinition) GetEncapsulate() string {
+func (def DHCPOptionDefinition) GetEncapsulate() string {
 	return def.Encapsulate
 }
 
 // Returns option name.
-func (def dhcpOptionDefinition) GetName() string {
+func (def DHCPOptionDefinition) GetName() string {
 	return def.Name
 }
 
 // Returns record types (when an option is a record of different fields).
-func (def dhcpOptionDefinition) GetRecordTypes() []DHCPOptionType {
+func (def DHCPOptionDefinition) GetRecordTypes() []DHCPOptionType {
 	return def.RecordTypes
 }
 
 // Returns option space.
-func (def dhcpOptionDefinition) GetSpace() string {
+func (def DHCPOptionDefinition) GetSpace() string {
 	return def.Space
 }
 
 // Returns option type.
-func (def dhcpOptionDefinition) GetType() DHCPOptionType {
+func (def DHCPOptionDefinition) GetType() DHCPOptionType {
 	return def.OptionType
 }
 
@@ -96,7 +97,7 @@ func (def dhcpOptionDefinition) GetType() DHCPOptionType {
 // the second returned parameter is false and the option field type
 // is empty. For an empty option this function always returns false and
 // empty option field type.
-func GetDHCPOptionDefinitionFieldType(def DHCPOptionDefinition, position int) (dhcpmodel.DHCPOptionFieldType, bool) {
+func GetDHCPOptionDefinitionFieldType(def DHCPOptionDefinitionAccessor, position int) (dhcpmodel.DHCPOptionFieldType, bool) {
 	switch def.GetType() {
 	case EmptyOption:
 		return "", false

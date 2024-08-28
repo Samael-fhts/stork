@@ -476,8 +476,21 @@ func TestCreateStandardDHCPOption(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	stdLookup := keaconfig.NewStdDHCPOptionDefinitionLookup()
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(stdLookup.FindByCodeSpace(optionData.Code, optionData.Space, storkutil.IPv6))
+	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(&keaconfig.DHCPOptionDefinition{
+		Array:       false,
+		Code:        89,
+		Encapsulate: "s46-rule-options",
+		Name:        "s46-rule",
+		RecordTypes: []keaconfig.DHCPOptionType{
+			keaconfig.Uint8Option,
+			keaconfig.Uint8Option,
+			keaconfig.Uint8Option,
+			keaconfig.IPv4AddressOption,
+			keaconfig.IPv6PrefixOption,
+		},
+		Space:      "s46-cont-mape-options",
+		OptionType: keaconfig.RecordOption,
+	})
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv6, lookup)
 	require.NoError(t, err)
 	require.NotNil(t, option)
@@ -520,8 +533,17 @@ func TestCreateStandardDHCPOptionBinary(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	stdLookup := keaconfig.NewStdDHCPOptionDefinitionLookup()
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(stdLookup.FindByCodeSpace(optionData.Code, optionData.Space, storkutil.IPv4))
+	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(&keaconfig.DHCPOptionDefinition{
+		Array: false,
+		Code:  97,
+		Name:  "uuid-guid",
+		Space: "dhcp4",
+		RecordTypes: []keaconfig.DHCPOptionType{
+			keaconfig.Uint8Option,
+			keaconfig.BinaryOption,
+		},
+		OptionType: keaconfig.RecordOption,
+	})
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv4, lookup)
 	require.NoError(t, err)
 	require.NotNil(t, option)

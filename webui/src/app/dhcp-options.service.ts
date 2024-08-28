@@ -1,7 +1,30 @@
 import { Injectable } from '@angular/core'
 import { DhcpOptionDef } from './dhcp-option-def'
-import { stdDhcpv4OptionDefs } from './std-dhcpv4-option-defs'
-import { stdDhcpv6OptionDefs } from './std-dhcpv6-option-defs'
+import stdDhcpv4OptionDefsRaw from './std-dhcpv4-option-defs.json'
+import stdDhcpv6OptionDefsRaw from './std-dhcpv6-option-defs.json'
+
+/**
+ * Converts the raw JSON data into the structures used by the application.
+ */
+const stdDhcpv4OptionDefs: DhcpOptionDef[] = stdDhcpv4OptionDefsRaw.map((raw) => ({
+    array: raw.array,
+    code: raw.code,
+    name: raw.name,
+    encapsulate: raw.encapsulate,
+    optionType: raw.type,
+    space: raw.space,
+    recordTypes: raw['record-types'],
+}))
+
+const stdDhcpv6OptionDefs: DhcpOptionDef[] = stdDhcpv6OptionDefsRaw.map((raw) => ({
+    array: raw.array,
+    code: raw.code,
+    name: raw.name,
+    encapsulate: raw.encapsulate,
+    optionType: raw.type,
+    space: raw.space,
+    recordTypes: raw['record-types'],
+}))
 
 /**
  * An interface to a DHCP option description.
@@ -18,7 +41,7 @@ export interface DhcpOptionListItem {
  * option codes and friendly names.
  *
  * A full list of options returned by this service can be used in the
- * forms containing a list of available options. In the componwnents
+ * forms containing a list of available options. In the components
  * that display configured options it is useful to find option name by
  * the option code value. This service provides such a capability.
  */

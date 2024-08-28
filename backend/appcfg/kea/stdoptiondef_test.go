@@ -4,13 +4,22 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
-	storkutil "isc.org/stork/util"
 )
+
+// Finds an option definition by code and space.
+func findOptionDefinition(definitions []DHCPOptionDefinition, code uint16, space string) *DHCPOptionDefinition {
+	for _, def := range definitions {
+		if def.Code == code && def.Space == space {
+			return &def
+		}
+	}
+	return nil
+}
 
 // Test that a DHCPv4 option definition can be found by code and space.
 func TestFindDHCPv4OptionDefinition(t *testing.T) {
-	lookup := NewStdDHCPOptionDefinitionLookup()
-	def := lookup.FindByCodeSpace(72, "dhcp4", storkutil.IPv4)
+	definitions := GetStandardDHCPv4OptionDefinitions()
+	def := findOptionDefinition(definitions, 72, "dhcp4")
 	require.NotNil(t, def)
 	//  Validate the option definition.
 	require.True(t, def.GetArray())
@@ -24,15 +33,15 @@ func TestFindDHCPv4OptionDefinition(t *testing.T) {
 
 // Test that nil is returned when searched option definition is not found.
 func TestFindDHCPv4OptionDefinitionNotExists(t *testing.T) {
-	lookup := NewStdDHCPOptionDefinitionLookup()
-	def := lookup.FindByCodeSpace(150, "dhcp4", storkutil.IPv4)
+	definitions := GetStandardDHCPv4OptionDefinitions()
+	def := findOptionDefinition(definitions, 150, "dhcp4")
 	require.Nil(t, def)
 }
 
 // Test that a DHCPv6 option definition can be found by code and space.
 func TestFindDHCPv6OptionDefinition(t *testing.T) {
-	lookup := NewStdDHCPOptionDefinitionLookup()
-	def := lookup.FindByCodeSpace(89, "s46-cont-mape-options", storkutil.IPv6)
+	definitions := GetStandardDHCPv6OptionDefinitions()
+	def := findOptionDefinition(definitions, 89, "s46-cont-mape-options")
 	require.NotNil(t, def)
 	//  Validate the option definition.
 	require.False(t, def.GetArray())
@@ -46,7 +55,7 @@ func TestFindDHCPv6OptionDefinition(t *testing.T) {
 
 // Test that nil is returned when searched option definition is not found.
 func TestFindDHCPv6OptionDefinitionNotExists(t *testing.T) {
-	lookup := NewStdDHCPOptionDefinitionLookup()
-	def := lookup.FindByCodeSpace(11, "foo", storkutil.IPv6)
+	definitions := GetStandardDHCPv4OptionDefinitions()
+	def := findOptionDefinition(definitions, 11, "foo")
 	require.Nil(t, def)
 }

@@ -12,7 +12,7 @@ import (
 func TestStandardDHCPv4OptionDefinitionExists(t *testing.T) {
 	lookup := NewDHCPOptionDefinitionLookup()
 
-	existingCodes := []uint16{99, 108, 175, 210, 220}
+	existingCodes := []uint16{99, 108, 155, 212, 213}
 	for _, code := range existingCodes {
 		option := DHCPOption{
 			Code:     code,
@@ -58,7 +58,7 @@ func TestStandardDHCPv6OptionDefinitionExists(t *testing.T) {
 	lookup := NewDHCPOptionDefinitionLookup()
 
 	option := DHCPOption{
-		Code:     100,
+		Code:     103,
 		Space:    "dhcp6",
 		Universe: storkutil.IPv6,
 	}

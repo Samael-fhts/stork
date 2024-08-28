@@ -1,8 +1,8 @@
 import { TestBed } from '@angular/core/testing'
 
 import { DhcpOptionsService } from './dhcp-options.service'
-import { stdDhcpv4OptionDefs } from './std-dhcpv4-option-defs'
-import { stdDhcpv6OptionDefs } from './std-dhcpv6-option-defs'
+import stdDhcpv4OptionDefs from './std-dhcpv4-option-defs.json'
+import stdDhcpv6OptionDefs from './std-dhcpv6-option-defs.json'
 
 describe('DhcpOptionsService', () => {
     let service: DhcpOptionsService
@@ -61,7 +61,15 @@ describe('DhcpOptionsService', () => {
         for (let def of defs) {
             let foundDef = service.findStandardDhcpv4OptionDef(def.code, def.space)
             expect(foundDef).toBeTruthy()
-            expect(foundDef).toEqual(def)
+            expect(foundDef).toEqual({
+                code: def.code,
+                name: def.name,
+                space: def.space,
+                optionType: def.type,
+                array: def.array,
+                encapsulate: def.encapsulate,
+                recordTypes: def['record-types'],
+            })
         }
     })
 
@@ -70,7 +78,15 @@ describe('DhcpOptionsService', () => {
         for (let def of defs) {
             let foundDef = service.findStandardDhcpv6OptionDef(def.code, def.space)
             expect(foundDef).toBeTruthy()
-            expect(foundDef).toEqual(def)
+            expect(foundDef).toEqual({
+                code: def.code,
+                name: def.name,
+                space: def.space,
+                optionType: def.type,
+                array: def.array,
+                encapsulate: def.encapsulate,
+                recordTypes: def['record-types'],
+            })
         }
     })
 

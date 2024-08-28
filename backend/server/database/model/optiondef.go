@@ -3,47 +3,67 @@ package dbmodel
 import (
 	keaconfig "isc.org/stork/appcfg/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
-	storkutil "isc.org/stork/util"
 )
 
+// Groups DHCP option definitions by space and code.
+type definitionStore map[string]map[uint16]keaconfig.DHCPOptionDefinition
+
+func (s definitionStore) find(space string, code uint16) *keaconfig.DHCPOptionDefinition {
+	if definitions, ok := s[space]; ok {
+		if definition, ok := definitions[code]; ok {
+			return &definition
+		}
+	}
+	return nil
+}
+
 // DHCP option definition lookup mechanism.
-//
-// Its capabilities are currently limited. In the near future it will
-// be able to search for runtime option definitions in the database. At
-// present, it can find some selected standard option definitions for Kea.
 type DHCPOptionDefinitionLookup struct {
-	keaStdLookup keaconfig.DHCPStdOptionDefinitionLookup
+	standardDefinitions definitionStore
+	customDefinitions   map[int64]definitionStore
 }
 
 // Creates new lookup instance.
-func NewDHCPOptionDefinitionLookup() keaconfig.DHCPOptionDefinitionLookup {
+func NewDHCPOptionDefinitionLookup() *DHCPOptionDefinitionLookup {
+	dhcp4Definitions := keaconfig.GetStandardDHCPv4OptionDefinitions()
+	dhcp6Definitions := keaconfig.GetStandardDHCPv6OptionDefinitions()
+	var allDefinitions []keaconfig.DHCPOptionDefinition
+	allDefinitions = append(allDefinitions, dhcp4Definitions...)
+	allDefinitions = append(allDefinitions, dhcp6Definitions...)
+
+	standardStore := make(definitionStore)
+	for _, definition := range allDefinitions {
+		if _, ok := standardStore[definition.Space]; !ok {
+			standardStore[definition.Space] = make(map[uint16]keaconfig.DHCPOptionDefinition)
+		}
+		standardStore[definition.Space][definition.Code] = definition
+	}
+
 	return &DHCPOptionDefinitionLookup{
-		keaStdLookup: keaconfig.NewStdDHCPOptionDefinitionLookup(),
+		standardDefinitions: standardStore,
+		customDefinitions:   make(map[int64]definitionStore),
 	}
 }
 
 // Checks if a definition of the specified option exists for the
 // given daemon.
 func (lookup DHCPOptionDefinitionLookup) DefinitionExists(daemonID int64, option dhcpmodel.DHCPOptionAccessor) bool {
-	switch option.GetUniverse() {
-	case storkutil.IPv4:
-		return (option.GetSpace() == "dhcp4" &&
-			((option.GetCode() >= 1 && option.GetCode() <= 100) ||
-				(option.GetCode() >= 108 && option.GetCode() <= 161) ||
-				(option.GetCode() >= 175 && option.GetCode() <= 177) ||
-				(option.GetCode() >= 208 && option.GetCode() <= 213) ||
-				(option.GetCode() >= 220 && option.GetCode() <= 221))) ||
-			(lookup.Find(daemonID, option) != nil)
-	case storkutil.IPv6:
-		return (option.GetSpace() == "dhcp6" && option.GetCode() >= 1 && option.GetCode() <= 143) ||
-			(lookup.Find(daemonID, option) != nil)
-	}
-	return false
+	return lookup.Find(daemonID, option) != nil
 }
 
 // Finds option definition for the specified option. Internally, it queries standard
 // Kea option definitions defined in the keaconfig package. In the future it will also
 // be able to search for the runtime definitions in the database.
-func (lookup DHCPOptionDefinitionLookup) Find(daemonID int64, option dhcpmodel.DHCPOptionAccessor) keaconfig.DHCPOptionDefinition {
-	return lookup.keaStdLookup.FindByCodeSpace(option.GetCode(), option.GetSpace(), option.GetUniverse())
+func (lookup DHCPOptionDefinitionLookup) Find(daemonID int64, option dhcpmodel.DHCPOptionAccessor) keaconfig.DHCPOptionDefinitionAccessor {
+	// Check if the option is a standard one.
+	if definition := lookup.standardDefinitions.find(option.GetSpace(), option.GetCode()); definition != nil {
+		return definition
+	}
+
+	// Check the custom definitions.
+	if definitions, ok := lookup.customDefinitions[daemonID]; ok {
+		return definitions.find(option.GetSpace(), option.GetCode())
+	}
+
+	return nil
 }

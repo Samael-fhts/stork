@@ -99,8 +99,8 @@ CLEAN.append SWAGGER_FILE
 ### JSON definitions for code-gen ###
 #####################################
 
-std_dhcpv4_option_definitions_json = "codegen/std_dhcpv4_option_def.json"
-std_dhcpv6_option_definitions_json = "codegen/std_dhcpv6_option_def.json"
+std_dhcpv4_option_definitions_json = "common/std_dhcpv4_option_def.json"
+std_dhcpv6_option_definitions_json = "common/std_dhcpv6_option_def.json"
 
 ###############
 ### Backend ###
@@ -145,26 +145,26 @@ end
 file agent_grpc_pb_go_file => [agent_pb_go_file]
 CLEAN.append agent_pb_go_file, agent_grpc_pb_go_file
 
-std_option_defs6_go_file = "backend/appcfg/kea/stdoptiondef6.go"
-file std_option_defs6_go_file => [GO, CODE_GEN_BINARY_FILE, std_dhcpv6_option_definitions_json] do
-    sh CODE_GEN_BINARY_FILE, "std-option-defs",
-    "--input", std_dhcpv6_option_definitions_json,
-    "--output", std_option_defs6_go_file,
-    "--template", "backend/appcfg/kea/stdoptiondef6.go.template"
-    Dir.chdir('backend') do
-        sh GO, "fmt", "./appcfg/kea/..."
-    end
+std_option_defs6_go_json_file = "backend/appcfg/kea/stdoptiondef6.json"
+file std_option_defs6_go_json_file => [std_dhcpv6_option_definitions_json] do
+    # Remove the old file if it exists. Use the force option because the file
+    # is read-only.
+    sh "rm", "-f", std_option_defs6_go_json_file
+    # Copy the new file.
+    sh "cp", std_dhcpv6_option_definitions_json, std_option_defs6_go_json_file
+    # Set read-only permissions to the JSON file to prevent accidental changes.
+    sh "chmod", "444", std_option_defs6_go_json_file
 end
 
-std_option_defs4_go_file = "backend/appcfg/kea/stdoptiondef4.go"
-file std_option_defs4_go_file => [GO, CODE_GEN_BINARY_FILE, std_dhcpv4_option_definitions_json] do
-    sh CODE_GEN_BINARY_FILE, "std-option-defs",
-    "--input", std_dhcpv4_option_definitions_json,
-    "--output", std_option_defs4_go_file,
-    "--template", "backend/appcfg/kea/stdoptiondef4.go.template"
-    Dir.chdir('backend') do
-        sh GO, "fmt", "./appcfg/kea/..."
-    end
+std_option_defs4_go_json_file = "backend/appcfg/kea/stdoptiondef4.json"
+file std_option_defs4_go_json_file => [std_dhcpv4_option_definitions_json] do
+    # Remove the old file if it exists. Use the force option because the file
+    # is read-only.
+    sh "rm", "-f", std_option_defs4_go_json_file
+    # Copy the new file.
+    sh "cp", std_dhcpv4_option_definitions_json, std_option_defs4_go_json_file
+    # Set read-only permissions to the JSON file to prevent accidental changes.
+    sh "chmod", "444", std_option_defs4_go_json_file
 end
 
 # Go dependencies are installed automatically during build
@@ -206,8 +206,8 @@ go_common_codebase = FileList["backend/**/*"]
     .exclude(go_code_gen_codebase)
     .include(agent_pb_go_file)
     .include(agent_grpc_pb_go_file)
-    .include(std_option_defs4_go_file)
-    .include(std_option_defs6_go_file)
+    .include(std_option_defs4_go_json_file)
+    .include(std_option_defs6_go_json_file)
 
 GO_SERVER_CODEBASE = go_server_codebase
         .include(go_common_codebase)
@@ -319,27 +319,26 @@ end
 CLOBBER.append node_module_dir
 
 
-std_option_defs6_ts_file = "webui/src/app/std-dhcpv6-option-defs.ts"
-file std_option_defs6_ts_file => [NPX, node_module_dir, CODE_GEN_BINARY_FILE, std_dhcpv6_option_definitions_json] do
-    sh CODE_GEN_BINARY_FILE, "std-option-defs",
-        "--input", std_dhcpv6_option_definitions_json,
-        "--output", std_option_defs6_ts_file,
-        "--template", "webui/src/app/std-dhcpv6-option-defs.ts.template"
-    Dir.chdir('webui') do
-        sh NPX, "prettier", "--config", ".prettierrc", "--write", "src/app/std-dhcpv6-option-defs.ts"
-    end
+std_option_defs6_ts_json_file = "webui/src/app/std-dhcpv6-option-defs.json"
+file std_option_defs6_ts_json_file => [std_dhcpv6_option_definitions_json] do
+    # Remove the old file if it exists. Use the force option because the file
+    # is read-only.
+    sh "rm", "-f", std_option_defs6_ts_json_file
+    # Copy the new file.
+    sh "cp", std_dhcpv6_option_definitions_json, std_option_defs6_ts_json_file
+    # Set read-only permissions to the JSON file to prevent accidental changes.
+    sh "chmod", "444", std_option_defs6_ts_json_file
 end
 
-std_option_defs4_ts_file = "webui/src/app/std-dhcpv4-option-defs.ts"
-file std_option_defs4_ts_file => [NPX, node_module_dir, CODE_GEN_BINARY_FILE, std_dhcpv4_option_definitions_json] do
-    sh CODE_GEN_BINARY_FILE, "std-option-defs",
-        "--input", std_dhcpv4_option_definitions_json,
-        "--output", std_option_defs4_ts_file,
-        "--template", "webui/src/app/std-dhcpv4-option-defs.ts.template"
-    Dir.chdir('webui') do
-        sh NPX, "prettier", "--config", ".prettierrc", "--write", "src/app/std-dhcpv4-option-defs.ts"
-    end
-
+std_option_defs4_ts_json_file = "webui/src/app/std-dhcpv4-option-defs.json"
+file std_option_defs4_ts_json_file => [std_dhcpv4_option_definitions_json] do
+    # Remove the old file if it exists. Use the force option because the file
+    # is read-only.
+    sh "rm", "-f", std_option_defs4_ts_json_file
+    # Copy the new file.
+    sh "cp", std_dhcpv4_option_definitions_json, std_option_defs4_ts_json_file
+    # Set read-only permissions to the JSON file.
+    sh "chmod", "444", std_option_defs4_ts_json_file
 end
 
 WEBUI_CODEBASE = FileList["webui", "webui/**/*"]
@@ -353,8 +352,8 @@ WEBUI_CODEBASE = FileList["webui", "webui/**/*"]
     .exclude("webui/src/assets/arm/**/*")
     .include(open_api_generator_webui_dir)
     .include(node_module_dir)
-    .include(std_option_defs4_ts_file)
-    .include(std_option_defs6_ts_file)
+    .include(std_option_defs4_ts_json_file)
+    .include(std_option_defs6_ts_json_file)
 
 #############
 ### Tasks ###
@@ -384,12 +383,12 @@ namespace :gen do
         task :swagger => [swagger_server_dir]
 
         desc 'Generate standard DHCP option definitions for the backend'
-        task :std_option_defs => [std_option_defs4_go_file, std_option_defs6_go_file]
+        task :std_option_defs => [std_option_defs4_go_json_file, std_option_defs6_go_json_file]
     end
 
     namespace :ui do
         desc 'Generate standard DHCP option definitions for the UI'
-        task :std_option_defs => [std_option_defs4_ts_file, std_option_defs6_ts_file]
+        task :std_option_defs => [std_option_defs4_ts_json_file, std_option_defs6_ts_json_file]
 
         desc 'Generate Swagger API files'
         task :swagger => [open_api_generator_webui_dir]

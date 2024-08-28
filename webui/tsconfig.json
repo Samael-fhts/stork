@@ -13,7 +13,9 @@
         "target": "ES2022",
         "typeRoots": ["node_modules/@types"],
         "lib": ["ES2020", "DOM"],
-        "useDefineForClassFields": false
+        "useDefineForClassFields": false,
+        "resolveJsonModule": true,
+        "allowSyntheticDefaultImports": true
     },
     "angularCompilerOptions": {
         "fullTemplateTypeCheck": true,
