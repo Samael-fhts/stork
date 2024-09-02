@@ -1,6 +1,8 @@
 package dbmodel
 
 import (
+	"sync"
+
 	keaconfig "isc.org/stork/appcfg/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 )
@@ -8,6 +10,8 @@ import (
 // Groups DHCP option definitions by space and code.
 type definitionStore map[string]map[uint16]keaconfig.DHCPOptionDefinition
 
+// Returns the definition of the specified option if it exists. Otherwise, it
+// returns nil.
 func (s definitionStore) find(space string, code uint16) *keaconfig.DHCPOptionDefinition {
 	if definitions, ok := s[space]; ok {
 		if definition, ok := definitions[code]; ok {
@@ -17,10 +21,22 @@ func (s definitionStore) find(space string, code uint16) *keaconfig.DHCPOptionDe
 	return nil
 }
 
+// Checks if a definition of the specified option exists.
+func (s definitionStore) has(space string, code uint16) bool {
+	if definitions, ok := s[space]; ok {
+		_, ok := definitions[code]
+		return ok
+	}
+	return false
+}
+
 // DHCP option definition lookup mechanism.
 type DHCPOptionDefinitionLookup struct {
 	standardDefinitions definitionStore
 	customDefinitions   map[int64]definitionStore
+	// It must be stored as a pointer because the methods of this structure
+	// use the reference receiver.
+	customDefinitionMutex *sync.RWMutex
 }
 
 // Creates new lookup instance.
@@ -48,7 +64,18 @@ func NewDHCPOptionDefinitionLookup() *DHCPOptionDefinitionLookup {
 // Checks if a definition of the specified option exists for the
 // given daemon.
 func (lookup DHCPOptionDefinitionLookup) DefinitionExists(daemonID int64, option dhcpmodel.DHCPOptionAccessor) bool {
-	return lookup.Find(daemonID, option) != nil
+	if lookup.standardDefinitions.has(option.GetSpace(), option.GetCode()) {
+		return true
+	}
+
+	lookup.customDefinitionMutex.RLock()
+	definitions, ok := lookup.customDefinitions[daemonID]
+	lookup.customDefinitionMutex.RUnlock()
+
+	if ok {
+		return definitions.has(option.GetSpace(), option.GetCode())
+	}
+	return false
 }
 
 // Finds option definition for the specified option. Internally, it queries standard
@@ -60,10 +87,32 @@ func (lookup DHCPOptionDefinitionLookup) Find(daemonID int64, option dhcpmodel.D
 		return definition
 	}
 
+	lookup.customDefinitionMutex.RLock()
+	definitions, ok := lookup.customDefinitions[daemonID]
+	lookup.customDefinitionMutex.RUnlock()
+
 	// Check the custom definitions.
-	if definitions, ok := lookup.customDefinitions[daemonID]; ok {
+	if ok {
 		return definitions.find(option.GetSpace(), option.GetCode())
 	}
 
 	return nil
+}
+
+// Sets the custom option definitions for the specified daemon.
+func (lookup *DHCPOptionDefinitionLookup) SetDefinitions(daemonID int64, definitions []keaconfig.DHCPOptionDefinition) {
+	// Lock the mutex to prevent concurrent access to the custom definitions.
+	lookup.customDefinitionMutex.Lock()
+	defer lookup.customDefinitionMutex.Unlock()
+
+	// Clear the existing definitions.
+	lookup.customDefinitions[daemonID] = make(definitionStore)
+
+	// Add the new definitions.
+	for _, definition := range definitions {
+		if _, ok := lookup.customDefinitions[daemonID][definition.Space]; !ok {
+			lookup.customDefinitions[daemonID][definition.Space] = make(map[uint16]keaconfig.DHCPOptionDefinition)
+		}
+		lookup.customDefinitions[daemonID][definition.Space][definition.Code] = definition
+	}
 }
