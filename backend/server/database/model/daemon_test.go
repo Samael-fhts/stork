@@ -900,11 +900,6 @@ func TestGetLocalSubnetID(t *testing.T) {
 	accessPoints := []*AccessPoint{}
 	accessPoints = AppendAccessPoint(accessPoints, AccessPointControl, "", "", 1234, false)
 	app := &App{
-		ID:           0,
-		MachineID:    0,
-		Type:         AppTypeKea,
-		Active:       true,
-		AccessPoints: accessPoints,
 		Daemons: []*Daemon{
 			{
 				KeaDaemon: &KeaDaemon{
