@@ -20,18 +20,18 @@ import (
 // Besides basic status information the High Availability status is fetched.
 type StatePuller struct {
 	*agentcomm.PeriodicPuller
-	EventCenter                eventcenter.EventCenter
-	ReviewDispatcher           configreview.Dispatcher
-	DHCPOptionDefinitionLookup keaconfig.DHCPOptionDefinitionLookup
+	eventCenter            eventcenter.EventCenter
+	reviewDispatcher       configreview.Dispatcher
+	optionDefinitionLookup keaconfig.DHCPOptionDefinitionLookup
 }
 
 // Create an instance of the puller which periodically checks the status of
 // the Kea apps.
 func NewStatePuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) (*StatePuller, error) {
 	puller := &StatePuller{
-		EventCenter:                eventCenter,
-		ReviewDispatcher:           reviewDispatcher,
-		DHCPOptionDefinitionLookup: lookup,
+		eventCenter:            eventCenter,
+		reviewDispatcher:       reviewDispatcher,
+		optionDefinitionLookup: lookup,
 	}
 	periodicPuller, err := agentcomm.NewPeriodicPuller(db, agents, "Apps State puller",
 		"apps_state_puller_interval", puller.pullData)
@@ -62,7 +62,7 @@ func (puller *StatePuller) pullData() error {
 	for _, dbM := range dbMachines {
 		dbM2 := dbM
 		ctx := context.Background()
-		errStr := UpdateMachineAndAppsState(ctx, puller.DB, &dbM2, puller.Agents, puller.EventCenter, puller.ReviewDispatcher, puller.DHCPOptionDefinitionLookup)
+		errStr := UpdateMachineAndAppsState(ctx, puller.DB, &dbM2, puller.Agents, puller.eventCenter, puller.reviewDispatcher, puller.optionDefinitionLookup)
 		if errStr != "" {
 			lastErr = errors.New(errStr)
 			log.Errorf("Error occurred while getting info from machine %d: %s", dbM2.ID, errStr)
@@ -244,12 +244,14 @@ func UpdateMachineAndAppsState(ctx context.Context, db *dbops.PgDB, dbMachine *d
 	// get state of machine from agent
 	state, err := agents.GetState(ctx2, dbMachine)
 	if err != nil {
-		log.Warn(err)
-		dbMachine.Error = "Cannot get state of machine"
+		msg := "Cannot get state of machine"
+		log.WithError(err).Warn(msg)
+		dbMachine.Error = msg
 		err = dbmodel.UpdateMachine(db, dbMachine)
 		if err != nil {
-			log.Error(err)
-			return "Problem updating record in database"
+			msg = "Problem updating record in database"
+			log.WithError(err).Error(msg)
+			return msg
 		}
 		return ""
 	}
@@ -262,8 +264,9 @@ func UpdateMachineAndAppsState(ctx context.Context, db *dbops.PgDB, dbMachine *d
 	// store machine's state in db
 	err = updateMachineFields(db, dbMachine, state)
 	if err != nil {
-		log.Error(err)
-		return "Cannot update machine in db"
+		msg := "Cannot update machine in db"
+		log.WithError(err).Error(msg)
+		return msg
 	}
 
 	// take old apps from db and new apps fetched from the machine
@@ -293,7 +296,7 @@ func UpdateMachineAndAppsState(ctx context.Context, db *dbops.PgDB, dbMachine *d
 		}
 
 		if err != nil {
-			log.Errorf("Cannot store application state: %+v", err)
+			log.WithError(err).Error("Cannot store application state")
 			return "Problem storing application state in the database"
 		}
 	}
