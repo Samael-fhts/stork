@@ -2545,8 +2545,6 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 	}
 	require.NoError(t, dbmodel.AddMachine(db, machine))
 
-	var allDaemons []*dbmodel.Daemon
-
 	for i := 1; i <= 4; i++ {
 		a := dbmodel.App{
 			MachineID: machine.ID,
@@ -2562,9 +2560,8 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 				},
 			},
 		}
-		daemons, err := dbmodel.AddApp(db, &a)
+		_, err := dbmodel.AddApp(db, &a)
 		require.NoError(t, err)
-		allDaemons = append(allDaemons, daemons...)
 	}
 
 	// Create dummy shared network to be stored in the context. We will later check if
@@ -4118,8 +4115,6 @@ func TestApplySubnetUpdate(t *testing.T) {
 	}
 	require.NoError(t, dbmodel.AddMachine(db, machine))
 
-	var allDaemons []*dbmodel.Daemon
-
 	for i := 1; i <= 4; i++ {
 		a := dbmodel.App{
 			MachineID: machine.ID,
@@ -4135,9 +4130,8 @@ func TestApplySubnetUpdate(t *testing.T) {
 				},
 			},
 		}
-		daemons, err := dbmodel.AddApp(db, &a)
+		_, err := dbmodel.AddApp(db, &a)
 		require.NoError(t, err)
-		allDaemons = append(allDaemons, daemons...)
 	}
 
 	// Create dummy subnet to be stored in the context. We will later check if
