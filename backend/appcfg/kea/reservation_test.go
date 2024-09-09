@@ -142,7 +142,7 @@ func TestCreateReservation(t *testing.T) {
 	host := createDefaultTestHost()
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).AnyTimes().Return(false)
+	lookup.EXPECT().DefinitionExists(gomock.Any()).AnyTimes().Return(false)
 	reservation, err := keaconfig.CreateReservation(1, lookup, host)
 	require.NoError(t, err)
 	require.NotNil(t, reservation)
@@ -171,7 +171,7 @@ func TestCreateHostCmdsReservation(t *testing.T) {
 	host := createDefaultTestHost()
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).AnyTimes().Return(false)
+	lookup.EXPECT().DefinitionExists(gomock.Any()).AnyTimes().Return(false)
 	reservation, err := keaconfig.CreateHostCmdsReservation(1, lookup, host)
 	require.NoError(t, err)
 	require.NotNil(t, reservation)
@@ -209,7 +209,7 @@ func TestCreateHostCmdsDeletedReservation(t *testing.T) {
 
 // Test that conversion error is returned when the host has no
 // identifiers.
-func TestCreateHostCmdsDeletedReservationNoIdentfiers(t *testing.T) {
+func TestCreateHostCmdsDeletedReservationNoIdentifiers(t *testing.T) {
 	host := createDefaultTestHost()
 	host.identifiers = []struct {
 		Type  string

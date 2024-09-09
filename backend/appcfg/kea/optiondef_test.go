@@ -17,11 +17,9 @@ func TestDHCPOptionDefinition(t *testing.T) {
 		Code:        12,
 		Encapsulate: "foo",
 		Name:        "baz",
-		RecordTypes: []DHCPOptionType{
-			Uint8Option,
-		},
-		Space:      "bar",
-		OptionType: RecordOption,
+		RecordTypes: NewDHCPOptionTypes(Uint8Option),
+		Space:       "bar",
+		OptionType:  RecordOption,
 	}
 	require.NotNil(t, def)
 	require.True(t, def.GetArray())
@@ -81,10 +79,10 @@ func TestDHCPOptionDefinitionFieldTypeSimpleArray(t *testing.T) {
 func TestDHCPOptionDefinitionFieldTypeRecord(t *testing.T) {
 	def := &DHCPOptionDefinition{
 		OptionType: RecordOption,
-		RecordTypes: []DHCPOptionType{
+		RecordTypes: NewDHCPOptionTypes(
 			PsidOption,
 			StringOption,
-		},
+		),
 	}
 	fieldType, ok := GetDHCPOptionDefinitionFieldType(def, 0)
 	require.True(t, ok)
@@ -106,11 +104,11 @@ func TestDHCPOptionDefinitionFieldTypeRecordArray(t *testing.T) {
 	def := &DHCPOptionDefinition{
 		Array:      true,
 		OptionType: RecordOption,
-		RecordTypes: []DHCPOptionType{
+		RecordTypes: NewDHCPOptionTypes(
 			Uint8Option,
 			Uint16Option,
 			Uint32Option,
-		},
+		),
 	}
 	for i := 0; i < 3; i++ {
 		offset := i * len(def.RecordTypes)
@@ -133,7 +131,7 @@ func TestDHCPOptionDefinitionFieldTypeRecordArray(t *testing.T) {
 func TestDHCPOptionDefinitionFieldTypeRecordNoRecordTypes(t *testing.T) {
 	def := &DHCPOptionDefinition{
 		OptionType:  RecordOption,
-		RecordTypes: []DHCPOptionType{},
+		RecordTypes: NewDHCPOptionTypes(),
 	}
 
 	fieldType, ok := GetDHCPOptionDefinitionFieldType(def, 0)

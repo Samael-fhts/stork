@@ -146,9 +146,6 @@ type ManagerAccessors interface {
 	GetDB() *pg.DB
 	// Returns an interface to the agents the manager communicates with.
 	GetConnectedAgents() agentcomm.ConnectedAgents
-	// Returns an interface to the instance providing the DHCP option definition
-	// lookup logic.
-	GetDHCPOptionDefinitionLookup() keaconfig.DHCPOptionDefinitionLookup
 }
 
 // Configuration manager interface exposing functions available to the

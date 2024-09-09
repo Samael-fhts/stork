@@ -49,7 +49,7 @@ func TestNewDHCPOptionFromKea(t *testing.T) {
 		Name:       "option-foo",
 		Space:      dhcpmodel.DHCPv4OptionSpace,
 	}
-	lookup := NewDHCPOptionDefinitionLookup()
+	lookup := keaconfig.NewDHCPOptionDefinitionLookup(nil)
 	option, err := NewDHCPOptionFromKea(optionData, storkutil.IPv4, lookup)
 	require.NoError(t, err)
 	require.NotNil(t, option)

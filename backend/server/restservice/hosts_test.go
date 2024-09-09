@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	keaconfig "isc.org/stork/appcfg/kea"
 	keactrl "isc.org/stork/appctrl/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
@@ -35,7 +36,7 @@ func TestGetHostsNoFiltering(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -118,7 +119,7 @@ func TestGetHostsBySubnetID(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -141,7 +142,7 @@ func TestGetHostsByLocalSubnetID(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -164,7 +165,7 @@ func TestGetHostsByConflicts(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -198,7 +199,7 @@ func TestGetHostsWithFiltering(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -221,7 +222,7 @@ func TestGetHost(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -252,7 +253,7 @@ func TestGetHostWithClientClasses(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -283,7 +284,7 @@ func TestGetHostWithBootFields(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -313,7 +314,7 @@ func TestGetHostWithOptions(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -354,7 +355,7 @@ func TestGetHostWithIPReservations(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, _ := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, _ := NewRestAPI(dbSettings, db)
 	ctx := context.Background()
 
 	hosts, _ := storktestdbmodel.AddTestHosts(t, db)
@@ -396,19 +397,15 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Create session manager.
@@ -549,19 +546,15 @@ func TestCreateHostBeginSubmitHostnameIPReservationsFromLocalHosts(t *testing.T)
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, _ := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, _ := NewRestAPI(dbSettings, db, fa, cm)
 
 	// Create session manager.
 	ctx, _ := rapi.SessionManager.Load(context.Background(), "")
@@ -686,19 +679,15 @@ func TestCreateHostBeginNoServers(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Create session manager but do not login the user.
@@ -733,19 +722,15 @@ func TestCreateHostSubmitError(t *testing.T) {
 	}, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Start session manager.
@@ -885,19 +870,15 @@ func TestCreateHostBeginCancel(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Create session manager.
@@ -955,19 +936,15 @@ func TestCreateHostDeleteError(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Start session manager.
@@ -1018,19 +995,15 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Create session manager.
@@ -1224,19 +1197,15 @@ func TestUpdateHostBeginNonExistingHostID(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Create session manager.
@@ -1276,19 +1245,15 @@ func TestUpdateHostSubmitError(t *testing.T) {
 	}, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Start session manager.
@@ -1424,19 +1389,15 @@ func TestUpdateHostBeginCancel(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Create session manager.
@@ -1519,19 +1480,15 @@ func TestDeleteHost(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Create session manager.
@@ -1587,19 +1544,15 @@ func TestDeleteHostError(t *testing.T) {
 	}, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Start session manager.
@@ -1651,11 +1604,10 @@ func TestDHCPOptionsHash(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
-	rapi, err := NewRestAPI(dbSettings, db, lookup)
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
+
+	lookup := keaconfig.NewDHCPOptionDefinitionLookup(nil)
 
 	// Create options.
 	option1 := &models.DHCPOption{
@@ -1682,8 +1634,8 @@ func TestDHCPOptionsHash(t *testing.T) {
 		},
 	}
 
-	flattenOptions1, _ := rapi.flattenDHCPOptions("", []*models.DHCPOption{option1}, 0)
-	flattenOptions2, _ := rapi.flattenDHCPOptions("", []*models.DHCPOption{option2}, 0)
+	flattenOptions1, _ := rapi.flattenDHCPOptions("", []*models.DHCPOption{option1}, lookup, 0)
+	flattenOptions2, _ := rapi.flattenDHCPOptions("", []*models.DHCPOption{option2}, lookup, 0)
 
 	// Act
 	hash1 := storkutil.Fnv128(flattenOptions1)

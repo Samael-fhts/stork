@@ -1,9 +1,38 @@
 package keaconfig
 
-import dhcpmodel "isc.org/stork/datamodel/dhcp"
+import (
+	"strings"
+
+	dhcpmodel "isc.org/stork/datamodel/dhcp"
+)
 
 // DHCP option type enum, as defined in Kea.
 type DHCPOptionType = string
+
+// DHCP option type tuple, as defined in Kea.
+type DHCPOptionTypes string
+
+// Constructs a new DHCP option type tuple.
+func NewDHCPOptionTypes(types ...DHCPOptionType) DHCPOptionTypes {
+	if len(types) == 0 {
+		return DHCPOptionTypes("")
+	}
+
+	return DHCPOptionTypes(strings.Join(types, ", "))
+}
+
+// Splits the DHCP option type tuple into individual types.
+func (tuple DHCPOptionTypes) Split() []DHCPOptionType {
+	if len(tuple) == 0 {
+		return nil
+	}
+
+	types := strings.Split(string(tuple), ",")
+	for i := range types {
+		types[i] = strings.TrimSpace(types[i])
+	}
+	return types
+}
 
 // Valid DHCP option types.
 const (
@@ -28,13 +57,13 @@ const (
 
 // DHCP option definition in the format used by Kea.
 type DHCPOptionDefinition struct {
-	Array       bool             `json:"array,omitempty"`
-	Code        uint16           `json:"code"`
-	Encapsulate string           `json:"encapsulate"`
-	Name        string           `json:"name"`
-	RecordTypes []DHCPOptionType `json:"record-types"`
-	Space       string           `json:"space"`
-	OptionType  DHCPOptionType   `json:"type"`
+	Array       bool            `json:"array,omitempty"`
+	Code        uint16          `json:"code"`
+	Encapsulate string          `json:"encapsulate"`
+	Name        string          `json:"name"`
+	RecordTypes DHCPOptionTypes `json:"record-types"`
+	Space       string          `json:"space"`
+	OptionType  DHCPOptionType  `json:"type"`
 }
 
 // DHCP option definition interface to access its fields.
@@ -46,15 +75,6 @@ type DHCPOptionDefinitionAccessor interface {
 	GetRecordTypes() []DHCPOptionType
 	GetSpace() string
 	GetType() DHCPOptionType
-}
-
-// An interface to a structure providing option definition lookup capabilities.
-type DHCPOptionDefinitionLookup interface {
-	// Checks if a definition of the specified option exists for the
-	// given daemon.
-	DefinitionExists(int64, dhcpmodel.DHCPOptionAccessor) bool
-	// Searches for an option definition for the specified daemon ID and option value.
-	Find(int64, dhcpmodel.DHCPOptionAccessor) DHCPOptionDefinitionAccessor
 }
 
 // Checks if the option is an array (has an array of option fields).
@@ -79,7 +99,7 @@ func (def DHCPOptionDefinition) GetName() string {
 
 // Returns record types (when an option is a record of different fields).
 func (def DHCPOptionDefinition) GetRecordTypes() []DHCPOptionType {
-	return def.RecordTypes
+	return def.RecordTypes.Split()
 }
 
 // Returns option space.

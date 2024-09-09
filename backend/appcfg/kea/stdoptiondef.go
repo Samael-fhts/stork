@@ -4,6 +4,7 @@ import (
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"sync"
 )
 
 // Embeds the standard DHCPv4 option definitions.
@@ -28,11 +29,15 @@ func parseDHCPOptionDefinitions(jsonData []byte) []DHCPOptionDefinition {
 }
 
 // Returns the standard DHCPv4 option definitions.
-func GetStandardDHCPv4OptionDefinitions() []DHCPOptionDefinition {
+//
+//nolint:gochecknoglobals
+var GetStandardDHCPv4OptionDefinitions = sync.OnceValue(func() []DHCPOptionDefinition {
 	return parseDHCPOptionDefinitions(stdDHCPv4OptionDefsJSON)
-}
+})
 
 // Returns the standard DHCPv6 option definitions.
-func GetStandardDHCPv6OptionDefinitions() []DHCPOptionDefinition {
+//
+//nolint:gochecknoglobals
+var GetStandardDHCPv6OptionDefinitions = sync.OnceValue(func() []DHCPOptionDefinition {
 	return parseDHCPOptionDefinitions(stdDHCPv6OptionDefsJSON)
-}
+})

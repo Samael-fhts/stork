@@ -907,6 +907,7 @@ func TestGetLocalSubnetID(t *testing.T) {
 				},
 			},
 		},
+		AccessPoints: accessPoints,
 	}
 
 	// Try to find a non-existing subnet.

@@ -403,7 +403,7 @@ func CreateSubnet4(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 		}
 		// Pool-level DHCP options.
 		for _, option := range pool.GetDHCPOptions() {
-			optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+			optionData, err := CreateSingleOptionData(lookup, option)
 			if err != nil {
 				return nil, err
 			}
@@ -444,7 +444,7 @@ func CreateSubnet4(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 	}
 	// Subnet-level DHCP options.
 	for _, option := range subnet.GetDHCPOptions(daemonID) {
-		optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+		optionData, err := CreateSingleOptionData(lookup, option)
 		if err != nil {
 			return nil, err
 		}
@@ -473,7 +473,7 @@ func CreateSubnet6(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 		}
 		// Pool-level DHCP options.
 		for _, option := range pool.GetDHCPOptions() {
-			optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+			optionData, err := CreateSingleOptionData(lookup, option)
 			if err != nil {
 				return nil, err
 			}
@@ -513,7 +513,7 @@ func CreateSubnet6(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 		}
 		// Pool-level DHCP options.
 		for _, option := range pool.GetDHCPOptions() {
-			optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+			optionData, err := CreateSingleOptionData(lookup, option)
 			if err != nil {
 				return nil, err
 			}
@@ -552,7 +552,7 @@ func CreateSubnet6(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 	}
 	// Subnet-level DHCP options.
 	for _, option := range subnet.GetDHCPOptions(daemonID) {
-		optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+		optionData, err := CreateSingleOptionData(lookup, option)
 		if err != nil {
 			return nil, err
 		}
@@ -561,7 +561,7 @@ func CreateSubnet6(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 	return subnet6, nil
 }
 
-// Converts a subnet in Stork to a structure accepted by the subent4-del and
+// Converts a subnet in Stork to a structure accepted by the subnet4-del and
 // subnet6-del commands in Kea.
 func CreateSubnetCmdsDeletedSubnet(daemonID int64, subnet SubnetAccessor) (deletedSubnet *SubnetCmdsDeletedSubnet, err error) {
 	var subnetID int64

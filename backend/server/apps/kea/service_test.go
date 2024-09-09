@@ -497,7 +497,6 @@ func TestReduceHAServices(t *testing.T) {
 	defer teardown()
 
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
 	kea, err := dbmodeltest.NewKea(db)
 	require.NoError(t, err)
@@ -544,7 +543,7 @@ func TestReduceHAServices(t *testing.T) {
 
 	// This call, apart from adding the app to the machine, will also associate the
 	// app with the HA services.
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitAppIntoDB(db, keaApp, fec, nil)
 	require.NoError(t, err)
 
 	err = dhcp4.Configure(`{
@@ -586,7 +585,7 @@ func TestReduceHAServices(t *testing.T) {
 	keaApp, err = dhcp4.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitAppIntoDB(db, keaApp, fec, nil)
 	require.NoError(t, err)
 
 	// Make sure that new service has been created.
@@ -604,7 +603,6 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	defer teardown()
 
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
 	// Create first branch server.
 	kea, err := dbmodeltest.NewKea(db)
@@ -645,7 +643,7 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	keaApp, err := dhcp4.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitAppIntoDB(db, keaApp, fec, nil)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)
@@ -713,7 +711,7 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	keaApp, err = dhcp4.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitAppIntoDB(db, keaApp, fec, nil)
 	require.NoError(t, err)
 
 	services, err = dbmodel.GetDetailedAllServices(db)
@@ -768,7 +766,7 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	keaApp, err = dhcp4.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitAppIntoDB(db, keaApp, fec, nil)
 	require.NoError(t, err)
 
 	services, err = dbmodel.GetDetailedAllServices(db)
@@ -788,7 +786,6 @@ func TestDetectHAServicesErrors(t *testing.T) {
 	defer teardown()
 
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
 	kea, err := dbmodeltest.NewKea(db)
 	require.NoError(t, err)
@@ -828,7 +825,7 @@ func TestDetectHAServicesErrors(t *testing.T) {
 	keaApp, err := dhcp4.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitAppIntoDB(db, keaApp, fec, nil)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)

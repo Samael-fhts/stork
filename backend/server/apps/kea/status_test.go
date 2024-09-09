@@ -746,8 +746,7 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 
 	// This call, apart from adding the app to the machine, will also associate the
 	// app with the HA services.
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitAppIntoDB(db, keaApp, fec, nil)
 	require.NoError(t, err)
 
 	// The puller requires fetch interval to be present in the database.
@@ -924,7 +923,6 @@ func TestPullHAStatusHub(t *testing.T) {
 	defer teardown()
 
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
 	// Create the hub
 	kea, err := dbmodeltest.NewKea(db)
@@ -984,7 +982,7 @@ func TestPullHAStatusHub(t *testing.T) {
 	keaApp, err := dhcp4.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitAppIntoDB(db, keaApp, fec, nil)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)

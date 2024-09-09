@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	keaconfig "isc.org/stork/appcfg/kea"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/apps/bind9"
 	"isc.org/stork/server/apps/kea"
@@ -21,18 +20,16 @@ import (
 // Besides basic status information the High Availability status is fetched.
 type StatePuller struct {
 	*agentcomm.PeriodicPuller
-	eventCenter            eventcenter.EventCenter
-	reviewDispatcher       configreview.Dispatcher
-	optionDefinitionLookup keaconfig.DHCPOptionDefinitionLookup
+	eventCenter      eventcenter.EventCenter
+	reviewDispatcher configreview.Dispatcher
 }
 
 // Create an instance of the puller which periodically checks the status of
 // the Kea apps.
-func NewStatePuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) (*StatePuller, error) {
+func NewStatePuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher) (*StatePuller, error) {
 	puller := &StatePuller{
-		eventCenter:            eventCenter,
-		reviewDispatcher:       reviewDispatcher,
-		optionDefinitionLookup: lookup,
+		eventCenter:      eventCenter,
+		reviewDispatcher: reviewDispatcher,
 	}
 	periodicPuller, err := agentcomm.NewPeriodicPuller(db, agents, "Apps State puller",
 		"apps_state_puller_interval", puller.pullData)
@@ -138,7 +135,7 @@ func (puller *StatePuller) pullDataForMachine(ctx context.Context, machine *dbmo
 		switch dbApp.Type {
 		case dbmodel.AppTypeKea:
 			state := kea.GetAppState(ctx2, puller.Agents, dbApp, puller.eventCenter)
-			err = kea.CommitAppIntoDB(puller.DB, dbApp, puller.eventCenter, state, puller.optionDefinitionLookup)
+			err = kea.CommitAppIntoDB(puller.DB, dbApp, puller.eventCenter, state)
 			if err == nil {
 				// Let's now identify new daemons or the daemons with updated
 				// configurations and schedule configuration reviews for them

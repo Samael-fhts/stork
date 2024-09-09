@@ -259,10 +259,11 @@ func (r *RestAPI) convertSubnetToRestAPI(sn *dbmodel.Subnet) *models.Subnet {
 			if localSubnet.KeaConfigSubnetParameters == nil {
 				localSubnet.KeaConfigSubnetParameters = &models.KeaConfigSubnetParameters{}
 			}
+			lookup := keaconfig.NewDHCPOptionDefinitionLookup(cfg.GetDHCPOptionDefinitions())
 			localSubnet.KeaConfigSubnetParameters.GlobalParameters = convertGlobalSubnetParametersToRestAPI(cfg)
 			var convertedOptions []dbmodel.DHCPOption
 			for _, option := range cfg.GetDHCPOptions() {
-				convertedOption, err := dbmodel.NewDHCPOptionFromKea(option, storkutil.IPType(sn.GetFamily()), r.DHCPOptionDefinitionLookup)
+				convertedOption, err := dbmodel.NewDHCPOptionFromKea(option, storkutil.IPType(sn.GetFamily()), lookup)
 				if err != nil {
 					continue
 				}
@@ -280,7 +281,7 @@ func (r *RestAPI) convertSubnetToRestAPI(sn *dbmodel.Subnet) *models.Subnet {
 // It is used when Stork user modifies or creates new subnet. Thus, it doesn't populate
 // subnet statistics as it is not specified by Stork user. It is pulled from the Kea
 // servers periodically.
-func (r *RestAPI) convertSubnetFromRestAPI(restSubnet *models.Subnet) (*dbmodel.Subnet, error) {
+func (r *RestAPI) convertSubnetFromRestAPI(restSubnet *models.Subnet, lookups *dbmodel.DHCPOptionDefinitionLookups) (*dbmodel.Subnet, error) {
 	subnet := &dbmodel.Subnet{
 		ID:              restSubnet.ID,
 		Prefix:          restSubnet.Subnet,
@@ -290,6 +291,11 @@ func (r *RestAPI) convertSubnetFromRestAPI(restSubnet *models.Subnet) (*dbmodel.
 	hasher := keaconfig.NewHasher()
 	// Convert local subnet containing associations of the subnet with daemons.
 	for _, ls := range restSubnet.LocalSubnets {
+		lookup, err := lookups.GetLookup(ls.DaemonID)
+		if err != nil {
+			return nil, err
+		}
+
 		localSubnet := &dbmodel.LocalSubnet{
 			LocalSubnetID: ls.ID,
 			DaemonID:      ls.DaemonID,
@@ -308,7 +314,7 @@ func (r *RestAPI) convertSubnetFromRestAPI(restSubnet *models.Subnet) (*dbmodel.
 					PoolID: poolDetails.KeaConfigPoolParameters.PoolID,
 				}
 				// DHCP options.
-				options, err := r.flattenDHCPOptions("", poolDetails.KeaConfigPoolParameters.Options, 0)
+				options, err := r.flattenDHCPOptions("", poolDetails.KeaConfigPoolParameters.Options, lookup, 0)
 				if err != nil {
 					return nil, err
 				}
@@ -331,7 +337,7 @@ func (r *RestAPI) convertSubnetFromRestAPI(restSubnet *models.Subnet) (*dbmodel.
 					PoolID: prefixPoolDetails.KeaConfigPoolParameters.PoolID,
 				}
 				// DHCP options.
-				pool.DHCPOptionSet, err = r.flattenDHCPOptions("", prefixPoolDetails.KeaConfigPoolParameters.Options, 0)
+				pool.DHCPOptionSet, err = r.flattenDHCPOptions("", prefixPoolDetails.KeaConfigPoolParameters.Options, lookup, 0)
 				if err != nil {
 					return nil, err
 				}
@@ -415,7 +421,7 @@ func (r *RestAPI) convertSubnetFromRestAPI(restSubnet *models.Subnet) (*dbmodel.
 				}
 			}
 			// DHCP options.
-			options, err := r.flattenDHCPOptions("", ls.KeaConfigSubnetParameters.SubnetLevelParameters.Options, 0)
+			options, err := r.flattenDHCPOptions("", ls.KeaConfigSubnetParameters.SubnetLevelParameters.Options, lookup, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -615,7 +621,8 @@ func (r *RestAPI) commonCreateOrUpdateSubnetSubmit(ctx context.Context, transact
 	}
 
 	// Convert subnet information from REST API to database format.
-	subnet, err := r.convertSubnetFromRestAPI(restSubnet)
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(r.DB)
+	subnet, err := r.convertSubnetFromRestAPI(restSubnet, lookups)
 	if err != nil {
 		msg := "Error parsing specified subnet"
 		log.WithError(err).Error(msg)

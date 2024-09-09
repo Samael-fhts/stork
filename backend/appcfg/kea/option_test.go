@@ -154,10 +154,10 @@ func TestCreateSingleOptionDataMultipleFields(t *testing.T) {
 
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).Return(true)
+	lookup.EXPECT().DefinitionExists(gomock.Any()).Return(true)
 
 	// Convert the option from the Stork to Kea format.
-	data, err := keaconfig.CreateSingleOptionData(1, lookup, option)
+	data, err := keaconfig.CreateSingleOptionData(lookup, option)
 	require.NoError(t, err)
 	require.NotNil(t, data)
 
@@ -187,10 +187,10 @@ func TestCreateSingleOptionDataBinaryField(t *testing.T) {
 
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).Return(true)
+	lookup.EXPECT().DefinitionExists(gomock.Any()).Return(true)
 
 	// Convert the option from the Stork to Kea format.
-	data, err := keaconfig.CreateSingleOptionData(1, lookup, option)
+	data, err := keaconfig.CreateSingleOptionData(lookup, option)
 	require.NoError(t, err)
 	require.NotNil(t, data)
 
@@ -273,10 +273,10 @@ func TestCreateSingleOptionDataNoDefinition(t *testing.T) {
 
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).Return(false)
+	lookup.EXPECT().DefinitionExists(gomock.Any()).Return(false)
 
 	// Convert the option from the Stork to Kea format.
-	data, err := keaconfig.CreateSingleOptionData(1, lookup, option)
+	data, err := keaconfig.CreateSingleOptionData(lookup, option)
 	require.NoError(t, err)
 	require.NotNil(t, data)
 
@@ -304,7 +304,7 @@ func TestCreateDHCPOptionCSV(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(nil)
+	lookup.EXPECT().Find(gomock.Any()).Return(nil)
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv4, lookup)
 	require.NoError(t, err)
 	require.True(t, option.IsAlwaysSend())
@@ -368,7 +368,7 @@ func TestCreateDHCPOptionHex(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(nil)
+	lookup.EXPECT().Find(gomock.Any()).Return(nil)
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv6, lookup)
 	require.NoError(t, err)
 	require.False(t, option.IsAlwaysSend())
@@ -396,7 +396,7 @@ func TestCreateDHCPOptionEmpty(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(nil)
+	lookup.EXPECT().Find(gomock.Any()).Return(nil)
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv6, lookup)
 	require.NoError(t, err)
 	require.False(t, option.IsAlwaysSend())
@@ -416,7 +416,7 @@ func TestCreateDHCPOptionEncapsulateDHCPv4TopLevel(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(nil)
+	lookup.EXPECT().Find(gomock.Any()).Return(nil)
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv4, lookup)
 	require.NoError(t, err)
 	require.Equal(t, "option-253", option.GetEncapsulate())
@@ -430,7 +430,7 @@ func TestCreateDHCPOptionEncapsulateDHCPv4Suboption(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(nil)
+	lookup.EXPECT().Find(gomock.Any()).Return(nil)
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv4, lookup)
 	require.NoError(t, err)
 	require.Equal(t, "option-253.1", option.GetEncapsulate())
@@ -444,7 +444,7 @@ func TestCreateDHCPOptionEncapsulateDHCPv6TopLevel(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(nil)
+	lookup.EXPECT().Find(gomock.Any()).Return(nil)
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv6, lookup)
 	require.NoError(t, err)
 	require.Equal(t, "option-1024", option.GetEncapsulate())
@@ -458,7 +458,7 @@ func TestCreateDHCPOptionEncapsulateDHCPv6Suboption(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(nil)
+	lookup.EXPECT().Find(gomock.Any()).Return(nil)
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv6, lookup)
 	require.NoError(t, err)
 	require.Equal(t, "option-1024.1", option.GetEncapsulate())
@@ -476,18 +476,18 @@ func TestCreateStandardDHCPOption(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(&keaconfig.DHCPOptionDefinition{
+	lookup.EXPECT().Find(gomock.Any()).Return(&keaconfig.DHCPOptionDefinition{
 		Array:       false,
 		Code:        89,
 		Encapsulate: "s46-rule-options",
 		Name:        "s46-rule",
-		RecordTypes: []keaconfig.DHCPOptionType{
+		RecordTypes: keaconfig.NewDHCPOptionTypes(
 			keaconfig.Uint8Option,
 			keaconfig.Uint8Option,
 			keaconfig.Uint8Option,
 			keaconfig.IPv4AddressOption,
 			keaconfig.IPv6PrefixOption,
-		},
+		),
 		Space:      "s46-cont-mape-options",
 		OptionType: keaconfig.RecordOption,
 	})
@@ -533,15 +533,15 @@ func TestCreateStandardDHCPOptionBinary(t *testing.T) {
 	}
 	controller := gomock.NewController(t)
 	lookup := NewMockDHCPOptionDefinitionLookup(controller)
-	lookup.EXPECT().Find(gomock.Any(), gomock.Any()).Return(&keaconfig.DHCPOptionDefinition{
+	lookup.EXPECT().Find(gomock.Any()).Return(&keaconfig.DHCPOptionDefinition{
 		Array: false,
 		Code:  97,
 		Name:  "uuid-guid",
 		Space: "dhcp4",
-		RecordTypes: []keaconfig.DHCPOptionType{
+		RecordTypes: keaconfig.NewDHCPOptionTypes(
 			keaconfig.Uint8Option,
 			keaconfig.BinaryOption,
-		},
+		),
 		OptionType: keaconfig.RecordOption,
 	})
 	option, err := keaconfig.CreateDHCPOption(optionData, storkutil.IPv4, lookup)

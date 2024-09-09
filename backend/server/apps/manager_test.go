@@ -60,12 +60,10 @@ func TestNewManager(t *testing.T) {
 	defer teardown()
 
 	agents := &agentcommtest.FakeAgents{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
 	manager := NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: agents,
 	})
 	require.NotNil(t, manager)
 	require.NotNil(t, manager.GetKeaModule())
@@ -75,7 +73,6 @@ func TestNewManager(t *testing.T) {
 	require.NotNil(t, impl)
 	require.Equal(t, db, impl.GetDB())
 	require.Equal(t, agents, impl.GetConnectedAgents())
-	require.Equal(t, lookup, impl.GetDHCPOptionDefinitionLookup())
 }
 
 // Test creating new context with context ID and user ID.

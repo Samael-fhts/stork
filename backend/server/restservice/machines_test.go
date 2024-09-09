@@ -19,6 +19,7 @@ import (
 	"isc.org/stork/pki"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
+	"isc.org/stork/server/apps"
 	"isc.org/stork/server/apps/kea"
 	"isc.org/stork/server/certs"
 	dbops "isc.org/stork/server/database"
@@ -69,12 +70,17 @@ func TestGetVersion(t *testing.T) {
 func TestGetMachineStateOnly(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
+	_ = dbmodel.InitializeSettings(db, 0)
 
 	settings := RestAPISettings{}
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	fec := &storktest.FakeEventCenter{}
 	fd := &storktest.FakeDispatcher{}
-	rapi, err := NewRestAPI(&settings, dbSettings, db, fa, fec, fd)
+	statePuller, _ := apps.NewStatePuller(db, fa, fec, fd)
+	pullers := &apps.Pullers{
+		AppsStatePuller: statePuller,
+	}
+	rapi, err := NewRestAPI(&settings, dbSettings, db, fa, fec, fd, pullers)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -201,12 +207,17 @@ func mockGetAppsState(callNo int, cmdResponses []interface{}) {
 func TestGetMachineAndAppsState(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
+	_ = dbmodel.InitializeSettings(db, 0)
 
 	settings := RestAPISettings{}
 	fa := agentcommtest.NewFakeAgents(mockGetAppsState, nil)
 	fec := &storktest.FakeEventCenter{}
 	fd := &storktest.FakeDispatcher{}
-	rapi, err := NewRestAPI(&settings, dbSettings, db, fa, fec, fd)
+	statePuller, _ := apps.NewStatePuller(db, fa, fec, fd)
+	pullers := &apps.Pullers{
+		AppsStatePuller: statePuller,
+	}
+	rapi, err := NewRestAPI(&settings, dbSettings, db, fa, fec, fd, pullers)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -273,13 +284,18 @@ func TestGetMachineAndAppsState(t *testing.T) {
 func TestCreateMachine(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
+	_ = dbmodel.InitializeSettings(db, 0)
 
 	settings := RestAPISettings{}
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	fec := &storktest.FakeEventCenter{}
 	fd := &storktest.FakeDispatcher{}
 	ec := NewEndpointControl()
-	rapi, err := NewRestAPI(&settings, dbSettings, db, fa, fec, fd, ec)
+	statePuller, _ := apps.NewStatePuller(db, fa, fec, fd)
+	pullers := &apps.Pullers{
+		AppsStatePuller: statePuller,
+	}
+	rapi, err := NewRestAPI(&settings, dbSettings, db, fa, fec, fd, ec, pullers)
 	require.NoError(t, err)
 	ctx := context.Background()
 
@@ -956,12 +972,17 @@ func TestGetMachine(t *testing.T) {
 func TestUpdateMachine(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
+	_ = dbmodel.InitializeSettings(db, 0)
 
 	settings := RestAPISettings{}
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	fec := &storktest.FakeEventCenter{}
 	fd := &storktest.FakeDispatcher{}
-	rapi, err := NewRestAPI(&settings, dbSettings, db, fa, fec, fd)
+	statePuller, _ := apps.NewStatePuller(db, fa, fec, fd)
+	pullers := &apps.Pullers{
+		AppsStatePuller: statePuller,
+	}
+	rapi, err := NewRestAPI(&settings, dbSettings, db, fa, fec, fd, pullers)
 	require.NoError(t, err)
 	ctx := context.Background()
 

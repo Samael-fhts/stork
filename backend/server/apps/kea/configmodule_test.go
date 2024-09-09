@@ -28,7 +28,6 @@ import (
 type testManager struct {
 	db     *pg.DB
 	agents agentcomm.ConnectedAgents
-	lookup keaconfig.DHCPOptionDefinitionLookup
 
 	locks map[int64]bool
 }
@@ -38,7 +37,6 @@ func newTestManager(server config.ManagerAccessors) *testManager {
 	return &testManager{
 		db:     server.GetDB(),
 		agents: server.GetConnectedAgents(),
-		lookup: server.GetDHCPOptionDefinitionLookup(),
 		locks:  make(map[int64]bool),
 	}
 }
@@ -51,12 +49,6 @@ func (tm *testManager) GetDB() *pg.DB {
 // Returns an interface to the test agents.
 func (tm *testManager) GetConnectedAgents() agentcomm.ConnectedAgents {
 	return tm.agents
-}
-
-// Returns an interface to the instance providing functions to find
-// option definitions.
-func (tm *testManager) GetDHCPOptionDefinitionLookup() keaconfig.DHCPOptionDefinitionLookup {
-	return tm.lookup
 }
 
 // Applies locks on specified daemons.
@@ -141,9 +133,8 @@ func TestBeginGlobalParametersUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -163,7 +154,7 @@ func TestBeginGlobalParametersUpdate(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -174,7 +165,7 @@ func TestBeginGlobalParametersUpdate(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -249,9 +240,7 @@ func TestApplyGlobalParametersUpdate(t *testing.T) {
 		},
 	}
 
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
 
@@ -337,9 +326,8 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -357,7 +345,7 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 	app1, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app1, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app1, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -368,7 +356,7 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 	app2, err := server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app2, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app2, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetDaemonsByIDs(db, []int64{app1.Daemons[0].GetID(), app2.Daemons[0].GetID()})
@@ -455,9 +443,7 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 
 // Test first stage of adding a new host.
 func TestBeginHostAdd(t *testing.T) {
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
 
@@ -477,9 +463,12 @@ func TestBeginHostAdd(t *testing.T) {
 
 // Test second stage of adding a new host.
 func TestApplyHostAdd(t *testing.T) {
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	_, apps := storktest.AddTestHosts(t, db)
+
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{DB: db})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
 
@@ -500,7 +489,7 @@ func TestApplyHostAdd(t *testing.T) {
 		},
 		LocalHosts: []dbmodel.LocalHost{
 			{
-				DaemonID: 1,
+				DaemonID: apps[0].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -516,7 +505,7 @@ func TestApplyHostAdd(t *testing.T) {
 				},
 			},
 			{
-				DaemonID: 2,
+				DaemonID: apps[1].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -604,9 +593,8 @@ func TestCommitHostAdd(t *testing.T) {
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	// Create Kea config module.
@@ -704,6 +692,11 @@ func TestCommitHostAdd(t *testing.T) {
 
 // Test that error is returned when Kea response contains error status code.
 func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	_, apps := storktest.AddTestHosts(t, db)
+
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, cmdResponses []interface{}) {
 		json := []byte(`[
@@ -716,10 +709,7 @@ func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 		_ = keactrl.UnmarshalResponseList(command, json, cmdResponses[0])
 	})
 
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{DB: db, Agents: agents})
 
 	// Create Kea config module.
 	module := NewConfigModule(manager)
@@ -741,7 +731,7 @@ func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 		},
 		LocalHosts: []dbmodel.LocalHost{
 			{
-				DaemonID: 1,
+				DaemonID: apps[0].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -758,7 +748,7 @@ func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 				},
 			},
 			{
-				DaemonID: 2,
+				DaemonID: apps[1].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -795,9 +785,8 @@ func TestCommitScheduledHostAdd(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -907,9 +896,8 @@ func TestBeginHostUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -936,6 +924,11 @@ func TestBeginHostUpdate(t *testing.T) {
 
 // Test second stage of a host update.
 func TestApplyHostUpdate(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	_, apps := storktest.AddTestHosts(t, db)
+
 	// Create dummy host to be stored in the context. We will later check if
 	// it is preserved after applying host update.
 	hasher := keaconfig.NewHasher()
@@ -949,7 +942,7 @@ func TestApplyHostUpdate(t *testing.T) {
 		},
 		LocalHosts: []dbmodel.LocalHost{
 			{
-				DaemonID: 1,
+				DaemonID: apps[0].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -969,7 +962,7 @@ func TestApplyHostUpdate(t *testing.T) {
 				}}, hasher),
 			},
 			{
-				DaemonID: 2,
+				DaemonID: apps[1].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -989,7 +982,7 @@ func TestApplyHostUpdate(t *testing.T) {
 				}}, hasher),
 			},
 			{
-				DaemonID: 2,
+				DaemonID: apps[1].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -1011,9 +1004,7 @@ func TestApplyHostUpdate(t *testing.T) {
 		},
 	}
 
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{DB: db})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
 
@@ -1041,7 +1032,7 @@ func TestApplyHostUpdate(t *testing.T) {
 		},
 		LocalHosts: []dbmodel.LocalHost{
 			{
-				DaemonID: 1,
+				DaemonID: apps[0].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "foo.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -1061,7 +1052,7 @@ func TestApplyHostUpdate(t *testing.T) {
 				}}, hasher),
 			},
 			{
-				DaemonID: 2,
+				DaemonID: apps[1].Daemons[0].KeaDaemon.DaemonID,
 				Hostname: "foo.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -1097,17 +1088,18 @@ func TestApplyHostUpdate(t *testing.T) {
 	require.EqualValues(t, 1, recipeReturned.HostAfterUpdate.ID)
 	require.Len(t, recipeReturned.HostAfterUpdate.LocalHosts, 3)
 
-	require.EqualValues(t, 1, recipeReturned.HostAfterUpdate.LocalHosts[0].DaemonID)
+	require.EqualValues(t, apps[0].Daemons[0].KeaDaemon.DaemonID, recipeReturned.HostAfterUpdate.LocalHosts[0].DaemonID)
 	require.EqualValues(t, dbmodel.HostDataSourceAPI, recipeReturned.HostAfterUpdate.LocalHosts[0].DataSource)
 	require.Len(t, recipeReturned.HostAfterUpdate.LocalHosts[0].DHCPOptionSet.Options, 1)
 	require.EqualValues(t, 4, recipeReturned.HostAfterUpdate.LocalHosts[0].DHCPOptionSet.Options[0].Code)
 
-	require.EqualValues(t, 2, recipeReturned.HostAfterUpdate.LocalHosts[1].DaemonID)
+	require.EqualValues(t, apps[1].Daemons[0].KeaDaemon.DaemonID, recipeReturned.HostAfterUpdate.LocalHosts[1].DaemonID)
 	require.EqualValues(t, dbmodel.HostDataSourceAPI, recipeReturned.HostAfterUpdate.LocalHosts[1].DataSource)
 	require.Len(t, recipeReturned.HostAfterUpdate.LocalHosts[1].DHCPOptionSet.Options, 1)
 	require.EqualValues(t, 4, recipeReturned.HostAfterUpdate.LocalHosts[1].DHCPOptionSet.Options[0].Code)
 
-	require.EqualValues(t, 2, recipeReturned.HostAfterUpdate.LocalHosts[2].DaemonID)
+	require.EqualValues(t, apps[1].Daemons[0].KeaDaemon.DaemonID, recipeReturned.HostAfterUpdate.LocalHosts[2].DaemonID)
+
 	require.EqualValues(t, dbmodel.HostDataSourceConfig, recipeReturned.HostAfterUpdate.LocalHosts[2].DataSource)
 	require.Len(t, recipeReturned.HostAfterUpdate.LocalHosts[2].DHCPOptionSet.Options, 1)
 	require.EqualValues(t, 3, recipeReturned.HostAfterUpdate.LocalHosts[2].DHCPOptionSet.Options[0].Code)
@@ -1230,9 +1222,8 @@ func TestCommitHostUpdate(t *testing.T) {
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	// Create Kea config module.
@@ -1326,6 +1317,11 @@ func TestCommitHostUpdate(t *testing.T) {
 
 // Test that error is returned when Kea response contains error status code.
 func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	_, apps := storktest.AddTestHosts(t, db)
+
 	// Create new host reservation.
 	host := &dbmodel.Host{
 		ID: 1,
@@ -1337,7 +1333,7 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 		},
 		LocalHosts: []dbmodel.LocalHost{
 			{
-				DaemonID: 1,
+				DaemonID: apps[0].Daemons[0].ID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
@@ -1369,8 +1365,8 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 	})
 
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		Agents: agents,
+		DB:     db,
 	})
 
 	// Create Kea config module.
@@ -1448,9 +1444,8 @@ func TestCommitScheduledHostUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -1676,9 +1671,8 @@ func TestCommitHostDelete(t *testing.T) {
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	// Create Kea config module.
@@ -1736,9 +1730,8 @@ func TestCommitScheduledHostDelete(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -1801,9 +1794,7 @@ func TestCommitScheduledHostDelete(t *testing.T) {
 
 // Test first stage of adding a shared network.
 func TestBeginSharedNetworkAdd(t *testing.T) {
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
 
@@ -1826,9 +1817,36 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
+	machine := &dbmodel.Machine{
+		Address:   "cool.example.org",
+		AgentPort: 8080,
+	}
+	require.NoError(t, dbmodel.AddMachine(db, machine))
+
+	var allDaemons []*dbmodel.Daemon
+
+	for i := 1; i <= 3; i++ {
+		a := dbmodel.App{
+			MachineID: machine.ID,
+			Type:      dbmodel.AppTypeKea,
+			Name:      fmt.Sprintf("dhcp-server%d", i),
+			Daemons: []*dbmodel.Daemon{
+				{
+					Name:   dbmodel.DaemonNameDHCPv4,
+					Active: true,
+					KeaDaemon: &dbmodel.KeaDaemon{
+						Config: &dbmodel.KeaConfig{},
+					},
+				},
+			},
+		}
+		daemons, err := dbmodel.AddApp(db, &a)
+		require.NoError(t, err)
+		allDaemons = append(allDaemons, daemons...)
+	}
+
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB: db,
 	})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
@@ -1844,7 +1862,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 		Family: 4,
 		LocalSharedNetworks: []*dbmodel.LocalSharedNetwork{
 			{
-				DaemonID: 1,
+				DaemonID: allDaemons[0].ID,
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
 					App: &dbmodel.App{
@@ -1859,7 +1877,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 				},
 			},
 			{
-				DaemonID: 2,
+				DaemonID: allDaemons[1].ID,
 				Daemon: &dbmodel.Daemon{
 					Name:    "dhcp4",
 					Version: "2.5.0",
@@ -1875,7 +1893,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 				},
 			},
 			{
-				DaemonID: 4,
+				DaemonID: allDaemons[2].ID,
 				Daemon: &dbmodel.Daemon{
 					Name:    "dhcp4",
 					Version: "2.6.0",
@@ -1893,7 +1911,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 		},
 		Subnets: []dbmodel.Subnet{
 			{
-				ID:     1,
+				ID:     allDaemons[0].ID,
 				Prefix: "192.0.2.0/24",
 				LocalSubnets: []*dbmodel.LocalSubnet{
 					{
@@ -1918,7 +1936,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 						},
 					},
 					{
-						DaemonID: 2,
+						DaemonID: allDaemons[1].ID,
 						Daemon: &dbmodel.Daemon{
 							Name:    "dhcp4",
 							Version: "2.5.0",
@@ -1940,7 +1958,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 						},
 					},
 					{
-						DaemonID: 4,
+						DaemonID: allDaemons[2].ID,
 						Daemon: &dbmodel.Daemon{
 							Name:    "dhcp4",
 							Version: "2.6.0",
@@ -2046,9 +2064,8 @@ func TestCommitSharedNetworkAdd(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
@@ -2065,7 +2082,7 @@ func TestCommitSharedNetworkAdd(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -2076,7 +2093,7 @@ func TestCommitSharedNetworkAdd(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -2264,9 +2281,8 @@ func TestCommitScheduledSharedNetworkAdd(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -2294,7 +2310,7 @@ func TestCommitScheduledSharedNetworkAdd(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -2305,7 +2321,7 @@ func TestCommitScheduledSharedNetworkAdd(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -2441,9 +2457,8 @@ func TestBeginSharedNetworkUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -2478,7 +2493,7 @@ func TestBeginSharedNetworkUpdate(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -2489,7 +2504,7 @@ func TestBeginSharedNetworkUpdate(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -2521,6 +2536,37 @@ func TestBeginSharedNetworkUpdate(t *testing.T) {
 
 // Test second stage of a shared network update.
 func TestApplySharedNetworkUpdate(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	machine := &dbmodel.Machine{
+		Address:   "cool.example.org",
+		AgentPort: 8080,
+	}
+	require.NoError(t, dbmodel.AddMachine(db, machine))
+
+	var allDaemons []*dbmodel.Daemon
+
+	for i := 1; i <= 4; i++ {
+		a := dbmodel.App{
+			MachineID: machine.ID,
+			Type:      dbmodel.AppTypeKea,
+			Name:      fmt.Sprintf("dhcp-server%d", i),
+			Daemons: []*dbmodel.Daemon{
+				{
+					Name:   dbmodel.DaemonNameDHCPv4,
+					Active: true,
+					KeaDaemon: &dbmodel.KeaDaemon{
+						Config: &dbmodel.KeaConfig{},
+					},
+				},
+			},
+		}
+		daemons, err := dbmodel.AddApp(db, &a)
+		require.NoError(t, err)
+		allDaemons = append(allDaemons, daemons...)
+	}
+
 	// Create dummy shared network to be stored in the context. We will later check if
 	// it is preserved after applying shared network update.
 	sharedNetwork := &dbmodel.SharedNetwork{
@@ -2650,9 +2696,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 		},
 	}
 
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{DB: db})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
 
@@ -2890,9 +2934,8 @@ func TestCommitSharedNetworkUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -2922,7 +2965,7 @@ func TestCommitSharedNetworkUpdate(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -2933,7 +2976,7 @@ func TestCommitSharedNetworkUpdate(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -3050,9 +3093,8 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	})
 
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -3082,7 +3124,7 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -3124,9 +3166,8 @@ func TestCommitScheduledSharedNetworkUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -3166,7 +3207,7 @@ func TestCommitScheduledSharedNetworkUpdate(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -3177,7 +3218,7 @@ func TestCommitScheduledSharedNetworkUpdate(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -3308,9 +3349,8 @@ func TestApplySharedNetwork4Delete(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -3345,7 +3385,7 @@ func TestApplySharedNetwork4Delete(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -3356,7 +3396,7 @@ func TestApplySharedNetwork4Delete(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -3428,9 +3468,8 @@ func TestApplySharedNetwork6Delete(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -3465,7 +3504,7 @@ func TestApplySharedNetwork6Delete(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -3476,7 +3515,7 @@ func TestApplySharedNetwork6Delete(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -3548,9 +3587,8 @@ func TestCommitSharedNetworkDelete(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -3585,7 +3623,7 @@ func TestCommitSharedNetworkDelete(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -3596,7 +3634,7 @@ func TestCommitSharedNetworkDelete(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -3665,9 +3703,7 @@ func TestCommitSharedNetworkDelete(t *testing.T) {
 
 // Test first stage of adding a subnet.
 func TestBeginSubnetAdd(t *testing.T) {
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
 
@@ -3690,9 +3726,10 @@ func TestApplySubnetAdd(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
+	_, apps := storktest.AddTestHosts(t, db)
+
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB: db,
 	})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
@@ -3708,7 +3745,7 @@ func TestApplySubnetAdd(t *testing.T) {
 		Prefix: "192.0.2.0/24",
 		LocalSubnets: []*dbmodel.LocalSubnet{
 			{
-				DaemonID: 1,
+				DaemonID: apps[0].Daemons[0].ID,
 				Daemon: &dbmodel.Daemon{
 					Name: "dhcp4",
 					App: &dbmodel.App{
@@ -3729,7 +3766,7 @@ func TestApplySubnetAdd(t *testing.T) {
 				},
 			},
 			{
-				DaemonID: 2,
+				DaemonID: apps[1].Daemons[0].ID,
 				Daemon: &dbmodel.Daemon{
 					Name:    "dhcp4",
 					Version: "2.5.0",
@@ -3787,7 +3824,7 @@ func TestApplySubnetAdd(t *testing.T) {
 					"arguments": {
 						"subnet4": [
 							{
-								"id": 1,
+								"id": 223,
 								"subnet": "192.0.2.0/24",
 								"pools": [
 									{
@@ -3826,9 +3863,8 @@ func TestCommitSubnetAdd(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -3852,7 +3888,7 @@ func TestCommitSubnetAdd(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -3863,7 +3899,7 @@ func TestCommitSubnetAdd(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -3992,9 +4028,8 @@ func TestBeginSubnetUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -4029,7 +4064,7 @@ func TestBeginSubnetUpdate(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -4040,7 +4075,7 @@ func TestBeginSubnetUpdate(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -4074,6 +4109,37 @@ func TestBeginSubnetUpdate(t *testing.T) {
 
 // Test second stage of a subnet update.
 func TestApplySubnetUpdate(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	machine := &dbmodel.Machine{
+		Address:   "cool.example.org",
+		AgentPort: 8080,
+	}
+	require.NoError(t, dbmodel.AddMachine(db, machine))
+
+	var allDaemons []*dbmodel.Daemon
+
+	for i := 1; i <= 4; i++ {
+		a := dbmodel.App{
+			MachineID: machine.ID,
+			Type:      dbmodel.AppTypeKea,
+			Name:      fmt.Sprintf("dhcp-server%d", i),
+			Daemons: []*dbmodel.Daemon{
+				{
+					Name:   dbmodel.DaemonNameDHCPv4,
+					Active: true,
+					KeaDaemon: &dbmodel.KeaDaemon{
+						Config: &dbmodel.KeaConfig{},
+					},
+				},
+			},
+		}
+		daemons, err := dbmodel.AddApp(db, &a)
+		require.NoError(t, err)
+		allDaemons = append(allDaemons, daemons...)
+	}
+
 	// Create dummy subnet to be stored in the context. We will later check if
 	// it is preserved after applying host update.
 	subnet := &dbmodel.Subnet{
@@ -4148,9 +4214,7 @@ func TestApplySubnetUpdate(t *testing.T) {
 		},
 	}
 
-	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
-	})
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{DB: db})
 	module := NewConfigModule(manager)
 	require.NotNil(t, module)
 
@@ -4343,9 +4407,8 @@ func TestCommitSubnetUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -4375,7 +4438,7 @@ func TestCommitSubnetUpdate(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -4386,7 +4449,7 @@ func TestCommitSubnetUpdate(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -4486,9 +4549,8 @@ func TestCommitScheduledSubnetUpdate(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 	// Test scheduling config changes in the database, retrieving and committing it.
 	module := NewConfigModule(manager)
@@ -4528,7 +4590,7 @@ func TestCommitScheduledSubnetUpdate(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -4539,7 +4601,7 @@ func TestCommitScheduledSubnetUpdate(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -4651,9 +4713,8 @@ func TestCommitSubnetUpdateResponseWithErrorStatus(t *testing.T) {
 	})
 
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -4683,7 +4744,7 @@ func TestCommitSubnetUpdateResponseWithErrorStatus(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -4724,9 +4785,8 @@ func TestApplySubnet4Delete(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -4761,7 +4821,7 @@ func TestApplySubnet4Delete(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -4772,7 +4832,7 @@ func TestApplySubnet4Delete(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -4856,9 +4916,8 @@ func TestApplySubnet6Delete(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -4893,7 +4952,7 @@ func TestApplySubnet6Delete(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -4904,7 +4963,7 @@ func TestApplySubnet6Delete(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)
@@ -4988,9 +5047,8 @@ func TestCommitSubnetDelete(t *testing.T) {
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    agents,
-		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+		DB:     db,
+		Agents: agents,
 	})
 
 	module := NewConfigModule(manager)
@@ -5025,7 +5083,7 @@ func TestCommitSubnetDelete(t *testing.T) {
 	app, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -5036,7 +5094,7 @@ func TestCommitSubnetDelete(t *testing.T) {
 	app, err = server2.GetKea()
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	apps, err := dbmodel.GetAllApps(db, true)

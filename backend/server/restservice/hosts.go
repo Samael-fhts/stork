@@ -91,7 +91,7 @@ func (r *RestAPI) convertHostFromRestAPI(dbHost *dbmodel.Host) *models.Host {
 
 // Convert host reservation from the format used in REST API to a
 // database host representation.
-func (r *RestAPI) convertToHost(restHost *models.Host) (*dbmodel.Host, error) {
+func (r *RestAPI) convertToHost(restHost *models.Host, lookups *dbmodel.DHCPOptionDefinitionLookups) (*dbmodel.Host, error) {
 	host := &dbmodel.Host{
 		ID:       restHost.ID,
 		SubnetID: restHost.SubnetID,
@@ -121,6 +121,11 @@ func (r *RestAPI) convertToHost(restHost *models.Host) (*dbmodel.Host, error) {
 			return nil, errors.Errorf("invalid local host data source (required: '%s' or empty)", dbmodel.HostDataSourceAPI)
 		}
 
+		lookup, err := lookups.GetLookup(lh.DaemonID)
+		if err != nil {
+			return nil, err
+		}
+
 		localHost := dbmodel.LocalHost{
 			DaemonID:       lh.DaemonID,
 			DataSource:     ds,
@@ -139,7 +144,7 @@ func (r *RestAPI) convertToHost(restHost *models.Host) (*dbmodel.Host, error) {
 			localHost.IPReservations = append(localHost.IPReservations, ipr)
 		}
 
-		options, err := r.flattenDHCPOptions("", lh.Options, 0)
+		options, err := r.flattenDHCPOptions("", lh.Options, lookup, 0)
 		if err != nil {
 			return nil, err
 		}
@@ -380,8 +385,10 @@ func (r *RestAPI) commonCreateOrUpdateHostSubmit(ctx context.Context, transactio
 		return http.StatusNotFound, msg
 	}
 
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(r.DB)
+
 	// Convert host information from REST API to database format.
-	host, err := r.convertToHost(restHost)
+	host, err := r.convertToHost(restHost, lookups)
 	if err != nil {
 		msg := fmt.Sprintf("Error parsing specified host reservation: %s", err)
 		log.WithError(err).Error(msg)

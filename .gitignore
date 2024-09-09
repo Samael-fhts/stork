@@ -98,3 +98,6 @@ webui/src/app/std-dhcpv6-option-defs.json
 
 # Hooks
 /hooks/*.so
+
+# Go core dumps
+backend/**/__debug_bin*

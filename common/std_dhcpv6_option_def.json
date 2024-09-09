@@ -21,7 +21,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint32", "uint32", "uint32"],
+        "record-types": "uint32, uint32, uint32",
         "encapsulate": ""
     },
     {
@@ -38,7 +38,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["ipv6-address", "uint32", "uint32"],
+        "record-types": "ipv6-address, uint32, uint32",
         "encapsulate": ""
     },
     {
@@ -95,7 +95,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint16", "string"],
+        "record-types": "uint16, string",
         "encapsulate": ""
     },
     {
@@ -120,7 +120,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint32", "binary"],
+        "record-types": "uint32, binary",
         "encapsulate": ""
     },
     {
@@ -193,7 +193,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint32", "uint32", "uint32"],
+        "record-types": "uint32, uint32, uint32",
         "encapsulate": ""
     },
     {
@@ -202,7 +202,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint32", "uint32", "uint8", "ipv6-address"],
+        "record-types": "uint32, uint32, uint8, ipv6-address",
         "encapsulate": ""
     },
     {
@@ -275,7 +275,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint8", "uint16", "binary"],
+        "record-types": "uint8, uint16, binary",
         "encapsulate": ""
     },
     {
@@ -284,7 +284,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint32", "binary"],
+        "record-types": "uint32, binary",
         "encapsulate": ""
     },
     {
@@ -301,7 +301,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint8", "fqdn"],
+        "record-types": "uint8, fqdn",
         "encapsulate": ""
     },
     {
@@ -342,7 +342,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint8", "ipv6-address"],
+        "record-types": "uint8, ipv6-address",
         "encapsulate": ""
     },
     {
@@ -367,7 +367,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["ipv6-address", "binary"],
+        "record-types": "ipv6-address, binary",
         "encapsulate": ""
     },
     {
@@ -448,7 +448,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": false,
-        "record-types": ["uint8", "uint8", "uint8"],
+        "record-types": "uint8, uint8, uint8",
         "encapsulate": ""
     },
     {
@@ -489,7 +489,7 @@
         "space": "dhcp6",
         "type": "record",
         "array": true,
-        "record-types": ["uint8", "ipv4-address", "ipv4-address", "fqdn"],
+        "record-types": "uint8, ipv4-address, ipv4-address, fqdn",
         "encapsulate": ""
     },
     {
@@ -569,7 +569,7 @@
         "name": "s46-rule",
         "space": "s46-cont-mape-options",
         "type": "record",
-        "record-types": ["uint8", "uint8", "uint8", "ipv4-address", "ipv6-prefix"],
+        "record-types": "uint8, uint8, uint8, ipv4-address, ipv6-prefix",
         "array": false,
         "encapsulate": "s46-rule-options"
     },
@@ -578,7 +578,7 @@
         "name": "s46-rule",
         "space": "s46-cont-mapt-options",
         "type": "record",
-        "record-types": ["uint8", "uint8", "uint8", "ipv4-address", "ipv6-prefix"],
+        "record-types": "uint8, uint8, uint8, ipv4-address, ipv6-prefix",
         "array": false,
         "encapsulate": "s46-rule-options"
     },
@@ -611,7 +611,7 @@
         "name": "s46-v4v6bind",
         "space": "s46-cont-lw-options",
         "type": "record",
-        "record-types": ["ipv4-address", "ipv6-prefix"],
+        "record-types": "ipv4-address, ipv6-prefix",
         "array": false,
         "encapsulate": "s46-v4v6bind-options"
     },
@@ -620,7 +620,7 @@
         "name": "s46-portparams",
         "space": "s46-rule-options",
         "type": "record",
-        "record-types": ["uint8", "psid"],
+        "record-types": "uint8, psid",
         "array": false,
         "encapsulate": ""
     },
@@ -629,7 +629,7 @@
         "name": "s46-portparams",
         "space": "s46-v4v6bind-options",
         "type": "record",
-        "record-types": ["uint8", "psid"],
+        "record-types": "uint8, psid",
         "array": false,
         "encapsulate": ""
     },

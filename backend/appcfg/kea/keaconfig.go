@@ -458,6 +458,14 @@ func (c *Config) GetDHCPOptions() (options []SingleOptionData) {
 	return
 }
 
+// Returns a slice of the DHCP option definitions.
+func (c *Config) GetDHCPOptionDefinitions() (definitions []DHCPOptionDefinition) {
+	if accessor := c.getDHCPConfigAccessor(); accessor != nil {
+		definitions = accessor.GetDHCPOptionDefinitions()
+	}
+	return
+}
+
 // Recursively hides sensitive data in the configuration. It traverses the raw
 // configuration and nullifies the values for the following keys: password,
 // secret, token. It doesn't modify the parsed configuration.

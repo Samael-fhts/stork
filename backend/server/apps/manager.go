@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	pkgerrors "github.com/pkg/errors"
-	keaconfig "isc.org/stork/appcfg/kea"
 	"isc.org/stork/datamodel"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/apps/kea"
@@ -41,9 +40,6 @@ type configManagerImpl struct {
 	db *pg.DB
 	// Interface to the agents that the manager communicates with.
 	agents agentcomm.ConnectedAgents
-	// Interface to the instance providing functions to search for
-	// option definitions.
-	lookup keaconfig.DHCPOptionDefinitionLookup
 	// Holds contexts for present transactions. The unique context
 	// identifier exchanged between the server and the client is a
 	// key of this map.
@@ -92,7 +88,7 @@ func (manager *configManagerImpl) generateContextID() (int64, error) {
 	return 0, pkgerrors.Errorf("failed to generate a unique context ID after several attempts")
 }
 
-// Checks if the confguration of the specified daemon is already locked
+// Checks if the configuration of the specified daemon is already locked
 // for updates. The first returned parameter is an ID of the user who
 // owns the lock. It is equal to 0 when the lock is not present.
 func (manager *configManagerImpl) isLocked(daemonID int64) (int64, bool) {
@@ -163,7 +159,6 @@ func NewManager(server config.ManagerAccessors) config.Manager {
 	manager := &configManagerImpl{
 		db:       server.GetDB(),
 		agents:   server.GetConnectedAgents(),
-		lookup:   server.GetDHCPOptionDefinitionLookup(),
 		contexts: make(map[int64]contextPair),
 		locks:    make(map[int64]configLock),
 		mutex:    &sync.RWMutex{},
@@ -183,12 +178,6 @@ func (manager *configManagerImpl) GetDB() *pg.DB {
 // Returns the interface to the agents the manager communicates with.
 func (manager *configManagerImpl) GetConnectedAgents() agentcomm.ConnectedAgents {
 	return manager.agents
-}
-
-// Returns an interface to the instance providing the DHCP option definition
-// lookup logic.
-func (manager *configManagerImpl) GetDHCPOptionDefinitionLookup() keaconfig.DHCPOptionDefinitionLookup {
-	return manager.lookup
 }
 
 // Returns Kea configuration module of the configuration manager.

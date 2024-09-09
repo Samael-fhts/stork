@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	errors "github.com/pkg/errors"
+	keaconfig "isc.org/stork/appcfg/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/gen/models"
@@ -99,7 +100,7 @@ func flattenDHCPOptionField(fieldType string, restField *models.DHCPOptionField)
 // with the recursionLevel value of 0. It supports up to three recursion
 // levels, i.e., top-level option with suboptions with suboptions. If there
 // is an option at deeper level, it is excluded from the result.
-func (r *RestAPI) flattenDHCPOptions(optionSpace string, restOptions []*models.DHCPOption, recursionLevel int) ([]dbmodel.DHCPOption, error) {
+func (r *RestAPI) flattenDHCPOptions(optionSpace string, restOptions []*models.DHCPOption, lookup keaconfig.DHCPOptionDefinitionLookup, recursionLevel int) ([]dbmodel.DHCPOption, error) {
 	var options []dbmodel.DHCPOption
 	// Break if recursion level exceeded.
 	if recursionLevel >= 3 {
@@ -127,7 +128,7 @@ func (r *RestAPI) flattenDHCPOptions(optionSpace string, restOptions []*models.D
 		// Try to find a definition for this option to see what option space
 		// it encapsulates. We should use the encapsulated option space that
 		// matches what Kea server expects.
-		if def := r.DHCPOptionDefinitionLookup.Find(0, option); def != nil {
+		if def := lookup.Find(option); def != nil {
 			option.Encapsulate = def.GetEncapsulate()
 		}
 		// Go over the option fields belonging to our options.
@@ -149,7 +150,7 @@ func (r *RestAPI) flattenDHCPOptions(optionSpace string, restOptions []*models.D
 		}
 		if len(restOption.Options) > 0 {
 			// Convert suboptions recursively.
-			suboptions, err := r.flattenDHCPOptions(option.Encapsulate, restOption.Options, recursionLevel+1)
+			suboptions, err := r.flattenDHCPOptions(option.Encapsulate, restOption.Options, lookup, recursionLevel+1)
 			if err != nil {
 				return nil, err
 			}
