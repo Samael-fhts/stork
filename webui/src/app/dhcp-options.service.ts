@@ -13,7 +13,7 @@ const stdDhcpv4OptionDefs: DhcpOptionDef[] = stdDhcpv4OptionDefsRaw.map((raw) =>
     encapsulate: raw.encapsulate,
     optionType: raw.type,
     space: raw.space,
-    recordTypes: raw['record-types'],
+    recordTypes: raw['record-types']?.split(',').map((t) => t.trim()) ?? [],
 }))
 
 const stdDhcpv6OptionDefs: DhcpOptionDef[] = stdDhcpv6OptionDefsRaw.map((raw) => ({
@@ -23,7 +23,7 @@ const stdDhcpv6OptionDefs: DhcpOptionDef[] = stdDhcpv6OptionDefsRaw.map((raw) =>
     encapsulate: raw.encapsulate,
     optionType: raw.type,
     space: raw.space,
-    recordTypes: raw['record-types'],
+    recordTypes: raw['record-types']?.split(',').map((t) => t.trim()) ?? [],
 }))
 
 /**
