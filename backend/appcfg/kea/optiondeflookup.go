@@ -18,6 +18,8 @@ type DHCPOptionDefinitionLookup interface {
 type definitionLookup map[string]map[uint16]DHCPOptionDefinition
 
 // Creates a new instance of the DHCPOptionDefinitionLookup structure.
+// It accepts a list of custom definitions that will be merged with the
+// standard definitions.
 func NewDHCPOptionDefinitionLookup(customDefinitions []DHCPOptionDefinition) DHCPOptionDefinitionLookup {
 	var allDefinitions []DHCPOptionDefinition
 
