@@ -106,7 +106,7 @@ COPY codegen .
 WORKDIR /app/rakelib
 COPY rakelib/10_codebase.rake rakelib/20_build.rake rakelib/30_dev.rake rakelib/40_dist.rake ./
 
-FROM codebase as codebase-backend
+FROM codebase AS codebase-backend
 WORKDIR /app/tools/golang
 COPY --from=gopath-prepare /app/tools/golang .
 WORKDIR /app/backend
@@ -152,7 +152,7 @@ COPY --from=webui-builder /app/ /app/
 RUN rake build:server_dist && rm -rf /app/dist/server/lib
 
 # Agent container
-FROM debian-base as agent
+FROM debian-base AS agent
 COPY --from=agent-builder /app/dist/agent /
 ENTRYPOINT [ "/usr/bin/stork-agent" ]
 # Incoming port
