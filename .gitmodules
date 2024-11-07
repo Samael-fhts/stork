@@ -1,3 +1,6 @@
 [submodule "hooks/ldap"]
 	path = hooks/stork-server-ldap
 	url = ../../isc-projects/stork-hook-ldap.git
+[submodule "hooks/stork-server-auth-fixed"]
+	path = hooks/stork-server-auth-fixed
+	url = ../../isc-projects/stork-hook-auth-fixed.git
