@@ -970,9 +970,9 @@ upload_packages_hooks:
   needs:
     - packages_hooks
   variables:
-    # TODO: Append `isc-stork-agent-hook` after a comma when any agent hook
-    # will be ready.
-    COMPONENTS: isc-stork-server-hook
+    # Append here the hooks prefixes after the comma that should be uploaded to
+    # the repository.
+    COMPONENTS: isc-stork-server-hook-ldap
 
 upload_test_packages:
   extends: upload_packages
