@@ -633,8 +633,7 @@ func TestGetDaemonConfigWithDHCPOptions(t *testing.T) {
 
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	fd := &storktest.FakeDispatcher{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	rapi, _ := NewRestAPI(dbSettings, db, fa, fd, lookup)
+	rapi, _ := NewRestAPI(dbSettings, db, fa, fd)
 	ctx := context.Background()
 
 	user, _ := dbmodel.GetUserByID(rapi.DB, 1)
@@ -2415,7 +2414,7 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 	app1, err := server1.GetKea()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app1, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitAppIntoDB(db, app1, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -2426,7 +2425,7 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 	app2, err := server2.GetKea()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app2, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitAppIntoDB(db, app2, &storktest.FakeEventCenter{}, nil)
 	require.NoError(t, err)
 
 	daemonIDs := []int64{app1.Daemons[0].GetID(), app2.Daemons[0].GetID()}
@@ -2438,19 +2437,15 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	require.NotNil(t, fa)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	require.NotNil(t, lookup)
-
 	// Create the config manager.
 	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+		DB:     db,
+		Agents: fa,
 	})
 	require.NotNil(t, cm)
 
 	// Create API.
-	rapi, err := NewRestAPI(dbSettings, db, fa, cm, lookup)
+	rapi, err := NewRestAPI(dbSettings, db, fa, cm)
 	require.NoError(t, err)
 
 	// Create session manager.
