@@ -92,4 +92,12 @@ func TestDHCPOptionDefinitionLookupFind(t *testing.T) {
 		require.Empty(t, definition.GetRecordTypes())
 		require.Empty(t, definition.GetType())
 	})
+
+	t.Run("Unknown definition", func(t *testing.T) {
+		// Act
+		definition := lookup.Find(&DHCPOption{Space: "dhcp4", Code: 4242})
+
+		// Assert
+		require.Nil(t, definition)
+	})
 }
