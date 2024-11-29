@@ -68,7 +68,7 @@ describe('DhcpOptionsService', () => {
                 optionType: def.type,
                 array: def.array,
                 encapsulate: def.encapsulate,
-                recordTypes: def['record-types'],
+                recordTypes: def['record-types']?.split(',').map((t) => t.trim()) ?? [],
             })
         }
     })
@@ -85,7 +85,7 @@ describe('DhcpOptionsService', () => {
                 optionType: def.type,
                 array: def.array,
                 encapsulate: def.encapsulate,
-                recordTypes: def['record-types'],
+                recordTypes: def['record-types']?.split(',').map((t) => t.trim()) ?? [],
             })
         }
     })
