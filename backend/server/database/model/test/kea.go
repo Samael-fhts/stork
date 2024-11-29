@@ -26,6 +26,11 @@ func (kea *Kea) GetMachine() (*dbmodel.Machine, error) {
 	return dbmodel.GetMachineByID(kea.machine.db, kea.machine.ID)
 }
 
+// Return a machine ID that the Kea app belongs to.
+func (kea *Kea) GetMachineID() int64 {
+	return kea.machine.ID
+}
+
 // Creates a new Kea server instance for the Kea app.
 func (kea *Kea) newServer(name string) (*KeaServer, error) {
 	a, err := dbmodel.GetAppByID(kea.machine.db, kea.ID)

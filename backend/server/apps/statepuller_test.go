@@ -1,6 +1,7 @@
 package apps
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -10,6 +11,7 @@ import (
 	kea "isc.org/stork/server/apps/kea"
 	"isc.org/stork/server/configreview"
 	dbmodel "isc.org/stork/server/database/model"
+	dbmodeltest "isc.org/stork/server/database/model/test"
 	dbtest "isc.org/stork/server/database/test"
 	storktest "isc.org/stork/server/test/dbmodel"
 )
@@ -224,4 +226,69 @@ func TestConditionallyBeginKeaConfigReviews(t *testing.T) {
 	require.Len(t, dispatcher.CallLog[6].Triggers, 2)
 	require.Equal(t, configreview.StorkAgentConfigModified, dispatcher.CallLog[6].Triggers[0])
 	require.Equal(t, configreview.ConfigModified, dispatcher.CallLog[6].Triggers[1])
+}
+
+// Test that the machine can be pulled on demand.
+func TestPullMachine(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	// prepare fake agents
+	fa := agentcommtest.NewFakeAgents(nil, nil)
+	fa.MachineState = &agentcomm.State{
+		Apps: []*agentcomm.App{
+			{
+				Type: datamodel.AppTypeKea.String(),
+				// access point is changing from 1.1.1.1 to 1.2.3.4
+				AccessPoints: agentcomm.MakeAccessPoint(dbmodel.AccessPointControl, "1.2.3.4", "", 1234),
+			},
+			{
+				Type:         datamodel.AppTypeBind9.String(),
+				AccessPoints: agentcomm.MakeAccessPoint(dbmodel.AccessPointControl, "1.2.3.4", "abcd", 124),
+			},
+		},
+	}
+
+	// prepare fake event center
+	fec := &storktest.FakeEventCenter{}
+
+	// fake config review dispatcher
+	fd := &storktest.FakeDispatcher{}
+
+	// add one machine with one kea app
+	keaServer, err := dbmodeltest.NewKeaDHCPv4Server(db)
+	require.NoError(t, err)
+
+	// set one setting that is needed by puller
+	setting := dbmodel.Setting{
+		Name:    "apps_state_puller_interval",
+		ValType: dbmodel.SettingValTypeInt,
+		Value:   "60",
+	}
+	_, err = db.Model(&setting).Insert()
+	require.NoError(t, err)
+
+	// prepare stats puller
+	sp, err := NewStatePuller(db, fa, fec, fd)
+	require.NoError(t, err)
+	// shutdown state puller at the end
+	defer sp.Shutdown()
+
+	// Act
+	machine, err := sp.PullMachine(context.Background(), keaServer.GetMachineID())
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, machine)
+	require.Equal(t, keaServer.GetMachineID(), machine.ID)
+	require.Len(t, machine.Apps, 2)
+	require.Equal(t, dbmodel.AppTypeKea, machine.Apps[0].Type)
+	require.Len(t, machine.Apps[0].AccessPoints, 1)
+	require.Equal(t, "1.2.3.4", machine.Apps[0].AccessPoints[0].Address)
+	require.EqualValues(t, 1234, machine.Apps[0].AccessPoints[0].Port)
+	require.Equal(t, dbmodel.AppTypeBind9, machine.Apps[1].Type)
+	require.Len(t, machine.Apps[1].AccessPoints, 1)
+	require.Equal(t, "1.2.3.4", machine.Apps[1].AccessPoints[0].Address)
+	require.EqualValues(t, 124, machine.Apps[1].AccessPoints[0].Port)
 }
