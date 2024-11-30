@@ -19,7 +19,7 @@ def _login_session():
     session object."""
     session = requests.Session()
     credentials = {
-        "authenticationMethodId": "internal",
+        "authenticationMethodId": "auth-fixed",
         "identifier": "admin",
         "secret": "admin",
     }
