@@ -101,8 +101,8 @@ WORKDIR /app/etc
 COPY etc .
 WORKDIR /app/api
 COPY api .
-WORKDIR /app/codegen
-COPY codegen .
+WORKDIR /app/common
+COPY common .
 WORKDIR /app/rakelib
 COPY rakelib/10_codebase.rake rakelib/20_build.rake rakelib/30_dev.rake rakelib/40_dist.rake ./
 
