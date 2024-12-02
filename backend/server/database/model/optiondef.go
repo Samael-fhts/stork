@@ -5,6 +5,10 @@ import (
 	dbops "isc.org/stork/server/database"
 )
 
+// A factory for creating DHCPOptionDefinitionLookup instances for daemons.
+// It caches the created objects. The cache is not thread-safe.
+// It allows to significantly reduce the number of queries to the database if
+// multiple entities referenced the same daemon are processed in a loop.
 type DHCPOptionDefinitionLookups struct {
 	db    dbops.DBI
 	cache map[int64]keaconfig.DHCPOptionDefinitionLookup
