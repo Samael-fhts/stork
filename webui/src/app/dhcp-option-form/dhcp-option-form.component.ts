@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core'
-import { UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms'
+import { UntypedFormArray, UntypedFormGroup, Validators } from '@angular/forms'
 import { v4 as uuidv4 } from 'uuid'
 import { MenuItem } from 'primeng/api'
 import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-option-field'
@@ -130,7 +130,6 @@ export class DhcpOptionFormComponent implements OnInit {
      * to configure.
      */
     constructor(
-        private _formBuilder: UntypedFormBuilder,
         private _optionSetFormService: DhcpOptionSetFormService,
         public optionsService: DhcpOptionsService
     ) {}
