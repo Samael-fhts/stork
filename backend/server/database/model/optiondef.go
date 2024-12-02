@@ -28,6 +28,7 @@ func (c *DHCPOptionDefinitionLookups) GetLookup(daemonID int64) (keaconfig.DHCPO
 		return lookup, nil
 	}
 
+	// ToDo: Read only the definitions, not the whole config.
 	daemon, err := GetDaemonByID(c.db, daemonID)
 	if err != nil {
 		return nil, err

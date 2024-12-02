@@ -648,6 +648,8 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 		return rsp
 	}
 
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(r.DB)
+
 	var settableConfigs []config.AnnotatedEntity[*keaconfig.SettableConfig]
 	for i := range params.Request.Configs {
 		receivedConfig := params.Request.Configs[i]
@@ -703,17 +705,15 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 			_ = settableConfig.SetReservationsOutOfPool(partialConfig.ReservationsOutOfPool)
 			_ = settableConfig.SetValidLifetime(partialConfig.ValidLifetime)
 
-			// ToDo: Read only the definitions, not the whole config.
-			daemon, err := dbmodel.GetDaemonByID(r.DB, receivedConfig.DaemonID)
+			lookup, err := lookups.GetLookup(receivedConfig.DaemonID)
 			if err != nil {
-				msg := fmt.Sprintf("Problem with getting daemon with ID %d", receivedConfig.DaemonID)
+				msg := fmt.Sprintf("Problem with getting DHCP option definitions for daemon ID %d", receivedConfig.DaemonID)
 				log.WithError(err).Error(msg)
 				rsp := dhcp.NewUpdateKeaGlobalParametersSubmitDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 					Message: &msg,
 				})
 				return rsp
 			}
-			lookup := keaconfig.NewDHCPOptionDefinitionLookup(daemon.KeaDaemon.Config.GetDHCPOptionDefinitions())
 
 			options, err := r.flattenDHCPOptions("", partialConfig.Options, lookup, 0)
 			if err != nil {
