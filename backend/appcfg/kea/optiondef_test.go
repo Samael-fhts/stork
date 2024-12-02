@@ -138,3 +138,62 @@ func TestDHCPOptionDefinitionFieldTypeRecordNoRecordTypes(t *testing.T) {
 	require.False(t, ok)
 	require.Empty(t, fieldType)
 }
+
+// Test that the record types are returned properly.
+func TestDHCPOptionDefinitionGetRecordTypes(t *testing.T) {
+	t.Run("Nil record types", func(t *testing.T) {
+		// Arrange
+		definition := DHCPOptionDefinition{}
+
+		// Act
+		recordTypes := definition.GetRecordTypes()
+
+		// Assert
+		require.Empty(t, recordTypes)
+	})
+
+	t.Run("Empty record types", func(t *testing.T) {
+		// Arrange
+		definition := DHCPOptionDefinition{
+			RecordTypes: NewDHCPOptionTypes(),
+		}
+
+		// Act
+		recordTypes := definition.GetRecordTypes()
+
+		// Assert
+		require.Empty(t, recordTypes)
+	})
+
+	t.Run("Single record type", func(t *testing.T) {
+		// Arrange
+		definition := DHCPOptionDefinition{
+			RecordTypes: NewDHCPOptionTypes(Uint8Option),
+		}
+
+		// Act
+		recordTypes := definition.GetRecordTypes()
+
+		// Assert
+		require.Len(t, recordTypes, 1)
+		require.Equal(t, Uint8Option, recordTypes[0])
+	})
+
+	t.Run("Multiple record types", func(t *testing.T) {
+		// Arrange
+		definition := DHCPOptionDefinition{
+			RecordTypes: NewDHCPOptionTypes(
+				Uint8Option,
+				Uint16Option,
+			),
+		}
+
+		// Act
+		recordTypes := definition.GetRecordTypes()
+
+		// Assert
+		require.Len(t, recordTypes, 2)
+		require.Equal(t, Uint8Option, recordTypes[0])
+		require.Equal(t, Uint16Option, recordTypes[1])
+	})
+}
