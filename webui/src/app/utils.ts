@@ -553,21 +553,30 @@ export function uncamelCase(key: string): string {
  * the hyphens are converted to begin with a capital letter.
  *
  * @param key a name to be converted from JSON notation to camel case.
+ * @param capitalizeAll a list of tokens that should be capitalized in full.
+ *                      The values must be in upper case.
+ *                      E.g. ['DHCP', 'DNS']
  * @returns converted name.
  */
-export function unhyphen(key: string): string {
-    let text = key.trim().replace(/-/g, ' ')
-    if (text.length === 0) {
-        return key
-    }
-    let position = 0
-    while (position >= 0) {
-        position = text.indexOf(' ', position)
-        if (position >= 0 && position < text.length - 1) {
-            text = text.slice(0, position) + text.charAt(position + 1).toUpperCase() + text.slice(position + 2)
-        }
-    }
-    return text
+export function unhyphen(key: string, capitalizeAll=[]): string {
+    const tokens = key
+        // Remove whitespace from the beginning and end of the string.
+        .trim()
+        // Split by hyphens.
+        .split('-')
+        // Remove empty tokens on duplicated hyphens.
+        .filter((t) => t.length > 0)
+        // Capitalize tokens.
+        .map(t => {
+            // If the token is in the list of special tokens
+            if (capitalizeAll.includes(t.toUpperCase())) {
+                return t.toUpperCase()
+            }
+            return t.charAt(0).toUpperCase() + t.slice(1)
+        })
+    // Concatenate tokens with spaces. If there are no tokens, return the
+    // original key.
+    return tokens.length > 0 ? tokens.join(' ') : key
 }
 
 /**
