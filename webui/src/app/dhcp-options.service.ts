@@ -445,7 +445,7 @@ export class DhcpOptionsService {
      *
      * Returned list can be used to initialize dropdown list of options in a form.
      */
-    getStandardDhcpv4Options(): DhcpOptionListItem[] {
+    private getStandardDhcpv4Options(): DhcpOptionListItem[] {
         return this._dhcpv4Options
     }
 
@@ -456,7 +456,7 @@ export class DhcpOptionsService {
      * 
      * * @param daemonId daemon ID.
      */
-    getCustomDhcpv4Options(daemonId: number): DhcpOptionListItem[] {
+    private getCustomDhcpv4Options(daemonId: number): DhcpOptionListItem[] {
         throw new Error('Not implemented')
     }
 
@@ -476,7 +476,7 @@ export class DhcpOptionsService {
      *
      * Returned list can be used to initialize dropdown list of options in a form.
      */
-    getStandardDhcpv6Options(): DhcpOptionListItem[] {
+    private getStandardDhcpv6Options(): DhcpOptionListItem[] {
         return this._dhcpv6Options
     }
 
@@ -487,7 +487,7 @@ export class DhcpOptionsService {
      * 
      * @param daemonId daemon ID.
      */
-    getCustomDhcpv6Options(daemonId: number): DhcpOptionListItem[] {
+    private getCustomDhcpv6Options(daemonId: number): DhcpOptionListItem[] {
         throw new Error('Not implemented')
     }
 
@@ -506,7 +506,7 @@ export class DhcpOptionsService {
      * @param code option code.
      * @returns option description or null if it is not found.
      */
-    findStandardDhcpv4Option(code: number): DhcpOptionListItem | null {
+    private findStandardDhcpv4Option(code: number): DhcpOptionListItem | null {
         return this._dhcpv4OptionsByCode.get(code)
     }
 
@@ -517,7 +517,7 @@ export class DhcpOptionsService {
      * @param code option code.
      * @returns option description or null if it is not found.
      */
-    findCustomDhcpv4Option(daemonId: number, code: number): DhcpOptionListItem | null {
+    private findCustomDhcpv4Option(daemonId: number, code: number): DhcpOptionListItem | null {
         throw new Error('Not implemented')
     }
 
@@ -537,7 +537,7 @@ export class DhcpOptionsService {
      * @param code option code.
      * @returns option description or null if it is not found.
      */
-    findStandardDhcpv6Option(code: number): DhcpOptionListItem | null {
+    private findStandardDhcpv6Option(code: number): DhcpOptionListItem | null {
         return this._dhcpv6OptionsByCode.get(code)
     }
 
@@ -548,7 +548,7 @@ export class DhcpOptionsService {
      * @param code option code.
      * @returns option description or null if it is not found.
      */
-    findCustomDhcpv6Option(daemonId: number, code: number): DhcpOptionListItem | null {
+    private findCustomDhcpv6Option(daemonId: number, code: number): DhcpOptionListItem | null {
         throw new Error('Not implemented')
     }
 
@@ -569,7 +569,7 @@ export class DhcpOptionsService {
      * @param space option space.
      * @returns DHCPv4 option definition or null, if not found.
      */
-    findStandardDhcpv4OptionDef(code: number, space: string | null): DhcpOptionDef | null {
+    private findStandardDhcpv4OptionDef(code: number, space: string | null): DhcpOptionDef | null {
         return stdDhcpv4OptionDefs.find((def) => def.code === code && def.space === (space ?? 'dhcp4'))
     }
 
@@ -581,7 +581,7 @@ export class DhcpOptionsService {
      * @param space option space.
      * @returns DHCPv4 option definition or null, if not found.
      */
-    findCustomDhcpv4OptionDef(daemonId: number, code: number, space: string | null): DhcpOptionDef | null {
+    private findCustomDhcpv4OptionDef(daemonId: number, code: number, space: string | null): DhcpOptionDef | null {
         throw Error('Not implemented')
     }
 
@@ -604,7 +604,7 @@ export class DhcpOptionsService {
      * @param space option space.
      * @returns DHCPv6 option definition or null, if not found.
      */
-    findStandardDhcpv6OptionDef(code: number, space: string | null): DhcpOptionDef | null {
+    private findStandardDhcpv6OptionDef(code: number, space: string | null): DhcpOptionDef | null {
         return stdDhcpv6OptionDefs.find((def) => def.code === code && def.space === (space ?? 'dhcp6'))
     }
 
@@ -616,7 +616,7 @@ export class DhcpOptionsService {
      * @param space option space.
      * @returns DHCPv6 option definition or null, if not found.
      */
-    findCustomDhcpv6OptionDef(daemonId: number, code: number, space: string | null): DhcpOptionDef | null {
+    private findCustomDhcpv6OptionDef(daemonId: number, code: number, space: string | null): DhcpOptionDef | null {
         throw Error('Not implemented')
     }
 
@@ -640,7 +640,7 @@ export class DhcpOptionsService {
      * @param space option space name.
      * @returns An array of option definitions in the option space.
      */
-    findStandardDhcpv4OptionDefsBySpace(space: string | null): DhcpOptionDef[] {
+    private  findStandardDhcpv4OptionDefsBySpace(space: string | null): DhcpOptionDef[] {
         return stdDhcpv4OptionDefs.filter((def) => def.space === (space ?? 'dhcp4'))
     }
 
@@ -653,7 +653,7 @@ export class DhcpOptionsService {
      * @param space option space name.
      * @returns An array of option definitions in the option space.
      */
-    findCustomDhcpv4OptionDefsBySpace(daemonId: number, space: string | null): DhcpOptionDef[] {
+    private findCustomDhcpv4OptionDefsBySpace(daemonId: number, space: string | null): DhcpOptionDef[] {
         throw new Error('Not implemented')
     }
 
@@ -678,7 +678,7 @@ export class DhcpOptionsService {
      * @param space option space name.
      * @returns An array of option definitions in the option space.
      */
-    findStandardDhcpv6OptionDefsBySpace(space: string | null): DhcpOptionDef[] {
+    private findStandardDhcpv6OptionDefsBySpace(space: string | null): DhcpOptionDef[] {
         return stdDhcpv6OptionDefs.filter((def) => def.space === (space ?? 'dhcp6'))
     }
 
@@ -691,7 +691,7 @@ export class DhcpOptionsService {
      * @param space option space name.
      * @returns An array of option definitions in the option space.
      */
-    findCustomDhcpv6OptionDefsBySpace(daemonId: number, space: string | null): DhcpOptionDef[] {
+    private findCustomDhcpv6OptionDefsBySpace(daemonId: number, space: string | null): DhcpOptionDef[] {
         throw new Error('Not implemented')
     }
 
