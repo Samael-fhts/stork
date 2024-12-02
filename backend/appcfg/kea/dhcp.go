@@ -554,8 +554,8 @@ func (c *SettableDHCPv4Config) SetHostReservationIdentifiers(hostReservationIden
 }
 
 // Sets global valid lifetime.
-func (c *SettableDHCPv4Config) SetValidLifetime(validLifeetime *int64) {
-	c.SettableValidLifetimeParameters.ValidLifetime = storkutil.NewNullable(validLifeetime)
+func (c *SettableDHCPv4Config) SetValidLifetime(validLifetime *int64) {
+	c.SettableValidLifetimeParameters.ValidLifetime = storkutil.NewNullable(validLifetime)
 }
 
 // Sets global DHCP option data.
