@@ -14,7 +14,10 @@
         "typeRoots": ["node_modules/@types"],
         "lib": ["ES2020", "DOM"],
         "useDefineForClassFields": false,
+        // Allows import JSON files.
         "resolveJsonModule": true,
+        // Necessary to import JSON files and assign the data to a variable
+        // defined as a default import.
         "allowSyntheticDefaultImports": true
     },
     "angularCompilerOptions": {
