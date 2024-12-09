@@ -74,6 +74,11 @@ export class DhcpOptionFormComponent implements OnInit {
     @Input() optionSpace = null
 
     /**
+     * Daemon ID where the options are defined.
+     */
+    @Input() daemonId = null
+
+    /**
      * An event emitted when an option should be deleted.
      *
      * The parent component should react to this event by removing the
@@ -511,13 +516,13 @@ export class DhcpOptionFormComponent implements OnInit {
      * @returns An array of option codes or an empty array if the option
      * definition doesn't exist.
      */
-    getStandardDhcpOptionDefCodes(): Array<number> {
+    getDhcpOptionDefCodes(): Array<number> {
         if (!this.optionDef) {
             return []
         }
         return this.v6
-            ? this.optionsService.findStandardDhcpv6OptionDefsBySpace(this.optionDef.encapsulate).map((def) => def.code)
-            : this.optionsService.findStandardDhcpv4OptionDefsBySpace(this.optionDef.encapsulate).map((def) => def.code)
+            ? this.optionsService.findDhcpv6OptionDefsBySpace(this.daemonId, this.optionDef.encapsulate).map((def) => def.code)
+            : this.optionsService.findDhcpv4OptionDefsBySpace(this.daemonId, this.optionDef.encapsulate).map((def) => def.code)
     }
 
     /**
@@ -535,8 +540,8 @@ export class DhcpOptionFormComponent implements OnInit {
         this.suboptions.clear()
         let optionCode = event.value
         this.optionDef = this.v6
-            ? this.optionsService.findStandardDhcpv6OptionDef(optionCode, this.optionSpace)
-            : this.optionsService.findStandardDhcpv4OptionDef(optionCode, this.optionSpace)
+            ? this.optionsService.findDhcpv6OptionDef(this.daemonId, optionCode, this.optionSpace)
+            : this.optionsService.findDhcpv4OptionDef(this.daemonId, optionCode, this.optionSpace)
         if (!this.optionDef) {
             return
         }

@@ -69,6 +69,11 @@ export class DhcpOptionSetViewComponent implements OnInit {
     @Input() levels: string[]
 
     /**
+     * Daemon ID associated with the options.
+     */
+    @Input() daemonId: number
+
+    /**
      * Collection of the converted options into the nodes that can be
      * displayed as a tree.
      *
@@ -226,8 +231,8 @@ export class DhcpOptionSetViewComponent implements OnInit {
     getOptionTitle(node: TreeNode<OptionNode>): string {
         let option =
             node.data.universe === IPType.IPv4
-                ? this.optionsService.findStandardDhcpv4Option(node.data.code)
-                : this.optionsService.findStandardDhcpv6Option(node.data.code)
+                ? this.optionsService.findDhcpv4Option(this.daemonId, node.data.code)
+                : this.optionsService.findDhcpv6Option(this.daemonId, node.data.code)
         if (option) {
             return `${option.label}`
         }
