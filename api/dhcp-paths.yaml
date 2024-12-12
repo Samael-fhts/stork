@@ -877,3 +877,28 @@
           description: generic error response
           schema:
             $ref: "#/definitions/ApiError"
+
+  /daemons/{daemonId}/option-definitions:
+    get:
+      summary: Get option definitions for a Kea daemon.
+      description: >-
+        This call returns a list of custom option definitions specified in the
+        Kea configuration for a given Kea daemon.
+      operationId: getCustomOptionDefinitions
+      tags:
+        - DHCP
+      parameters:
+        - in: path
+          name: daemonId
+          type: integer
+          required: true
+          description: Kea daemon ID.
+      responses:
+        200:
+          description: List of option definitions.
+          schema:
+            $ref: "#/definitions/DHCPOptionDefinitions"
+        default:
+          description: generic error response
+          schema:
+            $ref: "#/definitions/ApiError"
