@@ -207,6 +207,7 @@
                         [v6]="state.dhcpv6"
                         [formArray]="optionSet"
                         (optionAdd)="onOptionAdd(i)"
+                        [daemonId]="state.group.get('selectedDaemons').value[i]"
                     ></app-dhcp-option-set-form>
                 </div>
             </ng-container>

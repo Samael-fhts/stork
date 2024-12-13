@@ -567,16 +567,18 @@ export function unhyphen(key: string, capitalizeAll=[]): string {
         // Remove empty tokens on duplicated hyphens.
         .filter((t) => t.length > 0)
         // Capitalize tokens.
-        .map(t => {
+        .map((t, i) => {
             // If the token is in the list of special tokens
             if (capitalizeAll.includes(t.toUpperCase())) {
                 return t.toUpperCase()
             }
+            if (i === 0) {
+                return t
+            }
             return t.charAt(0).toUpperCase() + t.slice(1)
         })
-    // Concatenate tokens with spaces. If there are no tokens, return the
-    // original key.
-    return tokens.length > 0 ? tokens.join(' ') : key
+    // Concatenate tokens. If there are no tokens, return the original key.
+    return tokens.length > 0 ? tokens.join('') : key
 }
 
 /**

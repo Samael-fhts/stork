@@ -13,6 +13,10 @@ import { createDefaultDhcpOptionFormGroup } from '../forms/dhcp-option-form'
 import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-set-form.component'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { IPType } from '../iptype'
+import { DHCPOptionDefinitions, DHCPService } from '../backend'
+import { of } from 'rxjs'
+import { HttpClient, HttpResponse } from '@angular/common/http'
+import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('DhcpOptionSetFormComponent', () => {
     let component: DhcpOptionSetFormComponent
@@ -32,14 +36,45 @@ describe('DhcpOptionSetFormComponent', () => {
                 ReactiveFormsModule,
                 SplitButtonModule,
                 ToggleButtonModule,
+                HttpClientTestingModule,
             ],
             declarations: [DhcpOptionFormComponent, DhcpOptionSetFormComponent, HelpTipComponent],
         }).compileComponents()
+
+        const dhcpService = TestBed.inject(DHCPService)
+        spyOn(dhcpService, "getCustomOptionDefinitions").and.
+            returnValue(of({
+                total: 3,
+                items: [
+                    {
+                        code: 1001,
+                        name: "foo",
+                        optionType: "uint8",
+                        space: "dhcp4",
+                    },
+                    {
+                        code: 1002,
+                        name: "bar",
+                        optionType: "uint16",
+                        space: "dhcp4",
+                        array: false,
+                        recordTypes: ["uint16"]
+                    },
+                    {
+                        code: 1003,
+                        name: "baz",
+                        optionType: "ipv4-address",
+                        space: "zab",
+                        array: true
+                    }
+                ]
+            } as DHCPOptionDefinitions) as any) 
     })
 
     beforeEach(() => {
         fixture = TestBed.createComponent(DhcpOptionSetFormComponent)
         component = fixture.componentInstance
+        component.daemonId = 42
         fb = new UntypedFormBuilder()
         component.formArray = fb.array([])
         fixture.detectChanges()

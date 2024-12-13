@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { ComponentFixture, fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing'
 import {
     UntypedFormArray,
     UntypedFormBuilder,
@@ -21,6 +21,10 @@ import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { IPType } from '../iptype'
 import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-option-field'
 import { DividerModule } from 'primeng/divider'
+import { DHCPOptionDefinitions, DHCPService } from '../backend'
+import { of } from 'rxjs'
+import { HttpResponse } from '@angular/common/http'
+import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('DhcpOptionFormComponent', () => {
     let component: DhcpOptionFormComponent
@@ -40,18 +44,52 @@ describe('DhcpOptionFormComponent', () => {
                 SplitButtonModule,
                 ToggleButtonModule,
                 DividerModule,
+                HttpClientTestingModule,
             ],
             declarations: [DhcpOptionFormComponent, DhcpOptionSetFormComponent, HelpTipComponent],
         }).compileComponents()
+
+        const dhcpService = TestBed.inject(DHCPService)
+        spyOn(dhcpService, "getCustomOptionDefinitions").and.
+            returnValue(of({
+                total: 3,
+                items: [
+                    {
+                        code: 1001,
+                        name: "foo",
+                        optionType: "uint8",
+                        space: "dhcp4",
+                    },
+                    {
+                        code: 1002,
+                        name: "bar",
+                        optionType: "uint16",
+                        space: "dhcp4",
+                        array: false,
+                        recordTypes: ["uint16"]
+                    },
+                    {
+                        code: 1003,
+                        name: "baz",
+                        optionType: "ipv4-address",
+                        space: "zab",
+                        array: true
+                    }
+                ]
+            } as DHCPOptionDefinitions) as any) 
     })
 
-    beforeEach(() => {
+    beforeEach(fakeAsync((() => {
         fixture = TestBed.createComponent(DhcpOptionFormComponent)
         component = fixture.componentInstance
         // Our component needs a form group instance to be initialized.
         component.formGroup = createDefaultDhcpOptionFormGroup(IPType.IPv4)
+        component.daemonId = 42
+        component.ngOnInit()
+        tick()
         fixture.detectChanges()
-    })
+        tick()
+    })))
 
     it('should create', () => {
         expect(component).toBeTruthy()
@@ -74,7 +112,7 @@ describe('DhcpOptionFormComponent', () => {
         // and ensure it is the DHCPv4 option.
         const nameServer = dropdownEl.componentInstance.options.find((opt) => opt.value === 5)
         expect(nameServer).toBeTruthy()
-        expect(nameServer.label).toBe('(5) Name Server')
+        expect(nameServer.label).toBe('(5) Name Servers')
     })
 
     it('should display DHCPv6 options selection', () => {
@@ -524,7 +562,7 @@ describe('DhcpOptionFormComponent', () => {
             encapsulate: 'dhcp-agent-options-space',
             recordTypes: [],
         }
-        const codes = component.getStandardDhcpOptionDefCodes()
+        const codes = component.getDhcpOptionDefCodes()
         expect(codes.length).toBe(20)
 
         const expectedCodes = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 151, 152]
@@ -542,13 +580,13 @@ describe('DhcpOptionFormComponent', () => {
             recordTypes: ['uint8', 'uint8', 'uint8', 'ipv4-address', 'ipv6-prefix'],
         }
         component.v6 = true
-        const codes = component.getStandardDhcpOptionDefCodes()
+        const codes = component.getDhcpOptionDefCodes()
         expect(codes.length).toBe(1)
         expect(codes[0]).toBe(93)
     })
 
     it('should return an empty array of option definition codes when option definition is unavailable', () => {
-        const codes = component.getStandardDhcpOptionDefCodes()
+        const codes = component.getDhcpOptionDefCodes()
         expect(codes).toBeTruthy()
         expect(codes.length).toBe(0)
     })

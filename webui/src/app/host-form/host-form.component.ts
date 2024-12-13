@@ -922,7 +922,7 @@ export class HostFormComponent implements OnInit, OnDestroy {
     /**
      * Convenience function returning the control with selected daemons.
      *
-     * returns form control with selected daemon IDs.
+     * @returns form control with selected daemon IDs.
      */
     get selectedDaemons(): AbstractControl {
         return this.formGroup.get('selectedDaemons')

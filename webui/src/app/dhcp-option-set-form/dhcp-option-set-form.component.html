@@ -9,6 +9,7 @@
         [nestLevel]="nestLevel"
         [optionSpace]="optionSpace"
         (optionDelete)="onOptionDelete($event)"
+        [daemonId]="daemonId"
     ></app-dhcp-option-form>
 </div>
 <ng-container *ngIf="nestLevel === 0">

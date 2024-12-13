@@ -106,6 +106,11 @@ export class DhcpOptionSetViewComponent implements OnInit {
     currentLevelOnlyMode: boolean = false
 
     /**
+     * The DHCP option names by their codes.
+     */
+    optionNames: { [code: number]: string } = {}
+
+    /**
      * Constructor.
      */
     constructor(public optionsService: DhcpOptionsService) {}
@@ -116,6 +121,10 @@ export class DhcpOptionSetViewComponent implements OnInit {
      * It converts input DHCP options into the nodes tree that can be displayed.
      */
     ngOnInit(): void {
+        if (!this.daemonId) {
+            throw new Error('Daemon ID must be specified')
+        }
+
         for (let i = 0; i < this.options?.length; i++) {
             this.optionNodes.push(this.convertOptionsToNodes(this.options[i], this.levels[i]))
         }
@@ -140,6 +149,18 @@ export class DhcpOptionSetViewComponent implements OnInit {
                 }
         }
         this.displayedOptionNodes = this.combinedOptionNodes
+
+        // Fetch option names.
+        if (this.options) {
+            const isV6 = this.options[0]?.[0]?.universe === IPType.IPv6
+            const fetchPromise = isV6
+                ? this.optionsService.getDhcpv4OptionDefs(this.daemonId)
+                : this.optionsService.getDhcpv6OptionDefs(this.daemonId)
+            fetchPromise.then(defs => {
+                const listItems = this.optionsService.convertToListItems(defs)
+                this.optionNames = Object.fromEntries(listItems.map(li => [li.value, li.label]))
+            })
+        }
     }
 
     /**
@@ -229,12 +250,9 @@ export class DhcpOptionSetViewComponent implements OnInit {
      *          followed by the option code.
      */
     getOptionTitle(node: TreeNode<OptionNode>): string {
-        let option =
-            node.data.universe === IPType.IPv4
-                ? this.optionsService.findDhcpv4Option(this.daemonId, node.data.code)
-                : this.optionsService.findDhcpv6Option(this.daemonId, node.data.code)
-        if (option) {
-            return `${option.label}`
+        const name = node.data.code
+        if (this.optionNames[name]) {
+            return `${this.optionNames[name]} (${name})`
         }
         return `Option ${node.data.code}`
     }

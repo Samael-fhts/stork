@@ -3,12 +3,13 @@ import { UntypedFormArray, UntypedFormGroup, Validators } from '@angular/forms'
 import { v4 as uuidv4 } from 'uuid'
 import { MenuItem } from 'primeng/api'
 import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-option-field'
-import { DhcpOptionsService } from '../dhcp-options.service'
+import { DhcpOptionListItem, DhcpOptionsService } from '../dhcp-options.service'
 import { DhcpOptionSetFormService } from '../forms/dhcp-option-set-form.service'
 import { createDefaultDhcpOptionFormGroup } from '../forms/dhcp-option-form'
 import { IPType } from '../iptype'
 import { StorkValidators } from '../validators'
 import { DhcpOptionDef } from '../dhcp-option-def'
+import { DropdownItem } from 'primeng/dropdown'
 
 /**
  * A signature to a function adding a field to the form.
@@ -124,6 +125,14 @@ export class DhcpOptionFormComponent implements OnInit {
      * option.
      */
     optionDef: DhcpOptionDef
+
+    optionDefItems: { label: string; value: number }[] = []
+
+    /**
+     * A list of DHCP option definitions. Includes both standard and custom
+     * options.
+     */
+    optionDefs: DhcpOptionDef[] = []
 
     /**
      * Constructor.
@@ -249,6 +258,10 @@ export class DhcpOptionFormComponent implements OnInit {
      * their selection with appropriate handler functions.
      */
     ngOnInit(): void {
+        if (!this.daemonId) {
+            throw new Error('Daemon ID must be set for the DHCP option form.')
+        }
+
         this.lastFieldType = DhcpOptionFieldType.Binary
         this.lastFieldCommand = this.addBinaryField
         this.codeInputId = uuidv4()
@@ -337,6 +350,19 @@ export class DhcpOptionFormComponent implements OnInit {
                 },
             })
         }
+
+        if (!this.optionSpace) {
+            this.optionSpace = this.v6 ? 'dhcp6' : 'dhcp4'
+        }
+
+        // Fetch the option definitions.
+        (this.v6
+            ? this.optionsService.getConfigurableDhcpv6OptionDefs(this.daemonId)
+            : this.optionsService.getConfigurableDhcpv4OptionDefs(this.daemonId)
+        ).then(defs => {
+            this.optionDefs = defs
+            this.optionDefItems = this.optionsService.convertToListItems(defs)
+        })
     }
 
     /**
@@ -520,9 +546,12 @@ export class DhcpOptionFormComponent implements OnInit {
         if (!this.optionDef) {
             return []
         }
-        return this.v6
-            ? this.optionsService.findDhcpv6OptionDefsBySpace(this.daemonId, this.optionDef.encapsulate).map((def) => def.code)
-            : this.optionsService.findDhcpv4OptionDefsBySpace(this.daemonId, this.optionDef.encapsulate).map((def) => def.code)
+
+        if (!this.optionDefs) {
+            return []
+        }
+
+        return this.optionDefs.map(d => d.code)
     }
 
     /**
@@ -539,9 +568,9 @@ export class DhcpOptionFormComponent implements OnInit {
         this.optionFields.clear()
         this.suboptions.clear()
         let optionCode = event.value
-        this.optionDef = this.v6
-            ? this.optionsService.findDhcpv6OptionDef(this.daemonId, optionCode, this.optionSpace)
-            : this.optionsService.findDhcpv4OptionDef(this.daemonId, optionCode, this.optionSpace)
+        this.optionDef = this.optionDefs.find(
+            (def) => def.code === optionCode && def.space === this.optionSpace
+        )
         if (!this.optionDef) {
             return
         }

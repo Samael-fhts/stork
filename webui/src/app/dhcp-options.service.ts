@@ -2,7 +2,8 @@ import { Injectable } from '@angular/core'
 import { DhcpOptionDef } from './dhcp-option-def'
 import stdDhcpv4OptionDefsRaw from './std-dhcpv4-option-defs.json'
 import stdDhcpv6OptionDefsRaw from './std-dhcpv6-option-defs.json'
-import { Observable } from 'rxjs'
+import { firstValueFrom, lastValueFrom, map, Observable, shareReplay } from 'rxjs'
+import { DHCPOptionDefinition, DHCPService, ServicesService } from './backend'
 
 /**
  * Converts the raw JSON data into the structures used by the application.
@@ -35,6 +36,7 @@ const stdDhcpv6OptionDefs: DhcpOptionDef[] = stdDhcpv6OptionDefsRaw.map((raw) =>
 export interface DhcpOptionListItem {
     label: string
     value: number
+    id: number
 }
 
 /**
@@ -53,7 +55,7 @@ export class DhcpOptionsService {
     /**
      * Defines a list of the user-configurable standard DHCPv4 options.
      */
-    private configurableDHCPv4OptionCodes: number[] = [
+    private static configurableDHCPv4OptionCodes: Set<number> = new Set([
         // 1, // '(1) Subnet Mask'
         2, // '(2) Time Offset'
         3, // '(3) Router'
@@ -241,24 +243,12 @@ export class DhcpOptionsService {
         // 221, // '(221) Virtual Subnet Selection (VSS) Option'
         // 222 - 223, // '(222-223) Unassigned'
         // 224 - 254, // '(224-254) Reserved (Private Use)'
-    ]
-
-    /**
-     * Defines a list of the configurable standard DHCPv4 options.
-     *
-     * Commented out options are not configurable by a user.
-     */
-    private _dhcpv4Options: DhcpOptionListItem[]
-
-    /**
-     * Indexes the standard DHCPv4 options by option code for faster lookup.
-     */
-    private _dhcpv4OptionsByCode: Map<number, DhcpOptionListItem>
+    ])
 
     /**
      * Defines a list of the user-configurable standard DHCPv6 options.
      */
-    private configurableDHCPv6OptionCodes: number[] = [
+    private static configurableDHCPv6OptionCodes: Set<number> = new Set([
         // 0, // '(0) Reserved'
         // 1, // '(1) OPTION_CLIENTID'
         // 2, // '(2) OPTION_SERVERID'
@@ -403,325 +393,122 @@ export class DhcpOptionsService {
         // 141, // '(141) OPTION_V6_DOTS_RI'
         // 142, // '(142) OPTION_V6_DOTS_ADDRESS'
         143, // '(143) OPTION-IPv6_Address-ANDSF'
-    ]
+    ])
 
     /**
-     * Defines a list of configurable standard DHCPv6 options.
-     *
-     * Commented out options are not configurable by a user.
+     * Amount of time in miliseconds after which the cache of custom DHCP
+     * option definitions is considered stale.
      */
-    private _dhcpv6Options: DhcpOptionListItem[]
+    public cacheLifetime = 60000
 
     /**
-     * Indexes the standard DHCPv6 options by option code for faster lookup.
+     * A map of custom DHCP option definitions indexed by the daemon ID.
      */
-    private _dhcpv6OptionsByCode: Map<number, DhcpOptionListItem>
-
-    /**
-     * Converts DHCP option definition to the list item.
-     */
-    private static convertToListItem(def: DhcpOptionDef): DhcpOptionListItem {
-        return {
-            label: DhcpOptionsService.getOptionLabel(def),
-            value: def.code
-        }
-    }
-
-    /**
-     * Converts DHCP option definitions to the list items.
-     */
-    private static convertToListItems(defs: DhcpOptionDef[]): DhcpOptionListItem[] {
-        return defs.map(DhcpOptionsService.convertToListItem)
-    }
+    private _customDhcpOptionDefs: Map<number, { definitions$: Observable<DhcpOptionDef[]>, timestamp: number }> = new Map()
 
     /**
      * Constructor.
      *
      * Creates indexes of the options by the option codes.
      */
-    constructor() {
-        this._dhcpv4Options = stdDhcpv4OptionDefs
-            .filter((def) => this.configurableDHCPv4OptionCodes.includes(def.code))
-            .map(DhcpOptionsService.convertToListItem)
-        this._dhcpv6Options = stdDhcpv6OptionDefs
-            .filter((def) => this.configurableDHCPv6OptionCodes.includes(def.code))
-            .map(DhcpOptionsService.convertToListItem)
-
-        this._dhcpv4OptionsByCode = new Map(this._dhcpv4Options.map((o) => [o.value, o]))
-        this._dhcpv6OptionsByCode = new Map(this._dhcpv6Options.map((o) => [o.value, o]))
-    }
+    constructor(private dhcpService: DHCPService) {}
 
     /**
      * Returns the custom DHCP option definitions for a specific daemon.
      * 
      * @param daemonId daemon ID.
      */
-    private async getCustomDhcpOptionDefinitions(daemonId: number): Promise<DhcpOptionDef[]> {
-        throw new Error('Not implemented')
+    private getCustomDhcpOptionDefinitions(daemonId: number): Promise<DhcpOptionDef[]> {
+        if (this._customDhcpOptionDefs.has(daemonId)) {
+            const cached = this._customDhcpOptionDefs.get(daemonId)
+            if (Date.now() - cached.timestamp < this.cacheLifetime) {
+                return lastValueFrom(cached.definitions$)        
+            }
+        }
+
+        const definitions$ = this.dhcpService.getCustomOptionDefinitions(daemonId)
+            .pipe(
+                map(defs => {
+                    return defs.items.map((item) => ({
+                        array: !!item.array,
+                        code: item.code,
+                        encapsulate: item.encapsulate ?? '',
+                        name: item.name,
+                        optionType: item.optionType,
+                        recordTypes: item.recordTypes ?? [],
+                        space: item.space,
+                    }))
+                }),
+                shareReplay(1)
+            )
+        this._customDhcpOptionDefs.set(daemonId, { definitions$, timestamp: Date.now() })
+        return lastValueFrom(definitions$)
     }
 
     /**
-     * Returns configurable standard DHCPv4 options.
-     *
-     * Returned list can be used to initialize dropdown list of options in a form.
+     * Returns (standard and custom) DHCPv4 option definitions.
      */
-    private getStandardDhcpv4Options(): DhcpOptionListItem[] {
-        return this._dhcpv4Options
+    async getDhcpv4OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
+        const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
+        return stdDhcpv4OptionDefs.concat(customDefs)
     }
 
     /**
-     * Returns configurable custom options for a given daemon.
-     * 
-     * Returned list can be used to initialize dropdown list of options in a form.
-     * 
-     * @param daemonId daemon ID.
+     * Returns configurable (standard and custom) DHCPv4 option definitions.
      */
-    private async getCustomDhcpOptions(daemonId: number): Promise<DhcpOptionListItem[]> {
-        const defs = await this.getCustomDhcpOptionDefinitions(daemonId)
-        return DhcpOptionsService.convertToListItems(defs)
+    async getConfigurableDhcpv4OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
+        const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
+        return stdDhcpv4OptionDefs.concat(customDefs)
     }
 
     /**
-     * Returns configurable standard and custom DHCPv4 options.
-     * 
-     * Returned list can be used to initialize dropdown list of options in a form.
-     * 
-     * @param daemonId daemon ID.
+     * Returns (standard and custom) DHCPv6 option definitions.
      */
-    async getDhcpv4Options(daemonId: number): Promise<DhcpOptionListItem[]> {
-        const customDefs = await this.getCustomDhcpOptions(daemonId)
-        return this.getStandardDhcpv4Options().concat(customDefs)
+    async getDhcpv6OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
+        const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
+        return stdDhcpv6OptionDefs.concat(customDefs)
     }
 
     /**
-     * Returns configurable standard DHCPv6 options.
-     *
-     * Returned list can be used to initialize dropdown list of options in a form.
+     * Returns configurable (standard and custom) DHCPv6 option definitions.
      */
-    private getStandardDhcpv6Options(): DhcpOptionListItem[] {
-        return this._dhcpv6Options
+    async getConfigurableDhcpv6OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
+        const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
+        return stdDhcpv6OptionDefs.concat(customDefs)
     }
 
     /**
-     * Returns configurable standard and custom DHCPv6 options.
-     *
-     * Returned list can be used to initialize dropdown list of options in a form.
+     * Returns option definitions as list items.
      */
-    async getDhcpv6Options(daemonId: number): Promise<DhcpOptionListItem[]> {
-        const defs = await this.getCustomDhcpOptions(daemonId)
-        return this.getStandardDhcpv6Options().concat(defs)
+    convertToListItems(defs: DhcpOptionDef[]): DhcpOptionListItem[] {
+        return defs.map(d => ({
+            label: `(${d.code}) ${d.name.split('-').map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`,
+            value: d.code, 
+            id: d.code,
+        }))
     }
 
-    /**
-     * Finds a specific DHCPv4 option by option code.
-     *
-     * @param code option code.
-     * @returns option description or null if it is not found.
-     */
-    private findStandardDhcpv4Option(code: number): DhcpOptionListItem | null {
-        return this._dhcpv4OptionsByCode.get(code)
-    }
-
-    /**
-     * Finds a specific custom DHCP option by option code.
-     *
-     * @param daemonId daemon ID.
-     * @param code option code.
-     * @returns option description or null if it is not found.
-     */
-    private async findCustomDhcpOption(daemonId: number, code: number): Promise<DhcpOptionListItem | null> {
-        const defs = await this.getCustomDhcpOptionDefinitions(daemonId)
-        const def = defs.find((def) => def.code === code)
-        return def ? DhcpOptionsService.convertToListItem(def) : null
-    }
-
-    /**
-     * Finds a specific (standard or custom) DHCPv4 option by option code.
-     *
-     * @param code option code.
-     * @returns option description or null if it is not found.
-     */
-    async findDhcpv4Option(daemonId: number, code: number): Promise<DhcpOptionListItem | null> {
-        return this.findStandardDhcpv4Option(code) ?? this.findCustomDhcpOption(daemonId, code)
-    }
-
-    /**
-     * Finds a specific DHCPv6 option by option code.
-     *
-     * @param code option code.
-     * @returns option description or null if it is not found.
-     */
-    private findStandardDhcpv6Option(code: number): DhcpOptionListItem | null {
-        return this._dhcpv6OptionsByCode.get(code)
-    }
-
-    /**
-     * Finds a specific (standard or custom) DHCPv6 option by option code.
-     *
-     * @param code option code.
-     * @returns option description or null if it is not found.
-     */
-    async findDhcpv6Option(daemonId: number, code: number): Promise<DhcpOptionListItem | null> {
-        return this.findStandardDhcpv6Option(code) ?? this.findCustomDhcpOption(daemonId, code)
-    }
-
-    /**
-     * Finds a standard DHCPv4 option definition by the code and space.
-     *
-     * @param code option code.
-     * @param space option space.
-     * @returns DHCPv4 option definition or null, if not found.
-     */
-    private findStandardDhcpv4OptionDef(code: number, space: string | null): DhcpOptionDef | null {
-        return stdDhcpv4OptionDefs.find((def) => def.code === code && def.space === (space ?? 'dhcp4'))
-    }
-
-    /**
-     * Finds a custom DHCPv4 option definition by the code and space.
-     *
-     * @param daemonId daemon ID.
-     * @param code option code.
-     * @param space option space.
-     * @returns DHCPv4 option definition or null, if not found.
-     */
-    private async findCustomDhcpv4OptionDef(daemonId: number, code: number, space: string | null): Promise<DhcpOptionDef | null> {
-        const defs = await this.getCustomDhcpOptionDefinitions(daemonId)
-        return defs.find((def) => def.code === code && def.space === (space ?? 'dhcp4'))
-    }
-
-    /**
-     * Finds a (standard or custom) DHCPv4 option definition by the code and space.
-     * 
-     * @param daemonId daemon ID.
-     * @param code option code.
-     * @param space option space.
-     * @returns DHCPv4 option definition or null, if not found.
-     */
-    async findDhcpv4OptionDef(daemonId: number, code: number, space: string | null): Promise<DhcpOptionDef | null> {
-        return this.findStandardDhcpv4OptionDef(code, space) ?? this.findCustomDhcpv4OptionDef(daemonId, code, space)
-    }
-
-    /**
-     * Finds a standard DHCPv6 option definition by the code and space.
-     *
-     * @param code option code.
-     * @param space option space.
-     * @returns DHCPv6 option definition or null, if not found.
-     */
-    private findStandardDhcpv6OptionDef(code: number, space: string | null): DhcpOptionDef | null {
-        return stdDhcpv6OptionDefs.find((def) => def.code === code && def.space === (space ?? 'dhcp6'))
-    }
-
-    /**
-     * Finds a custom DHCPv6 option definition by the code and space.
-     *
-     * @param daemonId daemon ID.
-     * @param code option code.
-     * @param space option space.
-     * @returns DHCPv6 option definition or null, if not found.
-     */
-    private async findCustomDhcpv6OptionDef(daemonId: number, code: number, space: string | null): Promise<DhcpOptionDef | null> {
-        const defs = await this.getCustomDhcpOptionDefinitions(daemonId)
-        return defs.find((def) => def.code === code && def.space === (space ?? 'dhcp6'))
-    }
-
-    /**
-     * Finds a (standard or custom) DHCPv6 option definition by the code and space.
-     * 
-     * @param daemonId daemon ID.
-     * @param code option code.
-     * @param space option space.
-     * @returns DHCPv6 option definition or null, if not found.
-     */
-    async findDhcpv6OptionDef(daemonId: number, code: number, space: string | null): Promise<DhcpOptionDef | null> {
-        return this.findStandardDhcpv6OptionDef(code, space) ?? this.findCustomDhcpv6OptionDef(daemonId, code, space)
-    }
-
-    /**
-     * Finds all standard DHCPv4 option definitions in option space.
-     *
-     * If the option space is null, the top-level dhcp4 option space is assumed.
-     *
-     * @param space option space name.
-     * @returns An array of option definitions in the option space.
-     */
-    private  findStandardDhcpv4OptionDefsBySpace(space: string | null): DhcpOptionDef[] {
-        return stdDhcpv4OptionDefs.filter((def) => def.space === (space ?? 'dhcp4'))
-    }
-
-    /**
-     * Finds all custom DHCPv4 option definitions in option space.
-     *
-     * If the option space is null, the top-level dhcp4 option space is assumed.
-     *
-     * @param daemonId daemon ID.
-     * @param space option space name.
-     * @returns An array of option definitions in the option space.
-     */
-    private async findCustomDhcpv4OptionDefsBySpace(daemonId: number, space: string | null): Promise<DhcpOptionDef[]> {
-        const defs = await this.getCustomDhcpOptionDefinitions(daemonId)
-        return defs.filter((def) => def.space === (space ?? 'dhcp4'))
-    }
-
-    /**
-     * Finds all (standard or custom) DHCPv4 option definitions in option space.
-     *
-     * If the option space is null, the top-level dhcp6 option space is assumed.
-     *
-     * @param daemonId daemon ID.
-     * @param space option space name.
-     * @returns An array of option definitions in the option space.
-     */
-    async findDhcpv4OptionDefsBySpace(daemonId: number, space: string | null): Promise<DhcpOptionDef[]> {
-        const customDefs = await this.findCustomDhcpv4OptionDefsBySpace(daemonId, space)
-        return this.findStandardDhcpv4OptionDefsBySpace(space).concat(customDefs)
-    }
-
-    /**
-     * Finds all standard DHCPv6 option definitions in option space.
-     *
-     * If the option space is null, the top-level dhcp6 option space is assumed.
-     *
-     * @param space option space name.
-     * @returns An array of option definitions in the option space.
-     */
-    private findStandardDhcpv6OptionDefsBySpace(space: string | null): DhcpOptionDef[] {
-        return stdDhcpv6OptionDefs.filter((def) => def.space === (space ?? 'dhcp6'))
-    }
-
-    /**
-     * Finds all custom DHCPv6 option definitions in option space.
-     *
-     * If the option space is null, the top-level dhcp6 option space is assumed.
-     *
-     * @param daemonId daemon ID.
-     * @param space option space name.
-     * @returns An array of option definitions in the option space.
-     */
-    private async findCustomDhcpv6OptionDefsBySpace(daemonId: number, space: string | null): Promise<DhcpOptionDef[]> {
-        const defs = await this.getCustomDhcpOptionDefinitions(daemonId)
-        return defs.filter((def) => def.space === (space ?? 'dhcp6'))
-    }
-
-
-    /**
-     * Finds all (standard or custom) DHCPv6 option definitions in option space.
-     *
-     * If the option space is null, the top-level dhcp6 option space is assumed.
-     *
-     * @param daemonId daemon ID.
-     * @param space option space name.
-     * @returns An array of option definitions in the option space.
-     */
-    async findDhcpv6OptionDefsBySpace(daemonId: number, space: string | null): Promise<DhcpOptionDef[]> {
-        const customDefs = await this.findCustomDhcpv6OptionDefsBySpace(daemonId, space)
-        return this.findStandardDhcpv6OptionDefsBySpace(space).concat(customDefs)
-    }
-
-    /**
-     * Constructs a conventional label for a DHCP option definition.
-     */
-    private static getOptionLabel(def: DhcpOptionDef): string {
-        return `(${def.code}) ${def.name.replace('-', '_').toUpperCase()}`
+    private static convertToHumanReadableName(name: string): string {
+        const capitalizeAll = new Set([
+            "DHCP", "IP", "LPR", "TTL", "MTU", "TCP", "ARP", "NIS", "DD",
+            "NWIP", "NISPLUS", "TFTP", "SMTP", "WWW", "IRC", "SLP", "FQDN",
+            "NDS", "BCMS", "NDI", "AC", "ID"
+        ])
+        return name
+            // Remove whitespace from the beginning and end of the string.
+            .trim()
+            // Split by hyphens.
+            .split('-')
+            // Remove empty tokens on duplicated hyphens.
+            .filter((t) => t.length > 0)
+            // Capitalize tokens.
+            .map((t, i) => {
+                // If the token is in the list of special tokens
+                if (capitalizeAll.has(t.toUpperCase())) {
+                    return t.toUpperCase()
+                }
+                return t.charAt(0).toUpperCase() + t.slice(1)
+            })
+            .join(' ')
     }
 }

@@ -279,7 +279,11 @@
                                 }"
                             ></ng-container>
                         </ng-template>
-                        <app-dhcp-option-set-view [options]="[localHosts[0].options]" [levels]="['host']">
+                        <app-dhcp-option-set-view
+                            [options]="[localHosts[0].options]"
+                            [levels]="['host']"
+                            [daemonId]="localHosts[0].daemonId"
+                        >
                         </app-dhcp-option-set-view>
                     </p-fieldset>
                 </div>

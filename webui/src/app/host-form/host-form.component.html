@@ -386,6 +386,7 @@
                         [v6]="form.dhcpv6"
                         [formArray]="optionsSet"
                         (optionAdd)="onOptionAdd(i)"
+                        [daemonId]="selectedDaemons.value[i]"
                     ></app-dhcp-option-set-form>
                 </div>
             </p-fieldset>

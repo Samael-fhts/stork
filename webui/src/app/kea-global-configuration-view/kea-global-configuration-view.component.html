@@ -8,7 +8,11 @@
         ></app-cascaded-parameters-board>
     </p-fieldset>
     <p-fieldset legend="Global DHCP Options" class="col max-w-50rem">
-        <app-dhcp-option-set-view [options]="dhcpOptions" [levels]="['global']"></app-dhcp-option-set-view>
+        <app-dhcp-option-set-view
+            [options]="dhcpOptions"
+            [levels]="['global']"
+            [daemonId]="daemonId"
+        ></app-dhcp-option-set-view>
     </p-fieldset>
 </div>
 
