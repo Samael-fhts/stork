@@ -637,7 +637,7 @@ func TestGetCustomDHCPOptions(t *testing.T) {
 		okRsp := rsp.(*d_h_c_p.GetCustomOptionDefinitionsOK)
 		require.EqualValues(t, okRsp.Payload.Total, 2)
 		require.Len(t, okRsp.Payload.Items, 2)
-		require.EqualValues(t, 1001, okRsp.Payload.Items[0].Code)
-		require.EqualValues(t, 6, okRsp.Payload.Items[1].Code)
+		require.EqualValues(t, 1001, *okRsp.Payload.Items[0].Code)
+		require.EqualValues(t, 6, *okRsp.Payload.Items[1].Code)
 	})
 }

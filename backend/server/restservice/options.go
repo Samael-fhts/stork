@@ -97,12 +97,12 @@ func flattenDHCPOptionField(fieldType string, restField *models.DHCPOptionField)
 func optionDefinitionToRestAPI(definition keaconfig.DHCPOptionDefinition) *models.DHCPOptionDefinition {
 	return &models.DHCPOptionDefinition{
 		Array:       definition.GetArray(),
-		Code:        int64(definition.GetCode()),
+		Code:        storkutil.Ptr(int64(definition.GetCode())),
 		Encapsulate: definition.GetEncapsulate(),
-		Name:        definition.GetName(),
+		Name:        storkutil.Ptr(definition.GetName()),
 		RecordTypes: definition.GetRecordTypes(),
-		Space:       definition.GetSpace(),
-		Type:        definition.GetType(),
+		Space:       storkutil.Ptr(definition.GetSpace()),
+		OptionType:  storkutil.Ptr(definition.GetType()),
 	}
 }
 
