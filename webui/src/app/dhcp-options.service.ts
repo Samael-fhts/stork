@@ -458,7 +458,10 @@ export class DhcpOptionsService {
      */
     async getConfigurableDhcpv4OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
         const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
-        return stdDhcpv4OptionDefs.concat(customDefs)
+        return stdDhcpv4OptionDefs
+            .filter(d => d.space === 'dhcp4' || d.space === 'dhcp6')
+            .filter(d => DhcpOptionsService.configurableDHCPv4OptionCodes.has(d.code))
+            .concat(customDefs)
     }
 
     /**
@@ -474,7 +477,10 @@ export class DhcpOptionsService {
      */
     async getConfigurableDhcpv6OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
         const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
-        return stdDhcpv6OptionDefs.concat(customDefs)
+        return stdDhcpv6OptionDefs
+            .filter(d => d.space === 'dhcp4' || d.space === 'dhcp6')
+            .filter(d => DhcpOptionsService.configurableDHCPv6OptionCodes.has(d.code))
+            .concat(customDefs)
     }
 
     /**
@@ -482,7 +488,7 @@ export class DhcpOptionsService {
      */
     convertToListItems(defs: DhcpOptionDef[]): DhcpOptionListItem[] {
         return defs.map(d => ({
-            label: `(${d.code}) ${d.name.split('-').map((s) => s.charAt(0).toUpperCase() + s.slice(1)).join(' ')}`,
+            label: `(${d.code}) ${DhcpOptionsService.convertToHumanReadableName(d.name)}`,
             value: d.code, 
             id: d.code,
         }))
