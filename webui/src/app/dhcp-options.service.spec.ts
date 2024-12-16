@@ -53,22 +53,22 @@ describe('DhcpOptionsService', async () => {
     it('should return all configurable DHCPv4 options', async () => {
         const options = await service.getConfigurableDhcpv4OptionDefs(42)
         const listItems = service.convertToListItems(options)
-        expect(listItems.length).toBe(98)
+        expect(listItems.length).toBe(114+3)
 
         // Validate one of them to make sure they are DHCPv4 options.
         const selectedItem = listItems.find((o) => o.value === 5)
         expect(selectedItem).toBeTruthy()
-        expect(selectedItem.label).toBe('(5) Name Server')
+        expect(selectedItem.label).toBe('(5) Name Servers')
     })
 
     it('should return all configurable DHCPv6 options', async () => {
         const options = await service.getConfigurableDhcpv6OptionDefs(42)
         const listItems = service.convertToListItems(options)
-        expect(listItems.length).toBe(56)
+        expect(listItems.length).toBe(59+3)
 
         // Validate one of them to make sure they are DHCPv6 options.
         const selectedItem = listItems.find((o) => o.value === 23)
         expect(selectedItem).toBeTruthy()
-        expect(selectedItem.label).toBe('(23) OPTION_DNS_SERVERS')
+        expect(selectedItem.label).toBe('(23) DNS Servers')
     })
 })

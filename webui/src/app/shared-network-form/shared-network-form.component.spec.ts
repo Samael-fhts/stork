@@ -5,7 +5,7 @@ import { MessagesModule } from 'primeng/messages'
 import { MessageService } from 'primeng/api'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
 import { of, throwError } from 'rxjs'
-import { DHCPService } from '../backend'
+import { DHCPOptionDefinitions, DHCPService } from '../backend'
 import { IPType } from '../iptype'
 import { FormGroup, FormsModule, ReactiveFormsModule, UntypedFormArray } from '@angular/forms'
 import { ButtonModule } from 'primeng/button'
@@ -315,6 +315,36 @@ describe('SharedNetworkFormComponent', () => {
             ],
             providers: [DHCPService, MessageService],
         }).compileComponents()
+
+        const dhcpService = TestBed.inject(DHCPService)
+        spyOn(dhcpService, 'getCustomOptionDefinitions').and.returnValue(
+            of({
+                total: 3,
+                items: [
+                    {
+                        code: 1001,
+                        name: 'foo',
+                        optionType: 'uint8',
+                        space: 'dhcp4',
+                    },
+                    {
+                        code: 1002,
+                        name: 'bar',
+                        optionType: 'uint16',
+                        space: 'dhcp4',
+                        array: false,
+                        recordTypes: ['uint16'],
+                    },
+                    {
+                        code: 1003,
+                        name: 'baz',
+                        optionType: 'ipv4-address',
+                        space: 'zab',
+                        array: true,
+                    },
+                ],
+            } as DHCPOptionDefinitions) as any
+        )
 
         fixture = TestBed.createComponent(SharedNetworkFormComponent)
         component = fixture.componentInstance

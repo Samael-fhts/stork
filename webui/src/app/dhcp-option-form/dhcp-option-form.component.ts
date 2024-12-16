@@ -38,10 +38,25 @@ type AddFieldFn = () => void
     styleUrls: ['./dhcp-option-form.component.sass'],
 })
 export class DhcpOptionFormComponent implements OnInit {
+    private _v6: boolean
     /**
      * Sets the options universe: DHCPv4 or DHCPv6.
      */
-    @Input() v6 = false
+    @Input() set v6(isV6: boolean) {
+        this._v6 = isV6
+
+        const fetchPromise = isV6
+            ? this.optionsService.getConfigurableDhcpv6OptionDefs(this.daemonId)
+            : this.optionsService.getConfigurableDhcpv4OptionDefs(this.daemonId)
+        fetchPromise.then((defs) => {
+            this.optionDefs = defs
+            this.optionDefItems = this.optionsService.convertToListItems(defs)
+        })
+    }
+
+    get v6() {
+        return this._v6
+    }
 
     /**
      * An empty form group instance created by the parent component.
@@ -354,15 +369,6 @@ export class DhcpOptionFormComponent implements OnInit {
         if (!this.optionSpace) {
             this.optionSpace = this.v6 ? 'dhcp6' : 'dhcp4'
         }
-
-        // Fetch the option definitions.
-        ;(this.v6
-            ? this.optionsService.getConfigurableDhcpv6OptionDefs(this.daemonId)
-            : this.optionsService.getConfigurableDhcpv4OptionDefs(this.daemonId)
-        ).then((defs) => {
-            this.optionDefs = defs
-            this.optionDefItems = this.optionsService.convertToListItems(defs)
-        })
     }
 
     /**
@@ -551,7 +557,9 @@ export class DhcpOptionFormComponent implements OnInit {
             return []
         }
 
-        return this.optionDefs.map((d) => d.code)
+        return this.optionDefs
+            .filter(d => d.space === this.optionDef.encapsulate)
+            .map((d) => d.code)
     }
 
     /**

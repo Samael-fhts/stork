@@ -459,7 +459,6 @@ export class DhcpOptionsService {
     async getConfigurableDhcpv4OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
         const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
         return stdDhcpv4OptionDefs
-            .filter((d) => d.space === 'dhcp4' || d.space === 'dhcp6')
             .filter((d) => DhcpOptionsService.configurableDHCPv4OptionCodes.has(d.code))
             .concat(customDefs)
     }
@@ -478,7 +477,6 @@ export class DhcpOptionsService {
     async getConfigurableDhcpv6OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
         const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
         return stdDhcpv6OptionDefs
-            .filter((d) => d.space === 'dhcp4' || d.space === 'dhcp6')
             .filter((d) => DhcpOptionsService.configurableDHCPv6OptionCodes.has(d.code))
             .concat(customDefs)
     }
@@ -488,36 +486,39 @@ export class DhcpOptionsService {
      */
     convertToListItems(defs: DhcpOptionDef[]): DhcpOptionListItem[] {
         return defs.map((d) => ({
-            label: `(${d.code}) ${DhcpOptionsService.convertToHumanReadableName(d.name)}`,
+            label: `(${d.code}) ${this.getHumanReadableName(d.name)}`,
             value: d.code,
             id: d.code,
         }))
     }
 
-    private static convertToHumanReadableName(name: string): string {
+    getHumanReadableName(name: string): string {
         const capitalizeAll = new Set([
-            'DHCP',
-            'IP',
-            'LPR',
-            'TTL',
-            'MTU',
-            'TCP',
-            'ARP',
-            'NIS',
-            'DD',
-            'NWIP',
-            'NISPLUS',
-            'TFTP',
-            'SMTP',
-            'WWW',
-            'IRC',
-            'SLP',
-            'FQDN',
-            'NDS',
-            'BCMS',
-            'NDI',
             'AC',
+            'ARP',
+            'BCMS',
+            'DD',
+            'DNS',
+            'DHCP',
+            'FQDN',
             'ID',
+            'IP',
+            'IRC',
+            'LPR',
+            'MTU',
+            'NDI',
+            'NDS',
+            'NIS',
+            'NISPLUS',
+            'NWIP',
+            'SIP',
+            'SLP',
+            'SMTP',
+            'SNTP',
+            'TCP',
+            'TFTP',
+            'TTL',
+            'WWW',
         ])
         return (
             name

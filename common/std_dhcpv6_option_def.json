@@ -1,6 +1,6 @@
 [
     {
-        "name": "clientid",
+        "name": "client-id",
         "code": 1,
         "space": "dhcp6",
         "type": "binary",
@@ -8,7 +8,7 @@
         "encapsulate": ""
     },
     {
-        "name": "serverid",
+        "name": "server-id",
         "code": 2,
         "space": "dhcp6",
         "type": "binary",
@@ -33,7 +33,7 @@
         "encapsulate": ""
     },
     {
-        "name": "iaaddr",
+        "name": "ia-addr",
         "code": 5,
         "space": "dhcp6",
         "type": "record",

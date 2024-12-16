@@ -154,11 +154,17 @@ export class DhcpOptionSetViewComponent implements OnInit {
         if (this.options) {
             const isV6 = this.options[0]?.[0]?.universe === IPType.IPv6
             const fetchPromise = isV6
-                ? this.optionsService.getDhcpv4OptionDefs(this.daemonId)
-                : this.optionsService.getDhcpv6OptionDefs(this.daemonId)
-            fetchPromise.then((defs) => {
+                ? this.optionsService.getConfigurableDhcpv6OptionDefs(this.daemonId)
+                : this.optionsService.getConfigurableDhcpv4OptionDefs(this.daemonId)
+            fetchPromise.then(defs => {
                 const listItems = this.optionsService.convertToListItems(defs)
-                this.optionNames = Object.fromEntries(listItems.map((li) => [li.value, li.label]))
+                this.optionNames = Object.fromEntries(
+                    // The codes aren't unique across the option spaces. This
+                    // code doesn't fully handle this case. The reverse() call
+                    // is a workaround to not override the option names from
+                    // a default space with the names from custom spaces. 
+                    listItems.map(li => [li.value, li.label]).reverse()
+                )
             })
         }
     }
@@ -250,9 +256,9 @@ export class DhcpOptionSetViewComponent implements OnInit {
      *          followed by the option code.
      */
     getOptionTitle(node: TreeNode<OptionNode>): string {
-        const code = node.data.code
-        if (this.optionNames[code]) {
-            return this.optionNames[code]
+        const name = node.data.code
+        if (this.optionNames[name]) {
+            return `${this.optionNames[name]} (${name})`
         }
         return `Option ${node.data.code}`
     }
