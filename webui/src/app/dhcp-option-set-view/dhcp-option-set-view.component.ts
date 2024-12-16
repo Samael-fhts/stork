@@ -250,9 +250,9 @@ export class DhcpOptionSetViewComponent implements OnInit {
      *          followed by the option code.
      */
     getOptionTitle(node: TreeNode<OptionNode>): string {
-        const name = node.data.code
-        if (this.optionNames[name]) {
-            return `${this.optionNames[name]} (${name})`
+        const code = node.data.code
+        if (this.optionNames[code]) {
+            return this.optionNames[code]
         }
         return `Option ${node.data.code}`
     }
