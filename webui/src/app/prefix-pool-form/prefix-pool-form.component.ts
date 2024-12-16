@@ -183,10 +183,9 @@ export class PrefixPoolFormComponent implements OnInit {
     /**
      * Convenience function returning IDs of the selected daemons.
      *
-    * @returns an array of selected daemon IDs.
+     * @returns an array of selected daemon IDs.
      */
     get selectedDaemons(): number[] {
         return this.formGroup.get('selectedDaemons')?.value ?? []
     }
-    
 }

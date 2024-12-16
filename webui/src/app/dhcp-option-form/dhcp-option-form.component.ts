@@ -356,10 +356,10 @@ export class DhcpOptionFormComponent implements OnInit {
         }
 
         // Fetch the option definitions.
-        (this.v6
+        ;(this.v6
             ? this.optionsService.getConfigurableDhcpv6OptionDefs(this.daemonId)
             : this.optionsService.getConfigurableDhcpv4OptionDefs(this.daemonId)
-        ).then(defs => {
+        ).then((defs) => {
             this.optionDefs = defs
             this.optionDefItems = this.optionsService.convertToListItems(defs)
         })
@@ -551,7 +551,7 @@ export class DhcpOptionFormComponent implements OnInit {
             return []
         }
 
-        return this.optionDefs.map(d => d.code)
+        return this.optionDefs.map((d) => d.code)
     }
 
     /**
@@ -568,9 +568,7 @@ export class DhcpOptionFormComponent implements OnInit {
         this.optionFields.clear()
         this.suboptions.clear()
         let optionCode = event.value
-        this.optionDef = this.optionDefs.find(
-            (def) => def.code === optionCode && def.space === this.optionSpace
-        )
+        this.optionDef = this.optionDefs.find((def) => def.code === optionCode && def.space === this.optionSpace)
         if (!this.optionDef) {
             return
         }

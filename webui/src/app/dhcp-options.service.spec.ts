@@ -16,40 +16,41 @@ describe('DhcpOptionsService', async () => {
         service = TestBed.inject(DhcpOptionsService)
 
         const dhcpService = TestBed.inject(DHCPService)
-        spyOn(dhcpService, "getCustomOptionDefinitions").and.
-            returnValue(of({
+        spyOn(dhcpService, 'getCustomOptionDefinitions').and.returnValue(
+            of({
                 total: 3,
                 items: [
                     {
                         code: 1001,
-                        name: "foo",
-                        optionType: "uint8",
-                        space: "dhcp4",
+                        name: 'foo',
+                        optionType: 'uint8',
+                        space: 'dhcp4',
                     },
                     {
                         code: 1002,
-                        name: "bar",
-                        optionType: "uint16",
-                        space: "dhcp4",
+                        name: 'bar',
+                        optionType: 'uint16',
+                        space: 'dhcp4',
                         array: false,
-                        recordTypes: ["uint16"]
+                        recordTypes: ['uint16'],
                     },
                     {
                         code: 1003,
-                        name: "baz",
-                        optionType: "ipv4-address",
-                        space: "zab",
-                        array: true
-                    }
-                ]
-            } as DHCPOptionDefinitions) as any) 
+                        name: 'baz',
+                        optionType: 'ipv4-address',
+                        space: 'zab',
+                        array: true,
+                    },
+                ],
+            } as DHCPOptionDefinitions) as any
+        )
     })
 
     it('should be created', async () => {
         expect(service).toBeTruthy()
     })
 
-    it('should return all configurable DHCPv4 options',async () => {
+    it('should return all configurable DHCPv4 options', async () => {
         const options = await service.getConfigurableDhcpv4OptionDefs(42)
         const listItems = service.convertToListItems(options)
         expect(listItems.length).toBe(98)

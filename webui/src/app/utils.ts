@@ -558,7 +558,7 @@ export function uncamelCase(key: string): string {
  *                      E.g. ['DHCP', 'DNS']
  * @returns converted name.
  */
-export function unhyphen(key: string, capitalizeAll=[]): string {
+export function unhyphen(key: string, capitalizeAll = []): string {
     const tokens = key
         // Remove whitespace from the beginning and end of the string.
         .trim()

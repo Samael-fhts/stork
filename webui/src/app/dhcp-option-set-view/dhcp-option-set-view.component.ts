@@ -156,9 +156,9 @@ export class DhcpOptionSetViewComponent implements OnInit {
             const fetchPromise = isV6
                 ? this.optionsService.getDhcpv4OptionDefs(this.daemonId)
                 : this.optionsService.getDhcpv6OptionDefs(this.daemonId)
-            fetchPromise.then(defs => {
+            fetchPromise.then((defs) => {
                 const listItems = this.optionsService.convertToListItems(defs)
-                this.optionNames = Object.fromEntries(listItems.map(li => [li.value, li.label]))
+                this.optionNames = Object.fromEntries(listItems.map((li) => [li.value, li.label]))
             })
         }
     }

@@ -404,7 +404,8 @@ export class DhcpOptionsService {
     /**
      * A map of custom DHCP option definitions indexed by the daemon ID.
      */
-    private _customDhcpOptionDefs: Map<number, { definitions$: Observable<DhcpOptionDef[]>, timestamp: number }> = new Map()
+    private _customDhcpOptionDefs: Map<number, { definitions$: Observable<DhcpOptionDef[]>; timestamp: number }> =
+        new Map()
 
     /**
      * Constructor.
@@ -415,32 +416,31 @@ export class DhcpOptionsService {
 
     /**
      * Returns the custom DHCP option definitions for a specific daemon.
-     * 
+     *
      * @param daemonId daemon ID.
      */
     private getCustomDhcpOptionDefinitions(daemonId: number): Promise<DhcpOptionDef[]> {
         if (this._customDhcpOptionDefs.has(daemonId)) {
             const cached = this._customDhcpOptionDefs.get(daemonId)
             if (Date.now() - cached.timestamp < this.cacheLifetime) {
-                return lastValueFrom(cached.definitions$)        
+                return lastValueFrom(cached.definitions$)
             }
         }
 
-        const definitions$ = this.dhcpService.getCustomOptionDefinitions(daemonId)
-            .pipe(
-                map(defs => {
-                    return defs.items.map((item) => ({
-                        array: !!item.array,
-                        code: item.code,
-                        encapsulate: item.encapsulate ?? '',
-                        name: item.name,
-                        optionType: item.optionType,
-                        recordTypes: item.recordTypes ?? [],
-                        space: item.space,
-                    }))
-                }),
-                shareReplay(1)
-            )
+        const definitions$ = this.dhcpService.getCustomOptionDefinitions(daemonId).pipe(
+            map((defs) => {
+                return defs.items.map((item) => ({
+                    array: !!item.array,
+                    code: item.code,
+                    encapsulate: item.encapsulate ?? '',
+                    name: item.name,
+                    optionType: item.optionType,
+                    recordTypes: item.recordTypes ?? [],
+                    space: item.space,
+                }))
+            }),
+            shareReplay(1)
+        )
         this._customDhcpOptionDefs.set(daemonId, { definitions$, timestamp: Date.now() })
         return lastValueFrom(definitions$)
     }
@@ -459,8 +459,8 @@ export class DhcpOptionsService {
     async getConfigurableDhcpv4OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
         const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
         return stdDhcpv4OptionDefs
-            .filter(d => d.space === 'dhcp4' || d.space === 'dhcp6')
-            .filter(d => DhcpOptionsService.configurableDHCPv4OptionCodes.has(d.code))
+            .filter((d) => d.space === 'dhcp4' || d.space === 'dhcp6')
+            .filter((d) => DhcpOptionsService.configurableDHCPv4OptionCodes.has(d.code))
             .concat(customDefs)
     }
 
@@ -478,8 +478,8 @@ export class DhcpOptionsService {
     async getConfigurableDhcpv6OptionDefs(daemonId: number): Promise<DhcpOptionDef[]> {
         const customDefs = await this.getCustomDhcpOptionDefinitions(daemonId)
         return stdDhcpv6OptionDefs
-            .filter(d => d.space === 'dhcp4' || d.space === 'dhcp6')
-            .filter(d => DhcpOptionsService.configurableDHCPv6OptionCodes.has(d.code))
+            .filter((d) => d.space === 'dhcp4' || d.space === 'dhcp6')
+            .filter((d) => DhcpOptionsService.configurableDHCPv6OptionCodes.has(d.code))
             .concat(customDefs)
     }
 
@@ -487,34 +487,55 @@ export class DhcpOptionsService {
      * Returns option definitions as list items.
      */
     convertToListItems(defs: DhcpOptionDef[]): DhcpOptionListItem[] {
-        return defs.map(d => ({
+        return defs.map((d) => ({
             label: `(${d.code}) ${DhcpOptionsService.convertToHumanReadableName(d.name)}`,
-            value: d.code, 
+            value: d.code,
             id: d.code,
         }))
     }
 
     private static convertToHumanReadableName(name: string): string {
         const capitalizeAll = new Set([
-            "DHCP", "IP", "LPR", "TTL", "MTU", "TCP", "ARP", "NIS", "DD",
-            "NWIP", "NISPLUS", "TFTP", "SMTP", "WWW", "IRC", "SLP", "FQDN",
-            "NDS", "BCMS", "NDI", "AC", "ID"
+            'DHCP',
+            'IP',
+            'LPR',
+            'TTL',
+            'MTU',
+            'TCP',
+            'ARP',
+            'NIS',
+            'DD',
+            'NWIP',
+            'NISPLUS',
+            'TFTP',
+            'SMTP',
+            'WWW',
+            'IRC',
+            'SLP',
+            'FQDN',
+            'NDS',
+            'BCMS',
+            'NDI',
+            'AC',
+            'ID',
         ])
-        return name
-            // Remove whitespace from the beginning and end of the string.
-            .trim()
-            // Split by hyphens.
-            .split('-')
-            // Remove empty tokens on duplicated hyphens.
-            .filter((t) => t.length > 0)
-            // Capitalize tokens.
-            .map((t, i) => {
-                // If the token is in the list of special tokens
-                if (capitalizeAll.has(t.toUpperCase())) {
-                    return t.toUpperCase()
-                }
-                return t.charAt(0).toUpperCase() + t.slice(1)
-            })
-            .join(' ')
+        return (
+            name
+                // Remove whitespace from the beginning and end of the string.
+                .trim()
+                // Split by hyphens.
+                .split('-')
+                // Remove empty tokens on duplicated hyphens.
+                .filter((t) => t.length > 0)
+                // Capitalize tokens.
+                .map((t, i) => {
+                    // If the token is in the list of special tokens
+                    if (capitalizeAll.has(t.toUpperCase())) {
+                        return t.toUpperCase()
+                    }
+                    return t.charAt(0).toUpperCase() + t.slice(1)
+                })
+                .join(' ')
+        )
     }
 }
