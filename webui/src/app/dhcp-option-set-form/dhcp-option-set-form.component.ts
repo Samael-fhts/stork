@@ -20,6 +20,11 @@ export class DhcpOptionSetFormComponent {
     @Input() v6 = false
 
     /**
+     * Sets the daemon ID of the DHCP daemon to which the options belong.
+     */
+    @Input() daemonId: number
+
+    /**
      * An array holding form groups for each embedded DHCP option form.
      */
     @Input() formArray: UntypedFormArray

@@ -30,6 +30,11 @@ export class KeaGlobalConfigurationViewComponent {
     @Input() disableEdit: boolean = false
 
     /**
+     * Daemon ID of the Kea server.
+     */
+    @Input() daemonId: number = 0
+
+    /**
      * An event emitter notifying a parent that user has clicked the
      * Edit button to modify the global parameters.
      */

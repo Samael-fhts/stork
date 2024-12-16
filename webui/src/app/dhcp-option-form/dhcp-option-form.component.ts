@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core'
-import { UntypedFormArray, UntypedFormBuilder, UntypedFormGroup, Validators } from '@angular/forms'
+import { UntypedFormArray, UntypedFormGroup, Validators } from '@angular/forms'
 import { v4 as uuidv4 } from 'uuid'
 import { MenuItem } from 'primeng/api'
 import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-option-field'
@@ -37,10 +37,25 @@ type AddFieldFn = () => void
     styleUrls: ['./dhcp-option-form.component.sass'],
 })
 export class DhcpOptionFormComponent implements OnInit {
+    private _v6: boolean
     /**
      * Sets the options universe: DHCPv4 or DHCPv6.
      */
-    @Input() v6 = false
+    @Input() set v6(isV6: boolean) {
+        this._v6 = isV6
+
+        const fetchPromise = isV6
+            ? this.optionsService.getConfigurableDhcpv6OptionDefs(this.daemonId)
+            : this.optionsService.getConfigurableDhcpv4OptionDefs(this.daemonId)
+        fetchPromise.then((defs) => {
+            this.optionDefs = defs
+            this.optionDefItems = this.optionsService.convertToListItems(defs)
+        })
+    }
+
+    get v6() {
+        return this._v6
+    }
 
     /**
      * An empty form group instance created by the parent component.
@@ -72,6 +87,11 @@ export class DhcpOptionFormComponent implements OnInit {
      * It is used to find a definition of a selected option.
      */
     @Input() optionSpace = null
+
+    /**
+     * Daemon ID where the options are defined.
+     */
+    @Input() daemonId = null
 
     /**
      * An event emitted when an option should be deleted.
@@ -120,6 +140,14 @@ export class DhcpOptionFormComponent implements OnInit {
      */
     optionDef: DhcpOptionDef
 
+    optionDefItems: { label: string; value: number }[] = []
+
+    /**
+     * A list of DHCP option definitions. Includes both standard and custom
+     * options.
+     */
+    optionDefs: DhcpOptionDef[] = []
+
     /**
      * Constructor.
      *
@@ -130,7 +158,6 @@ export class DhcpOptionFormComponent implements OnInit {
      * to configure.
      */
     constructor(
-        private _formBuilder: UntypedFormBuilder,
         private _optionSetFormService: DhcpOptionSetFormService,
         public optionsService: DhcpOptionsService
     ) {}
@@ -245,6 +272,10 @@ export class DhcpOptionFormComponent implements OnInit {
      * their selection with appropriate handler functions.
      */
     ngOnInit(): void {
+        if (!this.daemonId) {
+            throw new Error('Daemon ID must be set for the DHCP option form.')
+        }
+
         this.lastFieldType = DhcpOptionFieldType.Binary
         this.lastFieldCommand = this.addBinaryField
         this.codeInputId = uuidv4()
@@ -332,6 +363,10 @@ export class DhcpOptionFormComponent implements OnInit {
                     this.addSuboption()
                 },
             })
+        }
+
+        if (!this.optionSpace) {
+            this.optionSpace = this.v6 ? 'dhcp6' : 'dhcp4'
         }
     }
 
@@ -512,13 +547,16 @@ export class DhcpOptionFormComponent implements OnInit {
      * @returns An array of option codes or an empty array if the option
      * definition doesn't exist.
      */
-    getStandardDhcpOptionDefCodes(): Array<number> {
+    getDhcpOptionDefCodes(): Array<number> {
         if (!this.optionDef) {
             return []
         }
-        return this.v6
-            ? this.optionsService.findStandardDhcpv6OptionDefsBySpace(this.optionDef.encapsulate).map((def) => def.code)
-            : this.optionsService.findStandardDhcpv4OptionDefsBySpace(this.optionDef.encapsulate).map((def) => def.code)
+
+        if (!this.optionDefs) {
+            return []
+        }
+
+        return this.optionDefs.filter((d) => d.space === this.optionDef.encapsulate).map((d) => d.code)
     }
 
     /**
@@ -535,9 +573,7 @@ export class DhcpOptionFormComponent implements OnInit {
         this.optionFields.clear()
         this.suboptions.clear()
         let optionCode = event.value
-        this.optionDef = this.v6
-            ? this.optionsService.findStandardDhcpv6OptionDef(optionCode, this.optionSpace)
-            : this.optionsService.findStandardDhcpv4OptionDef(optionCode, this.optionSpace)
+        this.optionDef = this.optionDefs.find((def) => def.code === optionCode && def.space === this.optionSpace)
         if (!this.optionDef) {
             return
         }

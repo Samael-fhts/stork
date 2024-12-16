@@ -1,114 +1,71 @@
 import { TestBed } from '@angular/core/testing'
 
 import { DhcpOptionsService } from './dhcp-options.service'
-import stdDhcpv4OptionDefs from './std-dhcpv4-option-defs.json'
-import stdDhcpv6OptionDefs from './std-dhcpv6-option-defs.json'
+import { DHCPOptionDefinitions, DHCPService } from './backend'
+import { of } from 'rxjs'
+import { HttpClientTestingModule } from '@angular/common/http/testing'
 
-describe('DhcpOptionsService', () => {
+describe('DhcpOptionsService', async () => {
     let service: DhcpOptionsService
 
     beforeEach(() => {
-        TestBed.configureTestingModule({})
+        TestBed.configureTestingModule({ imports: [HttpClientTestingModule] })
         service = TestBed.inject(DhcpOptionsService)
+
+        const dhcpService = TestBed.inject(DHCPService)
+        spyOn(dhcpService, 'getCustomOptionDefinitions').and.returnValue(
+            of({
+                total: 3,
+                items: [
+                    {
+                        code: 1001,
+                        name: 'foo',
+                        optionType: 'uint8',
+                        space: 'dhcp4',
+                    },
+                    {
+                        code: 1002,
+                        name: 'bar',
+                        optionType: 'uint16',
+                        space: 'dhcp4',
+                        array: false,
+                        recordTypes: ['uint16'],
+                    },
+                    {
+                        code: 1003,
+                        name: 'baz',
+                        optionType: 'ipv4-address',
+                        space: 'zab',
+                        array: true,
+                    },
+                ],
+            } as DHCPOptionDefinitions) as any
+        )
     })
 
-    it('should be created', () => {
+    it('should be created', async () => {
         expect(service).toBeTruthy()
     })
 
-    it('should return all configurable standard DHCPv4 options', () => {
-        let options = service.getStandardDhcpv4Options()
-        expect(options.length).toBe(98)
+    it('should return all configurable DHCPv4 options', async () => {
+        const options = await service.getConfigurableDhcpv4OptionDefs(42)
+        const listItems = service.convertToListItems(options)
+        expect(listItems.length).toBe(114 + 3)
 
         // Validate one of them to make sure they are DHCPv4 options.
-        let selectedOption = options.find((o) => o.value === 5)
-        expect(selectedOption).toBeTruthy()
-        expect(selectedOption.label).toBe('(5) Name Server')
+        const selectedItem = listItems.find((o) => o.value === 5)
+        expect(selectedItem).toBeTruthy()
+        expect(selectedItem.label).toBe('(5) Name Servers')
     })
 
-    it('should return all configurable standard DHCPv6 options', () => {
-        let options = service.getStandardDhcpv6Options()
-        expect(options.length).toBe(56)
+    it('should return all configurable DHCPv6 options', async () => {
+        const options = await service.getConfigurableDhcpv6OptionDefs(42)
+        const listItems = service.convertToListItems(options)
+        expect(listItems.length).toBe(59 + 3)
 
         // Validate one of them to make sure they are DHCPv6 options.
-        let selectedOption = options.find((o) => o.value === 23)
-        expect(selectedOption).toBeTruthy()
-        expect(selectedOption.label).toBe('(23) OPTION_DNS_SERVERS')
-    })
-
-    it('should return selected standard DHCPv4 option', () => {
-        let option = service.findStandardDhcpv4Option(42)
-        expect(option).toBeTruthy()
-        expect(option.value).toBe(42)
-        expect(option.label).toBe('(42) NTP Servers')
-
-        // Non existing option.
-        expect(service.findStandardDhcpv4Option(1024)).toBeFalsy()
-    })
-
-    it('should return selected standard DHCPv6 option', () => {
-        let option = service.findStandardDhcpv6Option(66)
-        expect(option).toBeTruthy()
-        expect(option.value).toBe(66)
-        expect(option.label).toBe('(66) OPTION_RSOO')
-
-        // Non existing option.
-        expect(service.findStandardDhcpv6Option(1024)).toBeFalsy()
-    })
-
-    it('should return standard DHCPv4 option definition', () => {
-        let defs = stdDhcpv4OptionDefs
-        for (let def of defs) {
-            let foundDef = service.findStandardDhcpv4OptionDef(def.code, def.space)
-            expect(foundDef).toBeTruthy()
-            expect(foundDef).toEqual({
-                code: def.code,
-                name: def.name,
-                space: def.space,
-                optionType: def.type,
-                array: def.array,
-                encapsulate: def.encapsulate,
-                recordTypes: def['record-types']?.split(',').map((t) => t.trim()) ?? [],
-            })
-        }
-    })
-
-    it('should return standard DHCPv6 option definition', () => {
-        let defs = stdDhcpv6OptionDefs
-        for (let def of defs) {
-            let foundDef = service.findStandardDhcpv6OptionDef(def.code, def.space)
-            expect(foundDef).toBeTruthy()
-            expect(foundDef).toEqual({
-                code: def.code,
-                name: def.name,
-                space: def.space,
-                optionType: def.type,
-                array: def.array,
-                encapsulate: def.encapsulate,
-                recordTypes: def['record-types']?.split(',').map((t) => t.trim()) ?? [],
-            })
-        }
-    })
-
-    it('should return standard DHCPv4 option definitions by space', () => {
-        let defs = stdDhcpv4OptionDefs
-        let foundDefs = service.findStandardDhcpv4OptionDefsBySpace(null)
-        expect(foundDefs.length).toBe(defs.filter((def) => def.space === 'dhcp4').length)
-
-        foundDefs = service.findStandardDhcpv4OptionDefsBySpace('dhcp-agent-options-space')
-        expect(foundDefs.length).toBe(defs.filter((def) => def.space === 'dhcp-agent-options-space').length)
-    })
-
-    it('should return standard DHCPv6 option definitions by space', () => {
-        let defs = stdDhcpv6OptionDefs
-        let foundDefs = service.findStandardDhcpv6OptionDefsBySpace(null)
-        expect(foundDefs.length).toBe(defs.filter((def) => def.space === 'dhcp6').length)
-
-        // Go over other option spaces.
-        let spaces = ['s46-cont-mape-options', 's46-cont-mapt-options', 's46-cont-lw-options', 's46-v4v6bind-options']
-        for (let space of spaces) {
-            foundDefs = service.findStandardDhcpv6OptionDefsBySpace(space)
-            expect(foundDefs.length).toBe(defs.filter((def) => def.space === space).length)
-        }
+        const selectedItem = listItems.find((o) => o.value === 23)
+        expect(selectedItem).toBeTruthy()
+        expect(selectedItem.label).toBe('(23) DNS Servers')
     })
 })

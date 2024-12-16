@@ -114,6 +114,7 @@ describe('SubnetTabComponent', () => {
                 {
                     id: 12223,
                     appName: 'foo@192.0.2.1',
+                    daemonId: 12223,
                     pools: [
                         {
                             pool: '192.0.2.1-192.0.2.100',
@@ -209,6 +210,7 @@ describe('SubnetTabComponent', () => {
                 {
                     id: 12223,
                     appName: 'foo@192.0.2.1',
+                    daemonId: 12223,
                     stats: {
                         'total-addresses': 240,
                         'assigned-addresses': 70,
@@ -251,6 +253,7 @@ describe('SubnetTabComponent', () => {
                 {
                     id: 12223,
                     appName: 'foo@2001:db8:1::1',
+                    daemonId: 12223,
                     pools: [
                         {
                             pool: '2001:db8:1::2-2001:db8:1::786',
@@ -307,6 +310,7 @@ describe('SubnetTabComponent', () => {
                 {
                     id: 12223,
                     appName: 'foo@2001:db8:1::1',
+                    daemonId: 12223,
                     pools: [
                         {
                             pool: '2001:db8:1::2-2001:db8:1::768',
@@ -374,6 +378,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
+                    daemonId: 122223,
                     appName: 'foo@2001:db8:1::1',
                     pools: [
                         {
@@ -419,6 +424,7 @@ describe('SubnetTabComponent', () => {
                 },
                 {
                     id: 25432,
+                    daemonId: 25432,
                     appName: 'bar@2001:db8:2::5',
                     pools: [
                         {
@@ -545,6 +551,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
+                    daemonId: 122223,
                     appName: 'foo@2001:db8:1::1',
                 },
             ],

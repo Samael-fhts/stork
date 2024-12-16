@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import {
     UntypedFormArray,
     UntypedFormBuilder,
@@ -21,6 +21,9 @@ import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { IPType } from '../iptype'
 import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-option-field'
 import { DividerModule } from 'primeng/divider'
+import { DHCPOptionDefinitions, DHCPService } from '../backend'
+import { of } from 'rxjs'
+import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('DhcpOptionFormComponent', () => {
     let component: DhcpOptionFormComponent
@@ -40,18 +43,54 @@ describe('DhcpOptionFormComponent', () => {
                 SplitButtonModule,
                 ToggleButtonModule,
                 DividerModule,
+                HttpClientTestingModule,
             ],
             declarations: [DhcpOptionFormComponent, DhcpOptionSetFormComponent, HelpTipComponent],
         }).compileComponents()
+
+        const dhcpService = TestBed.inject(DHCPService)
+        spyOn(dhcpService, 'getCustomOptionDefinitions').and.returnValue(
+            of({
+                total: 3,
+                items: [
+                    {
+                        code: 1001,
+                        name: 'foo',
+                        optionType: 'uint8',
+                        space: 'dhcp4',
+                    },
+                    {
+                        code: 1002,
+                        name: 'bar',
+                        optionType: 'uint16',
+                        space: 'dhcp4',
+                        array: false,
+                        recordTypes: ['uint16'],
+                    },
+                    {
+                        code: 1003,
+                        name: 'baz',
+                        optionType: 'ipv4-address',
+                        space: 'zab',
+                        array: true,
+                    },
+                ],
+            } as DHCPOptionDefinitions) as any
+        )
     })
 
-    beforeEach(() => {
+    beforeEach(fakeAsync(() => {
         fixture = TestBed.createComponent(DhcpOptionFormComponent)
         component = fixture.componentInstance
         // Our component needs a form group instance to be initialized.
         component.formGroup = createDefaultDhcpOptionFormGroup(IPType.IPv4)
+        component.daemonId = 42
+        component.v6 = false
+        component.ngOnInit()
+        tick()
         fixture.detectChanges()
-    })
+        tick()
+    }))
 
     it('should create', () => {
         expect(component).toBeTruthy()
@@ -74,13 +113,15 @@ describe('DhcpOptionFormComponent', () => {
         // and ensure it is the DHCPv4 option.
         const nameServer = dropdownEl.componentInstance.options.find((opt) => opt.value === 5)
         expect(nameServer).toBeTruthy()
-        expect(nameServer.label).toBe('(5) Name Server')
+        expect(nameServer.label).toBe('(5) Name Servers')
     })
 
-    it('should display DHCPv6 options selection', () => {
+    it('should display DHCPv6 options selection', fakeAsync(() => {
         // Configure the component to display DHCPv6 options.
         component.v6 = true
+        tick()
         fixture.detectChanges()
+        tick()
 
         // There should be a dropdown.
         const dropdownEl = fixture.debugElement.query(By.css('p-dropdown'))
@@ -94,8 +135,8 @@ describe('DhcpOptionFormComponent', () => {
         // This time the list should comprise DHCPv6 options.
         const nameServer = dropdownEl.componentInstance.options.find((opt) => opt.value === 31)
         expect(nameServer).toBeTruthy()
-        expect(nameServer.label).toBe('(31) OPTION_SNTP_SERVERS')
-    })
+        expect(nameServer.label).toBe('(31) SNTP Servers')
+    }))
 
     it('should emit an event to delete an option', () => {
         component.formIndex = 7
@@ -434,10 +475,12 @@ describe('DhcpOptionFormComponent', () => {
         expect(component.fieldTypes.find((field) => field.label === 'suboption')).toBeFalsy()
     })
 
-    it('should set the corresponding form layout for simple option type ', () => {
+    it('should set the corresponding form layout for simple option type ', fakeAsync(() => {
         component.formGroup = createDefaultDhcpOptionFormGroup(IPType.IPv4)
         component.formGroup.get('optionCode').setValue(3)
+        tick()
         fixture.detectChanges()
+        tick()
 
         const event = {
             value: 3,
@@ -456,15 +499,17 @@ describe('DhcpOptionFormComponent', () => {
         field = component.optionFields.at(0) as DhcpOptionFieldFormGroup
         expect(field).toBeTruthy()
         expect(field.data.fieldType).toBe(DhcpOptionFieldType.String)
-    })
+    }))
 
-    it('should set the corresponding form layout for a record suboption type', () => {
+    it('should set the corresponding form layout for a record suboption type', fakeAsync(() => {
         component.v6 = true
         component.nestLevel = 1
         component.optionSpace = 's46-cont-mape-options'
         component.formGroup = createDefaultDhcpOptionFormGroup(IPType.IPv6)
         component.formGroup.get('optionCode').setValue(89)
+        tick()
         fixture.detectChanges()
+        tick()
 
         const event = {
             value: 89,
@@ -484,7 +529,7 @@ describe('DhcpOptionFormComponent', () => {
             expect(field).toBeTruthy()
             expect(field.data.fieldType).toBe(expectedFieldTypes[i])
         }
-    })
+    }))
 
     it('should set the default form layout for an option without definition', () => {
         component.formGroup = createDefaultDhcpOptionFormGroup(IPType.IPv4)
@@ -524,14 +569,14 @@ describe('DhcpOptionFormComponent', () => {
             encapsulate: 'dhcp-agent-options-space',
             recordTypes: [],
         }
-        const codes = component.getStandardDhcpOptionDefCodes()
-        expect(codes.length).toBe(20)
+        const codes = component.getDhcpOptionDefCodes()
+        expect(codes.length).toBe(16)
 
-        const expectedCodes = [1, 2, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 151, 152]
+        const expectedCodes = [2, 4, 5, 6, 7, 8, 9, 10, 11, 13, 14, 15, 16, 17, 18, 19]
         expect(codes).toEqual(expectedCodes)
     })
 
-    it('should return standard DHCPv6 option definition codes for a known option space', () => {
+    it('should return standard DHCPv6 option definition codes for a known option space', fakeAsync(() => {
         component.optionDef = {
             code: 89,
             name: 's46-rule',
@@ -542,13 +587,18 @@ describe('DhcpOptionFormComponent', () => {
             recordTypes: ['uint8', 'uint8', 'uint8', 'ipv4-address', 'ipv6-prefix'],
         }
         component.v6 = true
-        const codes = component.getStandardDhcpOptionDefCodes()
+        component.ngOnInit()
+        tick()
+        fixture.detectChanges()
+        tick()
+
+        const codes = component.getDhcpOptionDefCodes()
         expect(codes.length).toBe(1)
         expect(codes[0]).toBe(93)
-    })
+    }))
 
     it('should return an empty array of option definition codes when option definition is unavailable', () => {
-        const codes = component.getStandardDhcpOptionDefCodes()
+        const codes = component.getDhcpOptionDefCodes()
         expect(codes).toBeTruthy()
         expect(codes.length).toBe(0)
     })

@@ -182,6 +182,7 @@
                     [levels]="
                         subnet.sharedNetwork?.length > 0 ? ['subnet', 'shared network', 'global'] : ['subnet', 'global']
                     "
+                    [daemonId]="localSubnet.daemonId"
                 >
                 </app-dhcp-option-set-view>
             </p-fieldset>

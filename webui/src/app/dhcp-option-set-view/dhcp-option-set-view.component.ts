@@ -69,6 +69,11 @@ export class DhcpOptionSetViewComponent implements OnInit {
     @Input() levels: string[]
 
     /**
+     * Daemon ID associated with the options.
+     */
+    @Input() daemonId: number
+
+    /**
      * Collection of the converted options into the nodes that can be
      * displayed as a tree.
      *
@@ -101,6 +106,11 @@ export class DhcpOptionSetViewComponent implements OnInit {
     currentLevelOnlyMode: boolean = false
 
     /**
+     * The DHCP option names by their codes.
+     */
+    optionNames: { [code: number]: string } = {}
+
+    /**
      * Constructor.
      */
     constructor(public optionsService: DhcpOptionsService) {}
@@ -111,6 +121,10 @@ export class DhcpOptionSetViewComponent implements OnInit {
      * It converts input DHCP options into the nodes tree that can be displayed.
      */
     ngOnInit(): void {
+        if (!this.daemonId) {
+            throw new Error('Daemon ID must be specified')
+        }
+
         for (let i = 0; i < this.options?.length; i++) {
             this.optionNodes.push(this.convertOptionsToNodes(this.options[i], this.levels[i]))
         }
@@ -135,6 +149,24 @@ export class DhcpOptionSetViewComponent implements OnInit {
                 }
         }
         this.displayedOptionNodes = this.combinedOptionNodes
+
+        // Fetch option names.
+        if (this.options) {
+            const isV6 = this.options[0]?.[0]?.universe === IPType.IPv6
+            const fetchPromise = isV6
+                ? this.optionsService.getConfigurableDhcpv6OptionDefs(this.daemonId)
+                : this.optionsService.getConfigurableDhcpv4OptionDefs(this.daemonId)
+            fetchPromise.then((defs) => {
+                const listItems = this.optionsService.convertToListItems(defs)
+                this.optionNames = Object.fromEntries(
+                    // The codes aren't unique across the option spaces. This
+                    // code doesn't fully handle this case. The reverse() call
+                    // is a workaround to not override the option names from
+                    // a default space with the names from custom spaces.
+                    listItems.map((li) => [li.value, li.label]).reverse()
+                )
+            })
+        }
     }
 
     /**
@@ -224,12 +256,9 @@ export class DhcpOptionSetViewComponent implements OnInit {
      *          followed by the option code.
      */
     getOptionTitle(node: TreeNode<OptionNode>): string {
-        let option =
-            node.data.universe === IPType.IPv4
-                ? this.optionsService.findStandardDhcpv4Option(node.data.code)
-                : this.optionsService.findStandardDhcpv6Option(node.data.code)
-        if (option) {
-            return `${option.label}`
+        const name = node.data.code
+        if (this.optionNames[name]) {
+            return `${this.optionNames[name]} (${name})`
         }
         return `Option ${node.data.code}`
     }

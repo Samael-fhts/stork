@@ -129,8 +129,11 @@
                         </ng-template>
                     </span>
                 </ng-template>
-                <app-dhcp-option-set-view [options]="dhcpOptions[i]" [levels]="['shared-network', 'global']">
-                </app-dhcp-option-set-view>
+                <app-dhcp-option-set-view
+                    [options]="dhcpOptions[i]"
+                    [levels]="['shared-network', 'global']"
+                    [daemonId]="localSharedNetwork.daemonId"
+                ></app-dhcp-option-set-view>
             </p-fieldset>
         </div>
     </ng-container>

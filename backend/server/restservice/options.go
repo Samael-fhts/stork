@@ -1,14 +1,19 @@
 package restservice
 
 import (
+	"context"
 	"fmt"
+	"net/http"
 	"strconv"
 
+	"github.com/go-openapi/runtime/middleware"
 	errors "github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/appcfg/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/gen/models"
+	dhcp "isc.org/stork/server/gen/restapi/operations/d_h_c_p"
 	storkutil "isc.org/stork/util"
 )
 
@@ -85,6 +90,20 @@ func flattenDHCPOptionField(fieldType string, restField *models.DHCPOptionField)
 		values = append(values, restField.Values[0])
 	}
 	return values, nil
+}
+
+// Converts a DHCP option definition from the Kea config format to the REST API
+// format.
+func optionDefinitionToRestAPI(definition keaconfig.DHCPOptionDefinition) *models.DHCPOptionDefinition {
+	return &models.DHCPOptionDefinition{
+		Array:       definition.GetArray(),
+		Code:        storkutil.Ptr(int64(definition.GetCode())),
+		Encapsulate: definition.GetEncapsulate(),
+		Name:        storkutil.Ptr(definition.GetName()),
+		RecordTypes: definition.GetRecordTypes(),
+		Space:       storkutil.Ptr(definition.GetSpace()),
+		OptionType:  storkutil.Ptr(definition.GetType()),
+	}
 }
 
 // Converts DHCP options from the REST API format to the database format. The
@@ -204,4 +223,49 @@ func (r *RestAPI) unflattenDHCPOptions(options []dbmodel.DHCPOption, space strin
 		}
 	}
 	return restOptions
+}
+
+// Returns a list of custom option definitions belonging to the specified
+// Kea daemon.
+func (r *RestAPI) GetCustomOptionDefinitions(ctx context.Context, params dhcp.GetCustomOptionDefinitionsParams) middleware.Responder {
+	// ToDo: Read only the definitions, not the whole config.
+	daemon, err := dbmodel.GetDaemonByID(r.DB, params.DaemonID)
+	if err != nil {
+		msg := "Failed to get the daemon from the database"
+		log.WithError(err).Error(msg)
+		return dhcp.NewGetCustomOptionDefinitionsDefault(http.StatusInternalServerError).WithPayload(
+			&models.APIError{
+				Message: &msg,
+			},
+		)
+	}
+	if daemon == nil {
+		// Daemon not found.
+		msg := fmt.Sprintf("Cannot find a daemon with ID %d", params.DaemonID)
+		rsp := dhcp.NewGetCustomOptionDefinitionsDefault(http.StatusNotFound).WithPayload(&models.APIError{
+			Message: &msg,
+		})
+		return rsp
+	}
+
+	if daemon.KeaDaemon.Config == nil {
+		// The config is not fetched yet.
+		return dhcp.NewGetCustomOptionDefinitionsOK().WithPayload(&models.DHCPOptionDefinitions{
+			Items: []*models.DHCPOptionDefinition{},
+			Total: 0,
+		})
+	}
+
+	customDefinitions := daemon.KeaDaemon.Config.GetDHCPOptionDefinitions()
+	apiDefinitions := []*models.DHCPOptionDefinition{}
+	for _, def := range customDefinitions {
+		apiDefinitions = append(apiDefinitions, optionDefinitionToRestAPI(def))
+	}
+
+	return dhcp.NewGetCustomOptionDefinitionsOK().WithPayload(
+		&models.DHCPOptionDefinitions{
+			Items: apiDefinitions,
+			Total: int64(len(apiDefinitions)),
+		},
+	)
 }

@@ -206,6 +206,7 @@ describe('HostsPageComponent', () => {
                     {
                         appId: 1,
                         appName: 'frog',
+                        daemonId: 1,
                         dataSource: 'config',
                     },
                 ],
@@ -227,6 +228,7 @@ describe('HostsPageComponent', () => {
                     {
                         appId: 2,
                         appName: 'mouse',
+                        daemonId: 2,
                         dataSource: 'config',
                     },
                 ],
@@ -328,6 +330,7 @@ describe('HostsPageComponent', () => {
                     {
                         appId: 1,
                         appName: 'frog',
+                        daemonId: 1,
                         dataSource: 'config',
                     },
                 ],
@@ -348,6 +351,7 @@ describe('HostsPageComponent', () => {
                 localHosts: [
                     {
                         appId: 2,
+                        daemonId: 2,
                         appName: 'mouse',
                         dataSource: 'config',
                     },
@@ -412,6 +416,7 @@ describe('HostsPageComponent', () => {
                     {
                         appId: 1,
                         appName: 'frog',
+                        daemonId: 1,
                         dataSource: 'config',
                     },
                 ],
@@ -467,6 +472,7 @@ describe('HostsPageComponent', () => {
                 {
                     appId: 1,
                     appName: 'frog',
+                    daemonId: 1,
                     dataSource: 'config',
                 },
             ],
@@ -1005,6 +1011,7 @@ describe('HostsPageComponent', () => {
                     {
                         appId: 1,
                         appName: 'frog',
+                        daemonId: 1,
                         dataSource: 'config',
                     },
                 ],
@@ -1026,6 +1033,7 @@ describe('HostsPageComponent', () => {
                     {
                         appId: 2,
                         appName: 'mouse',
+                        daemonId: 2,
                         dataSource: 'config',
                     },
                 ],

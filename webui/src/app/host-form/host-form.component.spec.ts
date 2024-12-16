@@ -22,7 +22,7 @@ import { DhcpOptionFormComponent } from '../dhcp-option-form/dhcp-option-form.co
 import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-set-form.component'
 import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-option-field'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
-import { DHCPService } from '../backend'
+import { DHCPOptionDefinitions, DHCPService } from '../backend'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
 import { ChipsModule } from 'primeng/chips'
 import { TableModule } from 'primeng/table'
@@ -156,6 +156,36 @@ describe('HostFormComponent', () => {
     })
 
     beforeEach(() => {
+        const dhcpService = TestBed.inject(DHCPService)
+        spyOn(dhcpService, 'getCustomOptionDefinitions').and.returnValue(
+            of({
+                total: 3,
+                items: [
+                    {
+                        code: 1001,
+                        name: 'foo',
+                        optionType: 'uint8',
+                        space: 'dhcp4',
+                    },
+                    {
+                        code: 1002,
+                        name: 'bar',
+                        optionType: 'uint16',
+                        space: 'dhcp4',
+                        array: false,
+                        recordTypes: ['uint16'],
+                    },
+                    {
+                        code: 1003,
+                        name: 'baz',
+                        optionType: 'ipv4-address',
+                        space: 'zab',
+                        array: true,
+                    },
+                ],
+            } as DHCPOptionDefinitions) as any
+        )
+
         fixture = TestBed.createComponent(HostFormComponent)
         component = fixture.componentInstance
         dhcpApi = fixture.debugElement.injector.get(DHCPService)

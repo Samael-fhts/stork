@@ -99,6 +99,7 @@
                     [v6]="true"
                     [formArray]="optionSet"
                     (optionAdd)="onOptionAdd(i)"
+                    [daemonId]="this.selectedDaemons[i]"
                 ></app-dhcp-option-set-form>
             </div>
         </ng-container>

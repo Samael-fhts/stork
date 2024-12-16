@@ -1,6 +1,8 @@
 package restservice
 
 import (
+	"context"
+	http "net/http"
 	"sort"
 	"testing"
 
@@ -8,8 +10,10 @@ import (
 	keaconfig "isc.org/stork/appcfg/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbmodel "isc.org/stork/server/database/model"
+	dbmodeltest "isc.org/stork/server/database/model/test"
 	dbtest "isc.org/stork/server/database/test"
 	"isc.org/stork/server/gen/models"
+	"isc.org/stork/server/gen/restapi/operations/d_h_c_p"
 	storkutil "isc.org/stork/util"
 )
 
@@ -556,4 +560,84 @@ func TestUnflattenDHCPOptionsRecursionLevel(t *testing.T) {
 	require.Len(t, restOptions[0].Options, 1)
 	require.Len(t, restOptions[0].Options[0].Options, 1)
 	require.Zero(t, restOptions[0].Options[0].Options[0].Options)
+}
+
+// Test that the custom DHCP options are successfully returned by the REST API.
+func TestGetCustomDHCPOptions(t *testing.T) {
+	// Arrange
+	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	rapi, err := NewRestAPI(dbSettings, db)
+	require.NoError(t, err)
+
+	machine, _ := dbmodeltest.NewMachine(db)
+	app, _ := machine.NewKea()
+
+	keaServer, _ := app.NewKeaDHCPv4Server()
+	emptyServer, _ := app.NewKeaDHCPv6Server()
+
+	err = keaServer.Configure(`{ "Dhcp4": {
+		"option-def": [
+			{
+				"name": "custom-option",
+				"code": 1001,
+				"space": "custom-space",
+				"type": "uint32"
+			},
+			{
+                "array": false,
+                "code": 6,
+                "encapsulate": "my-encapsulate",
+                "name": "my-option",
+                "record-types": "uint8, uint16",
+                "space": "my-space",
+                "type": "record"
+			}
+		]
+	}}`)
+	require.NoError(t, err)
+
+	t.Run("unknown daemon", func(t *testing.T) {
+		// Act
+		rsp := rapi.GetCustomOptionDefinitions(
+			context.Background(),
+			d_h_c_p.GetCustomOptionDefinitionsParams{DaemonID: 42},
+		)
+
+		// Assert
+		require.IsType(t, &d_h_c_p.GetCustomOptionDefinitionsDefault{}, rsp)
+		defaultRsp := rsp.(*d_h_c_p.GetCustomOptionDefinitionsDefault)
+		require.Equal(t, http.StatusNotFound, getStatusCode(*defaultRsp))
+	})
+
+	t.Run("empty server", func(t *testing.T) {
+		// Act
+		rsp := rapi.GetCustomOptionDefinitions(
+			context.Background(),
+			d_h_c_p.GetCustomOptionDefinitionsParams{DaemonID: emptyServer.ID},
+		)
+
+		// Assert
+		require.IsType(t, &d_h_c_p.GetCustomOptionDefinitionsOK{}, rsp)
+		okRsp := rsp.(*d_h_c_p.GetCustomOptionDefinitionsOK)
+		require.EqualValues(t, okRsp.Payload.Total, 0)
+		require.Empty(t, okRsp.Payload.Items)
+	})
+
+	t.Run("kea server", func(t *testing.T) {
+		// Act
+		rsp := rapi.GetCustomOptionDefinitions(
+			context.Background(),
+			d_h_c_p.GetCustomOptionDefinitionsParams{DaemonID: keaServer.ID},
+		)
+
+		// Assert
+		require.IsType(t, &d_h_c_p.GetCustomOptionDefinitionsOK{}, rsp)
+		okRsp := rsp.(*d_h_c_p.GetCustomOptionDefinitionsOK)
+		require.EqualValues(t, okRsp.Payload.Total, 2)
+		require.Len(t, okRsp.Payload.Items, 2)
+		require.EqualValues(t, 1001, *okRsp.Payload.Items[0].Code)
+		require.EqualValues(t, 6, *okRsp.Payload.Items[1].Code)
+	})
 }

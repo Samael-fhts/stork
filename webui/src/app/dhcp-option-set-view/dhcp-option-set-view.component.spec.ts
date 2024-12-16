@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing'
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
@@ -13,6 +13,9 @@ import { DividerModule } from 'primeng/divider'
 import { CheckboxModule } from 'primeng/checkbox'
 import { FormsModule } from '@angular/forms'
 import { IPType } from '../iptype'
+import { DHCPOptionDefinitions, DHCPService } from '../backend'
+import { of } from 'rxjs'
+import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('DhcpOptionSetViewComponent', () => {
     let component: DhcpOptionSetViewComponent
@@ -29,22 +32,57 @@ describe('DhcpOptionSetViewComponent', () => {
                 TagModule,
                 TooltipModule,
                 TreeModule,
+                HttpClientTestingModule,
             ],
             declarations: [DhcpOptionSetViewComponent, HelpTipComponent],
         }).compileComponents()
+
+        const dhcpService = TestBed.inject(DHCPService)
+        spyOn(dhcpService, 'getCustomOptionDefinitions').and.returnValue(
+            of({
+                total: 3,
+                items: [
+                    {
+                        code: 1001,
+                        name: 'foo',
+                        optionType: 'uint8',
+                        space: 'dhcp4',
+                    },
+                    {
+                        code: 1002,
+                        name: 'bar',
+                        optionType: 'uint16',
+                        space: 'dhcp4',
+                        array: false,
+                        recordTypes: ['uint16'],
+                    },
+                    {
+                        code: 1003,
+                        name: 'baz',
+                        optionType: 'ipv4-address',
+                        space: 'zab',
+                        array: true,
+                    },
+                ],
+            } as DHCPOptionDefinitions) as any
+        )
     })
 
-    beforeEach(() => {
+    beforeEach(fakeAsync(() => {
         fixture = TestBed.createComponent(DhcpOptionSetViewComponent)
         component = fixture.componentInstance
+        component.daemonId = 42
+
+        tick()
         fixture.detectChanges()
-    })
+        tick()
+    }))
 
     it('should create', () => {
         expect(component).toBeTruthy()
     })
 
-    it('should convert DHCP options to a tree', () => {
+    it('should convert DHCP options to a tree', fakeAsync(() => {
         let options: Array<Array<DHCPOption>> = [
             [
                 {
@@ -124,6 +162,7 @@ describe('DhcpOptionSetViewComponent', () => {
         component.levels = ['subnet']
         component.ngOnInit()
         fixture.detectChanges()
+        tick()
 
         expect(component.optionNodes[0].length).toBe(3)
 
@@ -201,7 +240,7 @@ describe('DhcpOptionSetViewComponent', () => {
         expect(optionTags[2].properties.innerText).toBe('empty option')
         // Another empty suboption.
         expect(optionTags[3].properties.innerText).toBe('empty suboption')
-    })
+    }))
 
     it('should should display a message indicating there are no options', () => {
         let tree = fixture.debugElement.query(By.css('p-tree'))
@@ -209,7 +248,7 @@ describe('DhcpOptionSetViewComponent', () => {
         expect(tree.properties.innerText).toContain('No options configured.')
     })
 
-    it('should should display DHCPv4 option name when it is known', () => {
+    it('should should display DHCPv4 option name when it is known', fakeAsync(() => {
         let options: DHCPOption[][] = [
             [
                 {
@@ -227,13 +266,16 @@ describe('DhcpOptionSetViewComponent', () => {
         component.options = options
         component.levels = ['subnet']
         component.ngOnInit()
+        tick()
         fixture.detectChanges()
+        tick()
 
         let optionSet = fixture.debugElement.query(By.css('p-tree'))
         expect(optionSet).toBeTruthy()
-        expect(optionSet.properties.innerText).toContain('(5) Name Server')
-    })
-    it('should should display DHCPv6 option name when it is known', () => {
+        expect(optionSet.properties.innerText).toContain('(5) Name Servers')
+    }))
+
+    it('should should display DHCPv6 option name when it is known', fakeAsync(() => {
         let options: DHCPOption[][] = [
             [
                 {
@@ -251,14 +293,16 @@ describe('DhcpOptionSetViewComponent', () => {
         component.options = options
         component.levels = ['subnet']
         component.ngOnInit()
+        tick()
         fixture.detectChanges()
+        tick()
 
         let optionSet = fixture.debugElement.query(By.css('p-tree'))
         expect(optionSet).toBeTruthy()
-        expect(optionSet.properties.innerText).toContain('(23) OPTION_DNS_SERVERS')
-    })
+        expect(optionSet.properties.innerText).toContain('(23) DNS Servers')
+    }))
 
-    it('should combine options from all levels', () => {
+    it('should combine options from all levels', fakeAsync(() => {
         let options: DHCPOption[][] = [
             [
                 {
@@ -318,6 +362,7 @@ describe('DhcpOptionSetViewComponent', () => {
         component.levels = ['subnet', 'global']
         component.ngOnInit()
         fixture.detectChanges()
+        tick()
 
         // Initially, all options should be visible.
         expect(component.currentLevelOnlyMode).toBeFalse()
@@ -349,7 +394,7 @@ describe('DhcpOptionSetViewComponent', () => {
         component.onCombinedChange()
 
         expect(component.displayedOptionNodes.length).toBe(4)
-    })
+    }))
 
     it('should not show the toggle button for a single inheritance level', () => {
         let options: DHCPOption[][] = [

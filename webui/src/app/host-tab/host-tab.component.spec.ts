@@ -104,6 +104,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'frog',
+                    daemonId: 1,
                     dataSource: 'config',
                     nextServer: '192.0.2.2',
                     serverHostname: 'my-server',
@@ -118,6 +119,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 2,
                     appName: 'mouse',
+                    daemonId: 1,
                     dataSource: 'api',
                     nextServer: '192.0.2.2',
                     serverHostname: 'my-server',
@@ -216,6 +218,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'frog',
+                    daemonId: 1,
                     dataSource: 'config',
                     hostname: 'mouse.example.org',
                     ipReservations: [
@@ -236,6 +239,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 2,
                     appName: 'mouse',
+                    daemonId: 1,
                     dataSource: 'api',
                     hostname: 'mouse.example.org',
                     ipReservations: [
@@ -363,6 +367,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'frog',
+                    daemonId: 1,
                     dataSource: 'config',
                     ipReservations: [
                         {
@@ -382,6 +387,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 2,
                     appName: 'mouse',
+                    daemonId: 1,
                     dataSource: 'api',
                     ipReservations: [
                         {
@@ -485,6 +491,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'frog',
+                    daemonId: 1,
                     dataSource: 'config',
                     ipReservations: [
                         {
@@ -495,6 +502,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 2,
                     appName: 'mouse',
+                    daemonId: 1,
                     dataSource: 'api',
                     ipReservations: [
                         {
@@ -799,6 +807,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'frog',
+                    daemonId: 1,
                     dataSource: 'api',
                 },
             ],
@@ -872,6 +881,7 @@ describe('HostTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'frog',
+                    daemonId: 1,
                     dataSource: 'config',
                 },
             ],

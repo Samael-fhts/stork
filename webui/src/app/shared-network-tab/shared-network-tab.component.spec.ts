@@ -145,6 +145,7 @@ describe('SharedNetworkTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'foo@192.0.2.1',
+                    daemonId: 1,
                     keaConfigSharedNetworkParameters: {
                         sharedNetworkLevelParameters: {
                             cacheThreshold: 0.3,
@@ -270,6 +271,7 @@ describe('SharedNetworkTabComponent', () => {
                 {
                     appId: 2,
                     appName: 'foo@192.0.2.2',
+                    daemonId: 2,
                     keaConfigSharedNetworkParameters: {
                         sharedNetworkLevelParameters: {
                             cacheThreshold: 0.3,
@@ -421,6 +423,7 @@ describe('SharedNetworkTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'foo@192.0.2.1',
+                    daemonId: 1,
                 },
             ],
         }
@@ -485,6 +488,7 @@ describe('SharedNetworkTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'foo@192.0.2.1',
+                    daemonId: 1,
                     keaConfigSharedNetworkParameters: {
                         sharedNetworkLevelParameters: {
                             hostnameCharReplacement: 'X',
@@ -554,6 +558,7 @@ describe('SharedNetworkTabComponent', () => {
                 {
                     appId: 1,
                     appName: 'foo@192.0.2.1',
+                    daemonId: 1,
                     keaConfigSharedNetworkParameters: {
                         sharedNetworkLevelParameters: {},
                     },

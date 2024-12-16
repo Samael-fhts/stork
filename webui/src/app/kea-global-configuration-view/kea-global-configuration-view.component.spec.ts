@@ -13,6 +13,7 @@ import { TreeModule } from 'primeng/tree'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { TagModule } from 'primeng/tag'
+import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('KeaGlobalConfigurationViewComponent', () => {
     let component: KeaGlobalConfigurationViewComponent
@@ -29,6 +30,7 @@ describe('KeaGlobalConfigurationViewComponent', () => {
                 TreeModule,
                 OverlayPanelModule,
                 TagModule,
+                HttpClientTestingModule,
             ],
             declarations: [
                 CascadedParametersBoardComponent,
@@ -40,6 +42,7 @@ describe('KeaGlobalConfigurationViewComponent', () => {
 
         fixture = TestBed.createComponent(KeaGlobalConfigurationViewComponent)
         component = fixture.componentInstance
+        component.daemonId = 42
         fixture.detectChanges()
     })
 

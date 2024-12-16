@@ -59,7 +59,7 @@ export class PrefixPoolFormComponent implements OnInit {
      * It initializes the server names using the set of selected daemons in the form.
      */
     ngOnInit(): void {
-        const selectedDaemons = this.formGroup.get('selectedDaemons').value ?? []
+        const selectedDaemons = this.selectedDaemons
         if (selectedDaemons.length > 0) {
             this.servers = selectedDaemons.map(
                 (sd) => this.selectableDaemons.find((d) => d.id === sd)?.label ?? 'unknown'
@@ -97,7 +97,7 @@ export class PrefixPoolFormComponent implements OnInit {
         // Selecting new daemons may have a large impact on the data already
         // inserted to the form. Update the form state accordingly and see
         // if it is breaking change.
-        const selectedDaemons = this.formGroup.get('selectedDaemons').value ?? []
+        const selectedDaemons = this.selectedDaemons
         if (selectedDaemons.length === 0) {
             // The breaking change puts us at risk of having irrelevant form contents.
             this.resetOptionsArray()
@@ -178,5 +178,14 @@ export class PrefixPoolFormComponent implements OnInit {
         this.getOptionsData(index).push(
             createDefaultDhcpOptionFormGroup(this.subnet.includes(':') ? IPType.IPv6 : IPType.IPv4)
         )
+    }
+
+    /**
+     * Convenience function returning IDs of the selected daemons.
+     *
+     * @returns an array of selected daemon IDs.
+     */
+    get selectedDaemons(): number[] {
+        return this.formGroup.get('selectedDaemons')?.value ?? []
     }
 }

@@ -131,6 +131,41 @@
       optionsHash:
         type: string
 
+  DHCPOptionDefinition:
+    type: object
+    required:
+      - code
+      - name
+      - space
+      - optionType
+    properties:
+      array:
+        type: boolean
+      code:
+        type: integer
+      encapsulate:
+        type: string
+      name:
+        type: string
+      recordTypes:
+        type: array
+        items:
+          type: string
+      space:
+        type: string
+      optionType:
+        type: string
+
+  DHCPOptionDefinitions:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/DHCPOptionDefinition'
+      total:
+        type: integer
+
 # Host
 
   HostIdentifier:

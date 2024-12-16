@@ -18,6 +18,7 @@
     ></app-kea-global-configuration-form>
     <app-kea-global-configuration-view
         *ngIf="!edit"
+        [daemonId]="daemonId"
         [dhcpParameters]="dhcpParameters"
         [dhcpOptions]="dhcpOptions"
         [disableEdit]="disableEdit"
