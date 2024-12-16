@@ -15,7 +15,6 @@ import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { IPType } from '../iptype'
 import { DHCPOptionDefinitions, DHCPService } from '../backend'
 import { of } from 'rxjs'
-import { HttpClient, HttpResponse } from '@angular/common/http'
 import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('DhcpOptionSetFormComponent', () => {

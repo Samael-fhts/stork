@@ -1,11 +1,8 @@
 import { TestBed } from '@angular/core/testing'
 
 import { DhcpOptionsService } from './dhcp-options.service'
-import stdDhcpv4OptionDefs from './std-dhcpv4-option-defs.json'
-import stdDhcpv6OptionDefs from './std-dhcpv6-option-defs.json'
 import { DHCPOptionDefinitions, DHCPService } from './backend'
 import { of } from 'rxjs'
-import { HttpResponse } from '@angular/common/http'
 import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('DhcpOptionsService', async () => {
@@ -53,7 +50,7 @@ describe('DhcpOptionsService', async () => {
     it('should return all configurable DHCPv4 options', async () => {
         const options = await service.getConfigurableDhcpv4OptionDefs(42)
         const listItems = service.convertToListItems(options)
-        expect(listItems.length).toBe(114+3)
+        expect(listItems.length).toBe(114 + 3)
 
         // Validate one of them to make sure they are DHCPv4 options.
         const selectedItem = listItems.find((o) => o.value === 5)
@@ -64,7 +61,7 @@ describe('DhcpOptionsService', async () => {
     it('should return all configurable DHCPv6 options', async () => {
         const options = await service.getConfigurableDhcpv6OptionDefs(42)
         const listItems = service.convertToListItems(options)
-        expect(listItems.length).toBe(59+3)
+        expect(listItems.length).toBe(59 + 3)
 
         // Validate one of them to make sure they are DHCPv6 options.
         const selectedItem = listItems.find((o) => o.value === 23)

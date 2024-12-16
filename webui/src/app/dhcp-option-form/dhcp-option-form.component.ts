@@ -3,13 +3,12 @@ import { UntypedFormArray, UntypedFormGroup, Validators } from '@angular/forms'
 import { v4 as uuidv4 } from 'uuid'
 import { MenuItem } from 'primeng/api'
 import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-option-field'
-import { DhcpOptionListItem, DhcpOptionsService } from '../dhcp-options.service'
+import { DhcpOptionsService } from '../dhcp-options.service'
 import { DhcpOptionSetFormService } from '../forms/dhcp-option-set-form.service'
 import { createDefaultDhcpOptionFormGroup } from '../forms/dhcp-option-form'
 import { IPType } from '../iptype'
 import { StorkValidators } from '../validators'
 import { DhcpOptionDef } from '../dhcp-option-def'
-import { DropdownItem } from 'primeng/dropdown'
 
 /**
  * A signature to a function adding a field to the form.
@@ -557,9 +556,7 @@ export class DhcpOptionFormComponent implements OnInit {
             return []
         }
 
-        return this.optionDefs
-            .filter(d => d.space === this.optionDef.encapsulate)
-            .map((d) => d.code)
+        return this.optionDefs.filter((d) => d.space === this.optionDef.encapsulate).map((d) => d.code)
     }
 
     /**

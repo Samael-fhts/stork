@@ -156,14 +156,14 @@ export class DhcpOptionSetViewComponent implements OnInit {
             const fetchPromise = isV6
                 ? this.optionsService.getConfigurableDhcpv6OptionDefs(this.daemonId)
                 : this.optionsService.getConfigurableDhcpv4OptionDefs(this.daemonId)
-            fetchPromise.then(defs => {
+            fetchPromise.then((defs) => {
                 const listItems = this.optionsService.convertToListItems(defs)
                 this.optionNames = Object.fromEntries(
                     // The codes aren't unique across the option spaces. This
                     // code doesn't fully handle this case. The reverse() call
                     // is a workaround to not override the option names from
-                    // a default space with the names from custom spaces. 
-                    listItems.map(li => [li.value, li.label]).reverse()
+                    // a default space with the names from custom spaces.
+                    listItems.map((li) => [li.value, li.label]).reverse()
                 )
             })
         }

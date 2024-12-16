@@ -15,7 +15,6 @@ import { FormsModule } from '@angular/forms'
 import { IPType } from '../iptype'
 import { DHCPOptionDefinitions, DHCPService } from '../backend'
 import { of } from 'rxjs'
-import { HttpResponse } from '@angular/common/http'
 import { HttpClientTestingModule } from '@angular/common/http/testing'
 
 describe('DhcpOptionSetViewComponent', () => {

@@ -2,8 +2,8 @@ import { Injectable } from '@angular/core'
 import { DhcpOptionDef } from './dhcp-option-def'
 import stdDhcpv4OptionDefsRaw from './std-dhcpv4-option-defs.json'
 import stdDhcpv6OptionDefsRaw from './std-dhcpv6-option-defs.json'
-import { firstValueFrom, lastValueFrom, map, Observable, shareReplay } from 'rxjs'
-import { DHCPOptionDefinition, DHCPService, ServicesService } from './backend'
+import { lastValueFrom, map, Observable, shareReplay } from 'rxjs'
+import { DHCPService } from './backend'
 
 /**
  * Converts the raw JSON data into the structures used by the application.
@@ -492,6 +492,13 @@ export class DhcpOptionsService {
         }))
     }
 
+    /**
+     * Formats a DHCP option name. It capitalizes the first letter of each word
+     * and removes hyphens. It also capitalizes special keywords.
+     *
+     * @param name DHCP option name
+     * @returns Formatted name
+     */
     getHumanReadableName(name: string): string {
         const capitalizeAll = new Set([
             'AC',
@@ -529,7 +536,7 @@ export class DhcpOptionsService {
                 // Remove empty tokens on duplicated hyphens.
                 .filter((t) => t.length > 0)
                 // Capitalize tokens.
-                .map((t, i) => {
+                .map((t) => {
                     // If the token is in the list of special tokens
                     if (capitalizeAll.has(t.toUpperCase())) {
                         return t.toUpperCase()
