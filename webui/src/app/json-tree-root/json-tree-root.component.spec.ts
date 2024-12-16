@@ -100,7 +100,7 @@ describe('JsonTreeRootComponent', () => {
 
     it('should initialize the inner component with correct defaults', async () => {
         authService.logout()
-        authService.login('boz', 'foo', 'bar', 'baz')
+        authService.login('boz', 'foo', 'bar', '/')
         await fixture.whenStable()
         fixture.detectChanges()
 
