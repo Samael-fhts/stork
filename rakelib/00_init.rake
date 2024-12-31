@@ -234,9 +234,15 @@ end
 # tasks that depend on the external files while their dependencies are
 # refreshed but not changed (e.g., the repository is re-cloned).
 # It accepts a task to be guarded and the dependency file.
-# The dependency file should not be included in the prerequite list of the task.
+# The dependency file should not be included in the prerequisite list of the
+# task.
 def add_hash_guard(task_name, prerequisite_file)
-    hash = Digest::SHA256.file(prerequisite_file).hexdigest
+    if File.exist? prerequisite_file
+        hash = Digest::SHA256.file(prerequisite_file).hexdigest
+    else
+        hash = ""
+    end
+
     add_guard(task_name, hash, "hash")
 end
 
