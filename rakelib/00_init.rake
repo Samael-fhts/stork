@@ -557,6 +557,7 @@ storybook_ver = '8.3.2'
 openapi_generator_ver = '7.8.0'
 bundler_ver = '2.5.19'
 shellcheck_ver = '0.10.0'
+python_ver = '3.11.0'  # Minimal required version
 pip_tools_ver = '7.4.1'
 pip_audit_ver = '2.7.3'
 
@@ -577,10 +578,12 @@ when "macos"
         node_suffix = "darwin-arm64"
         golangcilint_suffix = "darwin-arm64"
         goswagger_suffix = "darwin_arm64"
-        # Shellcheck has no binaries for Darwin ARM: https://github.com/koalaman/shellcheck/issues/2714
+        shellcheck_suffix = "darwin.aarch64"
     end
-    puts "WARNING: MacOS is not officially supported, the provisions for building on MacOS are made"
-    puts "WARNING: for the developers' convenience only."
+    if ENV["STORK_I_KNOW_MACOS_IS_NOT_OFFICIALLY_SUPPORTED"] != "true"
+        puts "WARNING: MacOS is not officially supported, the provisions for building on MacOS are made"
+        puts "WARNING: for the developers' convenience only."
+    end
 when "linux"
     case ARCH
     when "amd64"
@@ -1031,6 +1034,32 @@ add_version_guard(GOVULNCHECK, govulncheck_ver)
 
 PYTHON = File.join(python_tools_dir, "bin", "python")
 file PYTHON => [PYTHON3_SYSTEM] do
+    stdout, stderr, status = Open3.capture3 PYTHON3_SYSTEM, "-c",
+        "import sys; print(sys.version_info.major, sys.version_info.minor, sys.version_info.micro)"
+    if status != 0
+        fail "Failed to determine the Python version using #{PYTHON3_SYSTEM}: #{stderr}"
+    end
+
+    actual_version = stdout.split(" ").map(&:to_i)
+    expected_version = python_ver.split(".").map(&:to_i)
+
+    if (actual_version <=> expected_version) < 0
+        fail "Python #{python_ver} or newer is required, got #{actual_version.join(".")}"
+    end
+
+    # It would be best to check also the maximum version of Python because
+    # someone can use newer Python version than used by other developers or CI
+    # and generate a dependency file that is not compatible with the older
+    # Python version. Additionally, the Python linters can behave differently
+    # depending on the Python version. Ideally, all developers should use the
+    # same Python version.
+    # The problem is that the Python is not as easly installable as Go or
+    # NodeJS. There is no 'portable' version of Python that can be managed by
+    # the Stork build system. The Python is installed by the system package
+    # manager or by binary installers. Forcing everyone to use the same Python
+    # version can be problematic because the specific version can be not
+    # available on all systems.
+
     sh "rm", "-rf", File.join(python_tools_dir, "*")
     sh PYTHON3_SYSTEM, "-m", "venv", python_tools_dir
     sh PYTHON, "--version"
