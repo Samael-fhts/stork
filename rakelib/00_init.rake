@@ -557,7 +557,6 @@ storybook_ver = '8.3.2'
 openapi_generator_ver = '7.8.0'
 bundler_ver = '2.5.19'
 shellcheck_ver = '0.10.0'
-python_ver = '3.11.0'  # Minimal required version
 pip_tools_ver = '7.4.1'
 pip_audit_ver = '2.7.3'
 
@@ -715,7 +714,11 @@ ENV["CHROME_BIN"] = CHROME
 
 # System tools
 WGET = require_manual_install_on("wget", any_system)
-PYTHON3_SYSTEM = require_manual_install_on("python3", any_system)
+# Python is locked to the specific version to ensure all developers and CI
+# use the same version. Otherwise, the dependency files generated on the
+# developer's machine may not work on the CI. Additionally, the Python linters
+# behave differently on different Python versions.
+PYTHON3_SYSTEM = require_manual_install_on("python3.11", any_system)
 JAVA = require_manual_install_on("java", any_system)
 UNZIP = require_manual_install_on("unzip", any_system)
 ENTR = require_manual_install_on("entr", any_system)
@@ -1034,32 +1037,6 @@ add_version_guard(GOVULNCHECK, govulncheck_ver)
 
 PYTHON = File.join(python_tools_dir, "bin", "python")
 file PYTHON => [PYTHON3_SYSTEM] do
-    stdout, stderr, status = Open3.capture3 PYTHON3_SYSTEM, "-c",
-        "import sys; print(sys.version_info.major, sys.version_info.minor, sys.version_info.micro)"
-    if status != 0
-        fail "Failed to determine the Python version using #{PYTHON3_SYSTEM}: #{stderr}"
-    end
-
-    actual_version = stdout.split(" ").map(&:to_i)
-    expected_version = python_ver.split(".").map(&:to_i)
-
-    if (actual_version <=> expected_version) < 0
-        fail "Python #{python_ver} or newer is required, got #{actual_version.join(".")}"
-    end
-
-    # It would be best to check also the maximum version of Python because
-    # someone can use newer Python version than used by other developers or CI
-    # and generate a dependency file that is not compatible with the older
-    # Python version. Additionally, the Python linters can behave differently
-    # depending on the Python version. Ideally, all developers should use the
-    # same Python version.
-    # The problem is that the Python is not as easly installable as Go or
-    # NodeJS. There is no 'portable' version of Python that can be managed by
-    # the Stork build system. The Python is installed by the system package
-    # manager or by binary installers. Forcing everyone to use the same Python
-    # version can be problematic because the specific version can be not
-    # available on all systems.
-
     sh "rm", "-rf", File.join(python_tools_dir, "*")
     sh PYTHON3_SYSTEM, "-m", "venv", python_tools_dir
     sh PYTHON, "--version"
