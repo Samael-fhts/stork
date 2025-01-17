@@ -11,5 +11,5 @@ export interface DhcpOptionDef {
     optionType: string
     array: boolean
     encapsulate: string
-    recordTypes?: string[]
+    recordTypes: string[]
 }

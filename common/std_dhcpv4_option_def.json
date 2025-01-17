@@ -621,10 +621,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": true,
-        "record-types": [
-            "bool",
-            "ipv4-address"
-        ],
+        "record-types": "bool, ipv4-address",
         "encapsulate": ""
     },
     {
@@ -633,10 +630,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": false,
-        "record-types": [
-            "bool",
-            "string"
-        ],
+        "record-types": "bool, string",
         "encapsulate": ""
     },
     {
@@ -645,12 +639,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": false,
-        "record-types": [
-            "uint8",
-            "uint8",
-            "uint8",
-            "fqdn"
-        ],
+        "record-types": "uint8, uint8, uint8, fqdn",
         "encapsulate": ""
     },
     {
@@ -739,11 +728,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": false,
-        "record-types": [
-            "uint8",
-            "uint8",
-            "uint8"
-        ],
+        "record-types": "uint8, uint8, uint8",
         "encapsulate": ""
     },
     {
@@ -752,10 +737,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": false,
-        "record-types": [
-            "uint8",
-            "binary"
-        ],
+        "record-types": "uint8, binary",
         "encapsulate": ""
     },
     {
@@ -824,7 +806,7 @@
     },
     {
         "name": "auto-config",
-        "code":  116,
+        "code": 116,
         "space": "dhcp4",
         "type": "uint8",
         "array": false,
@@ -860,10 +842,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": false,
-        "record-types": [
-            "uint32",
-            "binary"
-        ],
+        "record-types": "uint32, binary",
         "encapsulate": ""
     },
     {
@@ -912,12 +891,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": true,
-        "record-types": [
-            "uint8",
-            "ipv4-address",
-            "ipv4-address",
-            "fqdn"
-        ],
+        "record-types": "uint8, ipv4-address, ipv4-address, fqdn",
         "encapsulate": ""
     },
     {
@@ -926,10 +900,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": false,
-        "record-types": [
-            "uint8",
-            "string"
-        ],
+        "record-types": "uint8, string",
         "encapsulate": ""
     },
     {
@@ -986,10 +957,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": false,
-        "record-types": [
-            "uint8",
-            "psid"
-        ],
+        "record-types": "uint8, psid",
         "encapsulate": ""
     },
     {
@@ -998,12 +966,7 @@
         "space": "dhcp4",
         "type": "record",
         "array": true,
-        "record-types": [
-            "uint8",
-            "uint8",
-            "ipv6-address",
-            "ipv4-address"
-        ],
+        "record-types": "uint8, uint8, ipv6-address, ipv4-address",
         "encapsulate": ""
     },
     {
@@ -1171,6 +1134,7 @@
         "code": 152,
         "space": "dhcp-agent-options-space",
         "type": "empty",
-        "array": false, "encapsulate": ""
+        "array": false,
+        "encapsulate": ""
     }
 ]

@@ -1,49 +1,43 @@
 package keaconfig
 
 import (
-	storkutil "isc.org/stork/util"
+	_ "embed"
+	"encoding/json"
+	"fmt"
+	"sync"
 )
 
-// Implements lookup mechanism for standard DHCP option definitions.
-// Standard options are static. To find a definition, it currently
-// performs a full scan but indexing mechanisms will be soon introduced
-// to improve performance.
-type dhcpStdOptionDefinitionLookup struct {
-	v4Defs []dhcpOptionDefinition
-	v6Defs []dhcpOptionDefinition
-}
+// Embeds the standard DHCPv4 option definitions.
+//
+//go:embed stdoptiondef4.json
+var stdDHCPv4OptionDefsJSON []byte
 
-// Interface to a lookup mechanism for finding DHCP standard options.
-type DHCPStdOptionDefinitionLookup interface {
-	// Finds DHCP option definition by code and space.
-	FindByCodeSpace(code uint16, space string, universe storkutil.IPType) DHCPOptionDefinition
-}
+// Embeds the standard DHCPv6 option definitions.
+//
+//go:embed stdoptiondef6.json
+var stdDHCPv6OptionDefsJSON []byte
 
-// Creates standard DHCP option definition lookup instance. It prepares
-// static lists of standard DHCP options. Right now, only limited set of
-// options is supported.
-func NewStdDHCPOptionDefinitionLookup() DHCPStdOptionDefinitionLookup {
-	lookup := &dhcpStdOptionDefinitionLookup{}
-	lookup.v4Defs = getStdDHCPv4OptionDefs()
-	lookup.v6Defs = getStdDHCPv6OptionDefs()
-	return lookup
-}
-
-// Finds a DHCP option definition by option code and space. The last argument
-// specifies whether it should look for a DHCPv4 or DHCPv6 option.
-func (lookup dhcpStdOptionDefinitionLookup) FindByCodeSpace(code uint16, space string, universe storkutil.IPType) DHCPOptionDefinition {
-	var defs []dhcpOptionDefinition
-	switch universe {
-	case storkutil.IPv4:
-		defs = lookup.v4Defs
-	case storkutil.IPv6:
-		defs = lookup.v6Defs
+// Parses the embedded JSON data with standard DHCP option definitions.
+func parseDHCPOptionDefinitions(jsonData []byte) []DHCPOptionDefinition {
+	var definitions []DHCPOptionDefinition
+	err := json.Unmarshal(jsonData, &definitions)
+	if err != nil {
+		// The embedded JSON data should be correct, so this is a programming error.
+		panic(fmt.Sprintf("failed to parse standard DHCP option definitions: %v", err))
 	}
-	// todo: add indexing to this search.
-	for _, def := range defs {
-		if def.Code == code && def.Space == space {
-			return def
-		}
-	}
-	return nil
+	return definitions
 }
+
+// Returns the standard DHCPv4 option definitions.
+//
+//nolint:gochecknoglobals
+var GetStandardDHCPv4OptionDefinitions = sync.OnceValue(func() []DHCPOptionDefinition {
+	return parseDHCPOptionDefinitions(stdDHCPv4OptionDefsJSON)
+})
+
+// Returns the standard DHCPv6 option definitions.
+//
+//nolint:gochecknoglobals
+var GetStandardDHCPv6OptionDefinitions = sync.OnceValue(func() []DHCPOptionDefinition {
+	return parseDHCPOptionDefinitions(stdDHCPv6OptionDefsJSON)
+})

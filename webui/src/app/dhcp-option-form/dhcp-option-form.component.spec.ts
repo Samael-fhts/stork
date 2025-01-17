@@ -522,6 +522,7 @@ describe('DhcpOptionFormComponent', () => {
             optionType: 'empty',
             array: false,
             encapsulate: 'dhcp-agent-options-space',
+            recordTypes: [],
         }
         const codes = component.getStandardDhcpOptionDefCodes()
         expect(codes.length).toBe(20)

@@ -1753,6 +1753,56 @@ func TestGetDHCPOptions4(t *testing.T) {
 	require.Equal(t, dhcpmodel.DHCPv4OptionSpace, options[0].Space)
 }
 
+// Test getting global DHCPv4 option definitions.
+func TestGetDHCPOptionDefinitions4(t *testing.T) {
+	configStr := `{
+		"Dhcp4": {
+			"option-def": [
+				{
+					"name": "foo",
+					"code": 222,
+					"type": "uint32",
+					"array": false,
+					"record-types": "",
+					"space": "dhcp4",
+					"encapsulate": ""
+				},
+				{
+					"name": "bar",
+					"code": 333,
+					"type": "ipv4-address",
+					"array": false,
+					"record-types": "",
+					"space": "dhcp4",
+					"encapsulate": ""
+				}
+			]
+		}
+	}`
+	cfg, err := NewConfig(configStr)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	definitions := cfg.GetDHCPOptionDefinitions()
+	require.Len(t, definitions, 2)
+
+	require.Equal(t, "foo", definitions[0].Name)
+	require.EqualValues(t, 222, definitions[0].Code)
+	require.Equal(t, "uint32", definitions[0].OptionType)
+	require.False(t, definitions[0].Array)
+	require.Empty(t, definitions[0].RecordTypes)
+	require.Equal(t, "dhcp4", definitions[0].Space)
+	require.Empty(t, definitions[0].Encapsulate)
+
+	require.Equal(t, "bar", definitions[1].Name)
+	require.EqualValues(t, 333, definitions[1].Code)
+	require.Equal(t, "ipv4-address", definitions[1].OptionType)
+	require.False(t, definitions[1].Array)
+	require.Empty(t, definitions[1].RecordTypes)
+	require.Equal(t, "dhcp4", definitions[1].Space)
+	require.Empty(t, definitions[1].Encapsulate)
+}
+
 // Test getting global DHCPv6 options.
 func TestGetDHCPOptions6(t *testing.T) {
 	configStr := `{
@@ -1797,6 +1847,56 @@ func TestGetDHCPOptions6(t *testing.T) {
 	require.Equal(t, "2001:db8:1::2, 2001:db8:1::3", options[1].Data)
 	require.Equal(t, "nis-servers", options[1].Name)
 	require.Equal(t, dhcpmodel.DHCPv6OptionSpace, options[0].Space)
+}
+
+// Test getting global DHCPv6 option definitions.
+func TestGetDHCPOptionDefinitions6(t *testing.T) {
+	configStr := `{
+		"Dhcp6": {
+			"option-def": [
+				{
+					"name": "foo",
+					"code": 222,
+					"type": "uint32",
+					"array": false,
+					"record-types": "",
+					"space": "dhcp6",
+					"encapsulate": ""
+				},
+				{
+					"name": "bar",
+					"code": 333,
+					"type": "ipv6-address",
+					"array": false,
+					"record-types": "",
+					"space": "dhcp6",
+					"encapsulate": ""
+				}
+			]
+		}
+	}`
+	cfg, err := NewConfig(configStr)
+	require.NoError(t, err)
+	require.NotNil(t, cfg)
+
+	definitions := cfg.GetDHCPOptionDefinitions()
+	require.Len(t, definitions, 2)
+
+	require.Equal(t, "foo", definitions[0].Name)
+	require.EqualValues(t, 222, definitions[0].Code)
+	require.Equal(t, "uint32", definitions[0].OptionType)
+	require.False(t, definitions[0].Array)
+	require.Empty(t, definitions[0].RecordTypes)
+	require.Equal(t, "dhcp6", definitions[0].Space)
+	require.Empty(t, definitions[0].Encapsulate)
+
+	require.Equal(t, "bar", definitions[1].Name)
+	require.EqualValues(t, 333, definitions[1].Code)
+	require.Equal(t, "ipv6-address", definitions[1].OptionType)
+	require.False(t, definitions[1].Array)
+	require.Empty(t, definitions[1].RecordTypes)
+	require.Equal(t, "dhcp6", definitions[1].Space)
+	require.Empty(t, definitions[1].Encapsulate)
 }
 
 // Test merging a partial config into current config.

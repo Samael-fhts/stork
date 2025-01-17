@@ -594,10 +594,9 @@ func TestMigration55LocalHostInDatabaseAndConfig(t *testing.T) {
 	require.NoError(t, err)
 
 	fec := &storktestdbmodel.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 	app, _ := server.GetKea()
 
-	err = kea.CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = kea.CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// Add a database host reservations.

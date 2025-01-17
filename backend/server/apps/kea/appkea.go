@@ -604,7 +604,7 @@ func addOnCommitSubnetEvents(app *dbmodel.App, daemon *dbmodel.Daemon, addedSubn
 // Kea's configurations and uses to either update or create new shared networks,
 // subnets and pools. Finally, the relations between the subnets and the Kea app
 // are created. Note that multiple apps can be associated with the same subnet.
-func CommitAppIntoDB(db *dbops.PgDB, app *dbmodel.App, eventCenter eventcenter.EventCenter, state *AppStateMeta, lookup keaconfig.DHCPOptionDefinitionLookup) (err error) {
+func CommitAppIntoDB(db *dbops.PgDB, app *dbmodel.App, eventCenter eventcenter.EventCenter, state *AppStateMeta) (err error) {
 	err = db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
 		// Let's first add or update the app in the database. It must be done
 		// before detecting the subnets and shared networks because we need to
@@ -638,6 +638,13 @@ func CommitAppIntoDB(db *dbops.PgDB, app *dbmodel.App, eventCenter eventcenter.E
 					continue
 				}
 			}
+
+			// DHCP option definitions are needed to parse the Kea configuration.
+			var definitions []keaconfig.DHCPOptionDefinition
+			if daemon.KeaDaemon.Config != nil {
+				definitions = daemon.KeaDaemon.Config.GetDHCPOptionDefinitions()
+			}
+			lookup := keaconfig.NewDHCPOptionDefinitionLookup(definitions)
 
 			// Remove daemon associations with hosts, subnets and shared networks.
 			err = deleteDaemonAssociations(tx, daemon)

@@ -131,11 +131,6 @@ func CreateUserWithPassword(db *pg.DB, user *SystemUser, password string) (confl
 // conflict value indicates if the created user information is in conflict
 // with some existing user in the database, e.g. duplicated login or email.
 func createUser(dbi dbops.DBI, user *SystemUser) (conflict bool, err error) {
-	if err != nil {
-		err = pkgerrors.Wrapf(err, "unable to begin transaction while trying to create user %s", user.Identity())
-		return false, err
-	}
-
 	_, err = dbi.Model(user).Insert()
 
 	// If insert was successful, create associations of the user with groups.

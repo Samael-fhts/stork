@@ -138,8 +138,9 @@ func (r *RestAPI) convertSharedNetworkToRestAPI(sn *dbmodel.SharedNetwork) *mode
 			}
 			localSharedNetwork.KeaConfigSharedNetworkParameters.GlobalParameters = convertGlobalSubnetParametersToRestAPI(cfg)
 			var convertedOptions []dbmodel.DHCPOption
+			lookup := keaconfig.NewDHCPOptionDefinitionLookup(cfg.GetDHCPOptionDefinitions())
 			for _, option := range cfg.GetDHCPOptions() {
-				convertedOption, err := dbmodel.NewDHCPOptionFromKea(option, storkutil.IPType(sn.Family), r.DHCPOptionDefinitionLookup)
+				convertedOption, err := dbmodel.NewDHCPOptionFromKea(option, storkutil.IPType(sn.Family), lookup)
 				if err != nil {
 					continue
 				}
@@ -158,12 +159,12 @@ func (r *RestAPI) convertSharedNetworkToRestAPI(sn *dbmodel.SharedNetwork) *mode
 // representation. It is used when Stork user modifies or creates new shared network.
 // Thus, it doesn't populate shared network statistics as it is not specified by Stork user.
 // It is pulled from the Kea servers periodically.
-func (r *RestAPI) convertSharedNetworkFromRestAPI(restSharedNetwork *models.SharedNetwork) (*dbmodel.SharedNetwork, error) {
+func (r *RestAPI) convertSharedNetworkFromRestAPI(restSharedNetwork *models.SharedNetwork, lookups *dbmodel.DHCPOptionDefinitionLookups) (*dbmodel.SharedNetwork, error) {
 	subnets := []dbmodel.Subnet{}
 	// Exclude the subnets that are not attached to any app. This shouldn't
 	// be the case but let's be safe.
 	for i := range restSharedNetwork.Subnets {
-		subnet, err := r.convertSubnetFromRestAPI(restSharedNetwork.Subnets[i])
+		subnet, err := r.convertSubnetFromRestAPI(restSharedNetwork.Subnets[i], lookups)
 		if err != nil {
 			return nil, err
 		}
@@ -177,6 +178,11 @@ func (r *RestAPI) convertSharedNetworkFromRestAPI(restSharedNetwork *models.Shar
 	}
 	// Convert local shared network containing associations of the shared network with daemons.
 	for _, lsn := range restSharedNetwork.LocalSharedNetworks {
+		lookup, err := lookups.GetLookup(lsn.DaemonID)
+		if err != nil {
+			return nil, err
+		}
+
 		localSharedNetwork := &dbmodel.LocalSharedNetwork{
 			DaemonID: lsn.DaemonID,
 		}
@@ -249,7 +255,7 @@ func (r *RestAPI) convertSharedNetworkFromRestAPI(restSharedNetwork *models.Shar
 				}
 			}
 			// DHCP options.
-			options, err := r.flattenDHCPOptions("", lsn.KeaConfigSharedNetworkParameters.SharedNetworkLevelParameters.Options, 0)
+			options, err := r.flattenDHCPOptions("", lsn.KeaConfigSharedNetworkParameters.SharedNetworkLevelParameters.Options, lookup, 0)
 			if err != nil {
 				return nil, err
 			}
@@ -379,8 +385,10 @@ func (r *RestAPI) commonCreateOrUpdateSharedNetworkSubmit(ctx context.Context, t
 		return http.StatusNotFound, 0, msg
 	}
 
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(r.DB)
+
 	// Convert shared network information from REST API to database format.
-	sharedNetwork, err := r.convertSharedNetworkFromRestAPI(restSharedNetwork)
+	sharedNetwork, err := r.convertSharedNetworkFromRestAPI(restSharedNetwork, lookups)
 	if err != nil {
 		msg := "Error parsing specified shared network"
 		log.WithError(err).Error(msg)

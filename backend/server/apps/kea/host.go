@@ -44,17 +44,15 @@ type ReservationGetPageResponse struct {
 // the Kea apps.
 type HostsPuller struct {
 	*agentcomm.PeriodicPuller
-	ReviewDispatcher           configreview.Dispatcher
-	DHCPOptionDefinitionLookup keaconfig.DHCPOptionDefinitionLookup
-	traces                     map[int64]*hostIteratorTrace
+	ReviewDispatcher configreview.Dispatcher
+	traces           map[int64]*hostIteratorTrace
 }
 
 // Create an instance of the puller that periodically fetches host reservations
 // from the monitored Kea apps via control channel.
-func NewHostsPuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) (*HostsPuller, error) {
+func NewHostsPuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, reviewDispatcher configreview.Dispatcher) (*HostsPuller, error) {
 	hostsPuller := &HostsPuller{
-		ReviewDispatcher:           reviewDispatcher,
-		DHCPOptionDefinitionLookup: lookup,
+		ReviewDispatcher: reviewDispatcher,
 	}
 	periodicPuller, err := agentcomm.NewPeriodicPuller(db, agents, "Kea Hosts puller", "kea_hosts_puller_interval",
 		hostsPuller.pull)
@@ -167,6 +165,8 @@ func (puller *HostsPuller) pullFromDaemon(app *dbmodel.App, daemon *dbmodel.Daem
 		return false, nil
 	}
 
+	lookup := keaconfig.NewDHCPOptionDefinitionLookup(config.GetDHCPOptionDefinitions())
+
 	// Fetch the hosts as long as they are returned by Kea.
 	it := newHostIterator(puller.DB, app, daemon, puller.Agents, defaultHostCmdsPageLimit)
 	var done bool
@@ -214,13 +214,13 @@ func (puller *HostsPuller) pullFromDaemon(app *dbmodel.App, daemon *dbmodel.Daem
 			// responses to add the associations with the hosts that haven't
 			// changed.
 			for _, traceResponse := range it.trace.responses {
-				if err = convertAndUpdateHosts(tx, daemon, it.getSubnet(traceResponse.subnetIndex), traceResponse.hosts, puller.DHCPOptionDefinitionLookup); err != nil {
+				if err = convertAndUpdateHosts(tx, daemon, it.getSubnet(traceResponse.subnetIndex), traceResponse.hosts, lookup); err != nil {
 					return true, err
 				}
 			}
 		}
 		// Add the host reservations from the current response.
-		if err = convertAndUpdateHosts(tx, daemon, it.getCurrentSubnet(), reservations, puller.DHCPOptionDefinitionLookup); err != nil {
+		if err = convertAndUpdateHosts(tx, daemon, it.getCurrentSubnet(), reservations, lookup); err != nil {
 			return true, err
 		}
 	}

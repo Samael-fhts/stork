@@ -479,7 +479,7 @@ func TestCreateSubnet4(t *testing.T) {
 	// Do not return option definitions. This is not the area of the code
 	// that we want to test here.
 	lookupMock := NewMockDHCPOptionDefinitionLookup(controller)
-	lookupMock.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).AnyTimes().Return(false)
+	lookupMock.EXPECT().DefinitionExists(gomock.Any()).AnyTimes().Return(false)
 
 	// Convert the subnet from the Stork format to the Kea format.
 	subnet4, err := keaconfig.CreateSubnet4(1, lookupMock, mock)
@@ -678,7 +678,7 @@ func TestCreateSubnet6(t *testing.T) {
 	// Do not return option definitions. This is not the area of the code
 	// that we want to test here.
 	lookupMock := NewMockDHCPOptionDefinitionLookup(controller)
-	lookupMock.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).AnyTimes().Return(false)
+	lookupMock.EXPECT().DefinitionExists(gomock.Any()).AnyTimes().Return(false)
 
 	// Convert the subnet from the Stork format to the Kea format.
 	subnet6, err := keaconfig.CreateSubnet6(1, lookupMock, mock)

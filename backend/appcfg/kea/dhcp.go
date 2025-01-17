@@ -34,6 +34,8 @@ type dhcpConfigAccessor interface {
 	GetSubnets() []Subnet
 	// Returns a slice of the option data.
 	GetDHCPOptions() []SingleOptionData
+	// Returns the DHCP option definitions.
+	GetDHCPOptionDefinitions() []DHCPOptionDefinition
 }
 
 // An interface for setting the parts of the DHCP configurations. Both
@@ -202,6 +204,7 @@ type CommonDHCPConfig struct {
 	Loggers                 []Logger                 `json:"loggers,omitempty"`
 	MultiThreading          *MultiThreading          `json:"multi-threading,omitempty"`
 	OptionData              []SingleOptionData       `json:"option-data,omitempty"`
+	OptionDef               []DHCPOptionDefinition   `json:"option-def,omitempty"`
 	Reservations            []Reservation            `json:"reservations,omitempty"`
 	StoreExtendedInfo       *bool                    `json:"store-extended-info,omitempty"`
 }
@@ -347,6 +350,11 @@ func (c *DHCPv4Config) GetSubnets() (subnets []Subnet) {
 // Returns a slice of DHCP option data.
 func (c *DHCPv4Config) GetDHCPOptions() (options []SingleOptionData) {
 	return c.OptionData
+}
+
+// Returns the DHCP option definitions.
+func (c *DHCPv4Config) GetDHCPOptionDefinitions() []DHCPOptionDefinition {
+	return c.OptionDef
 }
 
 // Sets an allocator.
@@ -641,6 +649,11 @@ func (c *DHCPv6Config) GetSubnets() (subnets []Subnet) {
 // Returns a slice of DHCP option data.
 func (c *DHCPv6Config) GetDHCPOptions() (options []SingleOptionData) {
 	return c.OptionData
+}
+
+// Returns the DHCP option definitions.
+func (c *DHCPv6Config) GetDHCPOptionDefinitions() []DHCPOptionDefinition {
+	return c.OptionDef
 }
 
 // Sets an allocator.

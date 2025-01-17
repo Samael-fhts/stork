@@ -2,48 +2,46 @@ package dbmodel
 
 import (
 	keaconfig "isc.org/stork/appcfg/kea"
-	dhcpmodel "isc.org/stork/datamodel/dhcp"
-	storkutil "isc.org/stork/util"
+	dbops "isc.org/stork/server/database"
 )
 
-// DHCP option definition lookup mechanism.
-//
-// Its capabilities are currently limited. In the near future it will
-// be able to search for runtime option definitions in the database. At
-// present, it can find some selected standard option definitions for Kea.
-type DHCPOptionDefinitionLookup struct {
-	keaStdLookup keaconfig.DHCPStdOptionDefinitionLookup
+// A factory for creating DHCPOptionDefinitionLookup instances for daemons.
+// It caches the created objects. The cache is not thread-safe.
+// It allows to significantly reduce the number of queries to the database if
+// multiple entities referenced the same daemon are processed in a loop.
+type DHCPOptionDefinitionLookups struct {
+	db    dbops.DBI
+	cache map[int64]keaconfig.DHCPOptionDefinitionLookup
 }
 
 // Creates new lookup instance.
-func NewDHCPOptionDefinitionLookup() keaconfig.DHCPOptionDefinitionLookup {
-	return &DHCPOptionDefinitionLookup{
-		keaStdLookup: keaconfig.NewStdDHCPOptionDefinitionLookup(),
+func NewDHCPOptionDefinitionLookups(db dbops.DBI) *DHCPOptionDefinitionLookups {
+	return &DHCPOptionDefinitionLookups{
+		db:    db,
+		cache: make(map[int64]keaconfig.DHCPOptionDefinitionLookup),
 	}
 }
 
-// Checks if a definition of the specified option exists for the
-// given daemon.
-func (lookup DHCPOptionDefinitionLookup) DefinitionExists(daemonID int64, option dhcpmodel.DHCPOptionAccessor) bool {
-	switch option.GetUniverse() {
-	case storkutil.IPv4:
-		return (option.GetSpace() == "dhcp4" &&
-			((option.GetCode() >= 1 && option.GetCode() <= 100) ||
-				(option.GetCode() >= 108 && option.GetCode() <= 161) ||
-				(option.GetCode() >= 175 && option.GetCode() <= 177) ||
-				(option.GetCode() >= 208 && option.GetCode() <= 213) ||
-				(option.GetCode() >= 220 && option.GetCode() <= 221))) ||
-			(lookup.Find(daemonID, option) != nil)
-	case storkutil.IPv6:
-		return (option.GetSpace() == "dhcp6" && option.GetCode() >= 1 && option.GetCode() <= 143) ||
-			(lookup.Find(daemonID, option) != nil)
+// Returns lookup for the specified daemon.
+func (c *DHCPOptionDefinitionLookups) GetLookup(daemonID int64) (keaconfig.DHCPOptionDefinitionLookup, error) {
+	if lookup, ok := c.cache[daemonID]; ok {
+		return lookup, nil
 	}
-	return false
-}
 
-// Finds option definition for the specified option. Internally, it queries standard
-// Kea option definitions defined in the keaconfig package. In the future it will also
-// be able to search for the runtime definitions in the database.
-func (lookup DHCPOptionDefinitionLookup) Find(daemonID int64, option dhcpmodel.DHCPOptionAccessor) keaconfig.DHCPOptionDefinition {
-	return lookup.keaStdLookup.FindByCodeSpace(option.GetCode(), option.GetSpace(), option.GetUniverse())
+	// ToDo: Read only the definitions, not the whole config.
+	daemon, err := GetDaemonByID(c.db, daemonID)
+	if err != nil {
+		return nil, err
+	}
+
+	if daemon.KeaDaemon.Config == nil {
+		// The config is not fetched yet.
+		return nil, nil
+	}
+
+	lookup := keaconfig.NewDHCPOptionDefinitionLookup(
+		daemon.KeaDaemon.Config.GetDHCPOptionDefinitions(),
+	)
+	c.cache[daemonID] = lookup
+	return lookup, nil
 }

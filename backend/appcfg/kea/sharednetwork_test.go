@@ -418,7 +418,7 @@ func TestCreateSharedNetwork4(t *testing.T) {
 	// Do not return option definitions. This is not the area of the code
 	// that we want to test here.
 	lookupMock := NewMockDHCPOptionDefinitionLookup(controller)
-	lookupMock.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).AnyTimes().Return(false)
+	lookupMock.EXPECT().DefinitionExists(gomock.Any()).AnyTimes().Return(false)
 
 	// Convert the subnet from the Stork format to the Kea format.
 	network4, err := keaconfig.CreateSharedNetwork4(1, lookupMock, mock)
@@ -567,7 +567,7 @@ func TestCreateSharedNetwork6(t *testing.T) {
 	// Do not return option definitions. This is not the area of the code
 	// that we want to test here.
 	lookupMock := NewMockDHCPOptionDefinitionLookup(controller)
-	lookupMock.EXPECT().DefinitionExists(gomock.Any(), gomock.Any()).AnyTimes().Return(false)
+	lookupMock.EXPECT().DefinitionExists(gomock.Any()).AnyTimes().Return(false)
 
 	// Convert the subnet from the Stork format to the Kea format.
 	network6, err := keaconfig.CreateSharedNetwork6(1, lookupMock, mock)

@@ -26,13 +26,13 @@ type SingleOptionData struct {
 // specifies the option value as a comma separated list. Otherwise, it
 // converts the option fields to a hex form and sets the csv-format to
 // false. The lookup interface must not be nil.
-func CreateSingleOptionData(daemonID int64, lookup DHCPOptionDefinitionLookup, option dhcpmodel.DHCPOptionAccessor) (*SingleOptionData, error) {
+func CreateSingleOptionData(lookup DHCPOptionDefinitionLookup, option dhcpmodel.DHCPOptionAccessor) (*SingleOptionData, error) {
 	// Create Kea representation of the option. Set csv-format to
 	// true for all options for which the definitions are known.
 	data := &SingleOptionData{
 		AlwaysSend: option.IsAlwaysSend(),
 		Code:       option.GetCode(),
-		CSVFormat:  lookup.DefinitionExists(daemonID, option),
+		CSVFormat:  lookup.DefinitionExists(option),
 		Name:       option.GetName(),
 		Space:      option.GetSpace(),
 	}
@@ -108,7 +108,7 @@ func CreateDHCPOption(optionData SingleOptionData, universe storkutil.IPType, lo
 	data := strings.TrimSpace(optionData.Data)
 
 	// Option encapsulation.
-	def := lookup.Find(0, option)
+	def := lookup.Find(option)
 	if def != nil {
 		// If the option definition is known, let's take the encapsulated option
 		// space name from it.

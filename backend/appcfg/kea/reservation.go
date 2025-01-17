@@ -109,7 +109,7 @@ func CreateReservation(daemonID int64, lookup DHCPOptionDefinitionLookup, host H
 		}
 	}
 	for _, option := range host.GetDHCPOptions(daemonID) {
-		optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+		optionData, err := CreateSingleOptionData(lookup, option)
 		if err != nil {
 			return nil, err
 		}

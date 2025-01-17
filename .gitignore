@@ -90,11 +90,14 @@ tests/system/.openapi-generator-ignore
 tests/system/openapi_client_README.md
 webui/documentation.json
 
-# Code-gen generated files
-backend/appcfg/kea/stdoptiondef4.go
-backend/appcfg/kea/stdoptiondef6.go
-webui/src/app/std-dhcpv4-option-defs.ts
-webui/src/app/std-dhcpv6-option-defs.ts
+# Copied common files
+backend/appcfg/kea/stdoptiondef4.json
+backend/appcfg/kea/stdoptiondef6.json
+webui/src/app/std-dhcpv4-option-defs.json
+webui/src/app/std-dhcpv6-option-defs.json
 
 # Hooks
 /hooks/*.so
+
+# Go core dumps
+backend/**/__debug_bin*

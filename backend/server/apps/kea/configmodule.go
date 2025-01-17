@@ -308,6 +308,8 @@ func (module *ConfigModule) ApplyHostAdd(ctx context.Context, host *dbmodel.Host
 		return ctx, errors.New("applied host is not associated with any daemon")
 	}
 	var commands []ConfigCommand
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(module.manager.GetDB())
+
 	for _, lh := range host.LocalHosts {
 		if lh.Daemon == nil {
 			return ctx, errors.New("applied host is associated with nil daemon")
@@ -315,8 +317,13 @@ func (module *ConfigModule) ApplyHostAdd(ctx context.Context, host *dbmodel.Host
 		if lh.Daemon.App == nil {
 			return ctx, errors.New("applied host is associated with nil app")
 		}
+
+		lookup, err := lookups.GetLookup(lh.DaemonID)
+		if err != nil {
+			return ctx, err
+		}
+
 		// Convert the host information to Kea reservation.
-		lookup := module.manager.GetDHCPOptionDefinitionLookup()
 		reservation, err := keaconfig.CreateHostCmdsReservation(lh.DaemonID, lookup, host)
 		if err != nil {
 			return ctx, err
@@ -424,6 +431,8 @@ func (module *ConfigModule) ApplyHostUpdate(ctx context.Context, host *dbmodel.H
 		return ctx, errors.New("internal server error - host instance cannot be nil when committing host update")
 	}
 
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(module.manager.GetDB())
+
 	var commands []ConfigCommand
 	// First, delete all instances of the host on all Kea servers.
 	for _, lh := range existingHost.LocalHosts {
@@ -459,8 +468,13 @@ func (module *ConfigModule) ApplyHostUpdate(ctx context.Context, host *dbmodel.H
 		if lh.Daemon.App == nil {
 			return ctx, errors.Errorf("applied host %d is associated with nil app", host.ID)
 		}
+
 		// Convert the updated host information to Kea reservation.
-		lookup := module.manager.GetDHCPOptionDefinitionLookup()
+		lookup, err := lookups.GetLookup(lh.DaemonID)
+		if err != nil {
+			return ctx, err
+		}
+
 		reservation, err := keaconfig.CreateHostCmdsReservation(lh.DaemonID, lookup, host)
 		if err != nil {
 			return ctx, err
@@ -668,6 +682,9 @@ func (module *ConfigModule) ApplySharedNetworkAdd(ctx context.Context, sharedNet
 	if len(sharedNetwork.LocalSharedNetworks) == 0 {
 		return ctx, errors.Errorf("applied shared network %s is not associated with any daemon", sharedNetwork.Name)
 	}
+
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(module.manager.GetDB())
+
 	// Retrieve existing shared network from the context. We need it for sending
 	// the network4-del or network6-del commands.
 	recipe, err := config.GetRecipeForUpdate[ConfigRecipe](ctx, 0)
@@ -685,7 +702,11 @@ func (module *ConfigModule) ApplySharedNetworkAdd(ctx context.Context, sharedNet
 			return ctx, errors.Errorf("applied shared network %s is associated with nil app", sharedNetwork.Name)
 		}
 		// Convert the shared network information to Kea shared network.
-		lookup := module.manager.GetDHCPOptionDefinitionLookup()
+		lookup, err := lookups.GetLookup(lsn.DaemonID)
+		if err != nil {
+			return ctx, err
+		}
+
 		appCommand := ConfigCommand{
 			App: lsn.Daemon.App,
 		}
@@ -832,6 +853,8 @@ func (module *ConfigModule) ApplySharedNetworkUpdate(ctx context.Context, shared
 		return ctx, errors.New("internal server error - shared network instance cannot be nil when committing shared network update")
 	}
 
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(module.manager.GetDB())
+
 	var commands []ConfigCommand
 	// Update the shared network instances.
 	for _, lsn := range sharedNetwork.LocalSharedNetworks {
@@ -842,7 +865,11 @@ func (module *ConfigModule) ApplySharedNetworkUpdate(ctx context.Context, shared
 			return ctx, errors.Errorf("applied shared network %s is associated with nil app", sharedNetwork.Name)
 		}
 		// Convert the updated shared network information to Kea shared network.
-		lookup := module.manager.GetDHCPOptionDefinitionLookup()
+		lookup, err := lookups.GetLookup(lsn.DaemonID)
+		if err != nil {
+			return ctx, err
+		}
+
 		appCommand := ConfigCommand{}
 		switch sharedNetwork.Family {
 		case 4:
@@ -1055,6 +1082,9 @@ func (module *ConfigModule) ApplySubnetAdd(ctx context.Context, subnet *dbmodel.
 	if err != nil {
 		return ctx, errors.WithMessagef(err, "failed querying the database to generate ID for the new subnet")
 	}
+
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(module.manager.GetDB())
+
 	// Next subnet ID should be available. Assign it to all local subnets.
 	localSubnetID++
 	for i := range subnet.LocalSubnets {
@@ -1076,7 +1106,11 @@ func (module *ConfigModule) ApplySubnetAdd(ctx context.Context, subnet *dbmodel.
 			return ctx, errors.Errorf("applied subnet %s is associated with nil app", subnet.Prefix)
 		}
 		// Convert the updated subnet information to Kea subnet.
-		lookup := module.manager.GetDHCPOptionDefinitionLookup()
+		lookup, err := lookups.GetLookup(ls.DaemonID)
+		if err != nil {
+			return ctx, err
+		}
+
 		appCommand := ConfigCommand{}
 		switch subnet.GetFamily() {
 		case 4:
@@ -1241,6 +1275,8 @@ func (module *ConfigModule) ApplySubnetUpdate(ctx context.Context, subnet *dbmod
 		return ctx, errors.New("internal server error - subnet instance cannot be nil when committing subnet update")
 	}
 
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(module.manager.GetDB())
+
 	var (
 		sharedNetworkNameBeforeUpdate string
 		sharedNetworkNameAfterUpdate  string
@@ -1270,7 +1306,11 @@ func (module *ConfigModule) ApplySubnetUpdate(ctx context.Context, subnet *dbmod
 			}
 		}
 		// Convert the updated subnet information to Kea subnet.
-		lookup := module.manager.GetDHCPOptionDefinitionLookup()
+		lookup, err := lookups.GetLookup(ls.DaemonID)
+		if err != nil {
+			return ctx, err
+		}
+
 		appCommand := ConfigCommand{}
 		switch subnet.GetFamily() {
 		case 4:

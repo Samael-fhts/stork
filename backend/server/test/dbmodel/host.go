@@ -89,6 +89,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
                 ]
             }
         }`)
+
 		require.NoError(t, err)
 		apps = append(apps, a)
 	}

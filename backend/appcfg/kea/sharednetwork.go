@@ -225,7 +225,7 @@ func CreateSharedNetwork4(daemonID int64, lookup DHCPOptionDefinitionLookup, sha
 		sharedNetwork4.ServerHostname = params.ServerHostname
 	}
 	for _, option := range sharedNetwork.GetDHCPOptions(daemonID) {
-		optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+		optionData, err := CreateSingleOptionData(lookup, option)
 		if err != nil {
 			return nil, err
 		}
@@ -271,7 +271,7 @@ func CreateSharedNetwork6(daemonID int64, lookup DHCPOptionDefinitionLookup, sha
 		sharedNetwork6.RapidCommit = params.RapidCommit
 	}
 	for _, option := range sharedNetwork.GetDHCPOptions(daemonID) {
-		optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+		optionData, err := CreateSingleOptionData(lookup, option)
 		if err != nil {
 			return nil, err
 		}

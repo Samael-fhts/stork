@@ -129,8 +129,7 @@ func TestDetectNetworksWhenAppCommitted(t *testing.T) {
             }
         }`
 	app := createAppWithSubnets(t, db, 0, v4Config, v6Config)
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err := CommitAppIntoDB(db, app, fec, nil, lookup)
+	err := CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// The configuration didn't include any shared network, so it should
@@ -212,7 +211,7 @@ func TestDetectNetworksWhenAppCommitted(t *testing.T) {
             }
         }`
 	app = createAppWithSubnets(t, db, 1, v4Config, "")
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// There should be one shared network in the database.
@@ -277,7 +276,7 @@ func TestDetectNetworksWhenAppCommitted(t *testing.T) {
             }
         }`
 	app = createAppWithSubnets(t, db, 2, v4Config, "")
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// There should still be just one shared network.
@@ -292,7 +291,7 @@ func TestDetectNetworksWhenAppCommitted(t *testing.T) {
 
 	// Adding the same subnet again should be fine and should not result in
 	// any conflicts.
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	networks, err = dbmodel.GetAllSharedNetworks(db, 4)
@@ -348,8 +347,7 @@ func TestCommitAppSameConfigs(t *testing.T) {
 		},
 	}
 	app := createAppWithSubnets(t, db, 0, v4Config, v6Config)
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err := CommitAppIntoDB(db, app, fec, state, lookup)
+	err := CommitAppIntoDB(db, app, fec, state)
 	require.NoError(t, err)
 
 	// There should be no IPv4 subnets because they should have been skipped.
@@ -396,8 +394,7 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
             }
         }`
 	app := createAppWithSubnets(t, db, 0, v4Config, "")
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err := CommitAppIntoDB(db, app, fec, nil, lookup)
+	err := CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// Shared network should have been created along with the subnets.
@@ -442,7 +439,7 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
 	require.NoError(t, err)
 
 	app.Daemons[0].KeaDaemon.Config = kea4Config0
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// The shared network should still be there.
@@ -485,7 +482,7 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
 	require.NoError(t, err)
 
 	app.Daemons[0].KeaDaemon.Config = kea4Config1
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// The shared network should now be gone.
@@ -495,7 +492,7 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
 
 	// Revert to the original config.
 	app.Daemons[0].KeaDaemon.Config = kea4Config0
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// The shared network should be there.
@@ -516,7 +513,6 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 	apps := make([]*dbmodel.App, 2)
 
 	// Create a configuration with a single subnet.
@@ -533,7 +529,7 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
 	// Assign the same configuration to two apps.
 	for i := 0; i < len(apps); i++ {
 		apps[i] = createAppWithSubnets(t, db, int64(i), v4Config, "")
-		err := CommitAppIntoDB(db, apps[i], fec, nil, lookup)
+		err := CommitAppIntoDB(db, apps[i], fec, nil)
 		require.NoError(t, err)
 	}
 
@@ -557,7 +553,7 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
 	require.NoError(t, err)
 
 	apps[0].Daemons[0].KeaDaemon.Config = kea4Config
-	err = CommitAppIntoDB(db, apps[0], fec, nil, lookup)
+	err = CommitAppIntoDB(db, apps[0], fec, nil)
 	require.NoError(t, err)
 
 	// There should still be two subnets in the database, each owned
@@ -570,7 +566,7 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
 
 	// Update the second app to use the second subnet.
 	apps[1].Daemons[0].KeaDaemon.Config = kea4Config
-	err = CommitAppIntoDB(db, apps[1], fec, nil, lookup)
+	err = CommitAppIntoDB(db, apps[1], fec, nil)
 	require.NoError(t, err)
 
 	// The first subnet should have been removed because the second
@@ -588,7 +584,6 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 	apps := make([]*dbmodel.App, 2)
 
 	// Create a configuration with a single host reservation.
@@ -611,7 +606,7 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
 	// Assign the same configuration to two apps.
 	for i := 0; i < len(apps); i++ {
 		apps[i] = createAppWithSubnets(t, db, int64(i), v4Config, "")
-		err := CommitAppIntoDB(db, apps[i], fec, nil, lookup)
+		err := CommitAppIntoDB(db, apps[i], fec, nil)
 		require.NoError(t, err)
 	}
 
@@ -644,7 +639,7 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
 	require.NoError(t, err)
 
 	apps[0].Daemons[0].KeaDaemon.Config = kea4Config
-	err = CommitAppIntoDB(db, apps[0], fec, nil, lookup)
+	err = CommitAppIntoDB(db, apps[0], fec, nil)
 	require.NoError(t, err)
 
 	// There should be two hosts in the database, each owned by a
@@ -655,7 +650,7 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
 
 	// Update the second app to use the second reservation.
 	apps[1].Daemons[0].KeaDaemon.Config = kea4Config
-	err = CommitAppIntoDB(db, apps[1], fec, nil, lookup)
+	err = CommitAppIntoDB(db, apps[1], fec, nil)
 	require.NoError(t, err)
 
 	// The first host should have been removed because the second
@@ -684,7 +679,6 @@ func TestDetectNetworkUpdateAddressPool(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
 	v4Config := m{
 		"Dhcp4": m{
@@ -701,7 +695,7 @@ func TestDetectNetworkUpdateAddressPool(t *testing.T) {
 
 	v4ConfigJSON, _ := json.Marshal(v4Config)
 	app := createAppWithSubnets(t, db, 0, string(v4ConfigJSON), "")
-	_ = CommitAppIntoDB(db, app, fec, nil, lookup)
+	_ = CommitAppIntoDB(db, app, fec, nil)
 
 	// Act
 	// Update the config.
@@ -709,7 +703,7 @@ func TestDetectNetworkUpdateAddressPool(t *testing.T) {
 	v4ConfigJSON, _ = json.Marshal(v4Config)
 	kea4Config, _ := dbmodel.NewKeaConfigFromJSON(string(v4ConfigJSON))
 	app.Daemons[0].KeaDaemon.Config = kea4Config
-	err := CommitAppIntoDB(db, app, fec, nil, lookup)
+	err := CommitAppIntoDB(db, app, fec, nil)
 
 	// Assert
 	require.NoError(t, err)
@@ -727,7 +721,6 @@ func TestDetectNetworkUpdateClientClass(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
 	v4Config := m{
 		"Dhcp4": m{
@@ -742,7 +735,7 @@ func TestDetectNetworkUpdateClientClass(t *testing.T) {
 
 	v4ConfigJSON, _ := json.Marshal(v4Config)
 	app := createAppWithSubnets(t, db, 0, string(v4ConfigJSON), "")
-	err := CommitAppIntoDB(db, app, fec, nil, lookup)
+	err := CommitAppIntoDB(db, app, fec, nil)
 	require.NoError(t, err)
 
 	// Act
@@ -751,7 +744,7 @@ func TestDetectNetworkUpdateClientClass(t *testing.T) {
 	v4ConfigJSON, _ = json.Marshal(v4Config)
 	kea4Config, _ := dbmodel.NewKeaConfigFromJSON(string(v4ConfigJSON))
 	app.Daemons[0].KeaDaemon.Config = kea4Config
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = CommitAppIntoDB(db, app, fec, nil)
 
 	// Assert
 	require.NoError(t, err)
@@ -766,7 +759,6 @@ func TestDetectNetworkUpdateDelegatedPrefixPool(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 	fec := &storktest.FakeEventCenter{}
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
 	config := m{
 		"Dhcp6": m{
@@ -787,7 +779,7 @@ func TestDetectNetworkUpdateDelegatedPrefixPool(t *testing.T) {
 
 	configJSON, _ := json.Marshal(config)
 	app := createAppWithSubnets(t, db, 0, "", string(configJSON))
-	_ = CommitAppIntoDB(db, app, fec, nil, lookup)
+	_ = CommitAppIntoDB(db, app, fec, nil)
 
 	// Act
 	// Update the config.
@@ -797,7 +789,7 @@ func TestDetectNetworkUpdateDelegatedPrefixPool(t *testing.T) {
 	configJSON, _ = json.Marshal(config)
 	keaConfig, _ := dbmodel.NewKeaConfigFromJSON(string(configJSON))
 	app.Daemons[1].KeaDaemon.Config = keaConfig
-	err := CommitAppIntoDB(db, app, fec, nil, lookup)
+	err := CommitAppIntoDB(db, app, fec, nil)
 
 	// Assert
 	require.NoError(t, err)

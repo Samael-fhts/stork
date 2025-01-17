@@ -22,7 +22,6 @@ import (
 	"isc.org/stork/appdata/bind9stats"
 	"isc.org/stork/pki"
 	"isc.org/stork/server/agentcomm"
-	"isc.org/stork/server/apps"
 	"isc.org/stork/server/apps/kea"
 	"isc.org/stork/server/certs"
 	dbops "isc.org/stork/server/database"
@@ -249,10 +248,10 @@ func (r *RestAPI) machineSwVersionsToRestAPI(dbMachine dbmodel.Machine) *models.
 
 // Get runtime state of indicated machine.
 func (r *RestAPI) GetMachineState(ctx context.Context, params services.GetMachineStateParams) middleware.Responder {
-	dbMachine, err := dbmodel.GetMachineByID(r.DB, params.ID)
+	dbMachine, err := r.Pullers.AppsStatePuller.PullMachine(ctx, params.ID)
 	if err != nil {
-		msg := fmt.Sprintf("Cannot get machine with ID %d from db", params.ID)
-		log.Error(err)
+		msg := fmt.Sprintf("Cannot get machine state with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetMachineStateDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -262,14 +261,6 @@ func (r *RestAPI) GetMachineState(ctx context.Context, params services.GetMachin
 		msg := fmt.Sprintf("Cannot find machine with ID %d", params.ID)
 		rsp := services.NewGetMachineStateDefault(http.StatusNotFound).WithPayload(&models.APIError{
 			Message: &msg,
-		})
-		return rsp
-	}
-
-	errStr := apps.UpdateMachineAndAppsState(ctx, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
-	if errStr != "" {
-		rsp := services.NewGetMachineStateDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
-			Message: &errStr,
 		})
 		return rsp
 	}
@@ -760,7 +751,7 @@ func (r *RestAPI) PingMachine(ctx context.Context, params services.PingMachinePa
 	err = r.Agents.Ping(ctx2, dbMachine)
 	if err != nil {
 		msg := "Cannot ping machine"
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := services.NewPingMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -768,10 +759,12 @@ func (r *RestAPI) PingMachine(ctx context.Context, params services.PingMachinePa
 	}
 
 	// Communication with an agent established, so get machine's state.
-	errStr := apps.UpdateMachineAndAppsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
-	if errStr != "" {
+	_, err = r.Pullers.AppsStatePuller.PullMachine(ctx, dbMachine.ID)
+	if err != nil {
+		msg := "Cannot pull the machine state"
+		log.WithError(err).Error(msg)
 		rsp := services.NewPingMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
-			Message: &errStr,
+			Message: &msg,
 		})
 		return rsp
 	}
@@ -811,8 +804,8 @@ func (r *RestAPI) UpdateMachine(ctx context.Context, params services.UpdateMachi
 
 	dbMachine, err := dbmodel.GetMachineByID(r.DB, params.ID)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get machine with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewUpdateMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -858,8 +851,8 @@ func (r *RestAPI) UpdateMachine(ctx context.Context, params services.UpdateMachi
 	dbMachine.Authorized = params.Machine.Authorized
 	_, err = r.DB.Model(dbMachine).WherePK().Update()
 	if err != nil {
-		log.Errorf("Cannot update machine: %s", err)
 		msg := fmt.Sprintf("Cannot update machine with ID %d in db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewUpdateMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -868,12 +861,12 @@ func (r *RestAPI) UpdateMachine(ctx context.Context, params services.UpdateMachi
 
 	// as we just authorized machine so get its state now
 	if !prevAuthorized && dbMachine.Authorized {
-		ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
-		defer cancel()
-		errStr := apps.UpdateMachineAndAppsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
-		if errStr != "" {
+		_, err := r.Pullers.AppsStatePuller.PullMachine(ctx, dbMachine.ID)
+		if err != nil {
+			msg := "Cannot pull the machine state"
+			log.WithError(err).Error(msg)
 			rsp := services.NewUpdateMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
-				Message: &errStr,
+				Message: &msg,
 			})
 			return rsp
 		}

@@ -63,6 +63,7 @@ func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemon
 
 	var options *models.DHCPOptions
 	if dbDaemon.KeaDaemon.Config.IsDHCPv4() || dbDaemon.KeaDaemon.Config.IsDHCPv6() {
+		lookup := keaconfig.NewDHCPOptionDefinitionLookup(dbDaemon.KeaDaemon.Config.GetDHCPOptionDefinitions())
 		ipType := storkutil.IPType(4)
 		if dbDaemon.KeaDaemon.Config.IsDHCPv6() {
 			ipType = storkutil.IPType(6)
@@ -71,7 +72,7 @@ func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemon
 		var convertedOptions []dbmodel.DHCPOption
 		for _, option := range dbDaemon.KeaDaemon.Config.GetDHCPOptions() {
 			convertedOption, err := dbmodel.NewDHCPOptionFromKea(
-				option, ipType, r.DHCPOptionDefinitionLookup,
+				option, ipType, lookup,
 			)
 			if err != nil {
 				continue
@@ -578,6 +579,7 @@ func (r *RestAPI) UpdateKeaGlobalParametersBegin(ctx context.Context, params dhc
 
 		var options *models.DHCPOptions
 		if daemon.KeaDaemon.Config.IsDHCPv4() || daemon.KeaDaemon.Config.IsDHCPv6() {
+			lookup := keaconfig.NewDHCPOptionDefinitionLookup(daemon.KeaDaemon.Config.GetDHCPOptionDefinitions())
 			ipType := storkutil.IPType(4)
 			if daemon.KeaDaemon.Config.IsDHCPv6() {
 				ipType = storkutil.IPType(6)
@@ -586,7 +588,7 @@ func (r *RestAPI) UpdateKeaGlobalParametersBegin(ctx context.Context, params dhc
 			var convertedOptions []dbmodel.DHCPOption
 			for _, option := range daemon.KeaDaemon.Config.GetDHCPOptions() {
 				convertedOption, err := dbmodel.NewDHCPOptionFromKea(
-					option, ipType, r.DHCPOptionDefinitionLookup,
+					option, ipType, lookup,
 				)
 				if err != nil {
 					continue
@@ -646,6 +648,8 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 		return rsp
 	}
 
+	lookups := dbmodel.NewDHCPOptionDefinitionLookups(r.DB)
+
 	var settableConfigs []config.AnnotatedEntity[*keaconfig.SettableConfig]
 	for i := range params.Request.Configs {
 		receivedConfig := params.Request.Configs[i]
@@ -701,7 +705,17 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 			_ = settableConfig.SetReservationsOutOfPool(partialConfig.ReservationsOutOfPool)
 			_ = settableConfig.SetValidLifetime(partialConfig.ValidLifetime)
 
-			options, err := r.flattenDHCPOptions("", partialConfig.Options, 0)
+			lookup, err := lookups.GetLookup(receivedConfig.DaemonID)
+			if err != nil {
+				msg := fmt.Sprintf("Problem with getting DHCP option definitions for daemon ID %d", receivedConfig.DaemonID)
+				log.WithError(err).Error(msg)
+				rsp := dhcp.NewUpdateKeaGlobalParametersSubmitDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
+					Message: &msg,
+				})
+				return rsp
+			}
+
+			options, err := r.flattenDHCPOptions("", partialConfig.Options, lookup, 0)
 			if err != nil {
 				msg := fmt.Sprintf("Problem with flattening DHCP options: %s", err)
 				log.WithError(err).Error(msg)
@@ -714,9 +728,7 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 			singleOptions := make([]keaconfig.SingleOptionData, 0, len(options))
 			for _, option := range options {
 				singleOption, err := keaconfig.CreateSingleOptionData(
-					receivedConfig.DaemonID,
-					r.DHCPOptionDefinitionLookup,
-					option,
+					lookup, option,
 				)
 				if err != nil {
 					msg := fmt.Sprintf(

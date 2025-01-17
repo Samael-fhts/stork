@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	keaconfig "isc.org/stork/appcfg/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -18,7 +19,7 @@ func TestFlattenDHCPv4Options(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
 	// Create options with suboptions and different option field types.
@@ -153,7 +154,8 @@ func TestFlattenDHCPv4Options(t *testing.T) {
 		},
 	}
 	// Convert and flatten the structure.
-	options, err := rapi.flattenDHCPOptions("dhcp4", restOptions, 0)
+	lookup := keaconfig.NewDHCPOptionDefinitionLookup(nil)
+	options, err := rapi.flattenDHCPOptions("dhcp4", restOptions, lookup, 0)
 	require.NoError(t, err)
 	require.Len(t, options, 7)
 
@@ -248,7 +250,7 @@ func TestFlattenDHCPv6Options(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
 	// Create options with suboptions and different option field types.
@@ -288,7 +290,8 @@ func TestFlattenDHCPv6Options(t *testing.T) {
 		},
 	}
 	// Convert and flatten the structure.
-	options, err := rapi.flattenDHCPOptions("dhcp6", restOptions, 0)
+	lookup := keaconfig.NewDHCPOptionDefinitionLookup(nil)
+	options, err := rapi.flattenDHCPOptions("dhcp6", restOptions, lookup, 0)
 	require.NoError(t, err)
 	require.Len(t, options, 3)
 
@@ -328,8 +331,9 @@ func TestFlattenDHCPOptionsInvalidValues(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
+	lookup := keaconfig.NewDHCPOptionDefinitionLookup(nil)
 
 	type test struct {
 		testName  string
@@ -374,7 +378,7 @@ func TestFlattenDHCPOptionsInvalidValues(t *testing.T) {
 					},
 				},
 			}
-			options, err := rapi.flattenDHCPOptions("dhcp4", restOptions, 0)
+			options, err := rapi.flattenDHCPOptions("dhcp4", restOptions, lookup, 0)
 			require.Error(t, err)
 			require.Nil(t, options)
 		})
@@ -386,7 +390,7 @@ func TestUnflattenDHCPOptions(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
 	options := []dbmodel.DHCPOption{
@@ -466,7 +470,7 @@ func TestUnflattenDHCPOptionsVariousFieldTypes(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
 	type test struct {
@@ -522,7 +526,7 @@ func TestUnflattenDHCPOptionsRecursionLevel(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	rapi, err := NewRestAPI(dbSettings, db, dbmodel.NewDHCPOptionDefinitionLookup())
+	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
 	options := []dbmodel.DHCPOption{

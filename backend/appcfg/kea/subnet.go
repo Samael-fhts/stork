@@ -417,7 +417,7 @@ func CreateSubnet4(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 		}
 		// Pool-level DHCP options.
 		for _, option := range pool.GetDHCPOptions() {
-			optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+			optionData, err := CreateSingleOptionData(lookup, option)
 			if err != nil {
 				return nil, err
 			}
@@ -458,7 +458,7 @@ func CreateSubnet4(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 	}
 	// Subnet-level DHCP options.
 	for _, option := range subnet.GetDHCPOptions(daemonID) {
-		optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+		optionData, err := CreateSingleOptionData(lookup, option)
 		if err != nil {
 			return nil, err
 		}
@@ -490,7 +490,7 @@ func CreateSubnet6(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 		}
 		// Pool-level DHCP options.
 		for _, option := range pool.GetDHCPOptions() {
-			optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+			optionData, err := CreateSingleOptionData(lookup, option)
 			if err != nil {
 				return nil, err
 			}
@@ -530,7 +530,7 @@ func CreateSubnet6(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 		}
 		// Pool-level DHCP options.
 		for _, option := range pool.GetDHCPOptions() {
-			optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+			optionData, err := CreateSingleOptionData(lookup, option)
 			if err != nil {
 				return nil, err
 			}
@@ -569,7 +569,7 @@ func CreateSubnet6(daemonID int64, lookup DHCPOptionDefinitionLookup, subnet Sub
 	}
 	// Subnet-level DHCP options.
 	for _, option := range subnet.GetDHCPOptions(daemonID) {
-		optionData, err := CreateSingleOptionData(daemonID, lookup, option)
+		optionData, err := CreateSingleOptionData(lookup, option)
 		if err != nil {
 			return nil, err
 		}

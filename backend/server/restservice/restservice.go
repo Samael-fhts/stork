@@ -26,7 +26,6 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/netutil"
 
-	keaconfig "isc.org/stork/appcfg/kea"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/apps"
 	"isc.org/stork/server/config"
@@ -66,18 +65,17 @@ type RestAPISettings struct {
 
 // Runtime information and settings for RestAPI service.
 type RestAPI struct {
-	Settings                   *RestAPISettings
-	DBSettings                 *dbops.DatabaseSettings
-	DB                         *dbops.PgDB
-	SessionManager             *dbsession.SessionMgr
-	EventCenter                eventcenter.EventCenter
-	Pullers                    *apps.Pullers
-	ReviewDispatcher           configreview.Dispatcher
-	MetricsCollector           metrics.Collector
-	ConfigManager              config.Manager
-	DHCPOptionDefinitionLookup keaconfig.DHCPOptionDefinitionLookup
-	HookManager                *hookmanager.HookManager
-	EndpointControl            *EndpointControl
+	Settings         *RestAPISettings
+	DBSettings       *dbops.DatabaseSettings
+	DB               *dbops.PgDB
+	SessionManager   *dbsession.SessionMgr
+	EventCenter      eventcenter.EventCenter
+	Pullers          *apps.Pullers
+	ReviewDispatcher configreview.Dispatcher
+	MetricsCollector metrics.Collector
+	ConfigManager    config.Manager
+	HookManager      *hookmanager.HookManager
+	EndpointControl  *EndpointControl
 
 	Agents agentcomm.ConnectedAgents
 
@@ -169,10 +167,6 @@ func NewRestAPI(args ...interface{}) (*RestAPI, error) {
 		}
 		if argType.Implements(reflect.TypeOf((*config.Manager)(nil)).Elem()) {
 			api.ConfigManager = arg.(config.Manager)
-			continue
-		}
-		if argType.Implements(reflect.TypeOf((*keaconfig.DHCPOptionDefinitionLookup)(nil)).Elem()) {
-			api.DHCPOptionDefinitionLookup = arg.(keaconfig.DHCPOptionDefinitionLookup)
 			continue
 		}
 

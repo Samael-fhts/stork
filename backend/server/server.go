@@ -9,7 +9,6 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"isc.org/stork"
-	keaconfig "isc.org/stork/appcfg/kea"
 	"isc.org/stork/hooks"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/apps"
@@ -49,9 +48,7 @@ type StorkServer struct {
 	// Configuration manager instance. Note that it inherits some fields
 	// maintained by the server.
 	ConfigManager config.Manager
-	// Provides lookup functionality for DHCP option definitions.
-	DHCPOptionDefinitionLookup keaconfig.DHCPOptionDefinitionLookup
-	shutdownOnce               sync.Once
+	shutdownOnce  sync.Once
 
 	HookManager   *hookmanager.HookManager
 	hooksSettings map[string]hooks.HookSettings
@@ -158,12 +155,8 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 
 	ss.Pullers = &apps.Pullers{}
 
-	// This instance provides functions to search for option definitions, both in the
-	// database and among the standard options. It is required by the config manager.
-	ss.DHCPOptionDefinitionLookup = dbmodel.NewDHCPOptionDefinitionLookup()
-
 	// setup apps state puller
-	ss.Pullers.AppsStatePuller, err = apps.NewStatePuller(ss.DB, ss.Agents, ss.EventCenter, ss.ReviewDispatcher, ss.DHCPOptionDefinitionLookup)
+	ss.Pullers.AppsStatePuller, err = apps.NewStatePuller(ss.DB, ss.Agents, ss.EventCenter, ss.ReviewDispatcher)
 	if err != nil {
 		return err
 	}
@@ -181,7 +174,7 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 	}
 
 	// Setup Kea hosts puller.
-	ss.Pullers.KeaHostsPuller, err = kea.NewHostsPuller(ss.DB, ss.Agents, ss.ReviewDispatcher, ss.DHCPOptionDefinitionLookup)
+	ss.Pullers.KeaHostsPuller, err = kea.NewHostsPuller(ss.DB, ss.Agents, ss.ReviewDispatcher)
 	if err != nil {
 		return err
 	}
@@ -226,7 +219,7 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 	r, err := restservice.NewRestAPI(&ss.RestAPISettings, &ss.DBSettings,
 		ss.DB, ss.Agents, ss.EventCenter,
 		ss.Pullers, ss.ReviewDispatcher, ss.MetricsCollector, ss.ConfigManager,
-		ss.DHCPOptionDefinitionLookup, ss.HookManager, endpointControl)
+		ss.HookManager, endpointControl)
 	if err != nil {
 		ss.Pullers.HAStatusPuller.Shutdown()
 		ss.Pullers.KeaHostsPuller.Shutdown()
@@ -304,10 +297,4 @@ func (ss *StorkServer) GetDB() *pg.DB {
 // Returns an interface to the agents the manager communicates with.
 func (ss *StorkServer) GetConnectedAgents() agentcomm.ConnectedAgents {
 	return ss.Agents
-}
-
-// Returns an interface to the instance providing the DHCP option definition
-// lookup logic.
-func (ss *StorkServer) GetDHCPOptionDefinitionLookup() keaconfig.DHCPOptionDefinitionLookup {
-	return ss.DHCPOptionDefinitionLookup
 }

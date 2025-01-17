@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
+	keaconfig "isc.org/stork/appcfg/kea"
 	keactrl "isc.org/stork/appctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -449,7 +450,7 @@ func checkStatsPullerPullStats(t *testing.T, statsFormat string) {
 	keaMock := createStandardKeaMock(statsFormat == "1.6")
 
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
+	lookup := keaconfig.NewDHCPOptionDefinitionLookup(nil)
 	for i := range app.Daemons {
 		sharedNetworks, subnets, err := detectDaemonNetworks(db, app.Daemons[i], lookup)
 		require.NoError(t, err)
@@ -793,8 +794,8 @@ func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Servi
 	require.NotNil(t, loadBalancing)
 	require.NotNil(t, hotStandby)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 	for _, daemon := range daemons {
+		lookup := keaconfig.NewDHCPOptionDefinitionLookup(daemon.KeaDaemon.Config.GetDHCPOptionDefinitions())
 		sharedNetworks, subnets, err := detectDaemonNetworks(db, daemon, lookup)
 		require.NoError(t, err)
 		_, err = dbmodel.CommitNetworksIntoDB(db, sharedNetworks, subnets)

@@ -6,7 +6,6 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	keaconfig "isc.org/stork/appcfg/kea"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/apps/bind9"
 	"isc.org/stork/server/apps/kea"
@@ -14,24 +13,23 @@ import (
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/eventcenter"
+	storkutil "isc.org/stork/util"
 )
 
 // Instance of the puller which periodically checks the status of the Kea apps.
 // Besides basic status information the High Availability status is fetched.
 type StatePuller struct {
 	*agentcomm.PeriodicPuller
-	EventCenter                eventcenter.EventCenter
-	ReviewDispatcher           configreview.Dispatcher
-	DHCPOptionDefinitionLookup keaconfig.DHCPOptionDefinitionLookup
+	eventCenter      eventcenter.EventCenter
+	reviewDispatcher configreview.Dispatcher
 }
 
 // Create an instance of the puller which periodically checks the status of
 // the Kea apps.
-func NewStatePuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) (*StatePuller, error) {
+func NewStatePuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher) (*StatePuller, error) {
 	puller := &StatePuller{
-		EventCenter:                eventCenter,
-		ReviewDispatcher:           reviewDispatcher,
-		DHCPOptionDefinitionLookup: lookup,
+		eventCenter:      eventCenter,
+		reviewDispatcher: reviewDispatcher,
 	}
 	periodicPuller, err := agentcomm.NewPeriodicPuller(db, agents, "Apps State puller",
 		"apps_state_puller_interval", puller.pullData)
@@ -57,21 +55,122 @@ func (puller *StatePuller) pullData() error {
 	}
 
 	// get state from machines and their apps
-	var lastErr error
+	var errs []error
 	okCnt := 0
 	for _, dbM := range dbMachines {
 		dbM2 := dbM
 		ctx := context.Background()
-		errStr := UpdateMachineAndAppsState(ctx, puller.DB, &dbM2, puller.Agents, puller.EventCenter, puller.ReviewDispatcher, puller.DHCPOptionDefinitionLookup)
-		if errStr != "" {
-			lastErr = errors.New(errStr)
-			log.Errorf("Error occurred while getting info from machine %d: %s", dbM2.ID, errStr)
+		err := puller.pullDataForMachine(ctx, &dbM2)
+		if err != nil {
+			errs = append(errs, err)
+			log.WithError(err).Errorf("Error occurred while getting info from machine %d", dbM2.ID)
 		} else {
 			okCnt++
 		}
 	}
 	log.Printf("Completed pulling information from machines: %d/%d succeeded", okCnt, len(dbMachines))
-	return lastErr
+	return storkutil.CombineErrors("errors occurred while getting info from machines", errs)
+}
+
+// Pulls the state of a particular machine on demand and its apps and stores
+// useful information in the database. Returns the machine with its apps.
+func (puller *StatePuller) PullMachine(ctx context.Context, machineID int64) (*dbmodel.Machine, error) {
+	// Stop the timer to avoid interference with the manual pull.
+	puller.PeriodicPuller.Pause()
+	defer puller.PeriodicPuller.Unpause()
+
+	// Get machine from database.
+	dbMachine, err := dbmodel.GetMachineByID(puller.DB, machineID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if the machine exists.
+	if dbMachine == nil {
+		return nil, nil
+	}
+
+	// Get state from machine and its apps.
+	err = puller.pullDataForMachine(ctx, dbMachine)
+	return dbMachine, err
+}
+
+// Gets the status of a particular machine and its apps and stores useful information in the database.
+func (puller *StatePuller) pullDataForMachine(ctx context.Context, machine *dbmodel.Machine) error {
+	ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	// Get state of machine from agent.
+	state, err := puller.Agents.GetState(ctx2, machine)
+	if err != nil {
+		machine.Error = "Cannot get state of machine"
+		innerErr := dbmodel.UpdateMachine(puller.DB, machine)
+		if innerErr != nil {
+			return errors.WithMessage(innerErr, "problem updating record in database")
+		}
+		return errors.WithMessage(err, "cannot get state of machine")
+	}
+
+	// The Stork server doesn't gather the Stork agent configuration, so we cannot
+	// detect its change. It compares the current agent state and the database
+	// entry to only recognize the HTTP credentials state was changed.
+	isStorkAgentChanged := hasEqualAgentConfig(state, machine.State)
+
+	// store machine's state in db
+	err = updateMachineFields(puller.DB, machine, state)
+	if err != nil {
+		return errors.WithMessage(err, "cannot update machine in db")
+	}
+
+	// take old apps from db and new apps fetched from the machine
+	// and match them and prepare a list of all apps
+	allApps, err := mergeNewAndOldApps(puller.DB, machine, state.Apps)
+	if err != nil {
+		return err
+	}
+
+	// go through all apps and store their changes in database
+	for _, dbApp := range allApps {
+		// get app state from the machine
+		switch dbApp.Type {
+		case dbmodel.AppTypeKea:
+			state := kea.GetAppState(ctx2, puller.Agents, dbApp, puller.eventCenter)
+			err = kea.CommitAppIntoDB(puller.DB, dbApp, puller.eventCenter, state)
+			if err == nil {
+				// Let's now identify new daemons or the daemons with updated
+				// configurations and schedule configuration reviews for them
+				conditionallyBeginKeaConfigReviews(dbApp, state, puller.reviewDispatcher, isStorkAgentChanged)
+			}
+		case dbmodel.AppTypeBind9:
+			bind9.GetAppState(ctx2, puller.Agents, dbApp, puller.eventCenter)
+			err = bind9.CommitAppIntoDB(puller.DB, dbApp, puller.eventCenter)
+		default:
+			err = nil
+		}
+
+		if err != nil {
+			return errors.WithMessage(err, "problem storing application state in the database")
+		}
+	}
+
+	// add all apps to machine's apps list - it will be used in ReST API functions
+	// to return state of machine and its apps
+	machine.Apps = allApps
+
+	return nil
+}
+
+// Checks if the Stork agent configuration is equal in the two given states.
+func hasEqualAgentConfig(state *agentcomm.State, dbState dbmodel.MachineState) bool {
+	if state.AgentVersion != dbState.AgentVersion {
+		return false
+	}
+
+	if state.AgentUsesHTTPCredentials != dbState.AgentUsesHTTPCredentials {
+		return false
+	}
+
+	return true
 }
 
 // Store updated machine fields in to database.
@@ -138,14 +237,13 @@ func appCompare(dbApp *dbmodel.App, app *agentcomm.App) bool {
 
 // Get old apps from the machine db object and new apps retrieved from the machine remotely
 // and merge them into one list of all, unique apps.
-func mergeNewAndOldApps(db *dbops.PgDB, dbMachine *dbmodel.Machine, discoveredApps []*agentcomm.App) ([]*dbmodel.App, string) {
+func mergeNewAndOldApps(db *dbops.PgDB, dbMachine *dbmodel.Machine, discoveredApps []*agentcomm.App) ([]*dbmodel.App, error) {
 	// If there are any new apps then get their state and add to db.
 	// Old ones are just updated. Use GetAppsByMachine to retrieve
 	// machine's apps with their daemons.
 	oldAppsList, err := dbmodel.GetAppsByMachine(db, dbMachine.ID)
 	if err != nil {
-		log.Error(err)
-		return nil, "Cannot get machine's apps from db"
+		return nil, errors.WithMessage(err, "cannot get machine's apps from db")
 	}
 
 	// count old apps
@@ -233,76 +331,7 @@ func mergeNewAndOldApps(db *dbops.PgDB, dbMachine *dbmodel.Machine, discoveredAp
 		}
 	}
 
-	return allApps, ""
-}
-
-// Retrieve remotely machine and its apps state, and store it in the database.
-func UpdateMachineAndAppsState(ctx context.Context, db *dbops.PgDB, dbMachine *dbmodel.Machine, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) string {
-	ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
-	// get state of machine from agent
-	state, err := agents.GetState(ctx2, dbMachine)
-	if err != nil {
-		log.Warn(err)
-		dbMachine.Error = "Cannot get state of machine"
-		err = dbmodel.UpdateMachine(db, dbMachine)
-		if err != nil {
-			log.Error(err)
-			return "Problem updating record in database"
-		}
-		return ""
-	}
-
-	// The Stork server doesn't gather the Stork agent configuration, so we cannot
-	// detect its change. It compares the current agent state and the database
-	// entry to only recognize the HTTP credentials state was changed.
-	isStorkAgentChanged := dbMachine.State.AgentUsesHTTPCredentials != state.AgentUsesHTTPCredentials
-
-	// store machine's state in db
-	err = updateMachineFields(db, dbMachine, state)
-	if err != nil {
-		log.Error(err)
-		return "Cannot update machine in db"
-	}
-
-	// take old apps from db and new apps fetched from the machine
-	// and match them and prepare a list of all apps
-	allApps, errStr := mergeNewAndOldApps(db, dbMachine, state.Apps)
-	if errStr != "" {
-		return errStr
-	}
-
-	// go through all apps and store their changes in database
-	for _, dbApp := range allApps {
-		// get app state from the machine
-		switch dbApp.Type {
-		case dbmodel.AppTypeKea:
-			state := kea.GetAppState(ctx2, agents, dbApp, eventCenter)
-			err = kea.CommitAppIntoDB(db, dbApp, eventCenter, state, lookup)
-			if err == nil {
-				// Let's now identify new daemons or the daemons with updated
-				// configurations and schedule configuration reviews for them
-				conditionallyBeginKeaConfigReviews(dbApp, state, reviewDispatcher, isStorkAgentChanged)
-			}
-		case dbmodel.AppTypeBind9:
-			bind9.GetAppState(ctx2, agents, dbApp, eventCenter)
-			err = bind9.CommitAppIntoDB(db, dbApp, eventCenter)
-		default:
-			err = nil
-		}
-
-		if err != nil {
-			log.Errorf("Cannot store application state: %+v", err)
-			return "Problem storing application state in the database"
-		}
-	}
-
-	// add all apps to machine's apps list - it will be used in ReST API functions
-	// to return state of machine and its apps
-	dbMachine.Apps = allApps
-
-	return ""
+	return allApps, nil
 }
 
 // This function iterates over the app's daemons and checks if a new config

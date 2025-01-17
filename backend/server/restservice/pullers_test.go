@@ -22,7 +22,7 @@ func TestGetPullers(t *testing.T) {
 
 	rapiSettings := RestAPISettings{}
 
-	statePuller, _ := apps.NewStatePuller(db, nil, nil, nil, nil)
+	statePuller, _ := apps.NewStatePuller(db, nil, nil, nil)
 	bind9Puller, _ := bind9.NewStatsPuller(db, nil, nil)
 	pullers := &apps.Pullers{
 		AppsStatePuller:  statePuller,
@@ -52,7 +52,7 @@ func TestGetPuller(t *testing.T) {
 
 	rapiSettings := RestAPISettings{}
 
-	statePuller, _ := apps.NewStatePuller(db, nil, nil, nil, nil)
+	statePuller, _ := apps.NewStatePuller(db, nil, nil, nil)
 	bind9Puller, _ := bind9.NewStatsPuller(db, nil, nil)
 	pullers := &apps.Pullers{
 		AppsStatePuller:  statePuller,
