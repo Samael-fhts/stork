@@ -495,3 +495,20 @@ func NullifyEmptyString(s *string) *string {
 	}
 	return nil
 }
+
+func FooBar(i int) string {
+	if i == 0 {
+		k := 2 + i
+		return fmt.Sprintf("foo %d", k)
+	}
+
+	if i%2 == 0 {
+		return "modulo 2"
+	}
+
+	if i%3 == 0 {
+		return "modulo 3"
+	}
+
+	return "bar"
+}

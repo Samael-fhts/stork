@@ -631,3 +631,13 @@ func TestParseBoolFlag(t *testing.T) {
 		require.False(t, value)
 	})
 }
+
+// Test that foo bar.
+func TestFooBar(t *testing.T) {
+	require.Equal(t, "foo 2", FooBar(0))
+	require.Equal(t, "modulo 2", FooBar(4))
+	require.Equal(t, "modulo 2", FooBar(6))
+	require.Equal(t, "modulo 2", FooBar(8))
+	require.Equal(t, "bar", FooBar(1))
+
+}
