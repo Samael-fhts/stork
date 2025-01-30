@@ -359,7 +359,7 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         api_instance = SettingsApi(self._api_client)
         api_instance.update_settings(settings)
 
-    def migrate_hosts(self, text: str=None):
+    def migrate_hosts(self, text: str = None):
         """
         Migrates the hosts from the Kea configuration file to the host database.
         The text parameter is used to filter the hosts by the hostname.
