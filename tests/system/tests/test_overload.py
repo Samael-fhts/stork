@@ -60,3 +60,18 @@ def test_two_same_big_configurations_at_time(
     assert state
     state, *_ = server_service.wait_for_next_machine_states()
     assert state
+
+
+@ha_pair_parametrize(
+    "agent-kea-many-host-reservations-1",
+    "agent-kea-many-host-reservations-2",
+)
+def test_migrate_many_hosts(server_service: Server, ha_pair_service: Tuple[Kea, Kea]):
+    """
+    Test verifies if Stork server is able to migrate many host reservations
+    defined in two Kea instances from the JSON configuration file into the
+    host database.
+    """
+    server_service.log_in_as_admin()
+    server_service.authorize_all_machines()
+    server_service.wait_for_next_machine_states()
