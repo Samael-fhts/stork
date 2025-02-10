@@ -347,6 +347,7 @@ namespace :systemtest do
         end
 
         ENV["PWD"] = Dir.pwd
+        ENV["IPWD"] = Dir.pwd
 
         profiles = []
         if ENV["CS_REPO_ACCESS_TOKEN"]
