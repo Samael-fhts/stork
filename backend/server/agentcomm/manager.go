@@ -124,7 +124,7 @@ func (agents *connectedAgentsData) handleRequest(req *commLoopReq) {
 			}).Warn(err)
 			req.RespChan <- &channelResp{
 				Response: nil,
-				Err:      errors.WithMessagef(err2, "grpc manager is unable to re-establish connection with the agent %s", agent.Address),
+				Err:      errors.WithMessagef(err2, "grpc manager is unable to make a call to the agent %s", agent.Address),
 			}
 			return
 		}
