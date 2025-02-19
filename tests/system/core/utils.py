@@ -107,6 +107,7 @@ def tic(label: str = ""):
         print("Starting timer for", label)
 
     start = time.perf_counter()
+
     def toc():
         end = time.perf_counter()
         elapsed = end - start
@@ -114,4 +115,5 @@ def tic(label: str = ""):
             print(f"Elapsed time for {label}: {elapsed:.2f} seconds")
         else:
             print(f"Elapsed time: {elapsed:.2f} seconds")
+
     return toc
