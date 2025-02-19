@@ -22,6 +22,7 @@ from openapi_client.models.create_host_begin_response import CreateHostBeginResp
 from openapi_client.models.update_host_begin_response import UpdateHostBeginResponse
 from openapi_client.models.event import Event
 from openapi_client.models.host import Host
+from openapi_client.models.migration_status import MigrationStatus
 from openapi_client.models.puller import Puller
 from openapi_client.exceptions import ServiceException
 
@@ -696,3 +697,12 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
                     raise NoSuccessException(
                         f"The {identifier} HA peer is {relationship.ha_state}"
                     )
+
+    @wait_for_success(wait_msg="Waiting for finishing migration...")
+    def wait_for_finishing_migration(self, migration: MigrationStatus):
+        """Waits for finishing the migration. Returns the final status."""
+        api_instance = DHCPApi(self._api_client)
+        status = api_instance.get_migration(migration.id)
+        if status.end_date is None:
+            raise NoSuccessException("the migration is in progress")
+        return status

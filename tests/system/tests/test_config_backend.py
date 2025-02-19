@@ -141,10 +141,11 @@ def test_migrate_host_reservations(kea_service: Kea, server_service: Server):
     assert in_api_count == 1
 
     # Migrate host reservations.
-    errors = server_service.migrate_hosts()
+    migration = server_service.migrate_hosts()
+    migration = server_service.wait_for_finishing_migration(migration)
     # TODO: Fix this error.
-    assert errors.total == 1
-    assert len(errors.items) == 1
+    assert migration.errors.total == 1
+    assert len(migration.errors.items) == 1
 
     # Fetch host reservations after migration.
     server_service.wait_for_host_reservation_pulling()
