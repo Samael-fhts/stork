@@ -476,7 +476,7 @@ def generate_v4_subnets(
     return subnets
 
 
-def cmd():
+def cmd():  # pylint: disable=too-many-locals, too-many-statements
     """Parses CLI arguments and executes the program."""
     parser = argparse.ArgumentParser("Kea config generator")
     parser.add_argument("n", type=int, help="Number of subnets")
