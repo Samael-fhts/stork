@@ -143,9 +143,8 @@ def test_migrate_host_reservations(kea_service: Kea, server_service: Server):
     # Migrate host reservations.
     migration = server_service.migrate_hosts()
     migration = server_service.wait_for_finishing_migration(migration)
-    # TODO: Fix this error.
-    assert migration.errors.total == 1
-    assert len(migration.errors.items) == 1
+    assert migration.errors.total is None
+    assert len(migration.errors.items) == 0
 
     # Fetch host reservations after migration.
     server_service.wait_for_host_reservation_pulling()
@@ -157,5 +156,5 @@ def test_migrate_host_reservations(kea_service: Kea, server_service: Server):
     in_api_count = len(
         [h for h in hosts.items if h.local_hosts[0].data_source == "api"]
     )
-    assert in_config_count == 1
-    assert in_api_count == 10
+    assert in_config_count == 0
+    assert in_api_count == 11
