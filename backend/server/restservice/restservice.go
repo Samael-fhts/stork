@@ -78,6 +78,7 @@ type RestAPI struct {
 	DHCPOptionDefinitionLookup keaconfig.DHCPOptionDefinitionLookup
 	HookManager                *hookmanager.HookManager
 	EndpointControl            *EndpointControl
+	DaemonLocker               config.DaemonLocker
 	MigrationService           configmigrator.Service
 
 	Agents agentcomm.ConnectedAgents
@@ -178,6 +179,10 @@ func NewRestAPI(args ...interface{}) (*RestAPI, error) {
 		}
 		if argType.Implements(reflect.TypeOf((*configmigrator.Service)(nil)).Elem()) {
 			api.MigrationService = arg.(configmigrator.Service)
+			continue
+		}
+		if argType.Implements(reflect.TypeOf((*config.DaemonLocker)(nil)).Elem()) {
+			api.DaemonLocker = arg.(config.DaemonLocker)
 			continue
 		}
 
