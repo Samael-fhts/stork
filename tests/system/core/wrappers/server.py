@@ -18,6 +18,7 @@ from openapi_client.api.services_api import (
 )
 from openapi_client.api.settings_api import Settings, SettingsApi
 from openapi_client.api.users_api import Groups, User, UserAccount, Users, UsersApi
+import openapi_client.exceptions
 from openapi_client.models.create_host_begin_response import CreateHostBeginResponse
 from openapi_client.models.update_host_begin_response import UpdateHostBeginResponse
 from openapi_client.models.event import Event
@@ -29,6 +30,10 @@ from openapi_client.exceptions import ServiceException
 
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")
+
+
+class DatabaseDeadlockError(Exception):
+    """The exception is raised when the database deadlock occurs."""
 
 
 class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
@@ -251,9 +256,9 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         api_instance = DHCPApi(self._api_client)
         return api_instance.get_leases(**params)
 
-    def list_hosts(self, text=None) -> Hosts:
+    def list_hosts(self, text=None, limit=100, start=0) -> Hosts:
         """Lists the hosts based on the host identifier."""
-        params = {"limit": 100}
+        params = {"limit": limit, "start": start}
         if text is not None:
             params["text"] = text
         api_instance = DHCPApi(self._api_client)
@@ -315,7 +320,19 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         data.
         """
         api_instance = ServicesApi(self._api_client)
-        return api_instance.get_machine_state(id=machine_id)
+        try:
+            return api_instance.get_machine_state(id=machine_id)
+        except openapi_client.exceptions.ApiException as e:
+            # The request may fail when the deadlocks in the database occur.
+            # The server can recover from this state, so the request should be
+            # repeated. We return a dedicated exception to allow handling this
+            # situation.
+            if (
+                e.status == 500
+                and "Problem storing application state in the database" in e.body
+            ):
+                raise DatabaseDeadlockError()
+            raise
 
     def read_version(self) -> Version:
         """Read the server version."""
@@ -603,7 +620,9 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         """
         self._wait_for_puller("apps_state_puller_interval", start)
 
-    @wait_for_success(wait_msg="Waiting to fetch next machine state...")
+    @wait_for_success(
+        DatabaseDeadlockError, wait_msg="Waiting to fetch next machine state..."
+    )
     def wait_for_next_machine_state(
         self, machine_id: int, start: datetime = None, wait_for_apps=True
     ) -> Machine:
@@ -619,7 +638,9 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
             raise NoSuccessException("the apps are missing")
         return state
 
-    @wait_for_success(wait_msg="Waiting to fetch next machine states...")
+    @wait_for_success(
+        DatabaseDeadlockError, wait_msg="Waiting to fetch next machine states..."
+    )
     def wait_for_next_machine_states(
         self, start: datetime = None, wait_for_apps=True
     ) -> List[Machine]:
@@ -698,7 +719,7 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
                         f"The {identifier} HA peer is {relationship.ha_state}"
                     )
 
-    @wait_for_success(wait_msg="Waiting for finishing migration...")
+    @wait_for_success(wait_msg="Waiting for finishing migration...", max_tries=5 * 60)
     def wait_for_finishing_migration(self, migration: MigrationStatus):
         """Waits for finishing the migration. Returns the final status."""
         api_instance = DHCPApi(self._api_client)

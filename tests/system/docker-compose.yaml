@@ -185,6 +185,7 @@ services:
         priority: 400
     volumes:
       - $IPWD/tests/system/config/kea-many-host-reservations/kea-dhcp4-s40-h250-2.conf:/etc/kea/kea-dhcp4.conf
+      - $PWD/tests/system/config/kea-premium-host-database/kea-host-database-2.json:/etc/kea/kea-host-database.json
 
   agent-kea6:
     extends: agent-kea
@@ -252,7 +253,7 @@ services:
       DB_ROOT_USER: stork
       DB_ROOT_PASSWORD: stork
     volumes:
-      - $PWD/tests/system/config/kea-premium-host-database/kea-host-database.json:/etc/kea/kea-host-database.json
+      - $PWD/tests/system/config/kea-premium-host-database/kea-host-database-1.json:/etc/kea/kea-host-database.json
       - $PWD/tests/system/config/kea-premium-host-database/kea-hook-hostcmds.json:/etc/kea/hook-hostcmds.json
       - $PWD/tests/system/config/kea-premium-host-database/init_pgsql_query.sql:/var/lib/db/init_pgsql_query.sql
 

@@ -75,3 +75,30 @@ def test_migrate_many_hosts(server_service: Server, ha_pair_service: Tuple[Kea, 
     server_service.log_in_as_admin()
     server_service.authorize_all_machines()
     server_service.wait_for_next_machine_states()
+    server_service.wait_for_host_reservation_pulling()
+
+    hosts = server_service.list_hosts()
+    assert hosts.total == 10005
+    for host in hosts.items:
+        for local_host in host.local_hosts:
+            assert local_host.data_source == "config"
+
+    # Migrate host reservations.
+    migration = server_service.migrate_hosts()
+    migration = server_service.wait_for_finishing_migration(migration)
+    assert migration.general_error is None
+    assert migration.errors.total is None
+    assert len(migration.errors.items) == 0
+
+    # Fetch host reservations after migration.
+    server_service.wait_for_host_reservation_pulling()
+    server_service.wait_for_next_machine_states()
+
+    # Go through all host reservations and check if they were migrated
+    # properly.
+    for i in range(0, 10005, 100):
+        hosts = server_service.list_hosts(start=i, limit=100)
+        assert hosts.total == 10005
+        for host in hosts.items:
+            for local_host in host.local_hosts:
+                assert local_host.data_source == "api"
