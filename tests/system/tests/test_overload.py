@@ -1,9 +1,13 @@
+import time
 from typing import Tuple
 
 import pytest
 
 from core.fixtures import kea_parametrize, ha_pair_parametrize
 from core.wrappers import Server, Kea
+from core.utils import setup_logger
+
+logger = setup_logger(__name__)
 
 
 @pytest.mark.skip(
@@ -80,6 +84,7 @@ def test_migrate_many_hosts(server_service: Server, ha_pair_service: Tuple[Kea, 
     hosts = server_service.list_hosts()
     assert hosts.total == 10005
     for host in hosts.items:
+        assert len(host.local_hosts) == 2
         for local_host in host.local_hosts:
             assert local_host.data_source == "config"
 
@@ -91,9 +96,8 @@ def test_migrate_many_hosts(server_service: Server, ha_pair_service: Tuple[Kea, 
     assert len(migration.errors.items) == 0
 
     # Fetch host reservations after migration.
-    server_service.wait_for_host_reservation_pulling()
     server_service.wait_for_next_machine_states()
-
+    server_service.wait_for_host_reservation_pulling()
     # Go through all host reservations and check if they were migrated
     # properly.
     for i in range(0, 10005, 100):
@@ -101,4 +105,10 @@ def test_migrate_many_hosts(server_service: Server, ha_pair_service: Tuple[Kea, 
         assert hosts.total == 10005
         for host in hosts.items:
             for local_host in host.local_hosts:
+                if local_host.data_source != "api":
+                    logger.error(
+                        f"Host reservation {host.host_identifiers[0].id_hex_value} "
+                        f"for daemon {local_host.daemon_id} "
+                        f"was not migrated properly."
+                    )
                 assert local_host.data_source == "api"
