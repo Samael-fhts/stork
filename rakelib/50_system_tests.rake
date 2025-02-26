@@ -367,7 +367,7 @@ namespace :systemtest do
     will be redirected to the Stork server on the host machine (the server must
     be started separately). Due to the system test framework specific, only one
     service may be running at a time. The service must be shut down before
-    starting the system tests.g
+    starting the system tests.
     This task is dedicated to development purposes and should be used only with
     agent-related services.
         SERVICE - name of the docker-compose service - required'
