@@ -7,12 +7,11 @@ It is dedicated for performance tests.
 """
 
 import argparse
-import copy
-import itertools
-import json
-import random
-import re
 import sys
+import json
+import copy
+import random
+import itertools
 
 
 def ipv4_address_generator(number_of_addresses, begin="1.0.0.0", mask=32):
@@ -283,7 +282,10 @@ KEA_BASE_CONFIG = {
                 "test": "substring(hexstring(pkt4.mac,':'),0,5) == '02:02'",
             },
         ],
-        "hooks-libraries": [],
+        "hooks-libraries": [
+            {"library": "/usr/lib/x86_64-linux-gnu/kea/hooks/libdhcp_lease_cmds.so"},
+            {"library": "/usr/lib/x86_64-linux-gnu/kea/hooks/libdhcp_stat_cmds.so"},
+        ],
         "subnet4": [],
         "shared-networks": [],
         "loggers": [
@@ -476,7 +478,7 @@ def generate_v4_subnets(
     return subnets
 
 
-def cmd():  # pylint: disable=too-many-locals, too-many-statements
+def cmd():
     """Parses CLI arguments and executes the program."""
     parser = argparse.ArgumentParser("Kea config generator")
     parser.add_argument("n", type=int, help="Number of subnets")
@@ -498,52 +500,20 @@ def cmd():  # pylint: disable=too-many-locals, too-many-statements
         default={},
         help="Key-value pairs",
     )
-
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
-        "--add-lease-cmds",
+        "--use-hooks",
         action="store_true",
         default=True,
-        help="Enable lease_cmds hook",
-        dest="add_lease_cmds",
+        help="Enable hook libraries",
+        dest="use_hooks",
     )
     group.add_argument(
-        "--no-add-lease-cmds",
+        "--no-use-hooks",
         action="store_false",
-        help="Disable lease_cmds hook",
-        dest="add_lease_cmds",
+        help="Disable hook libraries",
+        dest="use_hooks",
     )
-
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        "--add-stats-cmds",
-        action="store_true",
-        default=True,
-        help="Enable stats_cmds hook",
-        dest="add_stats_cmds",
-    )
-    group.add_argument(
-        "--no-add-stats-cmds",
-        action="store_false",
-        help="Disable stats_cmds hook",
-        dest="add_stats_cmds",
-    )
-
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument(
-        "--add-includes",
-        action="store_true",
-        default=True,
-        help="Add the include statements for system tests",
-        dest="add_includes",
-    )
-    group.add_argument(
-        "--no-add-includes",
-        action="store_false",
-        help="Don't add the include statements for system tests",
-        dest="add_includes",
-    )
-
     parser.add_argument(
         "-i", "--interface", nargs=1, type=str, default=None, help="Interface name"
     )
@@ -576,27 +546,8 @@ def cmd():  # pylint: disable=too-many-locals, too-many-statements
 
     conf = copy.deepcopy(KEA_BASE_CONFIG)
 
-    if args.add_lease_cmds:
-        conf["Dhcp4"]["hooks-libraries"].append(
-            {"library": "/usr/lib/x86_64-linux-gnu/kea/hooks/libdhcp_lease_cmds.so"}
-        )
-    if args.add_stats_cmds:
-        conf["Dhcp4"]["hooks-libraries"].append(
-            {"library": "/usr/lib/x86_64-linux-gnu/kea/hooks/libdhcp_stat_cmds.so"}
-        )
-    if args.add_includes:
-        conf["Dhcp4"]["hooks-libraries"].extend(
-            [
-                {"include": "/etc/kea/hook-hostcmds.json"},
-                {"include": "/etc/kea/hook-subnetcmds.json"},
-                {"include": "/etc/kea/hook-ha-dhcp4.json"},
-            ]
-        )
-        conf["Dhcp4"]["hosts-databases"] = [
-            {"include": "/etc/kea/kea-host-database.json"}
-        ]
-        conf["Dhcp4"]["multi-threading"] = {"include": "/etc/kea/multi-threading.json"}
-
+    if not args.use_hooks:
+        conf["Dhcp4"]["hooks-libraries"] = []
     if args.interface is not None:
         conf["Dhcp4"]["interfaces-config"]["interfaces"] = args.interface
 
@@ -637,16 +588,7 @@ def cmd():  # pylint: disable=too-many-locals, too-many-statements
             subnet_id += subnets_per_shared_network
         conf["Dhcp4"]["shared-networks"] = shared_networks
 
-    json_raw = json.dumps(conf)
-
-    # Replace the JSON include statements with the Kea include statements.
-    # Match {"include": "/path/to/file.json"} and replace it with
-    # <?include "/path/to/file.json"?>
-    json_raw = re.sub(
-        r'{"include": "(.*?)"\s*}', r'<?include "\1"?>', json_raw, flags=re.MULTILINE
-    )
-
-    args.output.write(json_raw)
+    args.output.write(json.dumps(conf))
 
 
 if __name__ == "__main__":

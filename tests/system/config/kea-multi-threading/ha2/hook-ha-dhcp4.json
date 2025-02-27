@@ -3,7 +3,7 @@
     "parameters": {
         "high-availability": [
             {
-                "multi-threading": <?include "/etc/kea/ha-multi-threading.json"?>,
+                <?include "/etc/kea/ha-multi-threading.json"?>
                 "this-server-name": "server2",
                 "mode": "hot-standby",
                 "heartbeat-delay": 10000,
