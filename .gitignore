@@ -47,6 +47,7 @@ TAGS
 /backend/cmd/stork-agent/supervisord.log
 /backend/cmd/stork-agent/supervisord.pid
 docker/config/agent-kea-many-subnets/kea-dhcp4.conf
+tests/system/config/kea-many-host-reservations/kea-dhcp4-*.conf
 
 # generated docs
 /doc/man/stork-*.8
@@ -82,6 +83,7 @@ tests/system/config/kea-ha2/kea-leases4.csv
 tests/system/config/kea-ha2/kea-leases6.csv
 tests/system/config/certs/key.pem
 tests/system/config/certs/cert.pem
+tests/system/config/.isolated/
 
 # OpenAPI generator files for Python
 tests/system/openapi_client/
@@ -98,3 +100,4 @@ webui/src/app/std-dhcpv6-option-defs.ts
 
 # Hooks
 /hooks/*.so
+
