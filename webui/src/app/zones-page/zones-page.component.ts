@@ -904,4 +904,34 @@ export class ZonesPageComponent implements OnInit, OnDestroy, AfterViewInit {
     activateFirstTab() {
         this.activeTabIdx = 0
     }
+
+    /**
+     * Returns unique zone types for a given zone
+     * @param zone Zone to get types from
+     */
+    getUniqueZoneTypes(zone: Zone): string[] {
+        if (!zone?.localZones?.length) {
+            return []
+        }
+        return [...new Set(zone.localZones.map(lz => lz.zoneType))]
+    }
+
+    /**
+     * Gets serial information for a zone
+     * @param zone Zone to analyze
+     * @returns Object containing serial and mismatch flag
+     */
+    getZoneSerialInfo(zone: Zone): { serial: string, hasMismatch: boolean } {
+        if (!zone?.localZones?.length) {
+            return { serial: 'N/A', hasMismatch: false }
+        }
+
+        const serials = zone.localZones.map(lz => lz.serial)
+        const uniqueSerials = [...new Set(serials)]
+
+        return {
+            serial: uniqueSerials[0]?.toString() ?? 'N/A',
+            hasMismatch: uniqueSerials.length > 1
+        }
+    }
 }
