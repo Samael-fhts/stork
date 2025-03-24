@@ -1,16 +1,17 @@
 <div class="flex align-items-end gap-1">
     <span [class]="{ 'p-float-label': floatingPlaceholder }" class="flex-auto min-w-0">
-        <p-chips
+        <p-autocomplete
             ngDefaultControl
             inputId="{{ inputId }}"
-            [allowDuplicate]="false"
-            [addOnBlur]="true"
+            [unique]="true"
             [formControl]="classFormControl"
             styleClass="adaptive-chips-background w-full"
             placeholder="{{ floatingPlaceholder ? null : 'Type or Pick From List' }}"
             title="Type or Select Class Names From List"
+            [multiple]="true"
+            [typeahead]="false"
         >
-        </p-chips>
+        </p-autocomplete>
         <label *ngIf="floatingPlaceholder" for="{{ inputId }}">Type or Pick From List</label>
     </span>
     <p-overlayPanel #op [dismissable]="false">

@@ -10,7 +10,6 @@ import { PanelModule } from 'primeng/panel'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { FormsModule } from '@angular/forms'
 import { PluralizePipe } from '../pipes/pluralize.pipe'
 import { TagModule } from 'primeng/tag'
@@ -28,6 +27,7 @@ import objectContaining = jasmine.objectContaining
 import { By } from '@angular/platform-browser'
 import { AppDaemonsStatusComponent } from '../app-daemons-status/app-daemons-status.component'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { CheckboxModule } from 'primeng/checkbox'
 
 describe('MachinesTableComponent', () => {
     let component: MachinesTableComponent
@@ -135,7 +135,7 @@ describe('MachinesTableComponent', () => {
                 PanelModule,
                 BrowserAnimationsModule,
                 OverlayPanelModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 FormsModule,
                 TagModule,
                 TooltipModule,

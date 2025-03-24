@@ -42,15 +42,16 @@ import { ToggleButtonModule } from 'primeng/togglebutton'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { CheckboxModule } from 'primeng/checkbox'
 import { ConfirmDialogModule } from 'primeng/confirmdialog'
-import { InputTextareaModule } from 'primeng/inputtextarea'
+import { TextareaModule } from 'primeng/textarea'
 import { TreeModule } from 'primeng/tree'
 import { DataViewModule } from 'primeng/dataview'
-import { ChipsModule } from 'primeng/chips'
 import { ChartModule } from 'primeng/chart'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { AccordionModule } from 'primeng/accordion'
 import { TreeTableModule } from 'primeng/treetable'
 import { SkeletonModule } from 'primeng/skeleton'
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async'
+import { providePrimeNG } from 'primeng/config'
+import Aura from '@primeng/themes/aura'
 
 // Generated API modules
 import { ApiModule, BASE_PATH, Configuration, ConfigurationParameters } from './backend'
@@ -147,6 +148,8 @@ import { VersionPageComponent } from './version-page/version-page.component'
 import { BadgeModule } from 'primeng/badge'
 import { MachinesTableComponent } from './machines-table/machines-table.component'
 import { ZonesPageComponent } from './zones-page/zones-page.component'
+import { AutoCompleteModule } from 'primeng/autocomplete'
+import { InputNumberModule } from 'primeng/inputnumber'
 
 /** Create the OpenAPI client configuration. */
 export function cfgFactory() {
@@ -262,6 +265,7 @@ export function cfgFactory() {
         ProgressBarModule,
         DialogModule,
         InputTextModule,
+        InputNumberModule,
         DropdownModule,
         ToastModule,
         MessageModule,
@@ -285,18 +289,17 @@ export function cfgFactory() {
         MultiSelectModule,
         CheckboxModule,
         ConfirmDialogModule,
-        InputTextareaModule,
+        TextareaModule,
         TreeModule,
         ChipModule,
-        ChipsModule,
         DataViewModule,
         ToggleButtonModule,
         ChartModule,
-        TriStateCheckboxModule,
         AccordionModule,
         TreeTableModule,
         BadgeModule,
         SkeletonModule,
+        AutoCompleteModule,
     ],
     providers: [
         {
@@ -315,6 +318,12 @@ export function cfgFactory() {
             useClass: CustomRouteReuseStrategy,
         },
         provideHttpClient(withInterceptorsFromDi()),
+        provideAnimationsAsync(),
+        providePrimeNG({
+            theme: {
+                preset: Aura,
+            },
+        }),
     ],
 })
 export class AppModule {}

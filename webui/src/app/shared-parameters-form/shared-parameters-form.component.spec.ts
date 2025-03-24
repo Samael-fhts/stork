@@ -5,7 +5,6 @@ import { SharedParameterFormGroup } from '../forms/shared-parameter-form-group'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
 import { DropdownModule } from 'primeng/dropdown'
 import {
     FormControl,
@@ -19,13 +18,13 @@ import { InputNumberModule } from 'primeng/inputnumber'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { TableModule } from 'primeng/table'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { StorkValidators } from '../validators'
 import { By } from '@angular/platform-browser'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { MultiSelectModule } from 'primeng/multiselect'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 /**
  * Intrface to the form used in the unit tests.
@@ -57,7 +56,7 @@ describe('SharedParametersFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DropdownModule,
                 FormsModule,
                 InputNumberModule,
@@ -65,7 +64,7 @@ describe('SharedParametersFormComponent', () => {
                 NoopAnimationsModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 OverlayPanelModule,
                 ReactiveFormsModule,
             ],
@@ -250,7 +249,7 @@ describe('SharedParametersFormComponent', () => {
         labelDiv = allWrapperDivs[4].queryAll(By.css('div.font-semibold'))
         expect(labelDiv.length).toBe(1)
         expect(labelDiv[0].nativeElement.innerText).toBe('DDNS Override Client Update')
-        controls = allWrapperDivs[4].queryAll(By.css('p-triStateCheckbox'))
+        controls = allWrapperDivs[4].queryAll(By.css('p-checkbox'))
         expect(controls.length).toBe(1)
         tags = allWrapperDivs[4].queryAll(By.css('p-tag'))
         expect(tags.length).toBe(0)

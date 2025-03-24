@@ -8,13 +8,11 @@ import { ToastModule } from 'primeng/toast'
 import { SharedParametersFormComponent } from '../shared-parameters-form/shared-parameters-form.component'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
 import { DropdownModule } from 'primeng/dropdown'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { TableModule } from 'primeng/table'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { CreateSubnetBeginResponse, UpdateSubnetBeginResponse } from '../backend'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
@@ -34,6 +32,7 @@ import { AddressPoolFormComponent } from '../address-pool-form/address-pool-form
 import { AccordionModule } from 'primeng/accordion'
 import { PrefixPoolFormComponent } from '../prefix-pool-form/prefix-pool-form.component'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 let mockCreateSubnetBeginData: CreateSubnetBeginResponse = {
     id: 123,
@@ -492,7 +491,7 @@ export default {
                 AccordionModule,
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
                 DropdownModule,
                 FieldsetModule,
@@ -503,7 +502,6 @@ export default {
                 MultiSelectModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
                 OverlayPanelModule,
                 ProgressSpinnerModule,
                 ReactiveFormsModule,

@@ -1,10 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 
 import { ArrayValueSetFormComponent } from './array-value-set-form.component'
-import { Chips, ChipsModule } from 'primeng/chips'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { By } from '@angular/platform-browser'
+import { AutoComplete, AutoCompleteModule } from 'primeng/autocomplete'
 
 describe('ArrayValueSetFormComponent', () => {
     let component: ArrayValueSetFormComponent<string>
@@ -13,7 +13,7 @@ describe('ArrayValueSetFormComponent', () => {
     beforeEach(() => {
         TestBed.configureTestingModule({
             declarations: [ArrayValueSetFormComponent],
-            imports: [ChipsModule, FormsModule, NoopAnimationsModule, ReactiveFormsModule],
+            imports: [AutoCompleteModule, FormsModule, NoopAnimationsModule, ReactiveFormsModule],
         })
         fixture = TestBed.createComponent(ArrayValueSetFormComponent<string>)
         component = fixture.componentInstance
@@ -26,8 +26,8 @@ describe('ArrayValueSetFormComponent', () => {
     })
 
     it('should display chips component', () => {
-        const chips = fixture.debugElement.query(By.directive(Chips))
-        const chipsComponent = chips.componentInstance as Chips
-        expect(chipsComponent).toBeTruthy()
+        const autocomplete = fixture.debugElement.query(By.directive(AutoComplete))
+        const autocompleteComponent = autocomplete.componentInstance as AutoComplete
+        expect(autocompleteComponent).toBeTruthy()
     })
 })

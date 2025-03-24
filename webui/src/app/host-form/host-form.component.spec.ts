@@ -24,10 +24,10 @@ import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-opt
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { DHCPService } from '../backend'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
-import { ChipsModule } from 'primeng/chips'
 import { TableModule } from 'primeng/table'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 describe('HostFormComponent', () => {
     let component: HostFormComponent
@@ -134,7 +134,7 @@ describe('HostFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DropdownModule,
                 FieldsetModule,
                 FormsModule,

@@ -15,8 +15,8 @@ import { ToastModule } from 'primeng/toast'
 import { ButtonModule } from 'primeng/button'
 import { importProvidersFrom } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { TagModule } from 'primeng/tag'
+import { CheckboxModule } from 'primeng/checkbox'
 
 const mockData: ConfigCheckers = {
     items: [
@@ -55,7 +55,7 @@ export default {
                 ToastModule,
                 ButtonModule,
                 FormsModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 TagModule,
             ],
             declarations: [

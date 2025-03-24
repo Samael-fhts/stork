@@ -10,7 +10,6 @@ import { IPType } from '../iptype'
 import { FormGroup, FormsModule, ReactiveFormsModule, UntypedFormArray } from '@angular/forms'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
 import { DividerModule } from 'primeng/divider'
 import { DropdownModule } from 'primeng/dropdown'
 import { FieldsetModule } from 'primeng/fieldset'
@@ -19,7 +18,6 @@ import { InputNumberModule } from 'primeng/inputnumber'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { TableModule } from 'primeng/table'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { RouterTestingModule } from '@angular/router/testing'
 import { SplitButtonModule } from 'primeng/splitbutton'
@@ -35,6 +33,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { KeaSubnetParametersForm } from '../forms/subnet-set-form.service'
 import { By } from '@angular/platform-browser'
 import { SharedNetworkFormState } from '../forms/shared-network-form'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 describe('SharedNetworkFormComponent', () => {
     let component: SharedNetworkFormComponent
@@ -293,7 +292,7 @@ describe('SharedNetworkFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
                 DropdownModule,
                 FieldsetModule,
@@ -304,7 +303,7 @@ describe('SharedNetworkFormComponent', () => {
                 NoopAnimationsModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 OverlayPanelModule,
                 ProgressSpinnerModule,
                 ReactiveFormsModule,

@@ -9,8 +9,8 @@ import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { ButtonModule } from 'primeng/button'
 import { FormsModule } from '@angular/forms'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { TagModule } from 'primeng/tag'
+import { CheckboxModule } from 'primeng/checkbox'
 
 export default {
     title: 'App/ConfigCheckerPreferencePicker',
@@ -27,7 +27,7 @@ export default {
                 BrowserAnimationsModule,
                 ButtonModule,
                 FormsModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 TagModule,
             ],
             declarations: [ConfigCheckerPreferencePickerComponent, HelpTipComponent],

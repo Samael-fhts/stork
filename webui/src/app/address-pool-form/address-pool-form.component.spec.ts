@@ -3,7 +3,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { AddressPoolFormComponent } from './address-pool-form.component'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
 import { DropdownModule } from 'primeng/dropdown'
 import { FieldsetModule } from 'primeng/fieldset'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, UntypedFormArray } from '@angular/forms'
@@ -25,6 +24,7 @@ import { SharedParameterFormGroup } from '../forms/shared-parameter-form-group'
 import { DividerModule } from 'primeng/divider'
 import { By } from '@angular/platform-browser'
 import { StorkValidators } from '../validators'
+import { AutoComplete } from 'primeng/autocomplete'
 
 describe('AddressPoolFormComponent', () => {
     let component: AddressPoolFormComponent
@@ -35,7 +35,7 @@ describe('AddressPoolFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoComplete,
                 DividerModule,
                 DropdownModule,
                 FieldsetModule,

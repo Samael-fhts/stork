@@ -1,8 +1,9 @@
-<p-chips
+<p-autocomplete
     ngDefaultControl
-    [allowDuplicate]="false"
-    [addOnBlur]="true"
+    [unique]="true"
     [formControl]="classFormControl"
     styleClass="adaptive-chips-background w-full"
+    [multiple]="true"
+    [typeahead]="false"
 >
-</p-chips>
+</p-autocomplete>

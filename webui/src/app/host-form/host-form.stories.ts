@@ -8,7 +8,6 @@ import { RouterTestingModule } from '@angular/router/testing'
 import { MessageService } from 'primeng/api'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
 import { DropdownModule } from 'primeng/dropdown'
 import { FieldsetModule } from 'primeng/fieldset'
 import { InputNumberModule } from 'primeng/inputnumber'
@@ -26,6 +25,7 @@ import { DhcpOptionFormComponent } from '../dhcp-option-form/dhcp-option-form.co
 import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-set-form.component'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 const mockCreateHostBeginData: CreateHostBeginResponse = {
     id: 123,
@@ -159,7 +159,7 @@ export default {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DropdownModule,
                 FieldsetModule,
                 FormsModule,

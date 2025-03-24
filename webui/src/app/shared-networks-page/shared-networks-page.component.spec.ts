@@ -50,7 +50,6 @@ import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-
 import { DhcpOptionFormComponent } from '../dhcp-option-form/dhcp-option-form.component'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
-import { ChipsModule } from 'primeng/chips'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
 import { ConfirmDialogModule } from 'primeng/confirmdialog'
 import { SharedNetworksTableComponent } from '../shared-networks-table/shared-networks-table.component'
@@ -58,6 +57,7 @@ import { PanelModule } from 'primeng/panel'
 import { PluralizePipe } from '../pipes/pluralize.pipe'
 import { TagModule } from 'primeng/tag'
 import { PositivePipe } from '../pipes/positive.pipe'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 describe('SharedNetworksPageComponent', () => {
     let component: SharedNetworksPageComponent
@@ -99,7 +99,7 @@ describe('SharedNetworksPageComponent', () => {
                 ButtonModule,
                 ChartModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 ConfirmDialogModule,
                 DividerModule,
                 DropdownModule,

@@ -3,7 +3,6 @@ import { ComponentFixture, TestBed, fakeAsync, tick } from '@angular/core/testin
 import { SubnetFormComponent } from './subnet-form.component'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
 import { DividerModule } from 'primeng/divider'
 import { DropdownModule } from 'primeng/dropdown'
 import { FieldsetModule } from 'primeng/fieldset'
@@ -14,7 +13,6 @@ import { MultiSelectModule } from 'primeng/multiselect'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { TableModule } from 'primeng/table'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
 import { RouterTestingModule } from '@angular/router/testing'
@@ -36,6 +34,7 @@ import { AddressPoolFormComponent } from '../address-pool-form/address-pool-form
 import { AccordionModule } from 'primeng/accordion'
 import { PrefixPoolFormComponent } from '../prefix-pool-form/prefix-pool-form.component'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 describe('SubnetFormComponent', () => {
     let component: SubnetFormComponent
@@ -410,7 +409,7 @@ describe('SubnetFormComponent', () => {
                 AccordionModule,
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
                 DropdownModule,
                 FieldsetModule,
@@ -421,7 +420,6 @@ describe('SubnetFormComponent', () => {
                 NoopAnimationsModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
                 OverlayPanelModule,
                 ProgressSpinnerModule,
                 ReactiveFormsModule,

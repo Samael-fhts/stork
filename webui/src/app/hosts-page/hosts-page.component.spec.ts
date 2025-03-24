@@ -41,7 +41,6 @@ import { DhcpOptionSetViewComponent } from '../dhcp-option-set-view/dhcp-option-
 import { TreeModule } from 'primeng/tree'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
 import { DhcpClientClassSetViewComponent } from '../dhcp-client-class-set-view/dhcp-client-class-set-view.component'
-import { ChipsModule } from 'primeng/chips'
 import { DividerModule } from 'primeng/divider'
 import { HostDataSourceLabelComponent } from '../host-data-source-label/host-data-source-label.component'
 import { TagModule } from 'primeng/tag'
@@ -51,6 +50,7 @@ import { PluralizePipe } from '../pipes/pluralize.pipe'
 import { HostsTableComponent } from '../hosts-table/hosts-table.component'
 import { PanelModule } from 'primeng/panel'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { AutoComplete } from 'primeng/autocomplete'
 
 describe('HostsPageComponent', () => {
     let component: HostsPageComponent
@@ -82,7 +82,7 @@ describe('HostsPageComponent', () => {
             ],
             imports: [
                 ButtonModule,
-                ChipsModule,
+                AutoComplete,
                 DividerModule,
                 FormsModule,
                 TableModule,

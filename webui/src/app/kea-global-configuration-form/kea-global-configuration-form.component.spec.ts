@@ -20,13 +20,13 @@ import { CheckboxModule } from 'primeng/checkbox'
 import { DropdownModule } from 'primeng/dropdown'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
-import { ChipsModule } from 'primeng/chips'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { By } from '@angular/platform-browser'
 import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-set-form.component'
 import { DhcpOptionFormComponent } from '../dhcp-option-form/dhcp-option-form.component'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { AutoComplete, AutoCompleteModule } from 'primeng/autocomplete'
 
 describe('KeaGlobalConfigurationFormComponent', () => {
     let component: KeaGlobalConfigurationFormComponent
@@ -248,7 +248,7 @@ describe('KeaGlobalConfigurationFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DropdownModule,
                 FieldsetModule,
                 InputNumberModule,

@@ -5,17 +5,16 @@ import { TableModule } from 'primeng/table'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
-import { ChipsModule } from 'primeng/chips'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { ButtonModule } from 'primeng/button'
 import { DropdownModule } from 'primeng/dropdown'
 import { TagModule } from 'primeng/tag'
 import { SharedParameterFormGroup } from '../forms/shared-parameter-form-group'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { CheckboxModule } from 'primeng/checkbox'
 import { StorkValidators } from '../validators'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
 import { MultiSelectModule } from 'primeng/multiselect'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 interface SubnetForm {
     allocator: SharedParameterFormGroup<string>
@@ -46,7 +45,7 @@ export default {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DropdownModule,
                 FormsModule,
                 InputNumberModule,
@@ -54,7 +53,6 @@ export default {
                 NoopAnimationsModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
                 OverlayPanelModule,
                 ReactiveFormsModule,
             ],

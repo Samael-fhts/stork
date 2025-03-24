@@ -5,10 +5,10 @@ import { StoryObj, Meta, moduleMetadata, applicationConfig } from '@storybook/an
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
 import { ButtonModule } from 'primeng/button'
 import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { TableModule } from 'primeng/table'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 export default {
     title: 'App/DhcpClientClassSetForm',
@@ -21,7 +21,7 @@ export default {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 FormsModule,
                 NoopAnimationsModule,
                 OverlayPanelModule,

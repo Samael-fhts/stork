@@ -8,7 +8,7 @@ import { TableModule } from 'primeng/table'
 import { ConfigChecker } from '../backend'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { ConfigCheckerPreferencePickerComponent } from './config-checker-preference-picker.component'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
+import { CheckboxModule } from 'primeng/checkbox'
 import { FormsModule } from '@angular/forms'
 import { TagModule } from 'primeng/tag'
 
@@ -25,7 +25,7 @@ describe('ConfigCheckerPreferencePickerComponent', () => {
                 NoopAnimationsModule,
                 ButtonModule,
                 FormsModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 TagModule,
             ],
             declarations: [HelpTipComponent, ConfigCheckerPreferencePickerComponent],

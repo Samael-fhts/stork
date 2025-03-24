@@ -155,7 +155,7 @@ describe('AppsPageComponent', () => {
         spyOn(msgSrv, 'add')
         const confirmDialog = dialog.componentInstance as ConfirmDialog
         expect(confirmDialog).not.toBeNull()
-        confirmDialog.accept()
+        confirmDialog.onAccept()
         tick()
         fixture.detectChanges()
 
@@ -176,7 +176,7 @@ describe('AppsPageComponent', () => {
         spyOn(msgSrv, 'add')
         const confirmDialog = dialog.componentInstance as ConfirmDialog
         expect(confirmDialog).not.toBeNull()
-        confirmDialog.accept()
+        confirmDialog.onAccept()
         tick()
         fixture.detectChanges()
 
@@ -196,7 +196,7 @@ describe('AppsPageComponent', () => {
         spyOn(msgSrv, 'add')
         const confirmDialog = dialog.componentInstance as ConfirmDialog
         expect(confirmDialog).not.toBeNull()
-        confirmDialog.reject()
+        confirmDialog.onReject()
         tick()
         fixture.detectChanges()
 

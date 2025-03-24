@@ -35,13 +35,11 @@ import { SubnetFormComponent } from '../subnet-form/subnet-form.component'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
 import { CheckboxModule } from 'primeng/checkbox'
 import { ButtonModule } from 'primeng/button'
-import { ChipsModule } from 'primeng/chips'
 import { DividerModule } from 'primeng/divider'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { MessagesModule } from 'primeng/messages'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { ToastModule } from 'primeng/toast'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
@@ -60,6 +58,7 @@ import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
 import { ParameterViewComponent } from '../parameter-view/parameter-view.component'
 import { SettingService } from '../setting.service'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 
 describe('SubnetsPageComponent', () => {
     let component: SubnetsPageComponent
@@ -126,13 +125,12 @@ describe('SubnetsPageComponent', () => {
                 ProgressSpinnerModule,
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
                 InputNumberModule,
                 MessagesModule,
                 MultiSelectModule,
                 TagModule,
-                TriStateCheckboxModule,
                 ReactiveFormsModule,
                 SplitButtonModule,
                 ToastModule,
