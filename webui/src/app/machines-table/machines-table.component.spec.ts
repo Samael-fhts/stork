@@ -170,6 +170,7 @@ describe('MachinesTableComponent', () => {
 
         // Act
         component.loadData({ first: 0, rows: 10, filters: {} })
+        expect(component.dataLoading).toBeTrue()
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -180,10 +181,6 @@ describe('MachinesTableComponent', () => {
         expect(servicesApi.getUnauthorizedMachinesCount).toHaveBeenCalledTimes(1)
         expect(component.unauthorizedMachinesCount).toBe(3)
         expect(unauthorizedMachinesCountChangeSpy).toHaveBeenCalledOnceWith(3)
-        expect(component.dataLoading).toBeTrue()
-
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).toBeFalse()
         const nativeEl = fixture.nativeElement
         expect(nativeEl.textContent).toContain('aaa')
@@ -199,6 +196,7 @@ describe('MachinesTableComponent', () => {
 
         // Act
         component.loadData({ first: 0, rows: 10, filters: {} })
+        expect(component.dataLoading).toBeTrue()
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -206,10 +204,6 @@ describe('MachinesTableComponent', () => {
         expect(getMachinesSpy).toHaveBeenCalledOnceWith(0, 10, null, null, null)
         expect(component.dataCollection).toEqual([])
         expect(component.totalRecords).toBe(0)
-        expect(component.dataLoading).toBeTrue()
-
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).toBeFalse()
     })
 
@@ -223,6 +217,7 @@ describe('MachinesTableComponent', () => {
 
         // Act
         component.loadData({ first: 100, rows: 30, filters: filter })
+        expect(component.dataLoading).toBeTrue()
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -232,10 +227,6 @@ describe('MachinesTableComponent', () => {
         expect(servicesApi.getUnauthorizedMachinesCount).toHaveBeenCalledTimes(1)
         expect(component.unauthorizedMachinesCount).toBe(5)
         expect(unauthorizedMachinesCountChangeSpy).toHaveBeenCalledOnceWith(5)
-        expect(component.dataLoading).toBeTrue()
-
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).toBeFalse()
     })
 
@@ -246,6 +237,7 @@ describe('MachinesTableComponent', () => {
 
         // Act
         component.loadData({ first: 0, rows: 10, filters: {} })
+        expect(component.dataLoading).toBeTrue()
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -256,10 +248,6 @@ describe('MachinesTableComponent', () => {
         expect(servicesApi.getUnauthorizedMachinesCount).not.toHaveBeenCalled()
         expect(component.unauthorizedMachinesCount).toBe(3)
         expect(unauthorizedMachinesCountChangeSpy).toHaveBeenCalledOnceWith(3)
-        expect(component.dataLoading).toBeTrue()
-
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).toBeFalse()
         const nativeEl = fixture.nativeElement
         expect(nativeEl.textContent).toContain('aaa')
@@ -284,8 +272,10 @@ describe('MachinesTableComponent', () => {
 
         // Act
         component.loadData({ first: 0, rows: 10, filters: filter })
+        expect(component.dataLoading).toBeTrue()
         await fixture.whenStable()
         fixture.detectChanges()
+        expect(component.dataLoading).toBeFalse()
 
         // Assert
         expect(getMachinesSpy).toHaveBeenCalledOnceWith(0, 10, 'bb', null, false)
@@ -293,11 +283,7 @@ describe('MachinesTableComponent', () => {
         expect(servicesApi.getUnauthorizedMachinesCount).toHaveBeenCalledTimes(1)
         expect(component.unauthorizedMachinesCount).toBe(3)
         expect(unauthorizedMachinesCountChangeSpy).toHaveBeenCalledOnceWith(3)
-        expect(component.dataLoading).toBeTrue()
 
-        await fixture.whenStable()
-        fixture.detectChanges()
-        expect(component.dataLoading).toBeFalse()
         const nativeEl = fixture.nativeElement
         expect(nativeEl.textContent).not.toContain('aaa')
         expect(nativeEl.textContent).toContain('bbb')
@@ -314,6 +300,7 @@ describe('MachinesTableComponent', () => {
 
         // Act
         component.loadData({ first: 0, rows: 10, filters: {} })
+        expect(component.dataLoading).toBeTrue()
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -323,10 +310,6 @@ describe('MachinesTableComponent', () => {
         expect(servicesApi.getUnauthorizedMachinesCount).toHaveBeenCalledTimes(1)
         expect(component.unauthorizedMachinesCount).toBe(3)
         expect(unauthorizedMachinesCountChangeSpy).toHaveBeenCalledOnceWith(3)
-        expect(component.dataLoading).toBeTrue()
-
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).toBeFalse()
         const nativeEl = fixture.nativeElement
         expect(nativeEl.textContent).not.toContain('aaa')
@@ -348,6 +331,7 @@ describe('MachinesTableComponent', () => {
 
         // Act
         component.loadData({ first: 0, rows: 10, filters: filter })
+        expect(component.dataLoading).toBeTrue()
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -357,10 +341,6 @@ describe('MachinesTableComponent', () => {
         expect(servicesApi.getUnauthorizedMachinesCount).not.toHaveBeenCalled()
         expect(component.unauthorizedMachinesCount).toBe(3)
         expect(unauthorizedMachinesCountChangeSpy).toHaveBeenCalledOnceWith(3)
-        expect(component.dataLoading).toBeTrue()
-
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).toBeFalse()
         const nativeEl = fixture.nativeElement
         expect(nativeEl.textContent).toContain('aaa')
@@ -377,6 +357,7 @@ describe('MachinesTableComponent', () => {
 
         // Act
         component.loadData({ first: 0, rows: 10, filters: {} })
+        expect(component.dataLoading).toBeTrue()
         await fixture.whenStable()
         fixture.detectChanges()
 
@@ -388,10 +369,6 @@ describe('MachinesTableComponent', () => {
             objectContaining({ severity: 'error', summary: 'Cannot get machine list' })
         )
         expect(servicesApi.getUnauthorizedMachinesCount).not.toHaveBeenCalled()
-        expect(component.dataLoading).toBeTrue()
-
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).toBeFalse()
     })
 
@@ -501,10 +478,7 @@ describe('MachinesTableComponent', () => {
         }
         getMachinesSpy.and.returnValue(of(oneMachineResponse))
         component.loadData({ first: 0, rows: 10, filters: {} })
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).withContext('data is loading').toBeTrue()
-
         await fixture.whenStable()
         fixture.detectChanges()
         expect(component.dataLoading).withContext('data loading done').toBeFalse()
@@ -556,10 +530,7 @@ describe('MachinesTableComponent', () => {
     it('should clear selected machines', async () => {
         // Arrange
         component.loadData({ first: 0, rows: 10, filters: {} })
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).withContext('data is loading').toBeTrue()
-
         await fixture.whenStable()
         fixture.detectChanges()
         expect(component.dataLoading).withContext('data loading done').toBeFalse()
@@ -603,10 +574,7 @@ describe('MachinesTableComponent', () => {
         // Arrange
         const eventEmitterSpy = spyOn(component.machineMenuDisplay, 'emit')
         component.loadData({ first: 0, rows: 10, filters: {} })
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).withContext('data is loading').toBeTrue()
-
         await fixture.whenStable()
         fixture.detectChanges()
         expect(component.dataLoading).withContext('data loading done').toBeFalse()
@@ -630,8 +598,6 @@ describe('MachinesTableComponent', () => {
         // Arrange
         const eventEmitterSpy = spyOn(component.authorizeSelectedMachines, 'emit')
         component.loadData({ first: 0, rows: 10, filters: {} })
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).withContext('data is loading').toBeTrue()
 
         await fixture.whenStable()
@@ -666,10 +632,7 @@ describe('MachinesTableComponent', () => {
     it('should select or deselect only unauthorized machines', async () => {
         // Arrange
         component.loadData({ first: 0, rows: 10, filters: {} })
-        await fixture.whenStable()
-        fixture.detectChanges()
         expect(component.dataLoading).withContext('data is loading').toBeTrue()
-
         await fixture.whenStable()
         fixture.detectChanges()
         expect(component.dataLoading).withContext('data loading done').toBeFalse()
