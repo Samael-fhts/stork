@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 
 import { ZonesPageComponent } from './zones-page.component'
-import { HttpClientTestingModule } from '@angular/common/http/testing'
+import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { ConfirmationService, MessageService } from 'primeng/api'
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
 import { DialogModule } from 'primeng/dialog'
@@ -14,7 +14,14 @@ import { OverlayPanelModule } from 'primeng/overlaypanel'
 import { RouterModule } from '@angular/router'
 import { DNSService, ZoneInventoryState, ZoneInventoryStates, Zones } from '../backend'
 import { Observable, of } from 'rxjs'
-import { HttpEventType, HttpHeaders, HttpResponse, HttpStatusCode } from '@angular/common/http'
+import {
+    HttpEventType,
+    HttpHeaders,
+    HttpResponse,
+    HttpStatusCode,
+    provideHttpClient,
+    withInterceptorsFromDi,
+} from '@angular/common/http'
 import { ConfirmDialogModule } from 'primeng/confirmdialog'
 import { MessageModule } from 'primeng/message'
 import { ProgressBarModule } from 'primeng/progressbar'
@@ -228,8 +235,8 @@ describe('ZonesPageComponent', () => {
         messageAddSpy = messageService.add
 
         await TestBed.configureTestingModule({
+            declarations: [ZonesPageComponent, BreadcrumbsComponent, HelpTipComponent, PlaceholderPipe, LocaltimePipe],
             imports: [
-                HttpClientTestingModule,
                 DialogModule,
                 ButtonModule,
                 TableModule,
@@ -245,11 +252,12 @@ describe('ZonesPageComponent', () => {
                 TagModule,
                 FieldsetModule,
             ],
-            declarations: [ZonesPageComponent, BreadcrumbsComponent, HelpTipComponent, PlaceholderPipe, LocaltimePipe],
             providers: [
                 { provide: MessageService, useValue: messageService },
                 { provide: DNSService, useValue: dnsApi },
                 ConfirmationService,
+                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(),
             ],
         }).compileComponents()
 
