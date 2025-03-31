@@ -2,7 +2,7 @@
 ### Arguments ###
 #################
 
-ARG KEA_REPO=public/isc/kea-dev
+ARG KEA_REPO=https://dl.cloudsmith.io/public/isc/kea-dev/cfg/setup/bash.deb.sh
 ARG KEA_VERSION=2.7.6-isc20250128083638
 # Indicates if the premium packages should be installed.
 # Valid values: "premium" or empty.
@@ -250,7 +250,7 @@ ARG KEA_REPO
 ARG KEA_VERSION
 ARG KEA_PRIOR_2_3_0
 ARG KEA_PRIOR_2_7_5
-RUN wget --no-verbose -O- https://dl.cloudsmith.io/${KEA_REPO}/cfg/setup/bash.deb.sh | bash \
+RUN wget --no-verbose -O- ${KEA_REPO} | bash \
         && apt-get update \
         && if [ ${KEA_PRIOR_2_3_0} == "true" ]; then \
                 apt-get install \
