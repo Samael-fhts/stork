@@ -92,6 +92,7 @@ services:
         KEA_VERSION: ${KEA_VERSION:-2.7.0-isc20240624090938}
         KEA_PRIOR_2_3_0: ${KEA_PRIOR_2_3_0:-false}
         KEA_PRIOR_2_7_5: ${KEA_PRIOR_2_7_5:-true}
+        KEA_REPO_DISTRO: ${KEA_REPO_DISTRO}
 
   agent-kea:
     extends: agent-kea-base

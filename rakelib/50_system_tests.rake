@@ -279,6 +279,13 @@ namespace :systemtest do
             ENV["KEA_VERSION"] = kea_version
             ENV["KEA_PRIOR_2_3_0"] = kea_prior_2_3_0 ? "true" : "false"
             ENV["KEA_PRIOR_2_7_5"] = kea_prior_2_7_5 ? "true" : "false"
+
+        end
+
+        if ENV["USE_NEXUS"] == "true"
+            ENV["KEA_REPO"] = "https://packages.aws.isc.org/repository/kea-debian-12"
+            ENV["KEA_REPO_GPG"] = "https://packages.aws.isc.org/repository/repo-keys/repo-key.gpg"
+            ENV["KEA_REPO_DISTRO"] = "kea"
         end
     end
 

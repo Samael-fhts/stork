@@ -13,6 +13,7 @@ ARG KEA_PREMIUM=""
 # Indicates what Kea packages should be installed.
 ARG KEA_PRIOR_2_3_0="false"
 ARG KEA_PRIOR_2_7_5="false"
+ARG KEA_REPO_DISTRO=bookworm
 ARG BIND9_VERSION=9.18
 
 ###################
@@ -250,13 +251,14 @@ RUN apt-get update \
 SHELL [ "/bin/bash", "-o", "pipefail", "-c" ]
 ARG KEA_REPO
 ARG KEA_REPO_GPG
+ARG KEA_REPO_DISTRO
 ARG KEA_VERSION
 ARG KEA_PRIOR_2_3_0
 ARG KEA_PRIOR_2_7_5
 RUN wget --no-verbose -O gpg.key ${KEA_REPO_GPG} \
         && apt-key add gpg.key \
         && rm gpg.key \
-        && echo "deb ${KEA_REPO} bookworm main" > /etc/apt/sources.list.d/isc-kea.list \
+        && echo "deb ${KEA_REPO} ${KEA_REPO_DISTRO} main" > /etc/apt/sources.list.d/isc-kea.list \
         && apt-get update \
         && if [ ${KEA_PRIOR_2_3_0} == "true" ]; then \
                 apt-get install \
