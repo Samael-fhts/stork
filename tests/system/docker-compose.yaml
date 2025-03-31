@@ -87,8 +87,8 @@ services:
       dockerfile: $PWD/docker/images/stork.Dockerfile
       target: kea
       args:
-        KEA_REPO: https://dl.cloudsmith.io/public/${KEA_REPO:-isc/kea-dev}/deb/debian
-        KEA_REPO_GPG: https://dl.cloudsmith.io/public/${KEA_REPO:-isc/kea-dev}/gpg.key
+        KEA_REPO: ${KEA_REPO:-https://dl.cloudsmith.io/public/${KEA_CS_DIR:-isc/kea-dev}/deb/debian}
+        KEA_REPO_GPG: ${KEA_REPO_GPG:-https://dl.cloudsmith.io/public/${KEA_CS_DIR:-isc/kea-dev}/gpg.key}
         KEA_VERSION: ${KEA_VERSION:-2.7.0-isc20240624090938}
         KEA_PRIOR_2_3_0: ${KEA_PRIOR_2_3_0:-false}
         KEA_PRIOR_2_7_5: ${KEA_PRIOR_2_7_5:-true}
@@ -251,8 +251,8 @@ services:
     extends: agent-kea
     build:
       args:
-        KEA_REPO: https://dl.cloudsmith.io/${CS_REPO_ACCESS_TOKEN}/${KEA_REPO:-isc/kea-dev}-prv/deb/debian
-        KEA_REPO_GPG: https://dl.cloudsmith.io/${CS_REPO_ACCESS_TOKEN}/${KEA_REPO:-isc/kea-dev}-prv/gpg.key
+        KEA_REPO: ${KEA_REPO:-https://dl.cloudsmith.io/${CS_REPO_ACCESS_TOKEN}/${KEA_CS_DIR:-isc/kea-dev}-prv/deb/debian}
+        KEA_REPO_GPG: ${KEA_REPO_GPG:-https://dl.cloudsmith.io/${CS_REPO_ACCESS_TOKEN}/${KEA_CS_DIR:-isc/kea-dev}-prv/gpg.key}
         KEA_PREMIUM: "premium"
     profiles:
       - premium

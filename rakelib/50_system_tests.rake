@@ -269,11 +269,11 @@ namespace :systemtest do
             end
 
             # Use single development repository for Kea 2.7.0 and newer.
-            ENV["KEA_REPO"] = "isc/kea-#{kea_version_info[0]}-#{kea_version_info[1]}"
+            ENV["KEA_CS_DIR"] = "isc/kea-#{kea_version_info[0]}-#{kea_version_info[1]}"
             is_development_version = kea_version_info[1] % 2 == 1
             if is_development_version &&
                 (kea_version_info <=> [2, 7]) >= 0 then
-                ENV["KEA_REPO"] = "isc/kea-dev"
+                ENV["KEA_CS_DIR"] = "isc/kea-dev"
             end
 
             ENV["KEA_VERSION"] = kea_version
