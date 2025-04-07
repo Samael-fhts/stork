@@ -24,6 +24,7 @@ import { CommunicationStatusPageComponent } from './communication-status-page/co
 import { KeaGlobalConfigurationPageComponent } from './kea-global-configuration-page/kea-global-configuration-page.component'
 import { VersionPageComponent } from './version-page/version-page.component'
 import { ZonesPageComponent } from './zones-page/zones-page.component'
+import { ServicesPageComponent } from './services-page/services-page.component'
 
 const routes: Routes = [
     {
@@ -186,6 +187,11 @@ const routes: Routes = [
     {
         path: 'versions',
         component: VersionPageComponent,
+        canActivate: [AuthGuard],
+    },
+    {
+        path: 'services',
+        component: ServicesPageComponent,
         canActivate: [AuthGuard],
     },
 

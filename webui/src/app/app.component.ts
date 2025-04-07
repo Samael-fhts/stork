@@ -126,6 +126,7 @@ export class AppComponent implements OnInit, OnDestroy {
             {
                 label: 'Services',
                 id: 'services',
+                routerLink: '/services',
                 items: [
                     {
                         label: 'Kea Apps',

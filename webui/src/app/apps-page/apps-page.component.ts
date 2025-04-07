@@ -130,7 +130,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
 
                 if (newAppType !== this.appType) {
                     this.appType = newAppType as 'kea' | 'bind9'
-                    this.breadcrumbs = [{ label: 'Services' }, { label: this.getAppsLabel() }]
+                    this.breadcrumbs = [{ label: 'Services', routerLink: '/services' }, { label: this.getAppsLabel() }]
 
                     this.tabs = [{ label: 'All', routerLink: '/apps/' + this.appType + '/all' }]
 

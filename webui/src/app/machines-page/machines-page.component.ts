@@ -38,7 +38,7 @@ export class MachinesPageComponent implements OnInit, OnDestroy, AfterViewInit {
     /**
      * View breadcrumbs menu items.
      */
-    breadcrumbs = [{ label: 'Services' }, { label: 'Machines' }]
+    breadcrumbs = [{ label: 'Services', routerLink: '/services' }, { label: 'Machines' }]
 
     /**
      * Machine popup menu items.
