@@ -765,6 +765,8 @@ func (inventory *zoneInventory) receiveZones(ctx context.Context, filter *bind9s
 		return nil, err
 	}
 	var totalZoneCount int64
+	var builtinZoneCount int64
+	var distinctZoneCount int64
 	for view, err := range inventory.storage.getViewsIterator(filter) {
 		if err != nil {
 			return nil, err
@@ -797,9 +799,11 @@ func (inventory *zoneInventory) receiveZones(ctx context.Context, filter *bind9s
 						result.err = err
 					} else {
 						result.zone = &bind9stats.ExtendedZone{
-							Zone:           *zone,
-							ViewName:       view.GetViewName(),
-							TotalZoneCount: totalZoneCount,
+							Zone:              *zone,
+							ViewName:          view.GetViewName(),
+							TotalZoneCount:    totalZoneCount,
+							BuiltinZoneCount:  builtinZoneCount,
+							DistinctZoneCount: distinctZoneCount,
 						}
 					}
 					channel <- result

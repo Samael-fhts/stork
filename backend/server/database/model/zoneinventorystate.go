@@ -53,9 +53,11 @@ type ZoneInventoryState struct {
 // this data as JSONB makes this column flexible and extensible without a
 // need to update the database schema.
 type ZoneInventoryStateDetails struct {
-	Status    ZoneInventoryStatus
-	Error     *string
-	ZoneCount *int64
+	Status            ZoneInventoryStatus
+	Error             *string
+	ZoneCount         *int64
+	BuiltinZoneCount  *int64
+	DistinctZoneCount *int64
 }
 
 // Instantiates the inventory state details.
@@ -76,9 +78,29 @@ func (state *ZoneInventoryStateDetails) SetStatus(status ZoneInventoryStatus, er
 	}
 }
 
-// Sets the total number of zones.
+// Sets the total number of zones. It treats zone-view as a unique entity that is counted.
+// E.g. zone example.org view guest in DNS server XYZ
+//
+//	zone example.org view default in DNS server XYZ
+//
+// counts as two zones in these totalZones.
 func (state *ZoneInventoryStateDetails) SetTotalZones(totalZones int64) {
 	state.ZoneCount = &totalZones
+}
+
+// Sets the builtin number of zones.
+func (state *ZoneInventoryStateDetails) SetBuiltinZones(builtinZones int64) {
+	state.BuiltinZoneCount = &builtinZones
+}
+
+// Sets the distinct number of zones. It counts the zone no matter the view.
+// E.g. zone example.org view guest in DNS server XYZ
+//
+//	zone example.org view default in DNS server XYZ
+//
+// counts as one zone in these distinctZones.
+func (state *ZoneInventoryStateDetails) SetDistinctZones(distinctZones int64) {
+	state.DistinctZoneCount = &distinctZones
 }
 
 // Instantiates the zone inventory state for a given daemon.

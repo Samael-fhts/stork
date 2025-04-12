@@ -204,6 +204,8 @@ func (manager *managerImpl) FetchZones(poolSize, batchSize int, block bool) (cha
 					// Insert zones into the database in batches. It significantly improves
 					// performance for large number of zones.
 					batch := dbmodel.NewBatch(manager.db, batchSize, dbmodel.AddZones)
+					builtinMap := make(map[string]int64)
+					distinctZoneMap := make(map[string]int64)
 					for zone, err := range manager.agents.ReceiveZones(context.Background(), &app, nil) {
 						if err != nil {
 							// Returned status depends on the returned error type. Some
@@ -242,8 +244,14 @@ func (manager *managerImpl) FetchZones(poolSize, batchSize int, block bool) (cha
 								},
 							},
 						}
+						if zone.Type == string(dbmodel.ZoneTypeBuiltin) {
+							builtinMap[zone.Name()] = app.Daemons[0].ID
+						}
+						distinctZoneMap[zone.Name()] = app.Daemons[0].ID
 						// The zone also carries the total number of zones in the inventory.
 						state.SetTotalZones(zone.TotalZoneCount)
+						state.SetBuiltinZones(int64(len(builtinMap)))
+						state.SetDistinctZones(int64(len(distinctZoneMap)))
 						if view != zone.ViewName {
 							// Flush the batch to complete the view insertion. Note that
 							// this is ok even when the view is empty (first zone). In

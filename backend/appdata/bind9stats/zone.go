@@ -32,8 +32,10 @@ func (zone *Zone) Name() string {
 // The metadata are optional and depend on the use case.
 type ExtendedZone struct {
 	Zone
-	ViewName       string
-	TotalZoneCount int64
+	ViewName          string
+	TotalZoneCount    int64
+	BuiltinZoneCount  int64
+	DistinctZoneCount int64
 }
 
 // Represents a collection of zones. It is used internally by the View.
