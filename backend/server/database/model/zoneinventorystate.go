@@ -78,27 +78,20 @@ func (state *ZoneInventoryStateDetails) SetStatus(status ZoneInventoryStatus, er
 	}
 }
 
-// Sets the total number of zones. It treats zone-view as a unique entity that is counted.
-// E.g. zone example.org view guest in DNS server XYZ
-//
-//	zone example.org view default in DNS server XYZ
-//
-// counts as two zones in these totalZones.
+// Sets the total number of zones. It treats zone-view DNS instance as a unique entity that is counted.
+// E.g. zone example.org in view "guest" and zone example.org in view "default" are counted as two.
 func (state *ZoneInventoryStateDetails) SetTotalZones(totalZones int64) {
 	state.ZoneCount = &totalZones
 }
 
-// Sets the builtin number of zones.
+// Sets the number of builtin zones.
 func (state *ZoneInventoryStateDetails) SetBuiltinZones(builtinZones int64) {
 	state.BuiltinZoneCount = &builtinZones
 }
 
-// Sets the distinct number of zones. It counts the zone no matter the view.
-// E.g. zone example.org view guest in DNS server XYZ
-//
-//	zone example.org view default in DNS server XYZ
-//
-// counts as one zone in these distinctZones.
+// Sets the number of distinct zones. It counts the zone no matter the view.
+// E.g. zone example.org in view "guest" and zone example.org in view "default"
+// counts as one distinct zone.
 func (state *ZoneInventoryStateDetails) SetDistinctZones(distinctZones int64) {
 	state.DistinctZoneCount = &distinctZones
 }

@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	log "github.com/sirupsen/logrus"
+	bind9stats "isc.org/stork/appdata/bind9stats"
 	agentcomm "isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 )
@@ -142,6 +143,14 @@ func NewManager(owner ManagerAccessors) Manager {
 	}
 }
 
+// Helper function that updates maps values that are used to calculate count of builtin and distinct zones per DNS server.
+func updateMapValues(builtinZonesMap map[string]int64, distinctZonesMap map[string]int64, zone *bind9stats.ExtendedZone, value *int64) {
+	if zone.Type == string(dbmodel.ZoneTypeBuiltin) {
+		builtinZonesMap[zone.Name()] = *value
+	}
+	distinctZonesMap[zone.Name()] = *value
+}
+
 // Contacts all agents with DNS servers and fetches zones from these servers.
 // It implements the Manager interface.
 func (manager *managerImpl) FetchZones(poolSize, batchSize int, block bool) (chan ManagerDoneNotify, error) {
@@ -201,11 +210,14 @@ func (manager *managerImpl) FetchZones(poolSize, batchSize int, block bool) (cha
 					// exists in the batch, the database will return an error on the
 					// ON CONFLICT DO UPDATE clause.
 					var view string
-					// Insert zones into the database in batches. It significantly improves
-					// performance for large number of zones.
-					batch := dbmodel.NewBatch(manager.db, batchSize, dbmodel.AddZones)
 					builtinMap := make(map[string]int64)
 					distinctZoneMap := make(map[string]int64)
+					// Insert zones into the database in batches. It significantly improves
+					// performance for large number of zones.
+					batch := dbmodel.NewBatchWithCallback(manager.db, batchSize, dbmodel.AddZones, func() {
+						state.SetBuiltinZones(int64(len(builtinMap)))
+						state.SetDistinctZones(int64(len(distinctZoneMap)))
+					})
 					for zone, err := range manager.agents.ReceiveZones(context.Background(), &app, nil) {
 						if err != nil {
 							// Returned status depends on the returned error type. Some
@@ -244,14 +256,9 @@ func (manager *managerImpl) FetchZones(poolSize, batchSize int, block bool) (cha
 								},
 							},
 						}
-						if zone.Type == string(dbmodel.ZoneTypeBuiltin) {
-							builtinMap[zone.Name()] = app.Daemons[0].ID
-						}
-						distinctZoneMap[zone.Name()] = app.Daemons[0].ID
+						updateMapValues(builtinMap, distinctZoneMap, zone, &app.Daemons[0].ID)
 						// The zone also carries the total number of zones in the inventory.
 						state.SetTotalZones(zone.TotalZoneCount)
-						state.SetBuiltinZones(int64(len(builtinMap)))
-						state.SetDistinctZones(int64(len(distinctZoneMap)))
 						if view != zone.ViewName {
 							// Flush the batch to complete the view insertion. Note that
 							// this is ok even when the view is empty (first zone). In

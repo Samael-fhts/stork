@@ -9,11 +9,14 @@ import "github.com/go-pg/pg/v10"
 // for the number of collected entries. When this limit is exceeded the
 // batch inserts all collected entries into the database and removes
 // them from the queue making space for another set of entries.
+// A batch may also have defined callback function that will be called
+// on every successful batch insertion to the DB.
 type Batch[T any] struct {
-	db    pg.DBI
-	items []T
-	limit int
-	fn    func(pg.DBI, ...T) error
+	db       pg.DBI
+	items    []T
+	limit    int
+	fn       func(pg.DBI, ...T) error
+	callback func()
 }
 
 // Instantiates new batch. The limit specifies the number of entries held
@@ -28,6 +31,20 @@ func NewBatch[T any](db pg.DBI, limit int, fn func(pg.DBI, ...T) error) (batch *
 	}
 }
 
+// Instantiates new batch. The limit specifies the number of entries held
+// in the batch before they are all inserted into the database. The function
+// implements insertion of the entries specified as variadic parameters.
+// The callback function will be called on every successful batch insertion to the DB.
+func NewBatchWithCallback[T any](db pg.DBI, limit int, fn func(pg.DBI, ...T) error, callback func()) (batch *Batch[T]) {
+	return &Batch[T]{
+		db:       db,
+		items:    make([]T, 0, limit),
+		limit:    limit,
+		fn:       fn,
+		callback: callback,
+	}
+}
+
 // Inserts new item into the batch. If the number of items in the batch hits
 // the specified limit the items are inserted into the database.
 func (buffer *Batch[T]) Add(item T) error {
@@ -35,6 +52,9 @@ func (buffer *Batch[T]) Add(item T) error {
 	if (len(buffer.items) >= buffer.limit) && len(buffer.items) > 0 {
 		if err := buffer.fn(buffer.db, buffer.items...); err != nil {
 			return err
+		}
+		if buffer.callback != nil {
+			buffer.callback()
 		}
 		buffer.items = buffer.items[:0]
 	}
@@ -45,6 +65,9 @@ func (buffer *Batch[T]) Add(item T) error {
 func (buffer *Batch[T]) FlushAndAdd(item T) error {
 	if err := buffer.Flush(); err != nil {
 		return err
+	}
+	if buffer.callback != nil {
+		buffer.callback()
 	}
 	return buffer.Add(item)
 }
@@ -59,6 +82,9 @@ func (buffer *Batch[T]) Flush() error {
 			return err
 		}
 		buffer.items = buffer.items[:0]
+		if buffer.callback != nil {
+			buffer.callback()
+		}
 	}
 	return nil
 }
