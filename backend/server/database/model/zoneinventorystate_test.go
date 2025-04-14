@@ -51,6 +51,22 @@ func TestZoneInventoryStateDetailsSetTotalZones(t *testing.T) {
 	require.EqualValues(t, 10, *details.ZoneCount)
 }
 
+// Test setting number of builtin zones in the state.
+func TestZoneInventoryStateDetailsSetBuiltinZones(t *testing.T) {
+	details := NewZoneInventoryStateDetails()
+	details.SetBuiltinZones(10)
+	require.NotNil(t, details.BuiltinZoneCount)
+	require.EqualValues(t, 10, *details.BuiltinZoneCount)
+}
+
+// Test setting number of distinct zones in the state.
+func TestZoneInventoryStateDetailsSetDistinctZones(t *testing.T) {
+	details := NewZoneInventoryStateDetails()
+	details.SetDistinctZones(10)
+	require.NotNil(t, details.DistinctZoneCount)
+	require.EqualValues(t, 10, *details.DistinctZoneCount)
+}
+
 // Test instantiating new inventory state.
 func TestNewZoneInventoryState(t *testing.T) {
 	details := NewZoneInventoryStateDetails()

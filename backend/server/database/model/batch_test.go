@@ -127,3 +127,57 @@ func TestBatchError(t *testing.T) {
 	err = batch.Flush()
 	require.ErrorAs(t, err, &expectedError)
 }
+
+// Test that items can be added to a batch instantiated via NewBatchWithCallback
+// and that the insertion function is triggered when the batch hits a limit.
+// Also test that calling Finish inserts remaining items in the batch.
+// Also test that callback function is called as expected.
+func TestBatchWithCallback(t *testing.T) {
+	var (
+		db                pg.DB
+		callCount         int
+		capturedItems     []int
+		callbackTestValue int
+	)
+	batch := NewBatchWithCallback(db, 10, func(d pg.DBI, items ...int) error {
+		callCount++
+		capturedItems = make([]int, len(items))
+		copy(capturedItems, items)
+		return nil
+	}, func() { callbackTestValue = 10 })
+	require.NotNil(t, batch)
+
+	for i := 0; i < 9; i++ {
+		_ = batch.Add(i)
+		require.Zero(t, callCount)
+	}
+
+	_ = batch.Add(9)
+	require.Equal(t, 1, callCount)
+	require.Len(t, capturedItems, 10)
+	require.Equal(t, []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}, capturedItems)
+
+	for i := 10; i > 1; i-- {
+		_ = batch.Add(i)
+		require.Equal(t, 1, callCount)
+	}
+
+	_ = batch.Add(1)
+	require.Equal(t, 2, callCount)
+	require.Len(t, capturedItems, 10)
+	require.Equal(t, []int{10, 9, 8, 7, 6, 5, 4, 3, 2, 1}, capturedItems)
+
+	_ = batch.Add(1)
+	_ = batch.Add(5)
+	require.Equal(t, 2, callCount)
+
+	_ = batch.Flush()
+	require.Equal(t, 3, callCount)
+	require.Len(t, capturedItems, 2)
+	require.Equal(t, []int{1, 5}, capturedItems)
+
+	_ = batch.Flush()
+	require.Equal(t, 3, callCount)
+
+	require.Equal(t, 10, callbackTestValue)
+}
