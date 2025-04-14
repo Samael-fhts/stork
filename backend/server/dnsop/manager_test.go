@@ -487,6 +487,7 @@ func TestFetchRepeatedZones(t *testing.T) {
 	mock := NewMockConnectedAgents(controller)
 
 	randomZones := testutil.GenerateRandomZones(10)
+	randomZones = testutil.GenerateMoreZonesWithType(randomZones, 5, "builtin")
 
 	machine := &dbmodel.Machine{
 		ID:        0,
@@ -555,8 +556,8 @@ func TestFetchRepeatedZones(t *testing.T) {
 	// have been inserted.
 	zones, total, err := dbmodel.GetZones(db, nil, dbmodel.ZoneRelationLocalZones)
 	require.NoError(t, err)
-	require.Equal(t, 10, total)
-	require.Len(t, zones, 10)
+	require.Equal(t, 15, total)
+	require.Len(t, zones, 15)
 
 	// Make sure that all zones have two associations.
 	for _, zone := range zones {

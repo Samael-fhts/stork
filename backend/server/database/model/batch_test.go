@@ -171,13 +171,15 @@ func TestBatchWithCallback(t *testing.T) {
 	_ = batch.Add(5)
 	require.Equal(t, 2, callCount)
 
-	_ = batch.Flush()
+	_ = batch.FlushAndAdd(7)
 	require.Equal(t, 3, callCount)
 	require.Len(t, capturedItems, 2)
 	require.Equal(t, []int{1, 5}, capturedItems)
 
 	_ = batch.Flush()
-	require.Equal(t, 3, callCount)
+	require.Equal(t, 4, callCount)
+	require.Len(t, capturedItems, 1)
+	require.Equal(t, []int{7}, capturedItems)
 
 	require.Equal(t, 10, callbackTestValue)
 }
