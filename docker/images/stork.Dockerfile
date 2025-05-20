@@ -2,7 +2,10 @@
 ### Arguments ###
 #################
 
-ARG KEA_REPO=public/isc/kea-dev
+ARG KEA_REPO=https://dl.cloudsmith.io/public/isc/kea-dev/deb/debian
+ARG KEA_REPO_GPG=https://dl.cloudsmith.io/public/isc/kea-dev/gpg.key
+ARG STORK_REPO=https://dl.cloudsmith.io/public/isc/stork/deb/debian
+ARG STORK_REPO_GPG=https://dl.cloudsmith.io/public/isc/stork/gpg.key
 ARG KEA_VERSION=2.7.6-isc20250128083638
 # Indicates if the premium packages should be installed.
 # Valid values: "premium" or empty.
@@ -10,6 +13,7 @@ ARG KEA_PREMIUM=""
 # Indicates what Kea packages should be installed.
 ARG KEA_PRIOR_2_3_0="false"
 ARG KEA_PRIOR_2_7_5="false"
+ARG KEA_REPO_DISTRO=bookworm
 ARG BIND9_VERSION=9.18
 
 ###################
@@ -236,7 +240,6 @@ RUN apt-get update \
         && apt-get install \
                 -y \
                 --no-install-recommends \
-                curl=7.88.* \
                 prometheus-node-exporter=1.5.* \
                 default-mysql-client=1.1.* \
                 postgresql-client=15+* \
@@ -247,10 +250,15 @@ RUN apt-get update \
 # Install Kea from Cloudsmith
 SHELL [ "/bin/bash", "-o", "pipefail", "-c" ]
 ARG KEA_REPO
+ARG KEA_REPO_GPG
+ARG KEA_REPO_DISTRO
 ARG KEA_VERSION
 ARG KEA_PRIOR_2_3_0
 ARG KEA_PRIOR_2_7_5
-RUN wget --no-verbose -O- https://dl.cloudsmith.io/${KEA_REPO}/cfg/setup/bash.deb.sh | bash \
+RUN wget --no-verbose -O gpg.key ${KEA_REPO_GPG} \
+        && apt-key add gpg.key \
+        && rm gpg.key \
+        && echo "deb ${KEA_REPO} ${KEA_REPO_DISTRO} main" > /etc/apt/sources.list.d/isc-kea.list \
         && apt-get update \
         && if [ ${KEA_PRIOR_2_3_0} == "true" ]; then \
                 apt-get install \
@@ -459,7 +467,17 @@ RUN apt-get update \
         && touch /usr/bin/systemctl \
         && chmod a+x /usr/bin/systemctl
 ARG STORK_CS_VERSION=*
-RUN wget --no-verbose -O- https://dl.cloudsmith.io/public/isc/stork/cfg/setup/bash.deb.sh | bash \
+ARG STORK_REPO
+ARG STORK_REPO_GPG
+RUN apt-get update \
+        && apt-get install \
+                --no-install-recommends \
+                -y \
+                gnupg=2.2.* \
+        && wget --no-verbose -O gpg.key ${STORK_REPO_GPG} \
+        && apt-key add gpg.key \
+        && rm gpg.key \
+        && echo "deb ${STORK_REPO} bookworm main" > /etc/apt/sources.list.d/isc-stork.list \
         && apt-get update \
         && apt-get install \
                 --no-install-recommends \

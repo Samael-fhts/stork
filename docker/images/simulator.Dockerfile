@@ -1,5 +1,6 @@
 # The main purpose of this container is to run Stork Environment Simulator.
-ARG KEA_REPO=public/isc/kea-2-4
+ARG KEA_REPO=https://dl.cloudsmith.io/public/isc/kea-2-4/deb/debian
+ARG KEA_REPO_GPG=https://dl.cloudsmith.io/public/isc/kea-2-4/gpg.key
 ARG KEA_VERSION=2.4.0-isc20230630120747
 
 # The demo setup is not fully compatible with arm64 architectures.
@@ -75,19 +76,23 @@ COPY tests/sim .
 # Stage to run the simulator.
 FROM base AS runner
 ARG KEA_REPO
+ARG KEA_REPO_GPG
 ARG KEA_VERSION
 RUN \
-    # Install curl.
-    apt-get update && apt-get install -y --no-install-recommends \
-        # Install curl.
-        curl=7.* \
+    apt-get update && \
+    apt-get install -y --no-install-recommends \
+        wget=1.21.* \
         ca-certificates=20230311 \
         gnupg=2.2.* \
         apt-transport-https=2.6.* \
     # Configure the ISC repository.
-    && curl -1sLf "https://dl.cloudsmith.io/${KEA_REPO}/cfg/setup/bash.deb.sh" | bash \
+    && wget --no-verbose -O gpg.key ${KEA_REPO_GPG} \
+    && apt-key add gpg.key \
+    && rm gpg.key \
+    && echo "deb ${KEA_REPO} bookworm main" > /etc/apt/sources.list.d/isc-kea.list \
+    && apt-get update \
     # Install runtime dependencies.
-    && apt-get update && apt-get install -y --no-install-recommends \
+    && apt-get install -y --no-install-recommends \
         # Flamethrower dependencies.
         libldns3=1.8.* \
         libuv1=1.44.* \
