@@ -15,7 +15,7 @@ func TestGetGroups(t *testing.T) {
 	groups, total, err := GetGroupsByPage(db, 0, 10, nil, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 3, total)
-	// There are two predefined groups.
+	// There are three predefined groups.
 	require.Len(t, groups, 3)
 
 	// Groups are supposed to be ordered by id.
