@@ -908,8 +908,7 @@ It is possible to attach the local debugger to the executable running in the Doc
 container for more complex cases. This possibility is currently implemented only
 for the Stork Server. To use it, you must be sure that the codebase on a host is
 the same as on the container. In system tests, the server is started by the ``dlv``
-Go debugger and listens on the 45678 host port. You can use the
-``rake utils:connect_dbg`` command to attach the ``gdlv`` debugger.
+Go debugger and listens on the 45678 host port.
 It is recommended to attach the Python debugger and stop the test
 execution first. Then, attach the Golang debugger to the server.
 

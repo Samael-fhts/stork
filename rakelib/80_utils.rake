@@ -15,12 +15,6 @@ namespace :utils do
         "."
     end
 
-
-    desc 'Connect gdlv GUI Go debugger to waiting dlv debugger'
-    task :connect_dbg => [GDLV] do
-        sh GDLV, "connect", "127.0.0.1:45678"
-    end
-
     desc "List dependencies of a given package
         Choose one:
             ABS - full absolute package import path

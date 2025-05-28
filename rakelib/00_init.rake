@@ -536,27 +536,26 @@ any_system = true
 
 ### Define package versions
 # Golang-related
-go_ver = '1.24.1'
+go_ver = '1.24.3'
 goswagger_ver = 'v0.31.0'
 protoc_ver = '30.1'
-protoc_gen_go_ver = 'v1.36.5'
+protoc_gen_go_ver = 'v1.36.6'
 protoc_gen_go_grpc_ver = 'v1.5.1'
 tparse_ver = 'v0.17.0'
 go_junit_report_ver = 'v2.1.0'
 gocover_cobertura_ver = 'v1.3.0'
 go_live_pprof_ver = 'v1.0.8'
 govulncheck_ver = 'v1.1.4'
-mockgen_ver = 'v0.5.0'
-dlv_ver = 'v1.24.1'
-gdlv_ver = 'v1.13.2'
+mockgen_ver = 'v0.5.2'
+dlv_ver = 'v1.24.2'
 nfpm_ver = 'v2.41.3'
 golangcilint_ver = '1.64.8'
 
 # UI-related
 node_ver = '20.17.0'
-npm_ver = '11.2.0'
+npm_ver = '11.4.1'
 yamlinc_ver = '0.1.10'
-storybook_ver = '8.6.8'
+storybook_ver = '8.6.14'
 openapi_generator_ver = '7.12.0'
 
 # Other
@@ -1007,15 +1006,6 @@ file DLV => [GO] do
     sh DLV, "version"
 end
 add_version_guard(DLV, dlv_ver)
-
-GDLV = File.join(gobin, "gdlv")
-file GDLV => [GO] do
-    sh GO, "install", "github.com/aarzilli/gdlv@#{gdlv_ver}"
-    if !File.file?(GDLV)
-        fail
-    end
-end
-add_version_guard(GDLV, gdlv_ver)
 
 NFPM = File.join(gobin, "nfpm")
 file NFPM => [GO] do
