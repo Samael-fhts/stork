@@ -137,6 +137,10 @@ html_context = {
     ],
 }
 
+# Leave quotes and dashes unchanged and don't convert them to typographically
+# correct entities.
+smartquotes = False
+
 
 # -- Options for LaTeX output ------------------------------------------------
 

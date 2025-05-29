@@ -80,6 +80,10 @@ pygments_style = None
 # The Developer's guide is built separately in its own dir.
 exclude_patterns = ["user/*"]
 
+# Leave quotes and dashes unchanged and don't convert them to typographically
+# correct entities.
+smartquotes = False
+
 
 # -- Options for HTML output -------------------------------------------------
 
