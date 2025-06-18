@@ -2,15 +2,15 @@
     <p-fieldset legend="Form Settings">
         <div class="flex flex-column">
             <div class="flex align-items-center">
-                <p-inputSwitch
+                <p-toggleswitch
                     ngDefaultControl
                     formControlName="splitFormMode"
                     (onChange)="onSplitModeChange()"
-                ></p-inputSwitch>
+                ></p-toggleswitch>
                 <div class="flex ml-2">Configure individual server values.</div>
             </div>
             <div class="flex align-items-center mt-2">
-                <p-inputSwitch ngDefaultControl formControlName="globalReservation"></p-inputSwitch>
+                <p-toggleswitch ngDefaultControl formControlName="globalReservation"></p-toggleswitch>
                 <div class="flex ml-2">Global reservation.</div>
             </div>
         </div>
@@ -43,7 +43,7 @@
         </div>
         <div *ngIf="!formGroup.get('globalReservation').value">
             <span class="p-float-label">
-                <p-dropdown
+                <p-select
                     inputId="subnets-dropdown"
                     optionLabel="subnet"
                     optionValue="id"
@@ -55,7 +55,7 @@
                     styleClass="w-full"
                     (onChange)="onSelectedSubnetChange()"
                 >
-                </p-dropdown>
+                </p-select>
                 <label for="subnets-dropdown">Subnet</label>
             </span>
             <small
@@ -72,16 +72,16 @@
     <p-fieldset legend="DHCP Identifier" styleClass="host-form-section">
         <div formGroupName="hostIdGroup" class="grid">
             <div class="col-6 sm:col-3">
-                <p-dropdown
+                <p-select
                     [options]="hostIdTypes"
                     formControlName="idType"
                     styleClass="w-full"
                     (onChange)="onSelectedIdentifierChange()"
                 >
-                </p-dropdown>
+                </p-select>
             </div>
             <div class="col-6 sm:col-3">
-                <p-dropdown [options]="hostIdFormats" formControlName="idFormat" styleClass="w-full"> </p-dropdown>
+                <p-select [options]="hostIdFormats" formControlName="idFormat" styleClass="w-full"> </p-select>
             </div>
 
             <div
@@ -153,7 +153,7 @@
                 <ng-container *ngFor="let ipGroup of ipGroups.controls; index as i">
                     <ng-container [formGroup]="ipGroup" class="flex align-items-start">
                         <div class="col-12 sm:col-3">
-                            <p-dropdown [options]="ipTypes" formControlName="ipType" styleClass="w-full"> </p-dropdown>
+                            <p-select [options]="ipTypes" formControlName="ipType" styleClass="w-full"> </p-select>
                         </div>
                         <ng-container [ngSwitch]="ipGroup.value.ipType">
                             <ng-container *ngSwitchCase="'ipv4'">

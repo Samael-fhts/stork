@@ -13,7 +13,7 @@ import { MenuModule } from 'primeng/menu'
 import { TableModule } from 'primeng/table'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ReactiveFormsModule } from '@angular/forms'
 import { AuthService } from '../auth.service'
@@ -22,7 +22,7 @@ import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { MockParamMap } from '../utils'
 import { TagModule } from 'primeng/tag'
 import { PanelModule } from 'primeng/panel'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { PasswordModule } from 'primeng/password'
 import { CheckboxModule } from 'primeng/checkbox'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
@@ -43,7 +43,7 @@ describe('UsersPageComponent', () => {
                 MenuModule,
                 TableModule,
                 BreadcrumbModule,
-                OverlayPanelModule,
+                PopoverModule,
                 NoopAnimationsModule,
                 RouterModule,
                 ReactiveFormsModule,
@@ -55,7 +55,7 @@ describe('UsersPageComponent', () => {
                     { path: 'users/new', component: UsersPageComponent },
                 ]),
                 PanelModule,
-                DropdownModule,
+                SelectModule,
                 PasswordModule,
                 FormsModule,
                 CheckboxModule,

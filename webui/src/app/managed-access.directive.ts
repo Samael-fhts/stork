@@ -80,7 +80,7 @@ export class ManagedAccessDirective implements AfterViewInit {
                     return
                 }
 
-                // This is other PrimeNG element, e.g. <p-button>, <p-tristatecheckbox>, <p-inputswitch>, etc.
+                // This is other PrimeNG element, e.g. <p-button>, <p-tristatecheckbox>, <p-toggleswitch>, etc.
                 this.htmlElement.querySelectorAll('.p-component').forEach((el) => {
                     // For all elements inside with .p-component class add disabled classes.
                     this.setDisabledClasses(<HTMLElement>el)

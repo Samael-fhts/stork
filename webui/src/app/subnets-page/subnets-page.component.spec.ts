@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick, waitForAsync, flush } from 
 
 import { SubnetsPageComponent } from './subnets-page.component'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { TableModule } from 'primeng/table'
 import { SubnetBarComponent } from '../subnet-bar/subnet-bar.component'
 import { TooltipModule } from 'primeng/tooltip'
@@ -23,7 +23,7 @@ import { ConfirmationService, MessageService } from 'primeng/api'
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { DelegatedPrefixBarComponent } from '../delegated-prefix-bar/delegated-prefix-bar.component'
 import { HumanCountComponent } from '../human-count/human-count.component'
@@ -42,13 +42,12 @@ import { SubnetFormComponent } from '../subnet-form/subnet-form.component'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
 import { CheckboxModule } from 'primeng/checkbox'
 import { ButtonModule } from 'primeng/button'
-import { ChipsModule } from 'primeng/chips'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { DividerModule } from 'primeng/divider'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { MessagesModule } from 'primeng/messages'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { ToastModule } from 'primeng/toast'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
@@ -114,12 +113,12 @@ describe('SubnetsPageComponent', () => {
             imports: [
                 AccordionModule,
                 FormsModule,
-                DropdownModule,
+                SelectModule,
                 TableModule,
                 TooltipModule,
                 RouterModule,
                 BreadcrumbModule,
-                OverlayPanelModule,
+                PopoverModule,
                 NoopAnimationsModule,
                 MessageModule,
                 TabMenuModule,
@@ -128,13 +127,12 @@ describe('SubnetsPageComponent', () => {
                 ProgressSpinnerModule,
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
                 InputNumberModule,
                 MessagesModule,
                 MultiSelectModule,
                 TagModule,
-                TriStateCheckboxModule,
                 ReactiveFormsModule,
                 SplitButtonModule,
                 ToastModule,

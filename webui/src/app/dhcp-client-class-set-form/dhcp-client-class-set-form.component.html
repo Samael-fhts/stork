@@ -1,19 +1,27 @@
 <div class="flex align-items-end gap-1">
     <span [class]="{ 'p-float-label': floatingPlaceholder }" class="flex-auto min-w-0">
-        <p-chips
-            ngDefaultControl
-            inputId="{{ inputId }}"
-            [allowDuplicate]="false"
-            [addOnBlur]="true"
+        <!--        <p-chips-->
+        <!--            ngDefaultControl-->
+        <!--            inputId="{{ inputId }}"-->
+        <!--            [allowDuplicate]="false"-->
+        <!--            [addOnBlur]="true"-->
+        <!--            [formControl]="classFormControl"-->
+        <!--            styleClass="adaptive-chips-background w-full"-->
+        <!--            placeholder="{{ floatingPlaceholder ? null : 'Type or Pick From List' }}"-->
+        <!--            title="Type or Select Class Names From List"-->
+        <!--        >-->
+        <!--        </p-chips>-->
+        <p-autoComplete
+            multiple
+            [typeahead]="false"
             [formControl]="classFormControl"
-            styleClass="adaptive-chips-background w-full"
             placeholder="{{ floatingPlaceholder ? null : 'Type or Pick From List' }}"
             title="Type or Select Class Names From List"
-        >
-        </p-chips>
+            [inputId]="inputId"
+        />
         <label *ngIf="floatingPlaceholder" for="{{ inputId }}">Type or Pick From List</label>
     </span>
-    <p-overlayPanel #op [dismissable]="false">
+    <p-popover #op [dismissable]="false">
         <ng-template pTemplate>
             <div
                 *ngIf="!sortedClientClasses || sortedClientClasses.length === 0"
@@ -91,7 +99,7 @@
                 ></button>
             </div>
         </ng-template>
-    </p-overlayPanel>
+    </p-popover>
     <button
         pRipple
         pButton

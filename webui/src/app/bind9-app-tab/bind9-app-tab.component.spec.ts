@@ -21,7 +21,7 @@ import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { ServerSentEventsService, ServerSentEventsTestingService } from '../server-sent-events.service'
 import { EventsPanelComponent } from '../events-panel/events-panel.component'
 import { By } from '@angular/platform-browser'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { DataViewModule } from 'primeng/dataview'
 import { EventTextComponent } from '../event-text/event-text.component'
 import { TableModule } from 'primeng/table'
@@ -90,7 +90,7 @@ describe('Bind9AppTabComponent', () => {
                 DialogModule,
                 NoopAnimationsModule,
                 PanelModule,
-                OverlayPanelModule,
+                PopoverModule,
                 DataViewModule,
                 TableModule,
                 ManagedAccessDirective,

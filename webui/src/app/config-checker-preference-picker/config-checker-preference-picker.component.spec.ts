@@ -3,12 +3,11 @@ import { By } from '@angular/platform-browser'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ButtonModule } from 'primeng/button'
 import { ChipModule } from 'primeng/chip'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { TableModule } from 'primeng/table'
 import { ConfigChecker } from '../backend'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { ConfigCheckerPreferencePickerComponent } from './config-checker-preference-picker.component'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { FormsModule } from '@angular/forms'
 import { TagModule } from 'primeng/tag'
 import { ManagedAccessDirective } from '../managed-access.directive'
@@ -16,6 +15,7 @@ import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { MessageService } from 'primeng/api'
 import { AuthService } from '../auth.service'
+import { CheckboxModule } from 'primeng/checkbox'
 
 describe('ConfigCheckerPreferencePickerComponent', () => {
     let component: ConfigCheckerPreferencePickerComponent
@@ -27,11 +27,11 @@ describe('ConfigCheckerPreferencePickerComponent', () => {
             imports: [
                 TableModule,
                 ChipModule,
-                OverlayPanelModule,
+                PopoverModule,
                 NoopAnimationsModule,
                 ButtonModule,
                 FormsModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 TagModule,
                 ManagedAccessDirective,
             ],

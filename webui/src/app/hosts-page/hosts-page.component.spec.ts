@@ -22,7 +22,7 @@ import { TabMenu, TabMenuModule } from 'primeng/tabmenu'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { HostTabComponent } from '../host-tab/host-tab.component'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { TooltipModule } from 'primeng/tooltip'
 import { FieldsetModule } from 'primeng/fieldset'
@@ -31,7 +31,7 @@ import { ToggleButtonModule } from 'primeng/togglebutton'
 import { IdentifierComponent } from '../identifier/identifier.component'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { ConfirmDialogModule } from 'primeng/confirmdialog'
 import { HostFormComponent } from '../host-form/host-form.component'
@@ -41,7 +41,7 @@ import { DhcpOptionSetViewComponent } from '../dhcp-option-set-view/dhcp-option-
 import { TreeModule } from 'primeng/tree'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
 import { DhcpClientClassSetViewComponent } from '../dhcp-client-class-set-view/dhcp-client-class-set-view.component'
-import { ChipsModule } from 'primeng/chips'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { DividerModule } from 'primeng/divider'
 import { HostDataSourceLabelComponent } from '../host-data-source-label/host-data-source-label.component'
 import { TagModule } from 'primeng/tag'
@@ -85,7 +85,7 @@ describe('HostsPageComponent', () => {
             ],
             imports: [
                 ButtonModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
                 FormsModule,
                 TableModule,
@@ -102,14 +102,14 @@ describe('HostsPageComponent', () => {
                 ]),
                 TabMenuModule,
                 BreadcrumbModule,
-                OverlayPanelModule,
+                PopoverModule,
                 NoopAnimationsModule,
                 TooltipModule,
                 FieldsetModule,
                 ProgressSpinnerModule,
                 ToggleButtonModule,
                 CheckboxModule,
-                DropdownModule,
+                SelectModule,
                 MultiSelectModule,
                 ReactiveFormsModule,
                 ConfirmDialogModule,

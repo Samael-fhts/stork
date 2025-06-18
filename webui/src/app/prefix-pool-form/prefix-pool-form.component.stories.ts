@@ -10,9 +10,9 @@ import { MessageService } from 'primeng/api'
 import { CheckboxModule } from 'primeng/checkbox'
 import { TagModule } from 'primeng/tag'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
-import { ChipsModule } from 'primeng/chips'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { ButtonModule } from 'primeng/button'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { importProvidersFrom } from '@angular/core'
 import { FieldsetModule } from 'primeng/fieldset'
@@ -20,7 +20,7 @@ import { MultiSelectModule } from 'primeng/multiselect'
 import { KeaPoolParametersForm, PrefixForm, PrefixPoolForm } from '../forms/subnet-set-form.service'
 import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-set-form.component'
 import { DhcpOptionFormComponent } from '../dhcp-option-form/dhcp-option-form.component'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { InputNumberModule } from 'primeng/inputnumber'
@@ -45,14 +45,14 @@ export default {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
-                DropdownModule,
+                SelectModule,
                 FieldsetModule,
                 FormsModule,
                 InputNumberModule,
                 MultiSelectModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ReactiveFormsModule,
                 SplitButtonModule,
                 TableModule,

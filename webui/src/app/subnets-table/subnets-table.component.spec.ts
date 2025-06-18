@@ -2,7 +2,7 @@ import { ComponentFixture, fakeAsync, flush, TestBed, tick } from '@angular/core
 
 import { SubnetsTableComponent } from './subnets-table.component'
 import { ButtonModule } from 'primeng/button'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { InputNumber, InputNumberModule } from 'primeng/inputnumber'
 import { FormsModule } from '@angular/forms'
 import { PanelModule } from 'primeng/panel'
@@ -15,7 +15,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { RouterModule } from '@angular/router'
 import { SubnetsPageComponent } from '../subnets-page/subnets-page.component'
 import { TagModule } from 'primeng/tag'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { DHCPService, Subnets } from '../backend'
 import { By } from '@angular/platform-browser'
 import { of } from 'rxjs'
@@ -50,13 +50,13 @@ describe('SubnetsTableComponent', () => {
             imports: [
                 TableModule,
                 ButtonModule,
-                OverlayPanelModule,
+                PopoverModule,
                 InputNumberModule,
                 FormsModule,
                 PanelModule,
                 BrowserAnimationsModule,
                 TagModule,
-                DropdownModule,
+                SelectModule,
                 RouterModule.forRoot([
                     {
                         path: 'dhcp/subnets',

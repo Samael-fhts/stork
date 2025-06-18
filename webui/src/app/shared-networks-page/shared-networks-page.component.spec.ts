@@ -3,7 +3,7 @@ import { ComponentFixture, TestBed, fakeAsync, tick, waitForAsync } from '@angul
 
 import { SharedNetworksPageComponent } from './shared-networks-page.component'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { TableModule } from 'primeng/table'
 import { TooltipModule } from 'primeng/tooltip'
 import { SubnetBarComponent } from '../subnet-bar/subnet-bar.component'
@@ -21,7 +21,7 @@ import { BehaviorSubject, of } from 'rxjs'
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { HumanCountComponent } from '../human-count/human-count.component'
 import { HumanCountPipe } from '../pipes/human-count.pipe'
@@ -50,7 +50,7 @@ import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-
 import { DhcpOptionFormComponent } from '../dhcp-option-form/dhcp-option-form.component'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
-import { ChipsModule } from 'primeng/chips'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
 import { ConfirmDialogModule } from 'primeng/confirmdialog'
 import { SharedNetworksTableComponent } from '../shared-networks-table/shared-networks-table.component'
@@ -104,16 +104,16 @@ describe('SharedNetworksPageComponent', () => {
                 ButtonModule,
                 ChartModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 ConfirmDialogModule,
                 DividerModule,
-                DropdownModule,
+                SelectModule,
                 FieldsetModule,
                 FormsModule,
                 InputNumberModule,
                 MultiSelectModule,
                 NoopAnimationsModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ProgressSpinnerModule,
                 ReactiveFormsModule,
                 RouterModule.forRoot([
