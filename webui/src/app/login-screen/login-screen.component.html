@@ -61,35 +61,36 @@
                         </p>
                     </div>
                     <div class="login-screen__authentication-inputs">
-                        <div
-                            *ngIf="loginForm.get('authenticationMethod')?.value.formLabelIdentifier"
-                            class="p-float-label"
-                        >
-                            <input
-                                type="text"
-                                name="identifier"
-                                id="identifier"
-                                formControlName="identifier"
-                                pInputText
-                                autofocus
-                            />
-                            <label htmlFor="identifier">{{
-                                loginForm.get('authenticationMethod')?.value.formLabelIdentifier
-                            }}</label>
+                        <div *ngIf="loginForm.get('authenticationMethod')?.value.formLabelIdentifier">
+                            <p-floatlabel>
+                                <input
+                                    type="text"
+                                    name="identifier"
+                                    id="identifier"
+                                    formControlName="identifier"
+                                    pInputText
+                                    autofocus
+                                />
+                                <label for="identifier">{{
+                                    loginForm.get('authenticationMethod')?.value.formLabelIdentifier
+                                }}</label>
+                            </p-floatlabel>
                         </div>
-                        <div *ngIf="loginForm.get('authenticationMethod')?.value.formLabelSecret" class="p-float-label">
-                            <p-password
-                                name="secret"
-                                id="secret"
-                                formControlName="secret"
-                                styleClass="password-component"
-                                (keyup)="keyUp($event)"
-                                [feedback]="false"
-                                [toggleMask]="true"
-                            />
-                            <label for="secret">{{
-                                loginForm.get('authenticationMethod')?.value.formLabelSecret
-                            }}</label>
+                        <div *ngIf="loginForm.get('authenticationMethod')?.value.formLabelSecret">
+                            <p-floatlabel>
+                                <p-password
+                                    name="secret"
+                                    inputId="secret"
+                                    formControlName="secret"
+                                    styleClass="password-component"
+                                    (keyup)="keyUp($event)"
+                                    [feedback]="false"
+                                    [toggleMask]="true"
+                                />
+                                <label for="secret">{{
+                                    loginForm.get('authenticationMethod')?.value.formLabelSecret
+                                }}</label>
+                            </p-floatlabel>
                         </div>
                         <div>
                             <button

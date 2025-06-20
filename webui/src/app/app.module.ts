@@ -159,6 +159,7 @@ import { providePrimeNG } from 'primeng/config'
 import Aura from '@primeng/themes/aura'
 import { AutoCompleteModule } from 'primeng/autocomplete'
 import { InputNumberModule } from 'primeng/inputnumber'
+import { FloatLabel } from 'primeng/floatlabel'
 
 /** Create the OpenAPI client configuration. */
 export function cfgFactory() {
@@ -319,6 +320,7 @@ export function cfgFactory() {
         ManagedAccessDirective,
         AutoCompleteModule,
         InputNumberModule,
+        FloatLabel,
     ],
     providers: [
         {
