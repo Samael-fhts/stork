@@ -6,7 +6,7 @@
 h3
   padding: 3px 6px 3px 6px
   margin-top: 2px
-  border-bottom: 2px solid var(--surface-border)
+  border-bottom: 2px solid var(--p-surface-border)
 
 // Overwrite default browser underlined anchors.
 // Do not style PrimeNG internal anchors for components like:
@@ -17,7 +17,7 @@ h3
 // Apply the underline only for :hover.
 a:not(.p-button):not(.p-tabview-nav-link):not(.p-menuitem-link):not(.p-accordion-header-link)
   text-decoration: none
-  color: var(--primary-color)
+  color: var(--p-primary-color)
 
   &:hover
     text-decoration: underline
@@ -55,7 +55,7 @@ p-header
 // format right content in paginator
 .p-paginator .p-paginator-right-content
   margin-left: 20px
-  color: var(--text-color-secondary)
+  color: var(--p-text-color-secondary)
 
 .p-tooltip .p-tooltip-text
   // Don't preserve the new lines in tooltip text. The line still can be broken by using <br> tag.
@@ -132,13 +132,13 @@ body
 
 // Custom styling for PrimeNG p-multiselect and p-chips components in dark mode.
 // By default, PrimeNG applies darker background color to those components.
-// There are some components in stork, where this background is customized and set to lighter var(--primary-100) color.
+// There are some components in stork, where this background is customized and set to lighter var(--p-primary-100) color.
 // This is fine for light mode, however it must be tweaked for dark mode.
 // To apply dark mode tweak, those components must have .adaptive-chips-background class applied.
 body.dark .adaptive-chips-background
   &.p-multiselect.p-multiselect-chip .p-multiselect-token, &.p-chips .p-chips-multiple-container .p-chips-token
     // Make chips background darker in dark mode.
-    background: var(--primary-400)
+    background: var(--p-primary-400)
 
 // Root variables.
 :root

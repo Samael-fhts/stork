@@ -296,12 +296,12 @@ export function daemonStatusIconName(daemon: KeaDaemon) {
  */
 export function daemonStatusIconColor(daemon: KeaDaemon) {
     if (!daemon.monitored) {
-        return 'var(--gray-400)'
+        return 'var(--p-gray-400)'
     }
     if (!daemon.active) {
-        return 'var(--red-500)'
+        return 'var(--p-red-500)'
     }
-    return 'var(--green-500)'
+    return 'var(--p-green-500)'
 }
 
 /**
