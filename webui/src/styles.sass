@@ -6,7 +6,7 @@
 h3
   padding: 3px 6px 3px 6px
   margin-top: 2px
-  border-bottom: 2px solid var(--p-surface-border)
+  border-bottom: 2px solid var(--p-content-border-color)
 
 // Overwrite default browser underlined anchors.
 // Do not style PrimeNG internal anchors for components like:
@@ -55,7 +55,7 @@ p-header
 // format right content in paginator
 .p-paginator .p-paginator-right-content
   margin-left: 20px
-  color: var(--p-text-color-secondary)
+  color: var(--p-text-muted-color)
 
 .p-tooltip .p-tooltip-text
   // Don't preserve the new lines in tooltip text. The line still can be broken by using <br> tag.
@@ -135,12 +135,18 @@ body
 // There are some components in stork, where this background is customized and set to lighter var(--p-primary-100) color.
 // This is fine for light mode, however it must be tweaked for dark mode.
 // To apply dark mode tweak, those components must have .adaptive-chips-background class applied.
-body.dark .adaptive-chips-background
-  &.p-multiselect.p-multiselect-chip .p-multiselect-token, &.p-chips .p-chips-multiple-container .p-chips-token
-    // Make chips background darker in dark mode.
-    background: var(--p-primary-400)
+body.dark, html.dark
+  .adaptive-chips-background
+    &.p-multiselect.p-multiselect-chip .p-multiselect-token, &.p-chips .p-chips-multiple-container .p-chips-token
+      // Make chips background darker in dark mode.
+      background: var(--p-primary-400)
 
 // Root variables.
 :root
   // Max width of form. Apply max-width to prevent the form from becoming too wide.
   --max-form-width: 35rem
+  --surface-ground: var(--p-surface-50)
+
+html.dark
+  --surface-ground: var(--p-surface-950)
+
