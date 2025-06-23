@@ -160,6 +160,7 @@ import Aura from '@primeng/themes/aura'
 import { AutoCompleteModule } from 'primeng/autocomplete'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { FloatLabel } from 'primeng/floatlabel'
+import { definePreset } from '@primeng/themes'
 
 /** Create the OpenAPI client configuration. */
 export function cfgFactory() {
@@ -169,6 +170,24 @@ export function cfgFactory() {
     }
     return new Configuration(params)
 }
+
+const AuraBluePreset = definePreset(Aura, {
+    semantic: {
+        primary: {
+            50: '{blue.50}',
+            100: '{blue.100}',
+            200: '{blue.200}',
+            300: '{blue.300}',
+            400: '{blue.400}',
+            500: '{blue.500}',
+            600: '{blue.600}',
+            700: '{blue.700}',
+            800: '{blue.800}',
+            900: '{blue.900}',
+            950: '{blue.950}',
+        },
+    },
+})
 
 @NgModule({
     declarations: [
@@ -341,7 +360,7 @@ export function cfgFactory() {
         provideHttpClient(withInterceptorsFromDi()),
         providePrimeNG({
             theme: {
-                preset: Aura,
+                preset: AuraBluePreset,
                 options: {
                     darkModeSelector: '.dark',
                 },
