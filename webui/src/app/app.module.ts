@@ -187,6 +187,23 @@ const AuraBluePreset = definePreset(Aura, {
             950: '{blue.950}',
         },
     },
+    components: {
+        // Apply primary background color for Chips instead of the default greyish surface color.
+        chip: {
+            colorScheme: {
+                light: {
+                    root: {
+                        background: '{primary.100}',
+                    },
+                },
+                dark: {
+                    root: {
+                        background: '{primary.400}',
+                    },
+                },
+            },
+        },
+    },
 })
 
 @NgModule({

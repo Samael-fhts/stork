@@ -130,17 +130,6 @@ body
   margin: 0
   font-family: 'Open Sans', 'Helvetica Neue', sans-serif
 
-// Custom styling for PrimeNG p-multiselect and p-chips components in dark mode.
-// By default, PrimeNG applies darker background color to those components.
-// There are some components in stork, where this background is customized and set to lighter var(--p-primary-100) color.
-// This is fine for light mode, however it must be tweaked for dark mode.
-// To apply dark mode tweak, those components must have .adaptive-chips-background class applied.
-body.dark, html.dark
-  .adaptive-chips-background
-    &.p-multiselect.p-multiselect-chip .p-multiselect-token, &.p-chips .p-chips-multiple-container .p-chips-token
-      // Make chips background darker in dark mode.
-      background: var(--p-primary-400)
-
 // Root variables.
 :root
   // Max width of form. Apply max-width to prevent the form from becoming too wide.
