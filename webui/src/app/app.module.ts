@@ -203,6 +203,21 @@ const AuraBluePreset = definePreset(Aura, {
                 },
             },
         },
+        // Make messages text lighter (500 by default).
+        message: {
+            colorScheme: {
+                light: {
+                    root: {
+                        textFontWeight: '400',
+                    },
+                },
+                dark: {
+                    root: {
+                        textFontWeight: '400',
+                    },
+                },
+            },
+        },
     },
 })
 
