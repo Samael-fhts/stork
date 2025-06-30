@@ -16,12 +16,12 @@
 
             <div class="login-screen__authentication">
                 <p-progressSpinner
-                    class="login-screen__authentication-loader"
+                    class="login-screen__authentication-loader text-red-50"
                     *ngIf="!authenticationMethods"
                 ></p-progressSpinner>
                 <form [formGroup]="loginForm" *ngIf="authenticationMethods">
                     <div class="login-screen__authentication-selector" *ngIf="authenticationMethods.length > 1">
-                        <div class="p-float-label w-full">
+                        <p-floatlabel class="w-full max-w-25rem" [dt]="whiteFloatLabel">
                             <p-select
                                 [options]="authenticationMethods"
                                 formControlName="authenticationMethod"
@@ -54,15 +54,15 @@
                                     </div>
                                 </ng-template>
                             </p-select>
-                            <label for="authenticationMethod" class="text-white">Choose a Method</label>
-                        </div>
+                            <label for="authenticationMethod">Choose a Method</label>
+                        </p-floatlabel>
                         <p>
                             {{ loginForm.get('authenticationMethod')?.value.description }}
                         </p>
                     </div>
                     <div class="login-screen__authentication-inputs">
                         <div *ngIf="loginForm.get('authenticationMethod')?.value.formLabelIdentifier">
-                            <p-floatlabel>
+                            <p-floatlabel [dt]="whiteFloatLabel">
                                 <input
                                     type="text"
                                     name="identifier"
@@ -77,7 +77,7 @@
                             </p-floatlabel>
                         </div>
                         <div *ngIf="loginForm.get('authenticationMethod')?.value.formLabelSecret">
-                            <p-floatlabel>
+                            <p-floatlabel [dt]="whiteFloatLabel">
                                 <p-password
                                     name="secret"
                                     inputId="secret"
@@ -86,6 +86,7 @@
                                     (keyup)="keyUp($event)"
                                     [feedback]="false"
                                     [toggleMask]="true"
+                                    fluid
                                 />
                                 <label for="secret">{{
                                     loginForm.get('authenticationMethod')?.value.formLabelSecret
@@ -112,11 +113,9 @@
             assets/static-page-content/login-screen-welcome.html
         -->
         <div *ngIf="welcomeMessage" class="login-screen__welcome">
-            <p-messages severity="warn">
-                <ng-template pTemplate>
-                    <div [innerHTML]="welcomeMessage"></div>
-                </ng-template>
-            </p-messages>
+            <p-message severity="warn">
+                <div [innerHTML]="welcomeMessage"></div>
+            </p-message>
         </div>
 
         <div class="login-screen__footer">Copyright 2019-2025 by ISC. All Rights Reserved.</div>

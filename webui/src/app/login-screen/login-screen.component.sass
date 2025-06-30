@@ -99,14 +99,11 @@ $layout-breakpoint: 640px
     width: 60%
 
 .login-screen__authentication-selector
-    .p-float-label
-        // Limit the maximum width of the dropdown to fit inputs that are below.
-        max-width: 400px
     p
         // Justify the authentication description.
         text-align: justify
 
-:host ::ng-deep .login-screen__authentication-inputs
+.login-screen__authentication-inputs
     // Limit the maximum width of the input area to be convenient for typing.
     max-width: 400px
     // Center the input area.
@@ -126,9 +123,6 @@ $layout-breakpoint: 640px
     & > div:last-child
         // Spacing between button and above input.
         margin-top: 18px
-    ::ng-deep .p-float-label input:focus ~ label, .p-float-label input.p-filled ~ label, .p-float-label .p-inputwrapper-focus ~ label, .p-float-label .p-inputwrapper-filled ~ label
-        // The default color is gray. Use white to better contrast with a blue background.
-        color: var(--gray-0)
 
 .login-screen__authentication-loader
     // Center the loader spinner horizontally.
