@@ -46,7 +46,7 @@ export class ThemeService {
         // Store dark/light mode also as a class in <html> element.
         // This is needed for custom styling of some components that may differ for light and dark mode.
         const htmlElement = this.document.querySelector('html')
-        htmlElement.classList.remove('dark')
+        htmlElement.classList.remove('dark', 'light')
         htmlElement.classList.add(darkLight)
 
         // Notify subscribers about dark/light mode switch.
