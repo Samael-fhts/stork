@@ -9,22 +9,19 @@ h3
   border-bottom: 2px solid var(--p-content-border-color)
 
 // Overwrite default browser underlined anchors.
-// Do not style PrimeNG internal anchors for components like:
-// - buttons
-// - tab view navigation
-// - menu navigation
-// - accordion header.
-// Apply the underline only for :hover.
-a:not(.p-button):not(.p-tabview-nav-link):not(.p-menuitem-link):not(.p-accordion-header-link)
-  text-decoration: none
-  color: var(--p-primary-color)
-
-  &:hover
-    text-decoration: underline
-
-  // Utility class to disable underline on demand
-  &.no-underline:hover
+// Use lower priority CSS layer to not mess with PrimeNG internal anchors style.
+@layer lower-priority-css
+  a
     text-decoration: none
+    color: var(--p-primary-color)
+
+    // Apply the underline only for :hover.
+    &:hover
+      text-decoration: underline
+
+// Utility class to disable underline on demand
+a.no-underline:hover
+  text-decoration: none
 
 // header should occupy 100% width of parent div so elements inside a header could be right aligned
 p-header
@@ -134,7 +131,13 @@ body
 :root
   // Max width of form. Apply max-width to prevent the form from becoming too wide.
   --max-form-width: 35rem
+  // This variable was present in PrimeFlex v3 but is missing in PrimeFlex v4. So define the variable again.
   --surface-ground: var(--p-surface-50)
+  // Background color for the top navbar used in light mode.
+  --p-top-navbar-bg-light: var(--p-indigo-600)
+  // Background color for the top navbar used in dark mode.
+  --p-top-navbar-bg-dark: var(--p-indigo-500)
+
   // This is probably not needed with PrimeFlex >= 4.0.0
   //--red-500: var(--p-red-500)
   //--red-700: var(--p-red-700)
@@ -148,6 +151,7 @@ body
   //--primary-200: var(--p-primary-200)
   //--primary-600: var(--p-primary-600)
 
-html.dark
+:root.dark
+  // This variable was present in PrimeFlex v3 but is missing in PrimeFlex v4. So define the variable again for the dark mode.
   --surface-ground: var(--p-surface-950)
 
