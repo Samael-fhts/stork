@@ -395,6 +395,10 @@ const AuraBluePreset = definePreset(Aura, {
                 preset: AuraBluePreset,
                 options: {
                     darkModeSelector: '.dark',
+                    cssLayer: {
+                        name: 'primeng',
+                        order: 'lower-priority-css, primeng, higher-priority-css',
+                    }
                 },
             },
         }),
