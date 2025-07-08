@@ -7,6 +7,7 @@
         </p>
     </div>
 </app-breadcrumbs>
+<app-stork-tab-view></app-stork-tab-view>
 <div *ngIf="!loading; else loadingBlock">
     <app-communication-status-tree *ngIf="!loading" [apps]="apps"></app-communication-status-tree>
     <p-button *ngIf="!loading" label="Reload" styleClass="p-button-primary mt-3" (onClick)="onReload()"></p-button>

@@ -53,19 +53,19 @@ export class AppComponent implements OnInit, OnDestroy {
 
     darkModeToggleButton = {
         root: {
-            padding: '0.5rem'
-        }
+            padding: '0.5rem',
+        },
     }
 
     whiteSpinner = {
         root: {
-            color:{
+            color: {
                 1: '{surface.0}',
                 2: '{surface.0}',
                 3: '{surface.0}',
                 4: '{surface.0}',
-            }
-        }
+            },
+        },
     }
 
     storkMenubar = {
@@ -84,8 +84,8 @@ export class AppComponent implements OnInit, OnDestroy {
                 root: {
                     background: '{top.navbar.bg.dark}',
                     borderColor: '{top.navbar.bg.dark}',
-                }
-            }
+                },
+            },
         },
     }
 

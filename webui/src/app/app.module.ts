@@ -161,6 +161,7 @@ import { AutoCompleteModule } from 'primeng/autocomplete'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { FloatLabel } from 'primeng/floatlabel'
 import { definePreset } from '@primeng/themes'
+import { StorkTabViewComponent } from './stork-tab-view/stork-tab-view.component'
 
 /** Create the OpenAPI client configuration. */
 export function cfgFactory() {
@@ -372,6 +373,7 @@ const AuraBluePreset = definePreset(Aura, {
         AutoCompleteModule,
         InputNumberModule,
         FloatLabel,
+        StorkTabViewComponent,
     ],
     providers: [
         {
@@ -398,7 +400,7 @@ const AuraBluePreset = definePreset(Aura, {
                     cssLayer: {
                         name: 'primeng',
                         order: 'lower-priority-css, primeng, higher-priority-css',
-                    }
+                    },
                 },
             },
         }),
