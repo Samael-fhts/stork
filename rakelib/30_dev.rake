@@ -344,26 +344,6 @@ namespace :unittest do
     end
 
     namespace :backend do
-        desc 'Run backend unit tests (debug mode)
-            SCOPE - Scope of the tests - required
-            HEADLESS - Run in headless mode - default: false
-            See "db:migrate" task for the database-related parameters'
-        task :debug => [DLV, "db:remove_remaining", "db:migrate", "gen:backend:mocks"] + go_codebase do
-            if ENV["SCOPE"].nil?
-                fail "Scope argument is required"
-            end
-
-            opts = []
-
-            if ENV["HEADLESS"] == "true"
-                opts = ["--headless", "-l", "0.0.0.0:45678"]
-            end
-
-            Dir.chdir('backend') do
-                sh DLV, *opts, "test", ENV["SCOPE"]
-            end
-        end
-
         desc 'Show backend coverage of unit tests in web browser
             See "db:migrate" task for the database-related parameters'
         task :cov => [GO, "unittest:backend"] do
@@ -470,49 +450,6 @@ namespace :run do
 
         Dir.chdir('tests/sim') do
             sh FLASK, "run", "--host", "0.0.0.0", "--port", "5005"
-        end
-    end
-
-    desc "Run Stork Server (debug mode, no doc and UI)
-        HEADLESS - run debugger in headless mode - default: false
-        UI_MODE - WebUI mode to use, must be build separately - choose: 'production', 'testing', 'none' or unspecify
-        DB_TRACE - trace SQL queries - default: false"
-    task :server_debug => [DLV, "db:setup_envvars", :pre_run_server] + GO_SERVER_CODEBASE do
-        opts = []
-        debug_opts = []
-        if ENV["HEADLESS"] == "true"
-            opts = ["--headless", "-l", "0.0.0.0:45678"]
-            debug_opts.append "--continue"
-        end
-
-        Dir.chdir("backend/cmd/stork-server") do
-            sh DLV, *opts, "debug",
-                "--accept-multiclient",
-                "--log",
-                "--api-version", "2",
-                *debug_opts
-        end
-    end
-
-    desc 'Run Stork Agent (debug mode)
-        PORT - agent port to use - default: 8888
-        HEADLESS - run debugger in headless mode - default: false'
-    task :agent_debug => [DLV] + GO_AGENT_CODEBASE do
-        opts = []
-        app_opts = []
-
-        if ENV["HEADLESS"] == "true"
-            opts = ["--headless", "-l", "0.0.0.0:45678"]
-        end
-
-        if ENV["PORT"].nil?
-            ENV["PORT"] = "8888"
-        end
-
-        app_opts.append "--port", ENV["PORT"]
-
-        Dir.chdir("backend/cmd/stork-agent") do
-            sh DLV, *opts, "debug", "--", *app_opts
         end
     end
 
