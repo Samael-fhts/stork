@@ -14,8 +14,7 @@ import {
     daemonStatusIconTooltip,
     getErrorMessage,
 } from '../utils'
-import { AppTab } from '../apps'
-import { Bind9DaemonView, DNSZoneType } from '../backend'
+import { App, Bind9DaemonView, DNSZoneType } from '../backend'
 
 @Component({
     selector: 'app-bind9-app-tab',
@@ -24,9 +23,9 @@ import { Bind9DaemonView, DNSZoneType } from '../backend'
 })
 export class Bind9AppTabComponent implements OnInit, OnDestroy {
     private subscriptions = new Subscription()
-    private _appTab: AppTab
+    private _appTab: App
     @Output() refreshApp = new EventEmitter<number>()
-    @Input() refreshedAppTab: Observable<AppTab>
+    @Input() refreshedAppTab: Observable<App>
 
     daemons: any[] = []
 
@@ -101,7 +100,7 @@ export class Bind9AppTabComponent implements OnInit, OnDestroy {
         this.subscriptions.add(
             this.refreshedAppTab.subscribe((data) => {
                 if (data) {
-                    this.initDaemon(data.app.details.daemon)
+                    this.initDaemon(data.details.daemon)
                 }
             })
         )
@@ -120,13 +119,13 @@ export class Bind9AppTabComponent implements OnInit, OnDestroy {
     set appTab(appTab) {
         this._appTab = appTab
         // Refresh local information about the daemon presented by this component.
-        this.initDaemon(appTab.app.details.daemon)
+        this.initDaemon(appTab.details.daemon)
     }
 
     /**
      * Returns information about currently selected app tab.
      */
-    get appTab(): AppTab {
+    get appTab(): App {
         return this._appTab
     }
 
@@ -159,7 +158,7 @@ export class Bind9AppTabComponent implements OnInit, OnDestroy {
      * An action triggered when refresh button is pressed.
      */
     refreshAppState() {
-        this.refreshApp.emit(this._appTab.app.id)
+        this.refreshApp.emit(this._appTab.id)
     }
 
     /**
@@ -250,7 +249,7 @@ export class Bind9AppTabComponent implements OnInit, OnDestroy {
      */
     handleRenameDialogSubmitted(event) {
         this.appRenameDialogVisible = false
-        this.servicesApi.renameApp(this.appTab.app.id, { name: event }).subscribe(
+        this.servicesApi.renameApp(this.appTab.id, { name: event }).subscribe(
             (/* data */) => {
                 // Renaming the app was successful.
                 this.msgService.add({
@@ -259,7 +258,7 @@ export class Bind9AppTabComponent implements OnInit, OnDestroy {
                     detail: 'App successfully renamed to ' + event,
                 })
                 // Let's update the app name in the current tab.
-                this.appTab.app.name = event
+                this.appTab.name = event
                 // Notify the parent component about successfully renaming the app.
                 this.renameApp.emit(event)
             },

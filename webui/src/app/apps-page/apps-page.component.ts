@@ -1,6 +1,6 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core'
 import { ActivatedRoute, Router } from '@angular/router'
-import { lastValueFrom, Subject, Subscription } from 'rxjs'
+import { lastValueFrom, Subject, Subscription, tap, throwError } from 'rxjs'
 
 import { MessageService, MenuItem, ConfirmationService } from 'primeng/api'
 
@@ -10,6 +10,7 @@ import { App } from '../backend'
 import { Table } from 'primeng/table'
 import { Menu } from 'primeng/menu'
 import { AppTab } from '../apps'
+import { finalize } from 'rxjs/operators'
 
 /**
  * Replaces the newlines in the versions with the HTML-compatible line breaks.
@@ -72,7 +73,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     openedApps: AppTab[]
     appTab: AppTab = null
 
-    refreshedAppTab = new Subject<AppTab>()
+    refreshedAppTab = new Subject<App>()
 
     constructor(
         private route: ActivatedRoute,
@@ -95,31 +96,20 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         }
     }
 
-    /** Switches to tab with a given index. */
-    switchToTab(index: number) {
-        if (this.activeTabIdx === index) {
-            return
-        }
-        this.activeTabIdx = index
-        this.activeItem = this.tabs[index]
+    appProvider = (appId: number) => {
+        return lastValueFrom(
+            this.servicesApi.getApp(appId).pipe(
+                tap((data) => {
+                    if (data.type !== this.appType) {
+                        throwError(() => new Error('Cannot find app with ID ' + appId))
+                    }
 
-        if (index > 0) {
-            this.appTab = this.openedApps[index - 1]
-        }
-    }
-
-    /** Append a new tab for the given application. */
-    addAppTab(app: App) {
-        this.openedApps.push({
-            app,
-        })
-        this.tabs = [
-            ...this.tabs,
-            {
-                label: `${app.name}`,
-                routerLink: '/apps/' + this.appType + '/' + app.id,
-            },
-        ]
+                    htmlizeExtVersion(data)
+                    setDaemonStatusErred(data)
+                }),
+                finalize(() => (this.dataLoading = false))
+            )
+        )
     }
 
     ngOnInit() {
@@ -131,8 +121,6 @@ export class AppsPageComponent implements OnInit, OnDestroy {
                 if (newAppType !== this.appType) {
                     this.appType = newAppType as 'kea' | 'bind9'
                     this.breadcrumbs = [{ label: 'Services' }, { label: this.getAppsLabel() }]
-
-                    this.tabs = [{ label: 'All', routerLink: '/apps/' + this.appType + '/all' }]
 
                     this.apps = []
                     this.appMenuItems = [
@@ -146,75 +134,8 @@ export class AppsPageComponent implements OnInit, OnDestroy {
                     this.openedApps = []
 
                     if (this.appsTable) {
+                        console.log('appsPage onInit - appsTable exists - force lazy load data')
                         this.refreshAppsList(this.appsTable)
-                    }
-                }
-
-                const appIdStr = params.get('id')
-                if (appIdStr === 'all') {
-                    this.switchToTab(0)
-                } else {
-                    const appId = parseInt(appIdStr, 10)
-
-                    let found = false
-                    // if tab for this app is already opened then switch to it
-                    for (let idx = 0; idx < this.openedApps.length; idx++) {
-                        const s = this.openedApps[idx].app
-                        if (s.id === appId) {
-                            this.switchToTab(idx + 1)
-                            found = true
-                        }
-                    }
-
-                    // if tab is not opened then search for list of apps if the one is present there,
-                    // if so then open it in new tab and switch to it
-                    if (!found) {
-                        for (const s of this.apps) {
-                            if (s.id === appId) {
-                                this.addAppTab(s)
-                                this.switchToTab(this.tabs.length - 1)
-                                found = true
-                                break
-                            }
-                        }
-                    }
-
-                    // if app is not loaded in list fetch it individually
-                    if (!found) {
-                        this.dataLoading = true
-                        this.servicesApi
-                            .getApp(appId)
-                            .toPromise()
-                            .then((data) => {
-                                if (data.type !== this.appType) {
-                                    this.msgSrv.add({
-                                        severity: 'error',
-                                        summary: 'Cannot find app',
-                                        detail: 'Cannot find app with ID ' + appId,
-                                        life: 10000,
-                                    })
-                                    this.router.navigate(['/apps/' + this.appType + '/all'])
-                                    return
-                                }
-
-                                htmlizeExtVersion(data)
-                                setDaemonStatusErred(data)
-                                this.addAppTab(data)
-                                this.switchToTab(this.tabs.length - 1)
-                            })
-                            .catch((err) => {
-                                let msg = getErrorMessage(err)
-                                this.msgSrv.add({
-                                    severity: 'error',
-                                    summary: 'Cannot get app',
-                                    detail: 'Getting app with ID ' + appId + ' failed: ' + msg,
-                                    life: 10000,
-                                })
-                                this.router.navigate(['/apps/' + this.appType + '/all'])
-                            })
-                            .finally(() => {
-                                this.dataLoading = false
-                            })
                     }
                 }
             })
@@ -225,7 +146,9 @@ export class AppsPageComponent implements OnInit, OnDestroy {
      * Function called by the table data loader. Accepts the pagination event.
      */
     loadApps(event) {
+        console.log('load apps', event)
         if (!this.appType) {
+            console.log('load apps - no appType, returning')
             // appType has not been set yet so do not load anything
             return
         }
@@ -267,25 +190,6 @@ export class AppsPageComponent implements OnInit, OnDestroy {
         }
     }
 
-    /** Closes tab with a given index. */
-    closeTab(event: PointerEvent, idx: number) {
-        this.openedApps.splice(idx - 1, 1)
-        this.tabs = [...this.tabs.slice(0, idx), ...this.tabs.slice(idx + 1)]
-        if (this.activeTabIdx === idx) {
-            this.switchToTab(idx - 1)
-            if (idx - 1 > 0) {
-                this.router.navigate(['/apps/' + this.appType + '/' + this.appTab.app.id])
-            } else {
-                this.router.navigate(['/apps/' + this.appType + '/all'])
-            }
-        } else if (this.activeTabIdx > idx) {
-            this.activeTabIdx = this.activeTabIdx - 1
-        }
-        if (event) {
-            event.preventDefault()
-        }
-    }
-
     /** Fetches an application state from the API. */
     _refreshAppState(app: App) {
         this.servicesApi.getApp(app.id).subscribe(
@@ -311,7 +215,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
                     if (s.app.id === data.id) {
                         Object.assign(s.app, data)
                         // Notify the child component about the update.
-                        this.refreshedAppTab.next(this.appTab)
+                        this.refreshedAppTab.next(this.appTab.app)
                         break
                     }
                 }

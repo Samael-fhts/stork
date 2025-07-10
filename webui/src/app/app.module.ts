@@ -218,6 +218,10 @@ const AuraBluePreset = definePreset(Aura, {
                     },
                 },
             },
+            closeButton: {
+                width: '1rem',
+                height: '1rem',
+            },
         },
     },
 })

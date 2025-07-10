@@ -31,13 +31,16 @@
         @if (entityTabTemplate) {
             @for (tab of openTabs; track tab.value) {
                 <p-tabpanel [value]="tab.value">
-                    <ng-container *ngTemplateOutlet="entityTabTemplate; context: {
-              $implicit: tab.entity
-                    }"></ng-container>
+                    <ng-container
+                        *ngTemplateOutlet="
+                            entityTabTemplate;
+                            context: {
+                                $implicit: tab.entity,
+                            }
+                        "
+                    ></ng-container>
                 </p-tabpanel>
             }
         }
-
-
     </p-tabpanels>
 </p-tabs>

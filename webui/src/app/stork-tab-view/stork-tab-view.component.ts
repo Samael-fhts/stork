@@ -2,9 +2,11 @@ import {
     booleanAttribute,
     Component,
     computed,
-    ContentChild, Input, OnDestroy,
+    ContentChild,
+    Input,
+    OnDestroy,
     OnInit,
-    TemplateRef
+    TemplateRef,
 } from '@angular/core'
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs'
 import { ActivatedRoute, Router, RouterLink } from '@angular/router'
@@ -19,7 +21,7 @@ export type StorkTab = {
     value: number
     route?: string | undefined
     icon?: string
-    entity: {[key: string]: any}
+    entity: { [key: string]: any }
 }
 
 /**
@@ -46,7 +48,6 @@ function sanitizePath(value: string | undefined): string | undefined {
     styleUrl: './stork-tab-view.component.sass',
 })
 export class StorkTabViewComponent<TEntity> implements OnInit, OnDestroy {
-
     openTabs: StorkTab[] = []
 
     activeTabEntityID: number = 0
@@ -128,17 +129,19 @@ export class StorkTabViewComponent<TEntity> implements OnInit, OnDestroy {
 
         // At this step the entity must be retrieved asynchronously.
         if (!entityToOpen && this.entityProvider) {
-            this.entityProvider(entityID).then((entity) => {
-                this.openTabs = [...this.openTabs, this.createTab(entity)]
-                this.activeTabEntityID = entityID
-            }).catch(error => {
-                this.messageService.add({
-                    detail: `Error trying to open tab with id ${entityID} - ${error}`,
-                    severity: 'error',
-                    summary: `Error opening tab`,
+            this.entityProvider(entityID)
+                .then((entity) => {
+                    this.openTabs = [...this.openTabs, this.createTab(entity)]
+                    this.activeTabEntityID = entityID
                 })
-            })
-            return;
+                .catch((error) => {
+                    this.messageService.add({
+                        detail: `Error trying to open tab with id ${entityID} - ${error}`,
+                        severity: 'error',
+                        summary: `Error opening tab`,
+                    })
+                })
+            return
             // console.log('result in parent from child callable', res)
         }
 
@@ -168,7 +171,9 @@ export class StorkTabViewComponent<TEntity> implements OnInit, OnDestroy {
 
         const activeTabIndex = this.openTabs.findIndex((tab) => tab.value === this.activeTabEntityID)
         const tabToCloseIndex = this.openTabs.findIndex((tab) => tab.value === entityID)
-        console.log(`tabToCloseIndex: ${tabToCloseIndex} activeTabIndex: ${activeTabIndex} activeTabEntityID: ${this.activeTabEntityID}`)
+        console.log(
+            `tabToCloseIndex: ${tabToCloseIndex} activeTabIndex: ${activeTabIndex} activeTabEntityID: ${this.activeTabEntityID}`
+        )
         if (tabToCloseIndex > -1) {
             this.openTabs.splice(tabToCloseIndex, 1)
             if (tabToCloseIndex <= activeTabIndex) {

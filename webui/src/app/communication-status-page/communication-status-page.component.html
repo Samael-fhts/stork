@@ -7,7 +7,26 @@
         </p>
     </div>
 </app-breadcrumbs>
-<app-stork-tab-view></app-stork-tab-view>
+<app-stork-tab-view
+    [entitiesCollection]="tabOptions"
+    [entityProvider]="childCallable"
+    [initWithEntitiesInCollection]="true"
+    routePath="/communication"
+>
+    <ng-template #firstTab>
+        <p class="m-0">Tab All Content - table</p>
+        <p><a routerLink="/communication/all">Go</a> to tab with table</p>
+        <p><a routerLink="/communication/1">Go</a> to tab 1</p>
+        <p><a routerLink="/communication/2">Go</a> to tab 2</p>
+        <p><a routerLink="/communication/3">Go</a> to tab 3</p>
+        <p><a routerLink="/communication/4">Go</a> to tab 4</p>
+    </ng-template>
+    <ng-template #entityTab let-ent>
+        <p>This is {{ ent?.name }}</p>
+        <p>The content is:</p>
+        <p>{{ ent?.content }}</p>
+    </ng-template>
+</app-stork-tab-view>
 <div *ngIf="!loading; else loadingBlock">
     <app-communication-status-tree *ngIf="!loading" [apps]="apps"></app-communication-status-tree>
     <p-button *ngIf="!loading" label="Reload" styleClass="p-button-primary mt-3" (onClick)="onReload()"></p-button>

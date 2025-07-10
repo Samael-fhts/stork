@@ -1,8 +1,8 @@
 <div class="grid m-0">
     <div appAccessEntity="app" appAccessType="update" [appHideIfNoAccess]="true">
         <app-rename-app-dialog
-            [appId]="appTab.app.id"
-            [appName]="appTab.app.name"
+            [appId]="appTab.id"
+            [appName]="appTab.name"
             [existingApps]="existingApps"
             [existingMachines]="existingMachines"
             [(visible)]="appRenameDialogVisible"
@@ -16,7 +16,7 @@
             <p-header>
                 <div class="flex justify-content-between flex-wrap gap-2">
                     <div class="text-2xl font-bold text-primary-600">
-                        <i class="fa fa-server pr-2"></i> {{ appTab.app.name }}
+                        <i class="fa fa-server pr-2"></i> {{ appTab.name }}
                         <p-button
                             *ngIf="!showRenameDialogClicked"
                             icon="pi pi-pencil"
@@ -46,7 +46,7 @@
                     ></button>
                 </div>
             </p-header>
-            <app-app-overview [app]="appTab.app"></app-app-overview>
+            <app-app-overview [app]="appTab"></app-app-overview>
         </p-panel>
     </div>
     <div class="p-0 col-12">
@@ -76,7 +76,7 @@
                         <button
                             *ngIf="isDhcpDaemon(daemon)"
                             routerLink="/dhcp/hosts"
-                            [queryParams]="{ appId: appTab.app.id }"
+                            [queryParams]="{ appId: appTab.id }"
                             label="Host Reservations"
                             icon="fa fa-laptop"
                             class="p-button-secondary mr-2 my-2"
@@ -87,7 +87,7 @@
                         <button
                             *ngIf="isDhcpDaemon(daemon)"
                             routerLink="/dhcp/subnets"
-                            [queryParams]="{ appId: appTab.app.id, dhcpVersion: daemon.name === 'dhcp4' ? 4 : 6 }"
+                            [queryParams]="{ appId: appTab.id, dhcpVersion: daemon.name === 'dhcp4' ? 4 : 6 }"
                             label="Subnets"
                             icon="fa fa-project-diagram"
                             type="button"
@@ -98,7 +98,7 @@
                         <button
                             *ngIf="isDhcpDaemon(daemon)"
                             routerLink="/dhcp/shared-networks"
-                            [queryParams]="{ appId: appTab.app.id, dhcpVersion: daemon.name === 'dhcp4' ? 4 : 6 }"
+                            [queryParams]="{ appId: appTab.id, dhcpVersion: daemon.name === 'dhcp4' ? 4 : 6 }"
                             label="Shared Networks"
                             icon="fa fa-network-wired"
                             class="p-button-secondary mr-2 my-2"
@@ -108,7 +108,7 @@
                         ></button>
                         <button
                             *ngIf="isDhcpDaemon(daemon)"
-                            routerLink="/apps/kea/{{ appTab.app.id }}/daemons/{{ daemon.id }}/global-config"
+                            routerLink="/apps/kea/{{ appTab.id }}/daemons/{{ daemon.id }}/global-config"
                             label="Global Configuration"
                             icon="fa-solid fa-globe"
                             class="p-button-secondary mr-2 my-2"
@@ -122,7 +122,7 @@
                             icon="fa fa-file-alt"
                             class="block p-button p-button-secondary mr-2 my-2 no-underline"
                             type="button"
-                            routerLink="/apps/kea/{{ appTab.app.id }}/daemons/{{ daemon.id }}/config"
+                            routerLink="/apps/kea/{{ appTab.id }}/daemons/{{ daemon.id }}/config"
                             pButton
                             appAccessEntity="daemon-config"
                         ></a>
@@ -372,7 +372,7 @@
 
                             <!-- High Availability -->
                             <div *ngIf="isDhcpDaemon(daemon)" class="mt-4" [ngClass]="{ disabled: !daemon.active }">
-                                <app-ha-status [appId]="appTab.app.id" [daemonName]="daemon.name"></app-ha-status>
+                                <app-ha-status [appId]="appTab.id" [daemonName]="daemon.name"></app-ha-status>
                             </div>
                         </div>
 
@@ -382,8 +382,8 @@
                             <app-events-panel
                                 #eventsTable
                                 [filter]="{
-                                    machine: appTab.app.machine.id,
-                                    appType: appTab.app.type,
+                                    machine: appTab.machine.id,
+                                    appType: appTab.type,
                                     daemonType: daemon.name,
                                 }"
                             ></app-events-panel>
