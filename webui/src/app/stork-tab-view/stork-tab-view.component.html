@@ -1,28 +1,43 @@
-<p-tabs [value]="activeTabEntityID">
+<p-tabs [(value)]="activeTabEntityID" (valueChange)="logChange($event)">
     <p-tablist>
-        <p-tab [value]="0" routerLink="/communication/all">Tab All</p-tab>
+        @if (firstTabTemplate) {
+            <p-tab [value]="0" [routerLink]="firstTabRoute()">{{ firstTabLabel() }}</p-tab>
+        }
         @for (tab of openTabs; track tab.value) {
-            <p-tab [value]="tab.value" [routerLink]="tab.route"
-                >{{ tab.title
-                }}<button type="button" class="p-message-close-button" (click)="closeTab(tab.value)">
-                    <TimesIcon styleClass="p-message-close-icon" /></button
-            ></p-tab>
+            <p-tab [value]="tab.value" [routerLink]="tab.route">
+                @if (tab.icon) {
+                    <span [ngClass]="tab.icon"></span>
+                }
+                {{ tab.title }}
+                @if (closableTabs()) {
+                    <button
+                        type="button"
+                        class="p-message-close-button p-tabs-tab-closebutton"
+                        (click)="closeTab(tab.value)"
+                    >
+                        <TimesIcon styleClass="p-message-close-icon" />
+                    </button>
+                }
+            </p-tab>
         }
     </p-tablist>
     <p-tabpanels>
-        <p-tabpanel [value]="0">
-            <p class="m-0">Tab All Content - table</p>
-            <p><a routerLink="/communication/all">Go</a> to tab with table</p>
-            <p><a routerLink="/communication/1">Go</a> to tab 1</p>
-            <p><a routerLink="/communication/2">Go</a> to tab 2</p>
-        </p-tabpanel>
-        @for (tab of openTabs; track tab.value) {
-            <p-tabpanel [value]="tab.value">
-                <p class="m-0">{{ tab.content }}</p>
-                <p><a routerLink="/communication/all">Go</a> to tab with table</p>
-                <p><a routerLink="/communication/1">Go</a> to tab 1</p>
-                <p><a routerLink="/communication/2">Go</a> to tab 2</p>
+        @if (firstTabTemplate) {
+            <p-tabpanel [value]="0">
+                <ng-container *ngTemplateOutlet="firstTabTemplate"></ng-container>
             </p-tabpanel>
         }
+
+        @if (entityTabTemplate) {
+            @for (tab of openTabs; track tab.value) {
+                <p-tabpanel [value]="tab.value">
+                    <ng-container *ngTemplateOutlet="entityTabTemplate; context: {
+              $implicit: tab.entity
+                    }"></ng-container>
+                </p-tabpanel>
+            }
+        }
+
+
     </p-tabpanels>
 </p-tabs>
