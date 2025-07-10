@@ -69,7 +69,7 @@
                                             >
                                             </p-multiSelect>
                                             <ng-template #noArrayCase>
-                                                <p-dropdown
+                                                <p-select
                                                     [autoDisplayFirst]="false"
                                                     [options]="controls.data.values"
                                                     [showClear]="true"
@@ -77,7 +77,7 @@
                                                     styleClass="w-full"
                                                     placeholder="(not specified)"
                                                 >
-                                                </p-dropdown>
+                                                </p-select>
                                             </ng-template>
                                         </ng-container>
                                         <ng-template #noValuesCase>
@@ -98,8 +98,12 @@
                                             {{ control.value || false }}
                                         </ng-container>
                                         <ng-container *ngIf="!controls.data.required">
-                                            <p-triStateCheckbox ngDefaultControl [formControlName]="index">
-                                            </p-triStateCheckbox>
+                                            <p-checkbox
+                                                ngDefaultControl
+                                                [formControlName]="index"
+                                                [indeterminate]="true"
+                                            >
+                                            </p-checkbox>
                                             {{ control.value === null ? 'unset' : control.value }}
                                         </ng-container>
                                     </ng-container>

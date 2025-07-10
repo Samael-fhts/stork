@@ -1,8 +1,11 @@
 import { Component, OnInit } from '@angular/core'
 import { App, ServicesService } from '../backend'
-import { lastValueFrom } from 'rxjs'
+import { lastValueFrom, of, throwError, timer } from 'rxjs'
 import { getErrorMessage } from '../utils'
 import { MessageService } from 'primeng/api'
+import { switchMap } from 'rxjs/operators'
+
+type TestT = { id: number; name: string; content: string }
 
 /**
  * A component displaying a page showing the communication issues with
@@ -34,6 +37,24 @@ export class CommunicationStatusPageComponent implements OnInit {
      * A boolean flag indicating if the data are being loaded.
      */
     loading = true
+
+    tabOptions: TestT[] = [
+        {
+            name: 'test 1',
+            id: 1,
+            content: 'test content 1',
+        },
+        {
+            name: 'test 2',
+            id: 2,
+            content: 'test content 2',
+        },
+    ]
+    testComm: TestT
+    childCallable = (n) => {
+        console.log('called callable from child with arg', n)
+        return this.onGetEntity(n)
+    }
 
     /**
      * Constructor.
@@ -91,5 +112,22 @@ export class CommunicationStatusPageComponent implements OnInit {
      */
     onReload(): void {
         this.reload()
+    }
+
+    onGetEntity(event: number) {
+        return lastValueFrom(
+            timer(300).pipe(
+                switchMap(() => {
+                    if (event > 4) {
+                        return throwError(() => new Error('there is no such entity'))
+                    }
+                    return of({
+                        id: event,
+                        name: `Test ent ${event}`,
+                        content: `Test content of entity no ${event}`,
+                    } as TestT)
+                })
+            )
+        )
     }
 }

@@ -5,9 +5,9 @@ import { StoryObj, Meta, moduleMetadata, applicationConfig } from '@storybook/an
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { ButtonModule } from 'primeng/button'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { TableModule } from 'primeng/table'
 
 export default {
@@ -21,10 +21,10 @@ export default {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 FormsModule,
                 NoopAnimationsModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ReactiveFormsModule,
                 TableModule,
             ],

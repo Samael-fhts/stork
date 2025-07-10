@@ -17,14 +17,14 @@ import { BehaviorSubject, of, throwError } from 'rxjs'
 import { AppsVersions, DHCPService, ServicesService, UsersService } from '../backend'
 import { ServerDataService } from '../server-data.service'
 import { RenameAppDialogComponent } from '../rename-app-dialog/rename-app-dialog.component'
-import { InputSwitchModule } from 'primeng/inputswitch'
+import { ToggleSwitchModule } from 'primeng/toggleswitch'
 import { FieldsetModule } from 'primeng/fieldset'
 import { EventsPanelComponent } from '../events-panel/events-panel.component'
 import { DialogModule } from 'primeng/dialog'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { PaginatorModule } from 'primeng/paginator'
 import { FormsModule } from '@angular/forms'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { ConfigReviewPanelComponent } from '../config-review-panel/config-review-panel.component'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { AppOverviewComponent } from '../app-overview/app-overview.component'
@@ -139,12 +139,12 @@ describe('KeaAppTabComponent', () => {
                 TooltipModule,
                 MessageModule,
                 FormsModule,
-                InputSwitchModule,
+                ToggleSwitchModule,
                 FieldsetModule,
                 DialogModule,
                 NoopAnimationsModule,
                 PaginatorModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ButtonModule,
                 FormsModule,
                 ToggleButtonModule,

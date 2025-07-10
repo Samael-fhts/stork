@@ -8,7 +8,7 @@ import { HttpClientModule } from '@angular/common/http'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { toastDecorator } from '../utils-stories'
 import { ToastModule } from 'primeng/toast'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { FieldsetModule } from 'primeng/fieldset'
 import { TableModule } from 'primeng/table'
 import { ButtonModule } from 'primeng/button'
@@ -16,12 +16,11 @@ import { KeaGlobalConfigurationFormComponent } from './kea-global-configuration-
 import { UpdateKeaDaemonsGlobalParametersBeginResponse } from '../backend'
 import { SharedParametersFormComponent } from '../shared-parameters-form/shared-parameters-form.component'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
-import { DropdownModule } from 'primeng/dropdown'
+import { AutoCompleteModule } from 'primeng/autocomplete'
+import { SelectModule } from 'primeng/select'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
+import { CheckboxModule } from 'primeng/checkbox'
 import { MessagesModule } from 'primeng/messages'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
@@ -221,20 +220,19 @@ export default {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
-                DropdownModule,
+                AutoCompleteModule,
+                SelectModule,
                 FieldsetModule,
                 FormsModule,
                 InputNumberModule,
                 MessagesModule,
                 MultiSelectModule,
                 NoopAnimationsModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ProgressSpinnerModule,
                 ReactiveFormsModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
                 ToastModule,
                 SplitButtonModule,
             ],

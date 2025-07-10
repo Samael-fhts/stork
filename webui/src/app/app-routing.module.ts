@@ -59,6 +59,11 @@ const routes: Routes = [
     },
     {
         path: 'communication',
+        pathMatch: 'full',
+        redirectTo: 'communication/all',
+    },
+    {
+        path: 'communication/:id',
         component: CommunicationStatusPageComponent,
         canActivate: [AuthGuard],
         data: { key: 'communication' },

@@ -7,13 +7,13 @@ import { PluralizePipe } from '../pipes/pluralize.pipe'
 import { TableModule } from 'primeng/table'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { ButtonModule } from 'primeng/button'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { InputNumber, InputNumberModule } from 'primeng/inputnumber'
 import { FormsModule } from '@angular/forms'
 import { PanelModule } from 'primeng/panel'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { TagModule } from 'primeng/tag'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { convertToParamMap, RouterModule } from '@angular/router'
 import { SharedNetworksPageComponent } from '../shared-networks-page/shared-networks-page.component'
 import { DHCPService, SharedNetwork } from '../backend'
@@ -51,13 +51,13 @@ describe('SharedNetworksTableComponent', () => {
             imports: [
                 TableModule,
                 ButtonModule,
-                OverlayPanelModule,
+                PopoverModule,
                 InputNumberModule,
                 FormsModule,
                 PanelModule,
                 BrowserAnimationsModule,
                 TagModule,
-                DropdownModule,
+                SelectModule,
                 RouterModule.forRoot([
                     {
                         path: 'dhcp/shared-networks',
@@ -461,11 +461,11 @@ describe('SharedNetworksTableComponent', () => {
         expect(getNetworksSpy).toHaveBeenCalledWith(0, 10, 5, null, 'cat')
 
         // Filter by DHCP version.
-        const dropdownContainer = fixture.debugElement.query(By.css('.p-column-filter .p-dropdown')).nativeElement
+        const dropdownContainer = fixture.debugElement.query(By.css('.p-column-filter .p-select')).nativeElement
         dropdownContainer.click()
         tick()
         fixture.detectChanges()
-        const items = fixture.debugElement.query(By.css('.p-dropdown-items'))
+        const items = fixture.debugElement.query(By.css('.p-select-items'))
         // Click second option.
         items.children[1].children[0].nativeElement.click()
 

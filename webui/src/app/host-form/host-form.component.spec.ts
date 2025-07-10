@@ -7,13 +7,13 @@ import { of, throwError } from 'rxjs'
 import { MessageService } from 'primeng/api'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { FieldsetModule } from 'primeng/fieldset'
 import { InputNumberModule } from 'primeng/inputnumber'
-import { InputSwitchModule } from 'primeng/inputswitch'
+import { ToggleSwitchModule } from 'primeng/toggleswitch'
 import { MessagesModule } from 'primeng/messages'
 import { MultiSelectModule } from 'primeng/multiselect'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { HostFormComponent } from './host-form.component'
 import { ToggleButtonModule } from 'primeng/togglebutton'
 import { SplitButtonModule } from 'primeng/splitbutton'
@@ -23,7 +23,7 @@ import { DhcpOptionFieldFormGroup, DhcpOptionFieldType } from '../forms/dhcp-opt
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { DHCPService } from '../backend'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
-import { ChipsModule } from 'primeng/chips'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { TableModule } from 'primeng/table'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
@@ -134,16 +134,16 @@ describe('HostFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
-                DropdownModule,
+                AutoCompleteModule,
+                SelectModule,
                 FieldsetModule,
                 FormsModule,
                 InputNumberModule,
-                InputSwitchModule,
+                ToggleSwitchModule,
                 MessagesModule,
                 MultiSelectModule,
                 NoopAnimationsModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ReactiveFormsModule,
                 RouterModule,
                 SplitButtonModule,

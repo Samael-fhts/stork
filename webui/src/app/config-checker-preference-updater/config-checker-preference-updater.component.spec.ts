@@ -5,7 +5,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { MessageService } from 'primeng/api'
 import { ButtonModule } from 'primeng/button'
 import { ChipModule } from 'primeng/chip'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { TableModule } from 'primeng/table'
 import { ToastModule } from 'primeng/toast'
 import { of, throwError } from 'rxjs'
@@ -14,7 +14,7 @@ import { ConfigCheckerPreferencePickerComponent } from '../config-checker-prefer
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 
 import { ConfigCheckerPreferenceUpdaterComponent } from './config-checker-preference-updater.component'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
+import { CheckboxModule } from 'primeng/checkbox'
 import { FormsModule } from '@angular/forms'
 import { TagModule } from 'primeng/tag'
 import { ManagedAccessDirective } from '../managed-access.directive'
@@ -36,12 +36,12 @@ describe('ConfigCheckerPreferenceUpdaterComponent', () => {
             imports: [
                 TableModule,
                 ChipModule,
-                OverlayPanelModule,
+                PopoverModule,
                 NoopAnimationsModule,
                 ToastModule,
                 ButtonModule,
                 FormsModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 TagModule,
                 ManagedAccessDirective,
             ],

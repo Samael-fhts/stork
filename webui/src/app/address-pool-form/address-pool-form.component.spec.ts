@@ -3,13 +3,12 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { AddressPoolFormComponent } from './address-pool-form.component'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
-import { DropdownModule } from 'primeng/dropdown'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { FieldsetModule } from 'primeng/fieldset'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, UntypedFormArray } from '@angular/forms'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { MultiSelectModule } from 'primeng/multiselect'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { TableModule } from 'primeng/table'
 import { TagModule } from 'primeng/tag'
@@ -25,6 +24,7 @@ import { SharedParameterFormGroup } from '../forms/shared-parameter-form-group'
 import { DividerModule } from 'primeng/divider'
 import { By } from '@angular/platform-browser'
 import { StorkValidators } from '../validators'
+import { SelectModule } from 'primeng/select'
 
 describe('AddressPoolFormComponent', () => {
     let component: AddressPoolFormComponent
@@ -35,15 +35,15 @@ describe('AddressPoolFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
-                DropdownModule,
+                SelectModule,
                 FieldsetModule,
                 FormsModule,
                 InputNumberModule,
                 MultiSelectModule,
                 NoopAnimationsModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ReactiveFormsModule,
                 SplitButtonModule,
                 TableModule,

@@ -17,7 +17,7 @@ import {
     daemonStatusIconTooltip,
     getErrorMessage,
 } from '../utils'
-import { KeaDaemon, ModelFile } from '../backend'
+import { App, KeaDaemon, ModelFile } from '../backend'
 
 @Component({
     selector: 'app-kea-app-tab',
@@ -26,9 +26,9 @@ import { KeaDaemon, ModelFile } from '../backend'
 })
 export class KeaAppTabComponent implements OnInit, OnDestroy {
     private subscriptions = new Subscription()
-    private _appTab: AppTab
+    private _appTab: App
     @Output() refreshApp = new EventEmitter<number>()
-    @Input() refreshedAppTab: Observable<AppTab>
+    @Input() refreshedAppTab: Observable<App>
 
     daemons: KeaDaemon[] = []
 
@@ -131,7 +131,7 @@ export class KeaAppTabComponent implements OnInit, OnDestroy {
         this.subscriptions.add(
             this.refreshedAppTab.subscribe((data) => {
                 if (data) {
-                    this.initDaemons(data.app.details.daemons)
+                    this.initDaemons(data.details.daemons)
                 }
             })
         )
@@ -145,17 +145,18 @@ export class KeaAppTabComponent implements OnInit, OnDestroy {
      * @param appTab pointer to the new app tab data structure.
      */
     @Input()
-    set appTab(appTab: AppTab) {
+    set appTab(appTab: App) {
+        console.log('app Setter', appTab)
         this._appTab = appTab
         // Refresh local information about the daemons presented by this
         // component.
-        this.initDaemons(appTab.app.details.daemons)
+        this.initDaemons(appTab.details.daemons)
     }
 
     /**
      * Returns information about currently selected app tab.
      */
-    get appTab(): AppTab {
+    get appTab(): App {
         return this._appTab
     }
 
@@ -205,7 +206,7 @@ export class KeaAppTabComponent implements OnInit, OnDestroy {
      * An action triggered when refresh button is pressed.
      */
     refreshAppState() {
-        this.refreshApp.emit(this._appTab.app.id)
+        this.refreshApp.emit(this._appTab.id)
     }
 
     /**
@@ -332,7 +333,7 @@ export class KeaAppTabComponent implements OnInit, OnDestroy {
      * @param event holds new app name.
      */
     handleRenameDialogSubmitted(name: string) {
-        this.servicesApi.renameApp(this.appTab.app.id, { name: name }).subscribe(
+        this.servicesApi.renameApp(this.appTab.id, { name: name }).subscribe(
             (/* data */) => {
                 // Renaming the app was successful.
                 this.msgService.add({
@@ -341,7 +342,7 @@ export class KeaAppTabComponent implements OnInit, OnDestroy {
                     detail: 'App successfully renamed to ' + name,
                 })
                 // Let's update the app name in the current tab.
-                this.appTab.app.name = name
+                this.appTab.name = name
                 // Notify the parent component about successfully renaming the app.
                 this.renameApp.emit(name)
             },

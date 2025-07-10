@@ -17,7 +17,7 @@ import { TabMenuModule } from 'primeng/tabmenu'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { MenuModule } from 'primeng/menu'
 import { ProgressBarModule } from 'primeng/progressbar'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
 import { AppDaemonsStatusComponent } from '../app-daemons-status/app-daemons-status.component'
@@ -39,7 +39,7 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog'
 import { MachinesTableComponent } from '../machines-table/machines-table.component'
 import { BadgeModule } from 'primeng/badge'
 import { PanelModule } from 'primeng/panel'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
+import { CheckboxModule } from 'primeng/checkbox'
 import { PluralizePipe } from '../pipes/pluralize.pipe'
 import { TagModule } from 'primeng/tag'
 import createSpyObj = jasmine.createSpyObj
@@ -154,14 +154,14 @@ describe('MachinesPageComponent', () => {
                 TabMenuModule,
                 MenuModule,
                 ProgressBarModule,
-                OverlayPanelModule,
+                PopoverModule,
                 NoopAnimationsModule,
                 BreadcrumbModule,
                 MessagesModule,
                 ConfirmDialogModule,
                 BadgeModule,
                 PanelModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 TagModule,
                 ManagedAccessDirective,
             ],

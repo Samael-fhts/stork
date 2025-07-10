@@ -10,7 +10,7 @@ import { TableModule } from 'primeng/table'
 import { TabViewModule } from 'primeng/tabview'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { Router, RouterModule } from '@angular/router'
 import {
     DNSAppType,
@@ -50,7 +50,7 @@ import { PluralizePipe } from '../pipes/pluralize.pipe'
 import { PanelModule } from 'primeng/panel'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { FormsModule } from '@angular/forms'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { NgZone } from '@angular/core'
 import { hasFilter } from '../table'
@@ -288,7 +288,7 @@ describe('ZonesPageComponent', () => {
                 TableModule,
                 TabViewModule,
                 BreadcrumbModule,
-                OverlayPanelModule,
+                PopoverModule,
                 RouterModule.forRoot([]),
                 ConfirmDialogModule,
                 MessageModule,
@@ -300,7 +300,7 @@ describe('ZonesPageComponent', () => {
                 PanelModule,
                 InputNumberModule,
                 FormsModule,
-                DropdownModule,
+                SelectModule,
                 MultiSelectModule,
                 ProgressSpinnerModule,
                 ManagedAccessDirective,
@@ -727,7 +727,7 @@ describe('ZonesPageComponent', () => {
 
     it('should filter zones table by app type', fakeAsync(() => {
         // Arrange
-        const inputDropdown = fixture.debugElement.query(By.css('[inputId="app-type"] .p-dropdown'))
+        const inputDropdown = fixture.debugElement.query(By.css('[inputId="app-type"] .p-select'))
         expect(inputDropdown).toBeTruthy()
         inputDropdown.nativeElement.click()
         fixture.detectChanges()
@@ -747,7 +747,7 @@ describe('ZonesPageComponent', () => {
 
     it('should filter zones table by class', fakeAsync(() => {
         // Arrange
-        const inputDropdown = fixture.debugElement.query(By.css('[inputId="zone-class"] .p-dropdown'))
+        const inputDropdown = fixture.debugElement.query(By.css('[inputId="zone-class"] .p-select'))
         expect(inputDropdown).toBeTruthy()
         inputDropdown.nativeElement.click()
         fixture.detectChanges()

@@ -7,14 +7,14 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { MessageService } from 'primeng/api'
 import { ButtonModule } from 'primeng/button'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
-import { DropdownModule } from 'primeng/dropdown'
+import { AutoCompleteModule } from 'primeng/autocomplete'
+import { SelectModule } from 'primeng/select'
 import { FieldsetModule } from 'primeng/fieldset'
 import { InputNumberModule } from 'primeng/inputnumber'
-import { InputSwitchModule } from 'primeng/inputswitch'
+import { ToggleSwitchModule } from 'primeng/toggleswitch'
 import { MessagesModule } from 'primeng/messages'
 import { MultiSelectModule } from 'primeng/multiselect'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { TableModule } from 'primeng/table'
 import { ToggleButtonModule } from 'primeng/togglebutton'
@@ -160,16 +160,16 @@ export default {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
-                DropdownModule,
+                AutoCompleteModule,
+                SelectModule,
                 FieldsetModule,
                 FormsModule,
                 InputNumberModule,
-                InputSwitchModule,
+                ToggleSwitchModule,
                 MessagesModule,
                 MultiSelectModule,
                 NoopAnimationsModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ReactiveFormsModule,
                 RouterModule,
                 SplitButtonModule,

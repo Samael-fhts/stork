@@ -2,9 +2,9 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { ButtonModule } from 'primeng/button'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { TableModule } from 'primeng/table'
 import { DhcpClientClassSetFormComponent } from './dhcp-client-class-set-form.component'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
@@ -21,10 +21,10 @@ describe('DhcpClientClassSetFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 FormsModule,
                 NoopAnimationsModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ReactiveFormsModule,
                 TableModule,
             ],
@@ -134,7 +134,7 @@ describe('DhcpClientClassSetFormComponent', () => {
         expect(fixture.debugElement.query(By.css('[label=Insert]'))).toBeFalsy()
         expect(fixture.debugElement.query(By.css('[label=Cancel]'))).toBeTruthy()
 
-        const classPanel = fixture.debugElement.query(By.css('p-overlayPanel'))
+        const classPanel = fixture.debugElement.query(By.css('p-popover'))
         expect(classPanel).toBeTruthy()
         expect(classPanel.nativeElement.innerText).toContain('No classes found.')
     })

@@ -24,7 +24,7 @@ import { EventsPanelComponent } from '../events-panel/events-panel.component'
 import { PaginatorModule } from 'primeng/paginator'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { SubnetBarComponent } from '../subnet-bar/subnet-bar.component'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { TooltipModule } from 'primeng/tooltip'
 import { TableModule } from 'primeng/table'
 import { HumanCountPipe } from '../pipes/human-count.pipe'
@@ -71,7 +71,7 @@ describe('DashboardComponent', () => {
             imports: [
                 NoopAnimationsModule,
                 PanelModule,
-                OverlayPanelModule,
+                PopoverModule,
                 PaginatorModule,
                 TooltipModule,
                 ButtonModule,

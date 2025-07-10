@@ -3,7 +3,7 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { applicationConfig, Meta, moduleMetadata, StoryObj } from '@storybook/angular'
 import { MessageService } from 'primeng/api'
 import { ChipModule } from 'primeng/chip'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { PopoverModule } from 'primeng/popover'
 import { TableModule } from 'primeng/table'
 import { ConfigChecker, ConfigCheckerPreferences, ConfigCheckers, ServicesService } from '../backend'
 import { ConfigCheckerPreferencePickerComponent } from '../config-checker-preference-picker/config-checker-preference-picker.component'
@@ -15,7 +15,7 @@ import { ToastModule } from 'primeng/toast'
 import { ButtonModule } from 'primeng/button'
 import { importProvidersFrom } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
+import { CheckboxModule } from 'primeng/checkbox'
 import { TagModule } from 'primeng/tag'
 
 const mockData: ConfigCheckers = {
@@ -49,13 +49,13 @@ export default {
             imports: [
                 TableModule,
                 ChipModule,
-                OverlayPanelModule,
+                PopoverModule,
                 BrowserAnimationsModule,
                 HttpClientModule,
                 ToastModule,
                 ButtonModule,
                 FormsModule,
-                TriStateCheckboxModule,
+                CheckboxModule,
                 TagModule,
             ],
             declarations: [

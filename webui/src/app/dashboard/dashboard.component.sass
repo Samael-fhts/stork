@@ -21,15 +21,15 @@
   // Custom Primary-like style for toggler button, because PrimeNG does not allow to use custom button class
   // nor style in the panel template.
   button.p-panel-toggler
-    color: var(--primary-color-text)
-    background: var(--primary-color)
+    color: var(--p-button-primary-color)
+    background: var(--p-button-primary-background)
     &:hover
-      color: var(--highlight-text-color)
-      background: var(--highlight-bg)
+      color: var(--p-button-primary-hover-color) !important
+      background: var(--p-button-primary-hover-background) !important
 
 h1.section-heading
   font-size: 1.4em
-  border-bottom: 3px solid var(--surface-border)
+  border-bottom: 3px solid var(--p-content-border-color)
 
 h2.section-heading
   font-size: 1.2em

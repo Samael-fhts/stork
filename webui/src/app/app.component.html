@@ -1,7 +1,7 @@
 <div *ngIf="currentUser">
     <div class="flex align-items-center top-navbar">
         <div class="flex-grow-1">
-            <p-menubar [model]="menuItems" styleClass="stork-menubar">
+            <p-menubar [model]="menuItems" breakpoint="1390px" [dt]="storkMenubar" styleClass="stork-menubar">
                 <ng-template pTemplate="start">
                     <div class="flex align-items-center gap-2 mr-2 sm:mr-4 ml-1 sm:ml-2">
                         <a
@@ -9,9 +9,7 @@
                             class="logo no-underline flex flex-shrink-0 align-items-center gap-2"
                             pTooltip="Version: {{ storkVersion }} <br> Build Date: {{ storkBuildDate }}"
                             tooltipStyleClass="stork-version-tooltip"
-                            [appendTo]="logoTooltipTarget"
                             [escape]="false"
-                            #logoTooltipTarget
                         >
                             <img src="assets/stork-logo-small.png" id="small-stork-logo-img" height="36" width="41" />
                             <span class="hidden xl:block"> Stork </span>
@@ -26,6 +24,9 @@
                             onIcon="pi pi-moon"
                             offIcon="pi pi-sun"
                             ariaLabel="Dark/light mode"
+                            [onLabel]="null"
+                            [offLabel]="null"
+                            [dt]="darkModeToggleButton"
                         />
                         <p-progressSpinner
                             *ngIf="(loadingInProgress | async)['state']"
@@ -33,6 +34,7 @@
                             styleClass="w-2rem h-2rem"
                             strokeWidth="6"
                             animationDuration=".5s"
+                            [dt]="whiteSpinner"
                         ></p-progressSpinner>
                         <app-global-search></app-global-search>
                         <p-splitButton

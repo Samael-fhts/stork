@@ -9,18 +9,17 @@ import { DHCPService } from '../backend'
 import { IPType } from '../iptype'
 import { FormGroup, FormsModule, ReactiveFormsModule, UntypedFormArray } from '@angular/forms'
 import { ButtonModule } from 'primeng/button'
-import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
+import { AutoCompleteModule } from 'primeng/autocomplete'
 import { DividerModule } from 'primeng/divider'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { FieldsetModule } from 'primeng/fieldset'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { TableModule } from 'primeng/table'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { CheckboxModule } from 'primeng/checkbox'
+import { PopoverModule } from 'primeng/popover'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { ToastModule } from 'primeng/toast'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
@@ -293,9 +292,9 @@ describe('SharedNetworkFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
+                AutoCompleteModule,
                 DividerModule,
-                DropdownModule,
+                SelectModule,
                 FieldsetModule,
                 FormsModule,
                 InputNumberModule,
@@ -304,8 +303,7 @@ describe('SharedNetworkFormComponent', () => {
                 NoopAnimationsModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ProgressSpinnerModule,
                 ReactiveFormsModule,
                 RouterModule,

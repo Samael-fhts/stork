@@ -1,21 +1,14 @@
 :host ::ng-deep
-    .p-multiselect.p-multiselect-chip .p-multiselect-token
-        background: var(--primary-100)
-        color: var(--text-color)
-        margin-right: 4px
-        margin-top: 2px
-        margin-bottom: 2px
-
     // Overwrite default PrimeNG Aura style for accordion.
     .p-accordion
         .p-accordion-header:not(.p-disabled)
             & .p-accordion-header-link
                 // Make the accordion headers always visible with light background color.
-                border-color: var(--surface-border)
-                background: var(--surface-100)
+                border-color: var(--p-content-border-color)
+                background: var(--p-surface-100)
             &:hover .p-accordion-header-link
                 // Add hover effect.
-                background: var(--surface-200)
+                background: var(--p-surface-200)
 
         .p-accordion-tab-active
             .p-toggleable-content
@@ -37,5 +30,5 @@
     input.w-full
         max-width: var(--max-form-width)
     .w-full
-        &.p-dropdown, &.p-multiselect
+        &.p-select, &.p-multiselect
             max-width: var(--max-form-width)

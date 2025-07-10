@@ -17,7 +17,7 @@ import { TabViewModule } from 'primeng/tabview'
 import { ProgressBarModule } from 'primeng/progressbar'
 import { DialogModule } from 'primeng/dialog'
 import { InputTextModule } from 'primeng/inputtext'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { ConfirmationService, MessageService } from 'primeng/api'
 import { ToastModule } from 'primeng/toast'
 import { MessageModule } from 'primeng/message'
@@ -31,8 +31,8 @@ import { PasswordModule } from 'primeng/password'
 import { CardModule } from 'primeng/card'
 import { SplitButtonModule } from 'primeng/splitbutton'
 import { FieldsetModule } from 'primeng/fieldset'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
-import { InputSwitchModule } from 'primeng/inputswitch'
+import { PopoverModule } from 'primeng/popover'
+import { ToggleSwitchModule } from 'primeng/toggleswitch'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
 import { PaginatorModule } from 'primeng/paginator'
 import { SelectButtonModule } from 'primeng/selectbutton'
@@ -42,12 +42,9 @@ import { ToggleButtonModule } from 'primeng/togglebutton'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { CheckboxModule } from 'primeng/checkbox'
 import { ConfirmDialogModule } from 'primeng/confirmdialog'
-import { InputTextareaModule } from 'primeng/inputtextarea'
 import { TreeModule } from 'primeng/tree'
 import { DataViewModule } from 'primeng/dataview'
-import { ChipsModule } from 'primeng/chips'
 import { ChartModule } from 'primeng/chart'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { AccordionModule } from 'primeng/accordion'
 import { TreeTableModule } from 'primeng/treetable'
 import { SkeletonModule } from 'primeng/skeleton'
@@ -158,6 +155,13 @@ import { ManagedAccessDirective } from './managed-access.directive'
 import { NotFoundPageComponent } from './not-found-page/not-found-page.component'
 import { UtilizationBarComponent } from './utilization-bar/utilization-bar.component'
 import { PoolBarsComponent } from './pool-bars/pool-bars.component'
+import { providePrimeNG } from 'primeng/config'
+import Aura from '@primeng/themes/aura'
+import { AutoCompleteModule } from 'primeng/autocomplete'
+import { InputNumberModule } from 'primeng/inputnumber'
+import { FloatLabel } from 'primeng/floatlabel'
+import { definePreset } from '@primeng/themes'
+import { StorkTabViewComponent } from './stork-tab-view/stork-tab-view.component'
 
 /** Create the OpenAPI client configuration. */
 export function cfgFactory() {
@@ -167,6 +171,60 @@ export function cfgFactory() {
     }
     return new Configuration(params)
 }
+
+const AuraBluePreset = definePreset(Aura, {
+    semantic: {
+        primary: {
+            50: '{blue.50}',
+            100: '{blue.100}',
+            200: '{blue.200}',
+            300: '{blue.300}',
+            400: '{blue.400}',
+            500: '{blue.500}',
+            600: '{blue.600}',
+            700: '{blue.700}',
+            800: '{blue.800}',
+            900: '{blue.900}',
+            950: '{blue.950}',
+        },
+    },
+    components: {
+        // Apply primary background color for Chips instead of the default greyish surface color.
+        chip: {
+            colorScheme: {
+                light: {
+                    root: {
+                        background: '{primary.100}',
+                    },
+                },
+                dark: {
+                    root: {
+                        background: '{primary.400}',
+                    },
+                },
+            },
+        },
+        // Make messages text lighter (500 by default).
+        message: {
+            colorScheme: {
+                light: {
+                    root: {
+                        textFontWeight: '400',
+                    },
+                },
+                dark: {
+                    root: {
+                        textFontWeight: '400',
+                    },
+                },
+            },
+            closeButton: {
+                width: '1rem',
+                height: '1rem',
+            },
+        },
+    },
+})
 
 @NgModule({
     declarations: [
@@ -283,7 +341,7 @@ export function cfgFactory() {
         ProgressBarModule,
         DialogModule,
         InputTextModule,
-        DropdownModule,
+        SelectModule,
         ToastModule,
         MessageModule,
         MessagesModule,
@@ -295,8 +353,8 @@ export function cfgFactory() {
         CardModule,
         SplitButtonModule,
         FieldsetModule,
-        OverlayPanelModule,
-        InputSwitchModule,
+        PopoverModule,
+        ToggleSwitchModule,
         BreadcrumbModule,
         PaginatorModule,
         SelectButtonModule,
@@ -306,19 +364,20 @@ export function cfgFactory() {
         MultiSelectModule,
         CheckboxModule,
         ConfirmDialogModule,
-        InputTextareaModule,
         TreeModule,
         ChipModule,
-        ChipsModule,
         DataViewModule,
         ToggleButtonModule,
         ChartModule,
-        TriStateCheckboxModule,
         AccordionModule,
         TreeTableModule,
         BadgeModule,
         SkeletonModule,
         ManagedAccessDirective,
+        AutoCompleteModule,
+        InputNumberModule,
+        FloatLabel,
+        StorkTabViewComponent,
     ],
     providers: [
         {
@@ -337,6 +396,18 @@ export function cfgFactory() {
             useClass: CustomRouteReuseStrategy,
         },
         provideHttpClient(withInterceptorsFromDi()),
+        providePrimeNG({
+            theme: {
+                preset: AuraBluePreset,
+                options: {
+                    darkModeSelector: '.dark',
+                    cssLayer: {
+                        name: 'primeng',
+                        order: 'lower-priority-css, primeng, higher-priority-css',
+                    },
+                },
+            },
+        }),
     ],
 })
 export class AppModule {}

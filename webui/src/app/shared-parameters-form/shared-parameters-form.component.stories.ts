@@ -5,13 +5,12 @@ import { TableModule } from 'primeng/table'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { InputNumberModule } from 'primeng/inputnumber'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
-import { ChipsModule } from 'primeng/chips'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { AutoCompleteModule } from 'primeng/autocomplete'
+import { PopoverModule } from 'primeng/popover'
 import { ButtonModule } from 'primeng/button'
-import { DropdownModule } from 'primeng/dropdown'
+import { SelectModule } from 'primeng/select'
 import { TagModule } from 'primeng/tag'
 import { SharedParameterFormGroup } from '../forms/shared-parameter-form-group'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
 import { CheckboxModule } from 'primeng/checkbox'
 import { StorkValidators } from '../validators'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
@@ -46,16 +45,15 @@ export default {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
-                DropdownModule,
+                AutoCompleteModule,
+                SelectModule,
                 FormsModule,
                 InputNumberModule,
                 MultiSelectModule,
                 NoopAnimationsModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ReactiveFormsModule,
             ],
             declarations: [ArrayValueSetFormComponent, DhcpClientClassSetFormComponent, SharedParametersFormComponent],

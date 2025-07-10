@@ -51,6 +51,44 @@ export class AppComponent implements OnInit, OnDestroy {
      */
     private swVersionBadgeSeverity: Severity
 
+    darkModeToggleButton = {
+        root: {
+            padding: '0.5rem',
+        },
+    }
+
+    whiteSpinner = {
+        root: {
+            color: {
+                1: '{surface.0}',
+                2: '{surface.0}',
+                3: '{surface.0}',
+                4: '{surface.0}',
+            },
+        },
+    }
+
+    storkMenubar = {
+        root: {
+            padding: '0',
+        },
+        colorScheme: {
+            light: {
+                root: {
+                    background: '{top.navbar.bg.light}',
+                    borderColor: '{top.navbar.bg.light}',
+                    mobileButtonColor: '{primary.contrast.color}',
+                },
+            },
+            dark: {
+                root: {
+                    background: '{top.navbar.bg.dark}',
+                    borderColor: '{top.navbar.bg.dark}',
+                },
+            },
+        },
+    }
+
     constructor(
         private router: Router,
         private serverData: ServerDataService,

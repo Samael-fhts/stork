@@ -1,8 +1,8 @@
 <div class="grid m-0">
     <div appAccessEntity="app" appAccessType="update" [appHideIfNoAccess]="true">
         <app-rename-app-dialog
-            [appId]="appTab.app.id"
-            [appName]="appTab.app.name"
+            [appId]="appTab.id"
+            [appName]="appTab.name"
             [existingApps]="existingApps"
             [existingMachines]="existingMachines"
             [visible]="appRenameDialogVisible"
@@ -16,7 +16,7 @@
             <p-header>
                 <div class="flex justify-content-between flex-wrap gap-2">
                     <div class="text-2xl font-bold text-primary-600">
-                        <i class="fa fa-server pr-2"></i> {{ appTab.app.name }}
+                        <i class="fa fa-server pr-2"></i> {{ appTab.name }}
                         <p-button
                             *ngIf="!showRenameDialogClicked"
                             icon="pi pi-pencil"
@@ -46,7 +46,7 @@
                     ></button>
                 </div>
             </p-header>
-            <app-app-overview [app]="appTab.app"></app-app-overview>
+            <app-app-overview [app]="appTab"></app-app-overview>
         </p-panel>
     </div>
     <div class="p-0 col-12">
@@ -88,7 +88,7 @@
                                 <div class="col-12 sm:col-9">
                                     <a
                                         routerLink="/dns/zones"
-                                        [queryParams]="{ appId: appTab.app.id, zoneType: configuredZoneTypes }"
+                                        [queryParams]="{ appId: appTab.id, zoneType: configuredZoneTypes }"
                                         >{{ daemon.zoneCount }}</a
                                     >
                                 </div>
@@ -129,8 +129,8 @@
                             <app-events-panel
                                 #eventsTable
                                 [filter]="{
-                                    machine: appTab.app.machine.id,
-                                    appType: appTab.app.type,
+                                    machine: appTab.machine.id,
+                                    appType: appTab.type,
                                 }"
                             ></app-events-panel>
                         </div>

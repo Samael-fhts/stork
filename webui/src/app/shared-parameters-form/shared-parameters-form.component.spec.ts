@@ -4,9 +4,8 @@ import { SharedParametersFormComponent } from './shared-parameters-form.componen
 import { SharedParameterFormGroup } from '../forms/shared-parameter-form-group'
 import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
 import { ButtonModule } from 'primeng/button'
-import { CheckboxModule } from 'primeng/checkbox'
-import { ChipsModule } from 'primeng/chips'
-import { DropdownModule } from 'primeng/dropdown'
+import { AutoCompleteModule } from 'primeng/autocomplete'
+import { SelectModule } from 'primeng/select'
 import {
     FormControl,
     FormGroup,
@@ -19,8 +18,8 @@ import { InputNumberModule } from 'primeng/inputnumber'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { TableModule } from 'primeng/table'
 import { TagModule } from 'primeng/tag'
-import { TriStateCheckboxModule } from 'primeng/tristatecheckbox'
-import { OverlayPanelModule } from 'primeng/overlaypanel'
+import { CheckboxModule } from 'primeng/checkbox'
+import { PopoverModule } from 'primeng/popover'
 import { StorkValidators } from '../validators'
 import { By } from '@angular/platform-browser'
 import { ArrayValueSetFormComponent } from '../array-value-set-form/array-value-set-form.component'
@@ -57,16 +56,15 @@ describe('SharedParametersFormComponent', () => {
             imports: [
                 ButtonModule,
                 CheckboxModule,
-                ChipsModule,
-                DropdownModule,
+                AutoCompleteModule,
+                SelectModule,
                 FormsModule,
                 InputNumberModule,
                 MultiSelectModule,
                 NoopAnimationsModule,
                 TableModule,
                 TagModule,
-                TriStateCheckboxModule,
-                OverlayPanelModule,
+                PopoverModule,
                 ReactiveFormsModule,
             ],
         }).compileComponents()
@@ -182,7 +180,7 @@ describe('SharedParametersFormComponent', () => {
         let labelDiv = allWrapperDivs[0].queryAll(By.css('div.font-semibold'))
         expect(labelDiv.length).toBe(1)
         expect(labelDiv[0].nativeElement.innerText).toBe('Allocator')
-        let controls = allWrapperDivs[0].queryAll(By.css('p-dropdown'))
+        let controls = allWrapperDivs[0].queryAll(By.css('p-select'))
         expect(controls.length).toBe(2)
         let tags = allWrapperDivs[0].queryAll(By.css('p-tag'))
         expect(tags.length).toBe(2)
