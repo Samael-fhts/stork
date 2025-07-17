@@ -71,7 +71,7 @@ func TestDeleteEvents(t *testing.T) {
 	ctx, err = rapi.SessionManager.Load(ctx, "")
 	require.NoError(t, err)
 
-	// Create testing user in the database.
+	// Create testing users in the database.
 	user := &dbmodel.SystemUser{
 		Email:    "jan@example.org",
 		Lastname: "Kowalski",
@@ -88,6 +88,38 @@ func TestDeleteEvents(t *testing.T) {
 
 	// Log in the test user
 	err = rapi.SessionManager.LoginHandler(ctx, user)
+	require.NoError(t, err)
+
+	// delete all (fails without authorization)
+	deleteParams = events.DeleteEventsParams{}
+	rsp = rapi.DeleteEvents(ctx, deleteParams)
+	require.IsType(t, &events.DeleteEventsDefault{}, rsp)
+
+	// prepare RestAPI
+	ctx = context.Background()
+	fec = &storktest.FakeEventCenter{}
+	rapi, err = NewRestAPI(dbSettings, db, fec)
+	require.NoError(t, err)
+
+	// Create session manager.
+	ctx, err = rapi.SessionManager.Load(ctx, "")
+	require.NoError(t, err)
+
+	// Create test super-admin user
+	superAdminUser := &dbmodel.SystemUser{
+		Email:    "admin1@example.org",
+		Lastname: "1",
+		Name:     "Admin",
+	}
+	con, err = dbmodel.CreateUser(db, superAdminUser)
+	require.False(t, con)
+	require.NoError(t, err)
+	added, err := superAdminUser.AddToGroupByID(db, &dbmodel.SystemGroup{ID: dbmodel.SuperAdminGroupID})
+	require.True(t, added)
+	require.NoError(t, err)
+
+	// Log in the test super-admin user
+	err = rapi.SessionManager.LoginHandler(ctx, superAdminUser)
 	require.NoError(t, err)
 
 	// delete all (succeeds)
