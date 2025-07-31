@@ -14,4 +14,6 @@ pytest --headed --base-url=https://stork.lab.isc.org/ --browser chromium --brows
 
 
 ## debug failing tests
-playwright show-trace test-results/<test_name>/trace.zip
+1.playwright show-trace test-results/<test_name>/trace.zip
+2.PWDEBUG=1 pytest tests/ui/playwright/<test_name>.py
+
