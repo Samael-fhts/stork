@@ -547,8 +547,6 @@ gocover_cobertura_ver = 'v1.3.0'
 go_live_pprof_ver = 'v1.0.8'
 govulncheck_ver = 'v1.1.4'
 mockgen_ver = 'v0.5.0'
-dlv_ver = 'v1.24.1'
-gdlv_ver = 'v1.13.2'
 nfpm_ver = 'v2.41.3'
 golangcilint_ver = '1.64.8'
 
@@ -1000,22 +998,6 @@ file MOCKGEN => [GO] do
     sh MOCKGEN, "--version"
 end
 add_version_guard(MOCKGEN, mockgen_ver)
-
-DLV = File.join(gobin, "dlv")
-file DLV => [GO] do
-    sh GO, "install", "github.com/go-delve/delve/cmd/dlv@#{dlv_ver}"
-    sh DLV, "version"
-end
-add_version_guard(DLV, dlv_ver)
-
-GDLV = File.join(gobin, "gdlv")
-file GDLV => [GO] do
-    sh GO, "install", "github.com/aarzilli/gdlv@#{gdlv_ver}"
-    if !File.file?(GDLV)
-        fail
-    end
-end
-add_version_guard(GDLV, gdlv_ver)
 
 NFPM = File.join(gobin, "nfpm")
 file NFPM => [GO] do
