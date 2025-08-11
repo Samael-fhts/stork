@@ -84,7 +84,6 @@ def test_search_leases(kea_service: Kea, server_service: Server):
     assert data.items is None
 
 
-
 def test_get_host_leases(kea_service: Kea, server_service: Server):
     server_service.log_in_as_admin()
     server_service.authorize_all_machines()
