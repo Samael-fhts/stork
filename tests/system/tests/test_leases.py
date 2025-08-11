@@ -1,4 +1,5 @@
 """System tests for the /leases API endpoint."""
+
 # pylint: disable=import-error,no-name-in-module
 # pylint: disable=unused-argument
 import ipaddress
@@ -7,6 +8,7 @@ from core.wrappers import Server, Kea
 
 def test_search_leases(kea_service: Kea, server_service: Server):
     """Test various lease search queries"""
+
     # Helper functions kept local to avoid extra imports
     def _is_ipv6(ip: str) -> bool:
         return ipaddress.ip_address(ip).version == 6
