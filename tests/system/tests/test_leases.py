@@ -2,6 +2,13 @@ from core.wrappers import Server, Kea
 
 
 def test_search_leases(kea_service: Kea, server_service: Server):
+    # Helper functions kept local to avoid extra imports
+    def _is_ipv6(ip: str) -> bool:
+        return ":" in ip
+
+    def _is_ipv4(ip: str) -> bool:
+        return "." in ip
+
     server_service.log_in_as_admin()
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
@@ -16,17 +23,32 @@ def test_search_leases(kea_service: Kea, server_service: Server):
     assert data.items[0].ip_address == "192.0.2.1"
     assert data.conflicts is None
 
+    # Extended checks for IPv4 search
+    assert _is_ipv4(data.items[0].ip_address)
+    assert data.items[0].leaseType in ("V4", "V4-BND")
+    assert data.items[0].validLifetime >= 0
+    assert data.items[0].preferredLifetime >= 0
+    assert isinstance(data.items[0].subnetId, int)
+
     # Search by IPv6 address.
     data = server_service.list_leases("3001:db8:1:42::1")
     assert data.total == 1
     assert data.items[0].ip_address == "3001:db8:1:42::1"
     assert data.conflicts is None
 
+    # Extended checks for IPv6 search
+    assert _is_ipv6(data.items[0].ip_address)
+    assert data.items[0].leaseType in ("V6", "V6-BND")
+    assert data.items[0].validLifetime >= 0
+    assert data.items[0].preferredLifetime >= 0
+    assert isinstance(data.items[0].subnetId, int)
+
     # Search by MAC.
     data = server_service.list_leases("00:01:02:03:04:02")
     assert data.total == 1
     assert data.items[0].ip_address == "192.0.2.2"
     assert data.conflicts is None
+    assert _is_ipv4(data.items[0].ip_address)
 
     # Search by client id and DUID.
     data = server_service.list_leases("01:02:03:04")
@@ -34,6 +56,10 @@ def test_search_leases(kea_service: Kea, server_service: Server):
     assert data.items[0].ip_address == "192.0.2.4"
     assert data.items[1].ip_address == "3001:db8:1:42::4"
     assert data.conflicts is None
+    for lease in data.items:
+        assert lease.validLifetime >= 0
+        assert lease.preferredLifetime >= 0
+        assert lease.subnetId is not None
 
     # Search by hostname.
     data = server_service.list_leases("host-6.example.org")
@@ -41,6 +67,10 @@ def test_search_leases(kea_service: Kea, server_service: Server):
     assert data.items[0].ip_address == "192.0.2.6"
     assert data.items[1].ip_address == "3001:db8:1:42::6"
     assert data.conflicts is None
+    for lease in data.items:
+        assert lease.hostname.startswith("host-")
+        assert lease.fqdnFwd in (True, False)
+        assert lease.fqdnRev in (True, False)
 
     # Search declined leases.
     data = server_service.list_leases("state:declined")
@@ -58,12 +88,15 @@ def test_search_leases(kea_service: Kea, server_service: Server):
         assert lease.hw_address is None
         assert lease.client_id is None
         assert lease.ip_address is not None
-        if ":" in lease.ip_address:
+        if _is_ipv6(lease.ip_address):
             assert lease.duid == "00:00:00"
         else:
             assert lease.duid is None
         # The state is declined.
         assert lease.state == 1
+        # Extended declined lease checks
+        assert lease.validLifetime >= 0
+        assert lease.preferredLifetime >= 0
 
     # Sanity checks of leases.
     assert data.items[0].ip_address == "192.0.2.1"
