@@ -1,8 +1,12 @@
-from core.wrappers import Server, Kea
+"""System tests for the /leases API endpoint."""
+# pylint: disable=import-error,no-name-in-module
+# pylint: disable=unused-argument
 import ipaddress
+from core.wrappers import Server, Kea
 
 
 def test_search_leases(kea_service: Kea, server_service: Server):
+    """Test various lease search queries"""
     # Helper functions kept local to avoid extra imports
     def _is_ipv6(ip: str) -> bool:
         return ipaddress.ip_address(ip).version == 6
@@ -85,6 +89,7 @@ def test_search_leases(kea_service: Kea, server_service: Server):
 
 
 def test_get_host_leases(kea_service: Kea, server_service: Server):
+    """Test getting leases for a host."""
     server_service.log_in_as_admin()
     server_service.authorize_all_machines()
     server_service.wait_for_next_machine_states()
