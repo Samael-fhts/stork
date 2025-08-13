@@ -1,9 +1,9 @@
 """Example Playwright test for Stork UI."""
 
 from playwright.sync_api import Page
-from ..pages.login_page import LoginPage
-from ..pages.navigation import Navigation
-from ..pages.shared_network_page import SharedNetworkPage
+from tests.ui.playwright.pages.login_page import LoginPage
+from tests.ui.playwright.pages.navigation import Navigation
+from tests.ui.playwright.pages.shared_network_page import SharedNetworkPage
 
 
 def test_shared_network_edit_bug(page: Page):
