@@ -15,11 +15,12 @@ def test_shared_network_edit_bug(page: Page):
     page.goto("http://localhost:8080/login?returnUrl=%2Fdashboard")
     login_page.login("admin", "A123456a!")
 
-    navigation.go_to_shared_network("esperanto")
+    navigation_page.go_to_shared_network("esperanto")
 
-    shared.edit_network(valid_lifetime="50", min_valid_lifetime="100")
-    shared.expect_failure_toast()
+    shared_page.edit_network(valid_lifetime="50", min_valid_lifetime="100")
+    shared_page.expect_failure_toast()
 
-    shared.edit_network(min_valid_lifetime="40")
-    shared.expect_network_without_refresh()
-    shared.open_shared_network("esperanto")
+    shared_page.edit_network(min_valid_lifetime="40")
+    # Expect the network to be visible without manual refresh
+    shared_page.network_cell.wait_for()
+    shared_page.open_shared_network()
