@@ -1,5 +1,4 @@
 [build] yavorpeev
 
-    Playwright initial configuration plus real life test example.
+    Playwright initial configuration for UI testing plus test example
     (Gitlab #1224)
-    
