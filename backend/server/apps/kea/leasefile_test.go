@@ -18,19 +18,19 @@ func BenchmarkLeaseFileLoad(b *testing.B) {
 		count int
 	}{
 		{
-			name:  "10500 leases",
+			name:  "10,500 leases",
 			count: 1500,
 		},
 		{
-			name:  "35000 leases",
+			name:  "35,000 leases",
 			count: 5000,
 		},
 		{
-			name:  "140000 leases",
+			name:  "140,000 leases",
 			count: 20000,
 		},
 		{
-			name:  "700000 leases",
+			name:  "700,000 leases",
 			count: 100000,
 		},
 		{
@@ -43,7 +43,7 @@ func BenchmarkLeaseFileLoad(b *testing.B) {
 		count := benchmarks[bi].count
 		b.Run(benchmarks[bi].name, func(b *testing.B) {
 			var wg sync.WaitGroup
-			for i := 0; i < 7; i++ {
+			for i := range 7 {
 				wg.Add(1)
 				go func(wg *sync.WaitGroup, count int, appID uint64) {
 					defer wg.Done()
@@ -53,9 +53,9 @@ func BenchmarkLeaseFileLoad(b *testing.B) {
 						return
 					}
 
-					for i := 0; i < count; i++ {
+					for i := range count {
 						ipv4 := net.IPv4(uint8(i>>24), uint8(i>>16), uint8(i>>8), uint8(i))
-						lease := &dbmodel.Lease{
+						lease := &dbmodel.LeaseUpdate{
 							Address:       ipv4.String(),
 							ValidLifetime: 3600,
 							AppID:         appID,
@@ -83,8 +83,8 @@ func BenchmarkLeaseFileLoad(b *testing.B) {
 			defer teardown()
 
 			b.ResetTimer()
-			for t := 0; t < b.N; t++ {
-				for i := 0; i < 7; i++ {
+			for _ = range b.N {
+				for i := range 7 {
 					wg.Add(1)
 					go func(wg *sync.WaitGroup, appID uint64) {
 						defer wg.Done()

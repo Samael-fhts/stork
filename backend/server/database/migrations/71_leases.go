@@ -1,7 +1,7 @@
 package dbmigs
 
 import (
-	"github.com/go-pg/migrations/v7"
+	"github.com/go-pg/migrations/v8"
 )
 
 func init() {
@@ -32,6 +32,7 @@ func init() {
 	}, func(db migrations.DB) error {
 		_, err := db.Exec(`
              DROP TABLE lease;
+             DROP TABLE lease_update;
         `)
 		return err
 	})

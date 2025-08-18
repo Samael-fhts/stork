@@ -100,7 +100,7 @@ func (lf *LeaseFile) CopyToDatabase(db *dbops.PgDB, appID uint64) error {
 	return nil
 }
 
-func (lf *LeaseFile) Read() (*dbmodel.Lease, error) {
+func (lf *LeaseFile) Read() (*dbmodel.LeaseUpdate, error) {
 	record, err := lf.reader.Read()
 	if err != nil {
 		if errors.Is(err, io.EOF) {
@@ -116,7 +116,7 @@ func (lf *LeaseFile) Read() (*dbmodel.Lease, error) {
 	if err != nil {
 		return nil, err
 	}
-	lease := &dbmodel.Lease{
+	lease := &dbmodel.LeaseUpdate{
 		Address:       record[0],
 		HWAddress:     nil,
 		ClientID:      nil,
@@ -126,7 +126,7 @@ func (lf *LeaseFile) Read() (*dbmodel.Lease, error) {
 	return lease, nil
 }
 
-func (lf *LeaseFile) Write(lease *dbmodel.Lease) error {
+func (lf *LeaseFile) Write(lease *dbmodel.LeaseUpdate) error {
 	record := []string{
 		lease.Address,
 		"",
