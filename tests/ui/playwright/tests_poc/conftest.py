@@ -1,41 +1,70 @@
-"""Test-level fixtures for Playwright PoC."""
+
+"""
+Run Playwright UI tests against the same stable Docker Compose stack
+used by the system tests.
+"""
 
 import os
-import subprocess
+import sys
+from pathlib import Path
 import pytest
 from playwright.sync_api import Page
-from tests.ui.playwright.pages.login_page import LoginPage
+
+
+cur = Path(__file__).resolve()
+
+
+tests_dir = cur.parents[3]              
+system_dir = tests_dir / "system"        
+if not (system_dir / "core").exists():
+    # Fallback in case the repo layout differs slightly
+    alt = cur.parents[4] / "tests" / "system"
+    if (alt / "core").exists():
+        system_dir = alt
+if str(system_dir) not in sys.path:
+    sys.path.insert(0, str(system_dir))
+
+
+from core.compose_factory import create_docker_compose  # type: ignore
+
+
+STORK_BASE_URL = os.getenv("STORK_BASE_URL", "http://localhost:42080")
+
+@pytest.fixture(scope="session", autouse=True)
+def stork_stack():
+    """
+    Bring up a fresh stack before the UI session starts, and tear it down after.
+    Mirrors system tests' lifecycle: kill/down -> bootstrap -> wait healthy.
+    """
+    compose = create_docker_compose()
+
+    compose.kill()
+    compose.down()
+
+    compose.bootstrap("server")
+    compose.wait_for_operational("server")
+    compose.wait_for_operational("postgres")
+
+   
+    compose.bootstrap("agent-kea")
+    compose.wait_for_operational("agent-kea")
+    compose.bootstrap("agent-bind9")
+    compose.wait_for_operational("agent-bind9")
+
+    yield
+
+    compose.kill()
+    compose.down()
+
+
+@pytest.fixture(scope="session")
+def stork_base_url() -> str:
+    return STORK_BASE_URL
 
 
 @pytest.fixture(scope="function")
-def logged_in_page(page: Page):
-    """Fixture to log in to Stork."""
-    login = LoginPage(page)
-    login.login("admin", "A123456a!")
+def logged_in_page(page: Page, stork_base_url: str):
+    page.goto(f"{stork_base_url}/login?returnUrl=%2Fdashboard")
+    from tests.ui.playwright.pages.login_page import LoginPage  # type: ignore
+    LoginPage(page).login("admin", "admin")
     return page
-
-
-def pytest_sessionfinish(session, exitstatus):
-    """Cleanup Docker after all tests are done."""
-    # pylint: disable=unused-argument
-    env_path = os.path.abspath(".playwright_docker_env")
-    if os.path.exists(env_path):
-        with open(env_path, encoding="utf-8") as f:
-            for line in f:
-                if line.startswith("COMPOSE_PROJECT_NAME="):
-                    project_name = line.strip().split("=")[1]
-                    print(f"[PYTEST] Cleaning up Docker project: {project_name}")
-                    subprocess.run(
-                        [
-                            "docker",
-                            "compose",
-                            "-p",
-                            project_name,
-                            "down",
-                            "-v",
-                            "--remove-orphans",
-                        ],
-                        check=True,
-                    )
-                    break
-        os.remove(env_path)
