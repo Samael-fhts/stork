@@ -130,10 +130,6 @@ type Manager interface {
 	Done(context.Context)
 	// Sends configuration changes to the daemons.
 	Commit(context.Context) (context.Context, error)
-	// Sends scheduled configuration changes to the daemons.
-	CommitDue() error
-	// Schedules configuration changes to apply them in the future.
-	Schedule(context.Context, time.Time) (context.Context, error)
 }
 
 // Configuration manager interface exposing functions used for getting

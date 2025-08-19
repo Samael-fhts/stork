@@ -839,23 +839,23 @@ func highAvailabilityDedicatedPorts(ctx *ReviewContext) (*Report, error) {
 			// There is no possibility of binding the access point to a
 			// specific CA daemon.
 			var caDaemons []*dbmodel.Daemon
-			for _, peerApp := range peerMachine.Apps {
-				// Search for an application that contains the collided access point.
-				for _, peerAccessPoint := range peerApp.AccessPoints {
+			for _, peerDaemon := range peerMachine.Daemons {
+				if peerDaemon.ID == ctx.subjectDaemon.ID {
+					// Prevent referencing the subject daemon twice.
+					continue
+				}
+
+				if peerDaemon.Name != dbmodel.DaemonNameCA {
+					// We are interested only in the Kea Control Agent daemons.
+					continue
+				}
+
+				// Search for a daemon that contains the collided access point.
+				for _, peerAccessPoint := range peerDaemon.AccessPoints {
 					if peerAccessPoint.Port != peerPort {
 						continue
 					}
-
-					for _, peerDaemon := range peerApp.Daemons {
-						if peerDaemon.ID == ctx.subjectDaemon.ID {
-							// Prevent referencing the subject daemon twice.
-							continue
-						}
-
-						if peerDaemon.Name == dbmodel.DaemonNameCA {
-							caDaemons = append(caDaemons, peerDaemon)
-						}
-					}
+					caDaemons = append(caDaemons, peerDaemon)
 				}
 			}
 

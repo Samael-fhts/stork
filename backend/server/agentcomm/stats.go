@@ -45,13 +45,13 @@ const (
 )
 
 // Holds runtime communication statistics with Kea daemons on single machine.
-type KeaAppCommErrorStats struct {
+type KeaCommErrorStats struct {
 	// Communication error counts for different Kea daemons.
 	errorCounts map[KeaDaemonType]int64
 }
 
 // Holds runtime communication statistics with BIND 9 daemon on a single machine.
-type Bind9AppCommErrorStats struct {
+type Bind9CommErrorStats struct {
 	// Communication error counts for different BIND 9
 	// communication channels.
 	errorCounts map[Bind9ChannelType]int64
@@ -65,7 +65,7 @@ type AgentCommStatsWrapper struct {
 }
 
 // Holds runtime statistics of the communication with a given agent and
-// with the apps behind this agent. The statistics are maintained by the
+// with the daemons behind this agent. The statistics are maintained by the
 // logic in the agentcomm package but can be read from other packages.
 // In particular, the REST API handlers read the statistics to present
 // communication issues in the UI. The data held in this structure are
@@ -82,11 +82,11 @@ type AgentCommStats struct {
 	// particular type of gRPC message.
 	agentCommErrors map[string]int64
 	// Number of the communication errors with a Kea instance having
-	// a particular App ID.
-	keaCommErrors map[int64]*KeaAppCommErrorStats
+	// a particular Machine ID.
+	keaCommErrors map[int64]*KeaCommErrorStats
 	// Number of the communication errors with a BIND 9 instance having
-	// a particular App ID.
-	bind9CommErrors map[int64]*Bind9AppCommErrorStats
+	// a particular Machine ID.
+	bind9CommErrors map[int64]*Bind9CommErrorStats
 	// A mutex to be used when the data is accessed or updated. This
 	// mutex is returned to the caller and the caller is responsible
 	// for locking and unlocking the mutex.
@@ -142,36 +142,36 @@ func GetKeaDaemonTypeFromName(daemonName string) KeaDaemonType {
 }
 
 // Instantiates the communication statistics for a new Kea instance.
-func NewKeaAppCommErrorStats() *KeaAppCommErrorStats {
-	return &KeaAppCommErrorStats{
+func NewKeaCommErrorStats() *KeaCommErrorStats {
+	return &KeaCommErrorStats{
 		errorCounts: make(map[KeaDaemonType]int64),
 	}
 }
 
 // Increases an error count for a selected Kea daemon type by 1.
 // Returns an updated count.
-func (stats *KeaAppCommErrorStats) IncreaseErrorCount(daemonType KeaDaemonType) int64 {
+func (stats *KeaCommErrorStats) IncreaseErrorCount(daemonType KeaDaemonType) int64 {
 	stats.errorCounts[daemonType]++
 	return stats.errorCounts[daemonType]
 }
 
 // Increases an error count for a selected Kea daemon type by
 // an arbitrary number. Returns an updated count.
-func (stats *KeaAppCommErrorStats) IncreaseErrorCountBy(daemonType KeaDaemonType, increment int64) int64 {
+func (stats *KeaCommErrorStats) IncreaseErrorCountBy(daemonType KeaDaemonType, increment int64) int64 {
 	stats.errorCounts[daemonType] += increment
 	return stats.errorCounts[daemonType]
 }
 
 // Updates an error count for a daemon using a specified new count.
 // The new counter of 0 indicates that any previous communication
-// issues with the daemon are gobe and causes the current error
+// issues with the daemon are gone and causes the current error
 // count to be reset. A positive error count indicates an ongoing
 // communication issue and increases the number of unsuccessful
 // communication attempts. The returned transition state allows the
 // caller for determining if there is a new communication problem or
 // the previous no gone. Based on that, the caller can issue
 // appropriate events.
-func (stats *KeaAppCommErrorStats) UpdateErrorCount(daemonType KeaDaemonType, newCount int64) CommErrorTransition {
+func (stats *KeaCommErrorStats) UpdateErrorCount(daemonType KeaDaemonType, newCount int64) CommErrorTransition {
 	currentCount := stats.GetErrorCount(daemonType)
 	switch {
 	case newCount == 0 && currentCount == 0:
@@ -191,12 +191,12 @@ func (stats *KeaAppCommErrorStats) UpdateErrorCount(daemonType KeaDaemonType, ne
 }
 
 // Resets an error count for a selected daemon to 0.
-func (stats *KeaAppCommErrorStats) ResetErrorCount(daemonType KeaDaemonType) {
+func (stats *KeaCommErrorStats) ResetErrorCount(daemonType KeaDaemonType) {
 	delete(stats.errorCounts, daemonType)
 }
 
 // Returns a current error count for a selected daemon.
-func (stats *KeaAppCommErrorStats) GetErrorCount(daemonType KeaDaemonType) int64 {
+func (stats *KeaCommErrorStats) GetErrorCount(daemonType KeaDaemonType) int64 {
 	if errorCount, ok := stats.errorCounts[daemonType]; ok {
 		return errorCount
 	}
@@ -204,33 +204,33 @@ func (stats *KeaAppCommErrorStats) GetErrorCount(daemonType KeaDaemonType) int64
 }
 
 // Instantiates the communication statistics for a new BIND 9 instance.
-func NewBind9AppCommErrorStats() *Bind9AppCommErrorStats {
-	return &Bind9AppCommErrorStats{
+func NewBind9CommErrorStats() *Bind9CommErrorStats {
+	return &Bind9CommErrorStats{
 		errorCounts: make(map[Bind9ChannelType]int64),
 	}
 }
 
 // Increases an error count for a selected channel type by 1.
 // Returns an updated count.
-func (stats *Bind9AppCommErrorStats) IncreaseErrorCount(channelType Bind9ChannelType) int64 {
+func (stats *Bind9CommErrorStats) IncreaseErrorCount(channelType Bind9ChannelType) int64 {
 	stats.errorCounts[channelType]++
 	return stats.errorCounts[channelType]
 }
 
 // Increases an error count for a selected channel type by an
 // arbitrary number. Returns an updated count.
-func (stats *Bind9AppCommErrorStats) IncreaseErrorCountBy(channelType Bind9ChannelType, increment int64) int64 {
+func (stats *Bind9CommErrorStats) IncreaseErrorCountBy(channelType Bind9ChannelType, increment int64) int64 {
 	stats.errorCounts[channelType] += increment
 	return stats.errorCounts[channelType]
 }
 
 // Resets an error count for a selected channel type to 0.
-func (stats *Bind9AppCommErrorStats) ResetErrorCount(channelType Bind9ChannelType) {
+func (stats *Bind9CommErrorStats) ResetErrorCount(channelType Bind9ChannelType) {
 	delete(stats.errorCounts, channelType)
 }
 
 // Returns a current error count for a selected channel type.
-func (stats *Bind9AppCommErrorStats) GetErrorCount(channelType Bind9ChannelType) int64 {
+func (stats *Bind9CommErrorStats) GetErrorCount(channelType Bind9ChannelType) int64 {
 	if errorCount, ok := stats.errorCounts[channelType]; ok {
 		return errorCount
 	}
@@ -241,8 +241,8 @@ func (stats *Bind9AppCommErrorStats) GetErrorCount(channelType Bind9ChannelType)
 func NewAgentStats() *AgentCommStats {
 	return &AgentCommStats{
 		agentCommErrors: make(map[string]int64),
-		keaCommErrors:   make(map[int64]*KeaAppCommErrorStats),
-		bind9CommErrors: make(map[int64]*Bind9AppCommErrorStats),
+		keaCommErrors:   make(map[int64]*KeaCommErrorStats),
+		bind9CommErrors: make(map[int64]*Bind9CommErrorStats),
 		mutex:           &sync.RWMutex{},
 	}
 }
@@ -278,26 +278,26 @@ func (stats *AgentCommStats) GetTotalErrorCount() int64 {
 	return totalErrorCount
 }
 
-// Returns Kea communication error stats for a selected app by ID.
+// Returns Kea communication error stats for a selected machine by ID.
 // The returned pointer is guaranteed to be valid. If it doesn't
 // initially exist it is created.
-func (stats *AgentCommStats) GetKeaCommErrorStats(appID int64) *KeaAppCommErrorStats {
-	if keaErrorStats, ok := stats.keaCommErrors[appID]; ok {
+func (stats *AgentCommStats) GetKeaCommErrorStats(machineID int64) *KeaCommErrorStats {
+	if keaErrorStats, ok := stats.keaCommErrors[machineID]; ok {
 		return keaErrorStats
 	}
-	keaErrorStats := NewKeaAppCommErrorStats()
-	stats.keaCommErrors[appID] = keaErrorStats
+	keaErrorStats := NewKeaCommErrorStats()
+	stats.keaCommErrors[machineID] = keaErrorStats
 	return keaErrorStats
 }
 
-// Returns BIND 9 communication error stats for a selected app by ID.
+// Returns BIND 9 communication error stats for a selected machine by ID.
 // The returned pointer is guaranteed to be valid. If it doesn't
 // initially exist it is created.
-func (stats *AgentCommStats) GetBind9CommErrorStats(appID int64) *Bind9AppCommErrorStats {
-	if bind9ErrorStats, ok := stats.bind9CommErrors[appID]; ok {
+func (stats *AgentCommStats) GetBind9CommErrorStats(machineID int64) *Bind9CommErrorStats {
+	if bind9ErrorStats, ok := stats.bind9CommErrors[machineID]; ok {
 		return bind9ErrorStats
 	}
-	bind9ErrorStats := NewBind9AppCommErrorStats()
-	stats.bind9CommErrors[appID] = bind9ErrorStats
+	bind9ErrorStats := NewBind9CommErrorStats()
+	stats.bind9CommErrors[machineID] = bind9ErrorStats
 	return bind9ErrorStats
 }

@@ -22,7 +22,8 @@ type StatsPuller struct {
 }
 
 // Create a StatsPuller object that in background pulls Kea stats about leases.
-// Beneath it spawns a goroutine that pulls stats periodically from Kea apps (that are stored in database).
+// Beneath it spawns a goroutine that pulls stats periodically from Kea daemons
+// (that are stored in database).
 func NewStatsPuller(db *pg.DB, agents agentcomm.ConnectedAgents) (*StatsPuller, error) {
 	statsPuller := &StatsPuller{}
 	periodicPuller, err := agentcomm.NewPeriodicPuller(db, agents, "Kea Stats puller", "kea_stats_puller_interval",
@@ -47,29 +48,28 @@ func (statsPuller *StatsPuller) Shutdown() {
 	statsPuller.PeriodicPuller.Shutdown()
 }
 
-// Pull stats periodically for all Kea apps which Stork is monitoring. The function returns
+// Pull stats periodically for all Kea daemons which Stork is monitoring. The function returns
 // last encountered error.
 func (statsPuller *StatsPuller) pullStats() error {
-	// get list of all kea apps from database
-	dbApps, err := dbmodel.GetAppsByType(statsPuller.DB, dbmodel.AppTypeKea)
+	// get list of all kea daemons from database
+	daemons, err := dbmodel.GetDHCPDaemons(statsPuller.DB)
 	if err != nil {
 		return err
 	}
 
-	// get lease stats from each kea app
+	// get lease stats from each kea daemon
 	var lastErr error
-	appsOkCnt := 0
-	for _, dbApp := range dbApps {
-		dbApp2 := dbApp
-		err := statsPuller.getStatsFromApp(&dbApp2)
+	daemonsOkCnt := 0
+	for _, daemon := range daemons {
+		err := statsPuller.getStatsFromDaemon(&daemon)
 		if err != nil {
 			lastErr = err
-			log.Errorf("Error occurred while getting stats from app %d: %+v", dbApp.ID, err)
+			log.Errorf("Error occurred while getting stats from daemon %d: %+v", daemon.ID, err)
 		} else {
-			appsOkCnt++
+			daemonsOkCnt++
 		}
 	}
-	log.Printf("Completed pulling lease stats from Kea apps: %d/%d succeeded", appsOkCnt, len(dbApps))
+	log.Printf("Completed pulling lease stats from Kea daemons: %d/%d succeeded", daemonsOkCnt, len(daemons))
 
 	// estimate addresses utilization for subnets
 	subnets, err := dbmodel.GetSubnetsWithLocalSubnets(statsPuller.DB)
@@ -164,28 +164,22 @@ func (statsPuller *StatsPuller) pullStats() error {
 	return lastErr
 }
 
-// A key that is used in map that is mapping from (local subnet id, inet family) to LocalSubnet struct.
-type localSubnetKey struct {
-	LocalSubnetID int64
-	Family        int
-}
-
 // Processes statistics from the `statistic-get-all` response for the given daemon.
-func (statsPuller *StatsPuller) storeDaemonStats(response keactrl.StatisticGetAllResponseItem, subnetsMap map[localSubnetKey]*dbmodel.LocalSubnet, dbApp *dbmodel.App, family int) error {
+func (statsPuller *StatsPuller) storeDaemonStats(response keactrl.StatisticGetAllResponseItem, subnetsMap map[int64]*dbmodel.LocalSubnet, daemon *dbmodel.Daemon) error {
 	var lastErr error
-	err := statsPuller.storeStats(response.Arguments, subnetsMap, dbApp, family)
+	err := statsPuller.storeStats(response.Arguments, subnetsMap, daemon)
 	if err != nil {
 		log.WithError(err).Error("Error handling subnet statistics")
 		lastErr = err
 	}
 
-	err = statsPuller.storeAddressPoolStats(response.Arguments, subnetsMap, dbApp, family)
+	err = statsPuller.storeAddressPoolStats(response.Arguments, subnetsMap, daemon)
 	if err != nil {
 		log.WithError(err).Error("Error handling address pool statistics")
 		lastErr = err
 	}
 
-	err = statsPuller.storePrefixPoolStats(response.Arguments, subnetsMap, dbApp, family)
+	err = statsPuller.storePrefixPoolStats(response.Arguments, subnetsMap, daemon)
 	if err != nil {
 		log.WithError(err).Error("Error handling prefix pool statistics")
 		lastErr = err
@@ -195,7 +189,7 @@ func (statsPuller *StatsPuller) storeDaemonStats(response keactrl.StatisticGetAl
 }
 
 // Processes statistics from the given command response for subnets belonging to the daemon.
-func (statsPuller *StatsPuller) storeStats(response []*keactrl.StatisticGetAllResponseSample, subnetsMap map[localSubnetKey]*dbmodel.LocalSubnet, dbApp *dbmodel.App, family int) error {
+func (statsPuller *StatsPuller) storeStats(response []*keactrl.StatisticGetAllResponseSample, subnetsMap map[int64]*dbmodel.LocalSubnet, daemon *dbmodel.Daemon) error {
 	var lastErr error
 
 	statisticsPerSubnet := make(map[int64][]*keactrl.StatisticGetAllResponseSample)
@@ -208,11 +202,11 @@ func (statsPuller *StatsPuller) storeStats(response []*keactrl.StatisticGetAllRe
 
 	for subnetID, statEntries := range statisticsPerSubnet {
 		stats := dbmodel.Stats{}
-		subnet := subnetsMap[localSubnetKey{subnetID, family}]
+		subnet := subnetsMap[subnetID]
 		if subnet == nil {
 			lastErr = errors.Errorf(
-				"cannot find LocalSubnet for app: %d, local subnet ID: %d, family: %d",
-				dbApp.ID, subnetID, family,
+				"cannot find LocalSubnet for daemon: %d, local subnet ID: %d",
+				daemon.ID, subnetID,
 			)
 			log.Error(lastErr.Error())
 			continue
@@ -234,8 +228,8 @@ func (statsPuller *StatsPuller) storeStats(response []*keactrl.StatisticGetAllRe
 		err := subnet.UpdateStats(statsPuller.DB, stats)
 		if err != nil {
 			log.Errorf(
-				"Problem updating Kea stats for local subnet ID %d, app ID %d: %s",
-				subnet.LocalSubnetID, dbApp.ID, err.Error(),
+				"Problem updating Kea stats for local subnet ID %d, daemon ID %d: %s",
+				subnet.LocalSubnetID, daemon.ID, err.Error(),
 			)
 			lastErr = err
 		}
@@ -252,9 +246,9 @@ type measurablePools interface {
 
 // Process statistics from the given command response for address pools
 // belonging to the daemon.
-func (statsPuller *StatsPuller) storeAddressPoolStats(response []*keactrl.StatisticGetAllResponseSample, subnetsMap map[localSubnetKey]*dbmodel.LocalSubnet, dbApp *dbmodel.App, family int) error {
+func (statsPuller *StatsPuller) storeAddressPoolStats(response []*keactrl.StatisticGetAllResponseSample, subnetsMap map[int64]*dbmodel.LocalSubnet, daemon *dbmodel.Daemon) error {
 	return statsPuller.storePoolStats(
-		response, subnetsMap, dbApp, family,
+		response, subnetsMap, daemon,
 		func(ls *dbmodel.LocalSubnet) []measurablePools {
 			pools := make([]measurablePools, len(ls.AddressPools))
 			for i := 0; i < len(ls.AddressPools); i++ {
@@ -270,9 +264,9 @@ func (statsPuller *StatsPuller) storeAddressPoolStats(response []*keactrl.Statis
 
 // Process statistics from the given command response for delegated prefix
 // pools belonging to the daemon.
-func (statsPuller *StatsPuller) storePrefixPoolStats(response []*keactrl.StatisticGetAllResponseSample, subnetsMap map[localSubnetKey]*dbmodel.LocalSubnet, dbApp *dbmodel.App, family int) error {
+func (statsPuller *StatsPuller) storePrefixPoolStats(response []*keactrl.StatisticGetAllResponseSample, subnetsMap map[int64]*dbmodel.LocalSubnet, daemon *dbmodel.Daemon) error {
 	return statsPuller.storePoolStats(
-		response, subnetsMap, dbApp, family,
+		response, subnetsMap, daemon,
 		func(ls *dbmodel.LocalSubnet) []measurablePools {
 			pools := make([]measurablePools, len(ls.PrefixPools))
 			for i := 0; i < len(ls.PrefixPools); i++ {
@@ -295,8 +289,8 @@ func (statsPuller *StatsPuller) storePrefixPoolStats(response []*keactrl.Statist
 // pools.
 func (statsPuller *StatsPuller) storePoolStats(
 	response []*keactrl.StatisticGetAllResponseSample,
-	subnetsMap map[localSubnetKey]*dbmodel.LocalSubnet,
-	dbApp *dbmodel.App, family int,
+	subnetsMap map[int64]*dbmodel.LocalSubnet,
+	daemon *dbmodel.Daemon,
 	poolAccessor func(*dbmodel.LocalSubnet) []measurablePools,
 	statPredicate func(*keactrl.StatisticGetAllResponseSample) bool,
 ) error {
@@ -320,11 +314,11 @@ func (statsPuller *StatsPuller) storePoolStats(
 	}
 
 	for subnetID, statisticsPerPool := range statisticsPerSubnetAndPool {
-		subnet := subnetsMap[localSubnetKey{subnetID, family}]
+		subnet := subnetsMap[subnetID]
 		if subnet == nil {
 			lastErr = errors.Errorf(
-				"cannot find LocalSubnet for app: %d, local subnet ID: %d, family: %d",
-				dbApp.ID, subnetID, family,
+				"cannot find LocalSubnet for daemon: %d, local subnet ID: %d",
+				daemon.ID, subnetID,
 			)
 			log.Error(lastErr.Error())
 			continue
@@ -357,8 +351,8 @@ func (statsPuller *StatsPuller) storePoolStats(
 				err := pool.UpdateStats(statsPuller.DB, stats)
 				if err != nil {
 					log.Errorf(
-						"Problem updating Kea stats for address pool ID %d, app ID %d: %s",
-						statPoolID, dbApp.ID, err.Error(),
+						"Problem updating Kea stats for address pool ID %d, daemon ID %d: %s",
+						statPoolID, daemon.ID, err.Error(),
 					)
 					lastErr = err
 				}
@@ -368,155 +362,106 @@ func (statsPuller *StatsPuller) storePoolStats(
 	return lastErr
 }
 
-func (statsPuller *StatsPuller) getStatsFromApp(dbApp *dbmodel.App) error {
-	// If no dhcp daemons found then exit.
-	if len(dbApp.GetActiveDHCPDaemonNames()) == 0 {
-		return nil
-	}
-
+func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error {
 	// If we're running RPS, age off obsolete RPS data.
 	if statsPuller.RpsWorker != nil {
 		_ = statsPuller.AgeOffRpsIntervals()
 	}
 
-	// Slices for tracking commands, the daemons they're sent to, and the responses
-	cmds := []*keactrl.Command{}
-	cmdDaemons := []*dbmodel.Daemon{}
-	var responsesAny []any
-
-	// Iterate over active daemons, adding commands and response containers
-	// for dhcp4 and dhcp6 daemons.
-	for _, d := range dbApp.Daemons {
-		if d.KeaDaemon == nil || !d.Active {
-			continue
-		}
-		if d.Name != dbmodel.DaemonNameDHCPv4 && d.Name != dbmodel.DaemonNameDHCPv6 {
-			continue
-		}
-
-		cmdDaemons = append(cmdDaemons, d)
-		cmds = append(cmds, keactrl.NewCommandBase(keactrl.StatisticGetAll, d.Name))
-		responsesAny = append(responsesAny, &keactrl.StatisticGetAllResponse{})
-	}
-
-	// If there are no commands, nothing to do.
-	if len(cmds) == 0 {
+	if daemon.KeaDaemon == nil || !daemon.Active {
 		return nil
 	}
+	if daemon.Name != dbmodel.DaemonNameDHCPv4 && daemon.Name != dbmodel.DaemonNameDHCPv6 {
+		return nil
+	}
+
+	cmd := keactrl.NewCommandBase(keactrl.StatisticGetAll, daemon.Name)
+	response := &keactrl.StatisticGetAllResponse{}
 
 	// Forward commands to Kea.
 	ctx := context.Background()
 
 	var serialCmds []keactrl.SerializableCommand
-	for _, cmd := range cmds {
-		serialCmds = append(serialCmds, cmd)
-	}
+	serialCmds = append(serialCmds, cmd)
 
-	cmdsResult, err := statsPuller.Agents.ForwardToKeaOverHTTP(ctx, dbApp, serialCmds, responsesAny...)
+	cmdsResult, err := statsPuller.Agents.ForwardToKeaOverHTTP(ctx, daemon, serialCmds, response)
 	if err != nil {
 		return err
 	}
 
-	if cmdsResult.Error != nil {
-		return cmdsResult.Error
+	if err := cmdsResult.GetFirstError(); err != nil {
+		return err
 	}
 
-	responseItems := make([]keactrl.StatisticGetAllResponseItem, len(responsesAny))
-	for i := 0; i < len(responsesAny); i++ {
-		response, ok := responsesAny[i].(*keactrl.StatisticGetAllResponse)
-		if !ok {
-			// This should never happen.
-			return errors.Errorf("response is not of type StatisticGetAllResponse: %T", responsesAny[i])
-		}
+	if len(*response) != 1 {
+		// Each request is sent to a single daemon.
+		return errors.Errorf("too many entries in the response")
+	}
 
-		if len(*response) != 1 {
-			// Each request is sent to a single daemon.
-			return errors.Errorf("too many entries in the response")
-		}
+	responseItem := (*response)[0]
 
-		responseItem := (*response)[0]
+	err = responseItem.GetError()
+	if err != nil {
+		return errors.WithMessage(err, "the statistic-get-all command returned an error")
+	}
 
-		err := responseItem.GetError()
-		if err != nil {
-			return errors.WithMessage(err, "the statistic-get-all command returned an error")
-		}
+	if responseItem.Arguments == nil {
+		return errors.Errorf("arguments missing in the statistic-get-all response")
+	}
 
-		if responseItem.Arguments == nil {
-			return errors.Errorf("arguments missing in the statistic-get-all response")
-		}
-
-		// Due to historical reasons, Stork server expects the statistic of
-		// declined leases for DHCPv6 will be named as "declined-nas" instead
-		// of "declined-addresses". We cannot change the name in our structures
-		// because code handling the global statistics expects the IPv4 and
-		// IPv6 statistics to have unique names. So we need to rename the
-		// statistic name in the response.
-		if cmdDaemons[i].Name == dbmodel.DaemonNameDHCPv6 {
-			for _, sample := range responseItem.Arguments {
-				if sample.Name == "declined-addresses" {
-					sample.Name = "declined-nas"
-				}
+	// Due to historical reasons, Stork server expects the statistic of
+	// declined leases for DHCPv6 will be named as "declined-nas" instead
+	// of "declined-addresses". We cannot change the name in our structures
+	// because code handling the global statistics expects the IPv4 and
+	// IPv6 statistics to have unique names. So we need to rename the
+	// statistic name in the response.
+	if daemon.Name == dbmodel.DaemonNameDHCPv6 {
+		for _, sample := range responseItem.Arguments {
+			if sample.Name == "declined-addresses" {
+				sample.Name = "declined-nas"
 			}
 		}
-
-		responseItems[i] = responseItem
 	}
 
-	// Process the response for each command for each daemon.
-	return statsPuller.processAppResponses(dbApp, cmds, cmdDaemons, responseItems)
+	// Process the response.
+	return statsPuller.processDaemonResponses(daemon, cmd, responseItem)
 }
 
-// Iterates through the commands for each daemon and processes the command responses
-// Was part of getStatsFromApp() until lint:backend complained about cognitive complexity.
-func (statsPuller *StatsPuller) processAppResponses(dbApp *dbmodel.App, cmds []*keactrl.Command, cmdDaemons []*dbmodel.Daemon, responses []keactrl.StatisticGetAllResponseItem) error {
-	// Check if we have the same number of commands and responses.
-	if len(cmds) != len(responses) {
-		return errors.Errorf("number of commands (%d) does not match number of responses (%d)", len(cmds), len(responses))
-	}
-
-	// Lease statistic processing needs app's local subnets
-	subnets, err := dbmodel.GetAppLocalSubnets(statsPuller.DB, dbApp.ID)
+// Processes a single daemon response.
+func (statsPuller *StatsPuller) processDaemonResponses(daemon *dbmodel.Daemon, cmd *keactrl.Command, responseItem keactrl.StatisticGetAllResponseItem) error {
+	// Lease statistic processing needs daemon's local subnets
+	subnets, err := dbmodel.GetDaemonLocalSubnets(statsPuller.DB, daemon.ID)
 	if err != nil {
 		return err
 	}
 
-	// prepare a map that will speed up looking for LocalSubnet
-	// based on local subnet id and inet family
-	subnetsMap := make(map[localSubnetKey]*dbmodel.LocalSubnet)
+	// Prepare a map that will speed up looking for LocalSubnet based on local
+	// subnet ID.
+	subnetsMap := make(map[int64]*dbmodel.LocalSubnet)
 	for _, sn := range subnets {
-		family := sn.Subnet.GetFamily()
-		subnetsMap[localSubnetKey{sn.LocalSubnetID, family}] = sn
+		subnetsMap[sn.LocalSubnetID] = sn
 	}
 
 	var lastErr error
-	for idx := 0; idx < len(cmds); idx++ {
-		family := 4
-		if cmdDaemons[idx].Name == dhcp6 {
-			family = 6
-		}
+	err = statsPuller.storeDaemonStats(responseItem, subnetsMap, daemon)
+	if err != nil {
+		log.WithError(err).Error("Error handling subnet statistics  in " +
+			"the statistic-get-all response")
+		lastErr = err
+	}
 
-		response := responses[idx]
+	err = statsPuller.Response4Handler(daemon, responseItem)
+	if err != nil {
+		log.WithError(err).Error("Error handling RPS DHCPv4 statistics " +
+			" in the statistic-get-all response")
+		lastErr = err
+	}
 
-		err = statsPuller.storeDaemonStats(response, subnetsMap, dbApp, family)
-		if err != nil {
-			log.WithError(err).Error("Error handling subnet statistics  in " +
-				"the statistic-get-all response")
-			lastErr = err
-		}
-
-		err = statsPuller.Response4Handler(cmdDaemons[idx], response)
-		if err != nil {
-			log.WithError(err).Error("Error handling RPS DHCPv4 statistics " +
-				" in the statistic-get-all response")
-			lastErr = err
-		}
-
-		err = statsPuller.Response6Handler(cmdDaemons[idx], response)
-		if err != nil {
-			log.WithError(err).Error("Error handling RPS DHCPv6 statistics " +
-				" in the statistic-get-all response")
-			lastErr = err
-		}
+	err = statsPuller.Response6Handler(daemon, responseItem)
+	if err != nil {
+		log.WithError(err).Error("Error handling RPS DHCPv6 statistics " +
+			" in the statistic-get-all response")
+		lastErr = err
 	}
 
 	return lastErr

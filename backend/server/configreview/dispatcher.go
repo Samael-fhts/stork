@@ -204,17 +204,17 @@ const (
 // KeaDaemon, KeaDHCPDaemon and KeaDHCPv4Daemon selector for the "dhcp4"
 // daemon. The corresponding checkers will be used to review the
 // daemon configuration.
-func getDispatchGroupSelectors(daemonName string) DispatchGroupSelectors {
+func getDispatchGroupSelectors(daemonName dbmodel.DaemonName) DispatchGroupSelectors {
 	switch daemonName {
-	case "dhcp4":
+	case dbmodel.DaemonNameDHCPv4:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaDHCPDaemon, KeaDHCPv4Daemon}
-	case "dhcp6":
+	case dbmodel.DaemonNameDHCPv6:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaDHCPDaemon, KeaDHCPv6Daemon}
-	case "ca":
+	case dbmodel.DaemonNameCA:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaCADaemon}
-	case "d2":
+	case dbmodel.DaemonNameD2:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaD2Daemon}
-	case "named":
+	case dbmodel.DaemonNameBind9:
 		return DispatchGroupSelectors{EachDaemon, Bind9Daemon}
 	}
 	log.WithFields(log.Fields{

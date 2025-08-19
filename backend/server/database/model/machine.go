@@ -40,7 +40,7 @@ type Machine struct {
 	LastVisitedAt   time.Time
 	Error           string
 	State           MachineState
-	Apps            []*App `pg:"rel:has-many"`
+	Daemons         []*Daemon `pg:"rel:has-many"`
 	AgentToken      string
 	CertFingerprint [32]byte
 	Authorized      bool `pg:",use_zero"`
@@ -51,15 +51,15 @@ type MachineRelation string
 
 // Names of the machine table relations. They must be valid in the go-pg sense.
 const (
-	MachineRelationApps             MachineRelation = "Apps"
-	MachineRelationDaemons          MachineRelation = "Apps.Daemons"
-	MachineRelationKeaDaemons       MachineRelation = "Apps.Daemons.KeaDaemon"
-	MachineRelationBind9Daemons     MachineRelation = "Apps.Daemons.Bind9Daemon"
-	MachineRelationPDNSDaemons      MachineRelation = "Apps.Daemons.PDNSDaemon"
-	MachineRelationDaemonLogTargets MachineRelation = "Apps.Daemons.LogTargets"
-	MachineRelationAppAccessPoints  MachineRelation = "Apps.AccessPoints"
-	MachineRelationKeaDHCPConfigs   MachineRelation = "Apps.Daemons.KeaDaemon.KeaDHCPDaemon"
-	MachineRelationDaemonHAServices MachineRelation = "Apps.Daemons.Services.HAService"
+	MachineRelationDaemons            MachineRelation = "Daemons"
+	MachineRelationKeaDaemons         MachineRelation = "Daemons.KeaDaemon"
+	MachineRelationBind9Daemons       MachineRelation = "Daemons.Bind9Daemon"
+	MachineRelationPDNSDaemons        MachineRelation = "Daemons.PDNSDaemon"
+	MachineRelationDaemonLogTargets   MachineRelation = "Daemons.LogTargets"
+	MachineRelationDaemonAccessPoints MachineRelation = "Daemons.AccessPoints"
+	MachineRelationKeaDHCPConfigs     MachineRelation = "Daemons.KeaDaemon.KeaDHCPDaemon"
+	MachineRelationDaemonHAServices   MachineRelation = "Daemons.Services.HAService"
+	MachineRelationDaemonConfigReview MachineRelation = "Daemons.ConfigReview"
 )
 
 // MachineTag is an interface implemented by the dbmodel.Machine exposing functions
@@ -112,8 +112,7 @@ func GetMachineByAddressAndAgentPort(db *pg.DB, address string, agentPort int64)
 func GetMachineByAddressAndAccessPointPort(db *pg.DB, machineAddress string, accessPointPort int64, accessPointType *string) (*Machine, error) {
 	machine := Machine{}
 	q := db.Model(&machine).
-		Relation(string(MachineRelationAppAccessPoints)).
-		Relation(string(MachineRelationDaemons)).
+		Relation(string(MachineRelationDaemonAccessPoints)).
 		Join("JOIN access_point").JoinOn("machine.id = access_point.machine_id").
 		Where("machine.address = ?", machineAddress).
 		Where("access_point.port = ?", accessPointPort)
@@ -134,7 +133,7 @@ func GetMachineByAddressAndAccessPointPort(db *pg.DB, machineAddress string, acc
 // Get a machine by its ID with default relations.
 func GetMachineByID(db *pg.DB, id int64) (*Machine, error) {
 	return GetMachineByIDWithRelations(db, id,
-		MachineRelationAppAccessPoints,
+		MachineRelationDaemonAccessPoints,
 		MachineRelationBind9Daemons,
 		MachineRelationKeaDHCPConfigs,
 		MachineRelationPDNSDaemons)
@@ -168,9 +167,9 @@ func getMachineByID(db *pg.DB, id int64, relations []string) (*Machine, error) {
 
 // Refresh machine from database.
 func RefreshMachineFromDB(db *pg.DB, machine *Machine) error {
-	machine.Apps = []*App{}
+	machine.Daemons = []*Daemon{}
 	q := db.Model(machine).Where("id = ?", machine.ID)
-	q = q.Relation("Apps.AccessPoints")
+	q = q.Relation("Daemons.AccessPoints")
 	err := q.Select()
 	if err != nil {
 		return pkgerrors.Wrapf(err, "problem getting machine %v", machine.ID)
@@ -206,10 +205,10 @@ func GetMachinesByPage(db *pg.DB, offset int64, limit int64, filterText *string,
 
 	// prepare query
 	q := db.Model(&machines)
-	q = q.Relation("Apps.AccessPoints")
-	q = q.Relation("Apps.Daemons.KeaDaemon.KeaDHCPDaemon")
-	q = q.Relation("Apps.Daemons.Bind9Daemon")
-	q = q.Relation("Apps.Daemons.PDNSDaemon")
+	q = q.Relation(string(MachineRelationDaemonAccessPoints))
+	q = q.Relation(string(MachineRelationKeaDHCPConfigs))
+	q = q.Relation(string(MachineRelationBind9Daemons))
+	q = q.Relation(string(MachineRelationPDNSDaemons))
 
 	// prepare filtering by text
 	if filterText != nil {
@@ -262,11 +261,11 @@ func GetAllMachines(db *pg.DB, authorized *bool) ([]Machine, error) {
 	if authorized != nil {
 		q = q.Where("authorized = ?", *authorized)
 	}
-	q = q.Relation("Apps.AccessPoints")
-	q = q.Relation("Apps.Daemons.KeaDaemon.KeaDHCPDaemon")
-	q = q.Relation("Apps.Daemons.Bind9Daemon")
-	q = q.Relation("Apps.Daemons.PDNSDaemon")
-	q = q.Relation("Apps.Daemons.ConfigReview")
+	q = q.Relation(string(MachineRelationDaemonAccessPoints))
+	q = q.Relation(string(MachineRelationKeaDHCPConfigs))
+	q = q.Relation(string(MachineRelationBind9Daemons))
+	q = q.Relation(string(MachineRelationPDNSDaemons))
+	q = q.Relation(string(MachineRelationDaemonConfigReview))
 
 	err := q.Select()
 	if err != nil && errors.Is(err, pg.ErrNoRows) {
@@ -285,7 +284,7 @@ func GetAllMachinesSimplified(db *pg.DB, authorized *bool) ([]Machine, error) {
 	if authorized != nil {
 		q = q.Where("authorized = ?", *authorized)
 	}
-	q = q.Relation("Apps.Daemons")
+	q = q.Relation(string(MachineRelationDaemons))
 
 	err := q.Select()
 	if err != nil && errors.Is(err, pg.ErrNoRows) {
@@ -318,14 +317,14 @@ func GetUnauthorizedMachinesCount(db *pg.DB) (int, error) {
 	return count, pkgerrors.Wrapf(err, "problem counting unauthorized machines")
 }
 
-// Delete a machine from database. The machine must include non-nil Apps
-// field (though it may be an empty slice). The Apps field is used to
+// Delete a machine from database. The machine must include non-nil Daemons
+// field (though it may be an empty slice). The Daemons field is used to
 // delete orphaned objects (e.g., subnets, zones) after the machine is deleted.
 // The whole operation is transactional, so it is rolled back if it fails at
 // any stage.
 func DeleteMachine(db *pg.DB, machine *Machine) error {
-	if machine.Apps == nil {
-		return pkgerrors.Errorf("deleted machine with ID %d has no apps relation", machine.ID)
+	if machine.Daemons == nil {
+		return pkgerrors.Errorf("deleted machine with ID %d has no daemons relation", machine.ID)
 	}
 	return db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
 		result, err := db.Model(machine).WherePK().Delete()
@@ -336,21 +335,16 @@ func DeleteMachine(db *pg.DB, machine *Machine) error {
 		}
 		// Deleting the machine may leave some orphaned objects behind.
 		// Let's make sure they are deleted.
-		appTypes := make(map[AppType]bool)
+		daemonNames := make(map[DaemonName]bool)
 		fns := []func(tx dbops.DBI) (int64, error){}
-		for _, app := range machine.Apps {
-			switch app.Type {
-			case AppTypeBind9:
-				appTypes[AppTypeBind9] = true
-			case AppTypeKea:
-				appTypes[AppTypeKea] = true
-			}
+		for _, daemon := range machine.Daemons {
+			daemonNames[daemon.Name] = true
 		}
-		for appType := range appTypes {
-			if appType == AppTypeBind9 {
+		for daemonName := range daemonNames {
+			switch daemonName {
+			case DaemonNameBind9:
 				fns = append(fns, DeleteOrphanedZones)
-			}
-			if appType == AppTypeKea {
+			case DaemonNameDHCPv4, DaemonNameDHCPv6:
 				fns = append(fns, DeleteOrphanedSubnets, DeleteOrphanedHosts, DeleteOrphanedSharedNetworks)
 			}
 		}
@@ -383,4 +377,14 @@ func (machine *Machine) GetAgentPort() int64 {
 // Returns hostname.
 func (machine *Machine) GetHostname() string {
 	return machine.State.Hostname
+}
+
+// Returns a daemon by its name. If the daemon does not exist, it returns nil.
+func (machine *Machine) GetDaemonByName(name DaemonName) *Daemon {
+	for _, daemon := range machine.Daemons {
+		if daemon.Name == name {
+			return daemon
+		}
+	}
+	return nil
 }

@@ -41,48 +41,46 @@ func NewLogsDump(machine *dbmodel.Machine, logSources LogTailSource) *LogsDump {
 //
 // Current implementation excludes the non-file logs (stdout, stderr, syslog).
 func (d *LogsDump) Execute() error {
-	for _, app := range d.machine.Apps {
-		for _, daemon := range app.Daemons {
-			for logTargetID, logTarget := range daemon.LogTargets {
-				if logTarget.Output == "stdout" || logTarget.Output == "stderr" ||
-					strings.HasPrefix(logTarget.Output, "syslog") {
-					continue
-				}
-
-				contents, err := d.logSources.TailTextFile(
-					context.Background(),
-					d.machine,
-					logTarget.Output,
-					40000)
-
-				var errStr string
-				if err != nil {
-					errStr = err.Error()
-				}
-
-				tail := &models.LogTail{
-					Machine: &models.AppMachine{
-						ID:       d.machine.ID,
-						Address:  d.machine.Address,
-						Hostname: d.machine.State.Hostname,
-					},
-					AppID:           storkutil.Ptr(app.ID),
-					AppName:         storkutil.Ptr(app.Name),
-					AppType:         storkutil.Ptr(app.Type.String()),
-					LogTargetOutput: storkutil.Ptr(logTarget.Output),
-					Contents:        contents,
-					Error:           errStr,
-				}
-
-				name := fmt.Sprintf("a-%d-%s_d-%d-%s_t-%d-%s",
-					app.ID, app.Name,
-					daemon.ID, daemon.Name,
-					logTargetID, logTarget.Name)
-
-				d.AppendArtifact(NewBasicStructArtifact(
-					name, tail,
-				))
+	for _, daemon := range d.machine.Daemons {
+		for logTargetID, logTarget := range daemon.LogTargets {
+			if logTarget.Output == "stdout" || logTarget.Output == "stderr" ||
+				strings.HasPrefix(logTarget.Output, "syslog") {
+				continue
 			}
+
+			contents, err := d.logSources.TailTextFile(
+				context.Background(),
+				d.machine,
+				logTarget.Output,
+				40000)
+
+			var errStr string
+			if err != nil {
+				errStr = err.Error()
+			}
+
+			tail := &models.LogTail{
+				Machine: &models.AppMachine{
+					ID:       d.machine.ID,
+					Address:  d.machine.Address,
+					Hostname: d.machine.State.Hostname,
+				},
+				AppID:           storkutil.Ptr(app.ID),
+				AppName:         storkutil.Ptr(app.Name),
+				AppType:         storkutil.Ptr(app.Type.String()),
+				LogTargetOutput: storkutil.Ptr(logTarget.Output),
+				Contents:        contents,
+				Error:           errStr,
+			}
+
+			name := fmt.Sprintf("m-%d-%s_d-%d-%s_t-%d-%s",
+				daemon.MachineID, daemon.Machine.Address,
+				daemon.ID, daemon.Name,
+				logTargetID, logTarget.Name)
+
+			d.AppendArtifact(NewBasicStructArtifact(
+				name, tail,
+			))
 		}
 	}
 

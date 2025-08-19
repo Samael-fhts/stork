@@ -81,14 +81,13 @@ type State struct {
 	Apps                 []*App
 }
 
-// An interface to an app that can receive commands from Stork.
-// Kea app receiving control commands is an example.
-type ControlledApp interface {
-	dbmodel.AppTag
+// An interface to a daemon that can receive commands from Stork.
+// Kea daemon receiving control commands is an example.
+type ControlledDaemon interface {
+	dbmodel.DaemonTag
 	GetControlAccessPoint() (string, int64, string, bool, error)
+	GetStatisticsAccessPoint() (string, int64, string, bool, error)
 	GetMachineTag() dbmodel.MachineTag
-	GetDaemonTags() []dbmodel.DaemonTag
-	GetDaemonTag(daemonName string) dbmodel.DaemonTag
 }
 
 // An interface to a machine that can receive commands from Stork.
@@ -138,7 +137,7 @@ func (agents *connectedAgentsImpl) checkAgentCommState(stats *AgentCommStats, re
 	return CommErrorNone, ""
 }
 
-func (agents *connectedAgentsImpl) checkBind9CommState(stats *Bind9AppCommErrorStats, channelType Bind9ChannelType, resp any) (CommErrorTransition, string) {
+func (agents *connectedAgentsImpl) checkBind9CommState(stats *Bind9CommErrorStats, channelType Bind9ChannelType, resp any) (CommErrorTransition, string) {
 	var (
 		status  *agentapi.Status
 		details string
@@ -188,7 +187,7 @@ type keaCommState struct {
 // function is called if there was no communication problem with an agent itself.
 // If checks the status codes returned by the Kea Control Agent and returns the
 // communication states for each of the daemons.
-func (agents *connectedAgentsImpl) checkKeaCommState(stats *KeaAppCommErrorStats, commands []keactrl.SerializableCommand, resp *agentapi.ForwardToKeaOverHTTPRsp) keaCommState {
+func (agents *connectedAgentsImpl) checkKeaCommState(stats *KeaCommErrorStats, commands []keactrl.SerializableCommand, resp *agentapi.ForwardToKeaOverHTTPRsp) keaCommState {
 	var (
 		state           keaCommState
 		controlAgentErr int64 = -1
@@ -408,12 +407,12 @@ type RndcOutput struct {
 }
 
 // Forwards an RNDC command to named.
-func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, app ControlledApp, command string) (*RndcOutput, error) {
-	agentAddress := app.GetMachineTag().GetAddress()
-	agentPort := app.GetMachineTag().GetAgentPort()
+func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemon ControlledDaemon, command string) (*RndcOutput, error) {
+	agentAddress := daemon.GetMachineTag().GetAddress()
+	agentPort := daemon.GetMachineTag().GetAgentPort()
 
 	// Get rndc control settings
-	ctrlAddress, ctrlPort, _, _, err := app.GetControlAccessPoint()
+	ctrlAddress, ctrlPort, _, _, err := daemon.GetControlAccessPoint()
 	if err != nil {
 		return nil, err
 	}
@@ -448,10 +447,10 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, app C
 			"agent": addrPort,
 			"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
 		}).Warnf("Failed to send the rndc command: %s", command)
-		agents.eventCenter.AddErrorEvent("communication with Stork agent on {machine} to forward rndc command failed", app.GetMachineTag(), dbmodel.SSEConnectivity, details)
+		agents.eventCenter.AddErrorEvent("communication with Stork agent on {machine} to forward rndc command failed", daemon.GetMachineTag(), dbmodel.SSEConnectivity, details)
 
 	case CommErrorReset:
-		agents.eventCenter.AddWarningEvent("communication with Stork agent on {machine} to forward rndc command succeeded", app.GetMachineTag(), dbmodel.SSEConnectivity, details)
+		agents.eventCenter.AddWarningEvent("communication with Stork agent on {machine} to forward rndc command succeeded", daemon.GetMachineTag(), dbmodel.SSEConnectivity, details)
 
 	case CommErrorContinued:
 		log.WithFields(log.Fields{
@@ -465,17 +464,17 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, app C
 
 	// Check the result of the communication between the Stork agent and named by
 	// examining the returned status code.
-	commState, details = agents.checkBind9CommState(stats.GetBind9CommErrorStats(app.GetID()), Bind9ChannelRNDC, resp)
+	commState, details = agents.checkBind9CommState(stats.GetBind9CommErrorStats(daemon.GetMachineID()), Bind9ChannelRNDC, resp)
 	switch commState {
 	case CommErrorNew:
 		log.WithFields(log.Fields{
 			"agent": addrPort,
 			"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
 		}).Warnf("Failed to send the rndc command: %s", command)
-		agents.eventCenter.AddErrorEvent("communication between the Stork agent on {machine} and {app} to forward rndc command failed", app.GetMachineTag(), app, dbmodel.SSEConnectivity, details)
+		agents.eventCenter.AddErrorEvent("communication between the Stork agent on {machine} and {daemon} to forward rndc command failed", daemon.GetMachineTag(), daemon, dbmodel.SSEConnectivity, details)
 
 	case CommErrorReset:
-		agents.eventCenter.AddWarningEvent("communication between the Stork agent on {machine} and {app} to forward rndc command succeeded", app.GetMachineTag(), app, dbmodel.SSEConnectivity, details)
+		agents.eventCenter.AddWarningEvent("communication between the Stork agent on {machine} and {daemon} to forward rndc command succeeded", daemon.GetMachineTag(), daemon, dbmodel.SSEConnectivity, details)
 
 	case CommErrorContinued:
 		log.WithFields(log.Fields{
@@ -509,7 +508,7 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, app C
 
 	// named has responded but the response may also contain an error status.
 	rndcResponse := response.GetRndcResponse()
-	bind9CommErrors := stats.GetBind9CommErrorStats(app.GetID())
+	bind9CommErrors := stats.GetBind9CommErrorStats(daemon.GetMachineID())
 
 	// If the status is ok, let's just return the result.
 	if rndcResponse.Status.Code == agentapi.Status_OK {
@@ -542,8 +541,8 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, app C
 // base HTTP URL of the statistics channel. The requestType parameter is used
 // to specify the path (or several paths in case of sequential requests) to
 // the statistics-channel of the named daemon.
-func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, app ControlledApp, statsAddress string, statsPort int64, requestType ForwardToNamedStatsRequestType, statsOutput any) error {
-	addrPort := net.JoinHostPort(app.GetMachineTag().GetAddress(), strconv.FormatInt(app.GetMachineTag().GetAgentPort(), 10))
+func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, daemon ControlledDaemon, statsAddress string, statsPort int64, requestType ForwardToNamedStatsRequestType, statsOutput any) error {
+	addrPort := net.JoinHostPort(daemon.GetMachineTag().GetAddress(), strconv.FormatInt(daemon.GetMachineTag().GetAgentPort(), 10))
 	statsURL := storkutil.HostWithPortURL(statsAddress, statsPort, false)
 
 	// Prepare the on-wire representation of the commands.
@@ -560,7 +559,7 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, app 
 	// Send the commands to the Stork Agent.
 	resp, err := agents.sendAndRecvViaQueue(addrPort, req)
 
-	stats := agents.getConnectedAgentStats(app.GetMachineTag().GetAddress(), app.GetMachineTag().GetAgentPort())
+	stats := agents.getConnectedAgentStats(daemon.GetMachineTag().GetAddress(), daemon.GetMachineTag().GetAgentPort())
 	if stats == nil {
 		return errors.Errorf("failed to get statistics for the non-existing agent %s", addrPort)
 	}
@@ -576,10 +575,10 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, app 
 			"agent":     addrPort,
 			"stats URL": statsURL,
 		}).Warnf("Failed to send the named stats command: %s", req.NamedStatsRequest)
-		agents.eventCenter.AddErrorEvent("communication with Stork agent on {machine} to query for named stats failed", app.GetMachineTag(), dbmodel.SSEConnectivity, details)
+		agents.eventCenter.AddErrorEvent("communication with Stork agent on {machine} to query for named stats failed", daemon.GetMachineTag(), dbmodel.SSEConnectivity, details)
 
 	case CommErrorReset:
-		agents.eventCenter.AddWarningEvent("communication with Stork agent on {machine} to query for named stats succeeded", app.GetMachineTag(), dbmodel.SSEConnectivity, details)
+		agents.eventCenter.AddWarningEvent("communication with Stork agent on {machine} to query for named stats succeeded", daemon.GetMachineTag(), dbmodel.SSEConnectivity, details)
 
 	case CommErrorContinued:
 		log.WithFields(log.Fields{
@@ -598,17 +597,17 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, app 
 
 	// Check the result of the communication between the Stork agent and named by
 	// examining the returned status code.
-	commState, details = agents.checkBind9CommState(stats.GetBind9CommErrorStats(app.GetID()), Bind9ChannelStats, response.NamedStatsResponse)
+	commState, details = agents.checkBind9CommState(stats.GetBind9CommErrorStats(daemon.GetMachineID()), Bind9ChannelStats, response.NamedStatsResponse)
 	switch commState {
 	case CommErrorNew:
 		log.WithFields(log.Fields{
 			"agent":     addrPort,
 			"stats URL": statsURL,
 		}).Warnf("Failed to forward the stats command %s from the Stork agent to named", req.NamedStatsRequest)
-		agents.eventCenter.AddErrorEvent("communication between the Stork agent on {machine} and {app} to query named stats failed", app.GetMachineTag(), app, dbmodel.SSEConnectivity, details)
+		agents.eventCenter.AddErrorEvent("communication between the Stork agent on {machine} and {daemon} to query named stats failed", daemon.GetMachineTag(), daemon, dbmodel.SSEConnectivity, details)
 
 	case CommErrorReset:
-		agents.eventCenter.AddWarningEvent("communication between the Stork agent on {machine} and {app} to query named stats succeeded", app.GetMachineTag(), app, dbmodel.SSEConnectivity, details)
+		agents.eventCenter.AddWarningEvent("communication between the Stork agent on {machine} and {daemon} to query named stats succeeded", daemon.GetMachineTag(), daemon, dbmodel.SSEConnectivity, details)
 
 	case CommErrorContinued:
 		log.WithFields(log.Fields{
@@ -638,7 +637,7 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, app 
 		err = errors.New(statsResp.Status.Message)
 	}
 
-	bind9CommErrors := stats.GetBind9CommErrorStats(app.GetID())
+	bind9CommErrors := stats.GetBind9CommErrorStats(daemon.GetMachineID())
 
 	// If status was ok, let's try to parse the response from the on-wire format.
 	if err == nil {
@@ -655,7 +654,7 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, app 
 	// We've got some errors that have to be recorded in stats.
 	if bind9CommErrors.IncreaseErrorCount(Bind9ChannelStats) > 1 {
 		err = errors.Errorf("failed to send named stats command via the agent %s, BIND 9 is still failing",
-			app.GetMachineTag().GetAddress())
+			daemon.GetMachineTag().GetAddress())
 		return err
 	}
 
@@ -871,10 +870,10 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, app
 }
 
 // Returns the PowerDNS server information.
-func (agents *connectedAgentsImpl) GetPowerDNSServerInfo(ctx context.Context, app ControlledApp) (*pdnsdata.ServerInfo, error) {
-	addrPort := net.JoinHostPort(app.GetMachineTag().GetAddress(), strconv.FormatInt(app.GetMachineTag().GetAgentPort(), 10))
+func (agents *connectedAgentsImpl) GetPowerDNSServerInfo(ctx context.Context, daemon ControlledDaemon) (*pdnsdata.ServerInfo, error) {
+	addrPort := net.JoinHostPort(daemon.GetMachineTag().GetAddress(), strconv.FormatInt(daemon.GetMachineTag().GetAgentPort(), 10))
 
-	address, port, _, _, err := app.GetControlAccessPoint()
+	address, port, _, _, err := daemon.GetControlAccessPoint()
 	if err != nil {
 		return nil, err
 	}
@@ -971,18 +970,18 @@ func (agents *connectedAgentsImpl) TailTextFile(ctx context.Context, machine dbm
 // Receive DNS zones over the stream from a selected agent's zone inventory.
 // It returns an iterator with a pointer to zone and error. The iterator ends
 // when an error occurs. Receiving the zones is not cancellable at the moment.
-func (agents *connectedAgentsImpl) ReceiveZones(ctx context.Context, app ControlledApp, filter *bind9stats.ZoneFilter) iter.Seq2[*bind9stats.ExtendedZone, error] {
+func (agents *connectedAgentsImpl) ReceiveZones(ctx context.Context, daemon ControlledDaemon, filter *bind9stats.ZoneFilter) iter.Seq2[*bind9stats.ExtendedZone, error] {
 	return func(yield func(*bind9stats.ExtendedZone, error) bool) {
-		// Get control access point for the specified app. It will be sent
+		// Get control access point for the specified daemon. It will be sent
 		// in the request to the agent, so the agent can identify correct
 		// zone inventory.
-		ctrlAddress, ctrlPort, _, _, err := app.GetControlAccessPoint()
+		ctrlAddress, ctrlPort, _, _, err := daemon.GetControlAccessPoint()
 		if err != nil {
 			_ = yield(nil, err)
 			return
 		}
 		// Get the agent's state. It holds the connection with the agent.
-		agentAddressPort := net.JoinHostPort(app.GetMachineTag().GetAddress(), strconv.FormatInt(app.GetMachineTag().GetAgentPort(), 10))
+		agentAddressPort := net.JoinHostPort(daemon.GetMachineTag().GetAddress(), strconv.FormatInt(daemon.GetMachineTag().GetAgentPort(), 10))
 		agent, err := agents.getConnectedAgent(agentAddressPort)
 		if err != nil {
 			_ = yield(nil, err)
@@ -1074,12 +1073,12 @@ func (agents *connectedAgentsImpl) ReceiveZones(ctx context.Context, app Control
 
 // Makes a request to the agent to perform a zone transfer for a specified view
 // and zone. It returns an iterator to the received RRs and error.
-func (agents *connectedAgentsImpl) ReceiveZoneRRs(ctx context.Context, app ControlledApp, zoneName string, viewName string) iter.Seq2[[]*dnsconfig.RR, error] {
+func (agents *connectedAgentsImpl) ReceiveZoneRRs(ctx context.Context, daemon ControlledDaemon, zoneName string, viewName string) iter.Seq2[[]*dnsconfig.RR, error] {
 	return func(yield func([]*dnsconfig.RR, error) bool) {
 		// Get control access point for the specified app. It will be sent
 		// in the request to the agent, so the agent can identify correct
 		// zone inventory.
-		ctrlAddress, ctrlPort, _, _, err := app.GetControlAccessPoint()
+		ctrlAddress, ctrlPort, _, _, err := daemon.GetControlAccessPoint()
 		if err != nil {
 			_ = yield(nil, err)
 			return
@@ -1093,7 +1092,7 @@ func (agents *connectedAgentsImpl) ReceiveZoneRRs(ctx context.Context, app Contr
 		}
 
 		// Get the agent's state. It holds the connection with the agent.
-		agentAddressPort := net.JoinHostPort(app.GetMachineTag().GetAddress(), strconv.FormatInt(app.GetMachineTag().GetAgentPort(), 10))
+		agentAddressPort := net.JoinHostPort(daemon.GetMachineTag().GetAddress(), strconv.FormatInt(daemon.GetMachineTag().GetAgentPort(), 10))
 		agent, err := agents.getConnectedAgent(agentAddressPort)
 		if err != nil {
 			_ = yield(nil, err)

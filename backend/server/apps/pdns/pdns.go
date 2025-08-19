@@ -12,7 +12,7 @@ import (
 )
 
 // Fetches the general information about the PowerDNS server and updates the
-// provided app instance.
+// provided daemon instance.
 func GetAppState(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, eventCenter eventcenter.EventCenter) {
 	ctx2, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()

@@ -52,19 +52,19 @@ func (r *RestAPI) GetLeases(ctx context.Context, params dhcp.GetLeasesParams) mi
 	var (
 		keaLeases []dbmodel.Lease
 		conflicts []int64
-		erredApps []*dbmodel.App
+		erredDaemons []*dbmodel.Daemon
 		err       error
 	)
 	if len(text) > 0 {
 		// Handle a special case when user specified state:declined search text
 		// to find declined leases.
 		if ok, _ := regexp.MatchString(`^state:\s*declined$`, text); ok {
-			keaLeases, erredApps, err = kea.FindDeclinedLeases(r.DB, r.Agents)
+			keaLeases, erredDaemons, err = kea.FindDeclinedLeases(r.DB, r.Agents)
 		} else {
-			keaLeases, erredApps, err = kea.FindLeases(r.DB, r.Agents, text)
+			keaLeases, erredDaemons, err = kea.FindLeases(r.DB, r.Agents, text)
 		}
 	} else {
-		keaLeases, conflicts, erredApps, err = kea.FindLeasesByHostID(r.DB, r.Agents, hostID)
+		keaLeases, conflicts, erredDaemons, err = kea.FindLeasesByHostID(r.DB, r.Agents, hostID)
 	}
 	if err != nil {
 		msg := "Problem searching leases on Kea servers due to Stork database errors"

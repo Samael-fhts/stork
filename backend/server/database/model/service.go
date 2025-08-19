@@ -325,24 +325,23 @@ func GetDetailedService(dbi dbops.DBI, serviceID int64) (*Service, error) {
 	return service, err
 }
 
-// Fetches all services to which the given app belongs.
-func GetDetailedServicesByAppID(dbi dbops.DBI, appID int64) ([]Service, error) {
+// Fetches all services to which the given daemon belongs.
+func GetDetailedServicesByDaemonID(dbi dbops.DBI, daemonID int64) ([]Service, error) {
 	var services []Service
 
 	err := dbi.Model(&services).
 		Join("INNER JOIN daemon_to_service AS dtos ON dtos.service_id = service.id").
 		Join("INNER JOIN daemon AS d ON d.id = dtos.daemon_id").
-		Join("INNER JOIN app AS a ON d.app_id = a.ID").
 		Relation("HAService").
 		Relation("Daemons.KeaDaemon.KeaDHCPDaemon").
 		Relation("Daemons.App").
 		Relation("Daemons.App.AccessPoints").
-		Where("app_id = ?", appID).
+		Where("d.id = ?", daemonID).
 		OrderExpr("service.id ASC").
 		Select()
 
 	if err != nil && !errors.Is(err, pg.ErrNoRows) {
-		err = pkgerrors.Wrapf(err, "problem getting services for app ID %d", appID)
+		err = pkgerrors.Wrapf(err, "problem getting services for daemon ID %d", daemonID)
 		return services, err
 	}
 

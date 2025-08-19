@@ -25,51 +25,51 @@ const (
 )
 
 // Creates network4-add command.
-func NewCommandNetwork4Add(sharedNetwork *keaconfig.SharedNetwork4, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Network4Add, daemonNames...).WithArrayArgument("shared-networks", sharedNetwork)
+func NewCommandNetwork4Add(sharedNetwork *keaconfig.SharedNetwork4, daemonName DaemonName) *Command {
+	return NewCommandBase(Network4Add, daemonName).WithArrayArgument("shared-networks", sharedNetwork)
 }
 
 // Creates network6-add command.
-func NewCommandNetwork6Add(sharedNetwork *keaconfig.SharedNetwork6, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Network6Add, daemonNames...).WithArrayArgument("shared-networks", sharedNetwork)
+func NewCommandNetwork6Add(sharedNetwork *keaconfig.SharedNetwork6, daemonName DaemonName) *Command {
+	return NewCommandBase(Network6Add, daemonName).WithArrayArgument("shared-networks", sharedNetwork)
 }
 
 // Creates network4-del command.
-func NewCommandNetwork4Del(sharedNetwork *keaconfig.SubnetCmdsDeletedSharedNetwork, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Network4Del, daemonNames...).WithArguments(sharedNetwork)
+func NewCommandNetwork4Del(sharedNetwork *keaconfig.SubnetCmdsDeletedSharedNetwork, daemonName DaemonName) *Command {
+	return NewCommandBase(Network4Del, daemonName).WithArguments(sharedNetwork)
 }
 
 // Creates network6-del command.
-func NewCommandNetwork6Del(sharedNetwork *keaconfig.SubnetCmdsDeletedSharedNetwork, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Network6Del, daemonNames...).WithArguments(sharedNetwork)
+func NewCommandNetwork6Del(sharedNetwork *keaconfig.SubnetCmdsDeletedSharedNetwork, daemonName DaemonName) *Command {
+	return NewCommandBase(Network6Del, daemonName).WithArguments(sharedNetwork)
 }
 
 // Creates network4-subnet-add command.
-func NewCommandNetwork4SubnetAdd(sharedNetworkName string, localSubnetID int64, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Network4SubnetAdd, daemonNames...).
+func NewCommandNetwork4SubnetAdd(sharedNetworkName string, localSubnetID int64, daemonName DaemonName) *Command {
+	return NewCommandBase(Network4SubnetAdd, daemonName).
 		WithArgument("id", localSubnetID).
 		WithArgument("name", sharedNetworkName)
 }
 
 // Creates network6-subnet-add command.
-func NewCommandNetwork6SubnetAdd(sharedNetworkName string, localSubnetID int64, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Network6SubnetAdd, daemonNames...).
+func NewCommandNetwork6SubnetAdd(sharedNetworkName string, localSubnetID int64, daemonName DaemonName) *Command {
+	return NewCommandBase(Network6SubnetAdd, daemonName).
 		WithArgument("id", localSubnetID).
 		WithArgument("name", sharedNetworkName)
 }
 
 // Creates network4-subnet-del command.
-func NewCommandNetwork4SubnetDel(sharedNetworkName string, localSubnetID int64, daemonNames ...DaemonName) *Command {
-	return NewCommandNetworkSubnetDel(4, sharedNetworkName, localSubnetID, daemonNames...)
+func NewCommandNetwork4SubnetDel(sharedNetworkName string, localSubnetID int64, daemonName DaemonName) *Command {
+	return NewCommandNetworkSubnetDel(4, sharedNetworkName, localSubnetID, daemonName)
 }
 
 // Creates network6-subnet-del command.
-func NewCommandNetwork6SubnetDel(sharedNetworkName string, localSubnetID int64, daemonNames ...DaemonName) *Command {
-	return NewCommandNetworkSubnetDel(6, sharedNetworkName, localSubnetID, daemonNames...)
+func NewCommandNetwork6SubnetDel(sharedNetworkName string, localSubnetID int64, daemonName DaemonName) *Command {
+	return NewCommandNetworkSubnetDel(6, sharedNetworkName, localSubnetID, daemonName)
 }
 
 // Creates network4-subnet-del or network6-subnet-del depending on the family.
-func NewCommandNetworkSubnetDel(family int, sharedNetworkName string, localSubnetID int64, daemonNames ...DaemonName) *Command {
+func NewCommandNetworkSubnetDel(family int, sharedNetworkName string, localSubnetID int64, daemonName DaemonName) *Command {
 	var commandName CommandName
 	switch family {
 	case 4:
@@ -77,33 +77,33 @@ func NewCommandNetworkSubnetDel(family int, sharedNetworkName string, localSubne
 	default:
 		commandName = Network6SubnetDel
 	}
-	return NewCommandBase(commandName, daemonNames...).
+	return NewCommandBase(commandName, daemonName).
 		WithArgument("id", localSubnetID).
 		WithArgument("name", sharedNetworkName)
 }
 
 // Creates subnet4-add command.
-func NewCommandSubnet4Add(subnet *keaconfig.Subnet4, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Subnet4Add, daemonNames...).WithArrayArgument("subnet4", subnet)
+func NewCommandSubnet4Add(subnet *keaconfig.Subnet4, daemonName DaemonName) *Command {
+	return NewCommandBase(Subnet4Add, daemonName).WithArrayArgument("subnet4", subnet)
 }
 
 // Creates subnet6-add command.
-func NewCommandSubnet6Add(subnet *keaconfig.Subnet6, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Subnet6Add, daemonNames...).WithArrayArgument("subnet6", subnet)
+func NewCommandSubnet6Add(subnet *keaconfig.Subnet6, daemonName DaemonName) *Command {
+	return NewCommandBase(Subnet6Add, daemonName).WithArrayArgument("subnet6", subnet)
 }
 
 // Creates subnet4-del command.
-func NewCommandSubnet4Del(subnet *keaconfig.SubnetCmdsDeletedSubnet, daemonNames ...DaemonName) *Command {
-	return NewCommandSubnetDel(4, subnet, daemonNames...)
+func NewCommandSubnet4Del(subnet *keaconfig.SubnetCmdsDeletedSubnet, daemonName DaemonName) *Command {
+	return NewCommandSubnetDel(4, subnet, daemonName)
 }
 
 // Creates subnet6-del command.
-func NewCommandSubnet6Del(subnet *keaconfig.SubnetCmdsDeletedSubnet, daemonNames ...DaemonName) *Command {
-	return NewCommandSubnetDel(6, subnet, daemonNames...)
+func NewCommandSubnet6Del(subnet *keaconfig.SubnetCmdsDeletedSubnet, daemonName DaemonName) *Command {
+	return NewCommandSubnetDel(6, subnet, daemonName)
 }
 
 // Creates subnet4-del or subnet6-del depending on the family.
-func NewCommandSubnetDel(family int, subnet *keaconfig.SubnetCmdsDeletedSubnet, daemonNames ...DaemonName) *Command {
+func NewCommandSubnetDel(family int, subnet *keaconfig.SubnetCmdsDeletedSubnet, daemonName DaemonName) *Command {
 	var commandName CommandName
 	switch family {
 	case 4:
@@ -111,16 +111,16 @@ func NewCommandSubnetDel(family int, subnet *keaconfig.SubnetCmdsDeletedSubnet, 
 	default:
 		commandName = Subnet6Del
 	}
-	return NewCommandBase(commandName, daemonNames...).
+	return NewCommandBase(commandName, daemonName).
 		WithArgument("id", subnet.ID)
 }
 
 // Creates subnet4-update command.
-func NewCommandSubnet4Update(subnet *keaconfig.Subnet4, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Subnet4Update, daemonNames...).WithArrayArgument("subnet4", subnet)
+func NewCommandSubnet4Update(subnet *keaconfig.Subnet4, daemonName DaemonName) *Command {
+	return NewCommandBase(Subnet4Update, daemonName).WithArrayArgument("subnet4", subnet)
 }
 
 // Creates subnet6-update command.
-func NewCommandSubnet6Update(subnet *keaconfig.Subnet6, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(Subnet6Update, daemonNames...).WithArrayArgument("subnet6", subnet)
+func NewCommandSubnet6Update(subnet *keaconfig.Subnet6, daemonName DaemonName) *Command {
+	return NewCommandBase(Subnet6Update, daemonName).WithArrayArgument("subnet6", subnet)
 }

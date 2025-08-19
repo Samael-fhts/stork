@@ -189,9 +189,9 @@ func detectDaemonNetworks(dbi dbops.DBI, daemon *dbmodel.Daemon, lookup keaconfi
 
 	var family int
 	switch daemon.Name {
-	case dhcp4:
+	case dbmodel.DaemonNameDHCPv4:
 		family = 4
-	case dhcp6:
+	case dbmodel.DaemonNameDHCPv6:
 		family = 6
 	default:
 		return networks, subnets, err

@@ -872,17 +872,6 @@ func DeleteDaemonFromSubnets(dbi dbops.DBI, daemonID int64) (int64, error) {
 	return int64(result.RowsAffected()), nil
 }
 
-// Finds and returns an app associated with a subnet having the specified id.
-func (s *Subnet) GetApp(appID int64) *App {
-	for _, s := range s.LocalSubnets {
-		daemon := s.Daemon
-		if daemon.App != nil && daemon.App.ID == appID {
-			return daemon.App
-		}
-	}
-	return nil
-}
-
 // Iterates over the provided slice of subnets and stores them in the database
 // if they are not there yet. In addition, it associates the subnets with the
 // specified Kea application. Returns a list of added subnets.
@@ -987,8 +976,8 @@ func CommitNetworksIntoDB(dbi dbops.DBI, networks []SharedNetwork, subnets []Sub
 	return
 }
 
-// Fetch all local subnets for indicated app.
-func GetAppLocalSubnets(dbi dbops.DBI, appID int64) ([]*LocalSubnet, error) {
+// Fetch all local subnets for indicated daemon.
+func GetDaemonLocalSubnets(dbi dbops.DBI, daemonID int64) ([]*LocalSubnet, error) {
 	subnets := []*LocalSubnet{}
 	q := dbi.Model(&subnets)
 	q = q.Join("INNER JOIN daemon AS d ON local_subnet.daemon_id = d.id")
@@ -998,14 +987,14 @@ func GetAppLocalSubnets(dbi dbops.DBI, appID int64) ([]*LocalSubnet, error) {
 	q = q.Relation("AddressPools")
 	q = q.Relation("PrefixPools")
 	q = q.Relation("Daemon.App")
-	q = q.Where("d.app_id = ?", appID)
+	q = q.Where("d.id = ?", daemonID)
 
 	err := q.Select()
 	if err != nil {
 		if errors.Is(err, pg.ErrNoRows) {
 			return nil, nil
 		}
-		err = pkgerrors.Wrapf(err, "problem getting all local subnets for app %d", appID)
+		err = pkgerrors.Wrapf(err, "problem getting all local subnets for daemon %d", daemonID)
 		return nil, err
 	}
 	return subnets, nil

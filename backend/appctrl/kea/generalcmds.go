@@ -12,6 +12,6 @@ const (
 	VersionGet   CommandName = "version-get"
 )
 
-func NewCommandConfigSet(config *keaconfig.Config, daemonNames ...DaemonName) *Command {
-	return NewCommandBase(ConfigSet, daemonNames...).WithArguments(config)
+func NewCommandConfigSet(config *keaconfig.Config, daemonName DaemonName) *Command {
+	return NewCommandBase(ConfigSet, daemonName).WithArguments(config)
 }

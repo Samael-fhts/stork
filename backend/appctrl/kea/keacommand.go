@@ -231,8 +231,8 @@ func NewCommandFromJSON(jsonCommand string) (*Command, error) {
 }
 
 // Constructs new command with no arguments.
-func NewCommandBase(command CommandName, daemons ...DaemonName) *Command {
-	return newCommand(command, daemons, nil)
+func NewCommandBase(command CommandName, daemon DaemonName) *Command {
+	return newCommand(command, []DaemonName{daemon}, nil)
 }
 
 // Appends argument to the command. If the arguments are nil, the

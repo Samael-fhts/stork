@@ -17,12 +17,6 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-const (
-	dhcp4 = "dhcp4"
-	dhcp6 = "dhcp6"
-	d2    = "d2"
-)
-
 // Get list of hooks for the given Kea daemon.
 func GetDaemonHooks(dbDaemon *dbmodel.Daemon) (hooks []string) {
 	if dbDaemon.KeaDaemon == nil || dbDaemon.KeaDaemon.Config == nil {
@@ -53,11 +47,11 @@ type AppStateMeta struct {
 }
 
 // Convenience function called from getStateFromCA and getStateFromDaemons which searches
-// for the existing daemon within an app. If the daemon does not exist a new instance is
+// for the existing daemon within a machine. If the daemon does not exist a new instance is
 // created. Otherwise, the function returns a shallow copy of the Daemon and KeaDaemon
 // and sets the active flag to true.
-func copyOrCreateActiveKeaDaemon(dbApp *dbmodel.App, daemonName string) *dbmodel.Daemon {
-	daemon := dbApp.GetDaemonByName(daemonName)
+func copyOrCreateActiveKeaDaemon(machine *dbmodel.Machine, daemonName dbmodel.DaemonName) *dbmodel.Daemon {
+	daemon := machine.GetDaemonByName(daemonName)
 	if daemon != nil {
 		daemonCopy := dbmodel.ShallowCopyKeaDaemon(daemon)
 		daemonCopy.Active = true
@@ -66,34 +60,37 @@ func copyOrCreateActiveKeaDaemon(dbApp *dbmodel.App, daemonName string) *dbmodel
 	return dbmodel.NewKeaDaemon(daemonName, true)
 }
 
-// Get state of Kea application Control Agent using ForwardToKeaOverHTTP function.
-// The state, that is stored into dbApp, includes: version and config of CA.
-// It also returns:
-// - list of all Kea daemons
-// - list of DHCP daemons (dhcpv4 and/or dhcpv6).
-func getStateFromCA(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, daemonsMap map[string]*dbmodel.Daemon, daemonsErrors map[string]string) ([]string, []string, error) {
+// Get state of Kea Control Agent using ForwardToKeaOverHTTP function.
+// The state, that is stored into dbMachine, includes: version and config of CA.
+// It also returns a list of all Kea daemons
+func getStateFromCA(ctx context.Context, agents agentcomm.ConnectedAgents, dbMachine *dbmodel.Machine, daemonsMap map[string]*dbmodel.Daemon, daemonsErrors map[string]string) ([]dbmodel.DaemonName, error) {
 	// prepare the command to get config and version from CA
 	cmds := []keactrl.SerializableCommand{
-		keactrl.NewCommandBase(keactrl.VersionGet),
-		keactrl.NewCommandBase(keactrl.ConfigGet),
+		keactrl.NewCommandBase(keactrl.VersionGet, keactrl.CA),
+		keactrl.NewCommandBase(keactrl.ConfigGet, keactrl.CA),
 	}
 
 	// get version and config from CA
 	versionGetResp := []VersionGetResponse{}
 	caConfigGetResp := []keactrl.HashedResponse{}
 
-	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, cmds, &versionGetResp, &caConfigGetResp)
+	dbDaemon := dbMachine.GetDaemonByName(dbmodel.DaemonNameCA)
+	if dbDaemon == nil {
+		return nil, errors.Errorf("machine %d has no Kea Control Agent daemon", dbMachine.ID)
+	}
+
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, cmds, &versionGetResp, &caConfigGetResp)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if cmdsResult.Error != nil {
-		return nil, nil, cmdsResult.Error
+		return nil, cmdsResult.Error
 	}
 
-	daemonsMap["ca"] = copyOrCreateActiveKeaDaemon(dbApp, "ca")
+	daemonsMap[dbmodel.DaemonNameCA] = copyOrCreateActiveKeaDaemon(dbMachine, dbmodel.DaemonNameCA)
 
 	// if no error in the version-get response then copy retrieved info about CA to its record
-	dmn := daemonsMap["ca"]
+	dmn := daemonsMap[dbmodel.DaemonNameCA]
 	err = cmdsResult.CmdsErrors[0]
 
 	switch {
@@ -109,12 +106,11 @@ func getStateFromCA(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp
 		dmn.Active = false
 		err = errors.WithMessage(err, "problem with version-get response from CA")
 		log.WithError(err).Warn("Problem with version-get response from CA")
-		daemonsErrors["ca"] = err.Error()
-		return nil, nil, err
+		daemonsErrors[dbmodel.DaemonNameCA] = err.Error()
+		return nil, err
 	}
 
 	dmn.Version = versionGetResp[0].Text
-	dbApp.Meta.Version = versionGetResp[0].Text
 	if versionGetResp[0].Arguments != nil {
 		dmn.ExtendedVersion = versionGetResp[0].Arguments.Extended
 	}
@@ -132,13 +128,12 @@ func getStateFromCA(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp
 		dmn.Active = false
 		err = errors.WithMessage(err, "problem with config-get response from CA")
 		log.WithError(err).Warn("Problem with config-get response from CA")
-		daemonsErrors["ca"] = err.Error()
-		return nil, nil, err
+		daemonsErrors[dbmodel.DaemonNameCA] = err.Error()
+		return nil, err
 	}
 
 	// prepare a set of available daemons
 	allDaemons := []string{}
-	dhcpDaemons := []string{}
 
 	// Only set the new configuration if the configuration is added for the first
 	// time or the hash values aren't matching.
@@ -148,140 +143,145 @@ func getStateFromCA(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp
 		err = dmn.SetConfigWithHash(dbmodel.NewKeaConfig(caConfigGetResp[0].Arguments),
 			caConfigGetResp[0].ArgumentsHash)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
 
 	sockets := dmn.KeaDaemon.Config.GetControlSockets()
 	if sockets == nil {
-		return allDaemons, dhcpDaemons, nil
+		return allDaemons, nil
 	}
 
 	if sockets.Dhcp4 != nil {
-		allDaemons = append(allDaemons, dhcp4)
-		dhcpDaemons = append(dhcpDaemons, dhcp4)
+		allDaemons = append(allDaemons, dbmodel.DaemonNameDHCPv4)
 	}
 	if sockets.Dhcp6 != nil {
-		allDaemons = append(allDaemons, dhcp6)
-		dhcpDaemons = append(dhcpDaemons, dhcp6)
+		allDaemons = append(allDaemons, dbmodel.DaemonNameDHCPv6)
 	}
 	if sockets.D2 != nil {
-		allDaemons = append(allDaemons, d2)
+		allDaemons = append(allDaemons, dbmodel.DaemonNameD2)
 	}
 
-	return allDaemons, dhcpDaemons, nil
+	return allDaemons, nil
 }
 
-// Get state of Kea application daemons (beside Control Agent) using ForwardToKeaOverHTTP function.
-// The state, that is stored into dbApp, includes: version, config and runtime state of indicated Kea daemons.
-func getStateFromDaemons(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, daemonsMap map[string]*dbmodel.Daemon, allDaemons []string, dhcpDaemons []string, daemonsErrors map[string]string) error {
+// Get state of Kea machine daemons (beside Control Agent) using ForwardToKeaOverHTTP function.
+// The state, that is stored into dbMachine, includes: version, config and runtime state of indicated Kea daemons.
+func getStateFromDaemons(ctx context.Context, agents agentcomm.ConnectedAgents, dbMachine *dbmodel.Machine, daemonsMap map[string]*dbmodel.Daemon, allDaemons []dbmodel.DaemonName, daemonsErrors map[string]string) error {
 	now := storkutil.UTCNow()
 
-	// issue 3 commands to Kea daemons at once to get their state
-	cmds := []keactrl.SerializableCommand{
-		keactrl.NewCommandBase(keactrl.VersionGet, allDaemons...),
-		keactrl.NewCommandBase(keactrl.StatusGet, dhcpDaemons...),
-		keactrl.NewCommandBase(keactrl.ConfigGet, allDaemons...),
-	}
+	for _, daemonName := range allDaemons {
+		isDHCPDaemon := daemonName == dbmodel.DaemonNameDHCPv4 || daemonName == dbmodel.DaemonNameDHCPv6
 
-	versionGetResp := []VersionGetResponse{}
-	statusGetResp := []StatusGetResponse{}
-	configGetResp := []keactrl.HashedResponse{}
+		versionGetResponseItems := []VersionGetResponse{}
+		configGetResponseItems := []keactrl.HashedResponse{}
+		var statusGetResponseItems []StatusGetResponse
 
-	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, cmds, &versionGetResp, &statusGetResp, &configGetResp)
-	if err != nil {
-		return err
-	}
-	if cmdsResult.Error != nil {
-		return cmdsResult.Error
-	}
-
-	// first find old records of daemons in old daemons assigned to the app
-	for _, name := range allDaemons {
-		daemonsMap[name] = copyOrCreateActiveKeaDaemon(dbApp, name)
-	}
-
-	// process version-get responses
-	err = cmdsResult.CmdsErrors[0]
-	if err != nil {
-		return errors.WithMessage(err, "problem with version-get response")
-	}
-
-	for _, vRsp := range versionGetResp {
-		dmn, ok := daemonsMap[vRsp.Daemon]
-		if !ok {
-			log.Warnf("Unrecognized daemon in version-get response: %v", vRsp)
-			continue
+		cmds := []keactrl.SerializableCommand{
+			keactrl.NewCommandBase(keactrl.VersionGet, daemonName),
+			keactrl.NewCommandBase(keactrl.ConfigGet, daemonName),
 		}
-		if err := vRsp.GetError(); err != nil {
-			dmn.Active = false
+		responses := []any{&versionGetResponseItems, &configGetResponseItems}
+
+		if isDHCPDaemon {
+			cmds = append(cmds, keactrl.NewCommandBase(keactrl.StatusGet, daemonName))
+			statusGetResponseItems = []StatusGetResponse{}
+			responses = append(responses, &statusGetResponseItems)
+		}
+
+		daemon := dbMachine.GetDaemonByName(daemonName)
+		if daemon == nil {
+			return errors.Errorf("machine %d has no Kea daemon %s", dbMachine.ID, daemonName)
+		}
+		daemon = dbmodel.ShallowCopyKeaDaemon(daemon)
+
+		cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, cmds, responses...)
+		if err != nil {
+			return err
+		}
+		if cmdsResult.Error != nil {
+			return cmdsResult.Error
+		}
+
+		// first find old records of daemons in old daemons assigned to the app
+		daemonsMap[daemonName] = daemon
+
+		// process version-get responses
+		err = cmdsResult.CmdsErrors[0]
+		if err != nil {
+			return errors.WithMessage(err, "problem with version-get response")
+		}
+
+		if len(versionGetResponseItems) != 0 {
+			return errors.Errorf("unexpected number of version-get response items: %d", len(versionGetResponseItems))
+		}
+		versionGetResponse := versionGetResponseItems[0]
+		if err := versionGetResponse.GetError(); err != nil {
+			daemon.Active = false
 			err = errors.WithMessage(err, "problem with version-get response")
 			log.WithError(err).Warn("Problem with version-get response")
-			daemonsErrors[dmn.Name] = err.Error()
+			daemonsErrors[daemon.Name] = err.Error()
 			continue
 		}
-
-		dmn.Version = vRsp.Text
-		if vRsp.Arguments != nil {
-			dmn.ExtendedVersion = vRsp.Arguments.Extended
-		}
-	}
-
-	// process status-get responses
-	err = cmdsResult.CmdsErrors[1]
-	if err != nil {
-		return errors.WithMessage(err, "problem with status-get response")
-	}
-
-	for _, sRsp := range statusGetResp {
-		dmn, ok := daemonsMap[sRsp.Daemon]
-		if !ok {
-			log.Warnf("Unrecognized daemon in status-get response: %v", sRsp)
-			continue
-		}
-		if err := sRsp.GetError(); err != nil {
-			dmn.Active = false
-			err = errors.WithMessage(err, "problem with status-get and kea daemon")
-			log.WithError(err).Warn("Problem with status-get and kea daemon")
-			daemonsErrors[dmn.Name] = err.Error()
-			continue
+		daemon.Version = versionGetResponse.Text
+		if versionGetResponse.Arguments != nil {
+			daemon.ExtendedVersion = versionGetResponse.Arguments.Extended
 		}
 
-		if sRsp.Arguments != nil {
-			dmn.Uptime = sRsp.Arguments.Uptime
-			dmn.ReloadedAt = now.Add(time.Second * time.Duration(-sRsp.Arguments.Reload))
+		// process config-get responses
+		err = cmdsResult.CmdsErrors[1]
+		if err != nil {
+			return errors.WithMessage(err, "problem with config-get response")
 		}
-	}
 
-	// process config-get responses
-	err = cmdsResult.CmdsErrors[2]
-	if err != nil {
-		return errors.WithMessage(err, "problem with config-get response")
-	}
-
-	for _, cRsp := range configGetResp {
-		dmn, ok := daemonsMap[cRsp.Daemon]
-		if !ok {
-			log.Warnf("Unrecognized daemon in config-get response: %v", cRsp)
-			continue
+		if len(configGetResponseItems) != 1 {
+			return errors.Errorf("unexpected number of config-get response items: %d", len(configGetResponseItems))
 		}
-		if err := cRsp.GetError(); err != nil {
-			dmn.Active = false
+		configGetResponse := configGetResponseItems[0]
+
+		if err := configGetResponse.GetError(); err != nil {
+			daemon.Active = false
 			err = errors.WithMessage(err, "problem with config-get and kea daemon")
 			log.WithError(err).Warn("Problem with config-get and kea daemon")
-			daemonsErrors[dmn.Name] = err.Error()
+			daemonsErrors[daemon.Name] = err.Error()
 			continue
 		}
 
-		if (dmn.KeaDaemon.Config == nil) || (dmn.KeaDaemon.ConfigHash != cRsp.ArgumentsHash) {
+		if (daemon.KeaDaemon.Config == nil) || (daemon.KeaDaemon.ConfigHash != configGetResponse.ArgumentsHash) {
 			// Set the configuration for the daemon and populate selected configuration
 			// information to the respective structures, e.g. logging information.
-			err = dmn.SetConfigWithHash(dbmodel.NewKeaConfig(cRsp.Arguments), cRsp.ArgumentsHash)
+			err = daemon.SetConfigWithHash(dbmodel.NewKeaConfig(configGetResponse.Arguments), configGetResponse.ArgumentsHash)
 			if err != nil {
 				errStr := fmt.Sprintf("%s", err)
 				log.Warn(errStr)
-				daemonsErrors[dmn.Name] = errStr
+				daemonsErrors[daemon.Name] = errStr
 				continue
+			}
+		}
+
+		if isDHCPDaemon {
+			// process status-get responses
+			err = cmdsResult.CmdsErrors[2]
+			if err != nil {
+				return errors.WithMessage(err, "problem with status-get response")
+			}
+
+			if len(statusGetResponseItems) != 1 {
+				return errors.Errorf("unexpected number of status-get response items: %d", len(statusGetResponseItems))
+			}
+			statusGetResponse := statusGetResponseItems[0]
+
+			if err := statusGetResponse.GetError(); err != nil {
+				daemon.Active = false
+				err = errors.WithMessage(err, "problem with status-get and kea daemon")
+				log.WithError(err).Warn("Problem with status-get and kea daemon")
+				daemonsErrors[daemon.Name] = err.Error()
+				continue
+			}
+
+			if statusGetResponse.Arguments != nil {
+				daemon.Uptime = statusGetResponse.Arguments.Uptime
+				daemon.ReloadedAt = now.Add(time.Second * time.Duration(-statusGetResponse.Arguments.Reload))
 			}
 		}
 	}
@@ -546,9 +546,9 @@ func deleteEmptyAndOrphanedObjects(tx *pg.Tx) error {
 }
 
 // Detects and commits the discovered services into the database for each
-// daemon belonging to the app.
-func detectAndCommitServices(tx *pg.Tx, app *dbmodel.App) error {
-	for _, daemon := range app.Daemons {
+// daemon belonging to the machine.
+func detectAndCommitServices(tx *pg.Tx, machine *dbmodel.Machine) error {
+	for _, daemon := range machine.Daemons {
 		// Check what HA services the daemon belongs to.
 		services, err := DetectHAServices(tx, daemon)
 		if err != nil {
@@ -565,19 +565,19 @@ func detectAndCommitServices(tx *pg.Tx, app *dbmodel.App) error {
 	return nil
 }
 
-// Adds events specific to the recent app updates.
-func addOnCommitAppEvents(app *dbmodel.App, addedDaemons, deletedDaemons []*dbmodel.Daemon, state *AppStateMeta, eventCenter eventcenter.EventCenter) {
-	if app.ID == 0 {
-		eventCenter.AddInfoEvent("added {app} on {machine}", app.Machine, app)
+// Adds events specific to the recent machine updates.
+func addOnCommitMachineEvents(machine *dbmodel.Machine, addedDaemons, deletedDaemons []*dbmodel.Daemon, state *AppStateMeta, eventCenter eventcenter.EventCenter) {
+	if machine.ID == 0 {
+		eventCenter.AddInfoEvent("added {machine}", machine)
 	}
 
 	for _, daemon := range deletedDaemons {
-		daemon.App = app
-		eventCenter.AddInfoEvent("removed {daemon} from {app}", app.Machine, app, daemon)
+		daemon.Machine = machine
+		eventCenter.AddInfoEvent("removed {daemon} from {machine}", machine, daemon)
 	}
 	for _, daemon := range addedDaemons {
-		daemon.App = app
-		eventCenter.AddInfoEvent("added {daemon} to {app}", app.Machine, app, daemon)
+		daemon.Machine = machine
+		eventCenter.AddInfoEvent("added {daemon} to {machine}", machine, daemon)
 	}
 	if state != nil {
 		for _, ev := range state.Events {

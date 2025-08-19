@@ -122,8 +122,8 @@ func (fa *FakeAgents) GetLastCommand() *keactrl.Command {
 // function so as they can be later validated. It also returns a custom
 // response to the command by calling the function specified in the
 // call to NewFakeAgents or NewKeaFakeAgents.
-func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, app agentcomm.ControlledApp, commands []keactrl.SerializableCommand, cmdResponses ...interface{}) (*agentcomm.KeaCmdsResult, error) {
-	caAddress, caPort, _, caUseSecureProtocol, _ := app.GetControlAccessPoint()
+func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm.ControlledDaemon, commands []keactrl.SerializableCommand, cmdResponses ...interface{}) (*agentcomm.KeaCmdsResult, error) {
+	caAddress, caPort, _, caUseSecureProtocol, _ := daemon.GetControlAccessPoint()
 	caURL := storkutil.HostWithPortURL(caAddress, caPort, caUseSecureProtocol)
 
 	fa.RecordedURLs = append(fa.RecordedURLs, caURL)
@@ -151,8 +151,9 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, app agentcomm.Co
 // to this function so as they can be later validated. It also returns a custom
 // response to the command by calling the function specified in the
 // call to NewFakeAgents.
-func (fa *FakeAgents) ForwardToNamedStats(ctx context.Context, app agentcomm.ControlledApp, statsAddress string, statsPort int64, requestType agentcomm.ForwardToNamedStatsRequestType, statsOutput interface{}) error {
-	fa.RecordedStatsURL = storkutil.HostWithPortURL(statsAddress, statsPort, false)
+func (fa *FakeAgents) ForwardToNamedStats(ctx context.Context, daemon agentcomm.ControlledDaemon, requestType agentcomm.ForwardToNamedStatsRequestType, statsOutput interface{}) error {
+	statsAddress, statsPort, _, statsUseSecureProtocol, _ := daemon.GetStatisticsAccessPoint()
+	fa.RecordedStatsURL = storkutil.HostWithPortURL(statsAddress, statsPort, statsUseSecureProtocol)
 
 	// Generate response.
 	if fa.mockNamedFunc != nil {
@@ -167,8 +168,8 @@ func (fa *FakeAgents) ForwardToNamedStats(ctx context.Context, app agentcomm.Con
 // so as they can be later validated. It also returns a custom response
 // to the command by calling the function specified in the call to
 // NewFakeAgents.
-func (fa *FakeAgents) ForwardRndcCommand(ctx context.Context, app agentcomm.ControlledApp, command string) (*agentcomm.RndcOutput, error) {
-	fa.RecordedAddress, fa.RecordedPort, fa.RecordedKey, _, _ = app.GetControlAccessPoint()
+func (fa *FakeAgents) ForwardRndcCommand(ctx context.Context, daemon agentcomm.ControlledDaemon, command string) (*agentcomm.RndcOutput, error) {
+	fa.RecordedAddress, fa.RecordedPort, fa.RecordedKey, _, _ = daemon.GetControlAccessPoint()
 	fa.RecordedCommand = command
 
 	if fa.mockRndcOutput != "" {
@@ -183,7 +184,7 @@ func (fa *FakeAgents) ForwardRndcCommand(ctx context.Context, app agentcomm.Cont
 
 // FakeAgents specific implementation of the function to get the PowerDNS
 // server information. It returns nil.
-func (fa *FakeAgents) GetPowerDNSServerInfo(ctx context.Context, app agentcomm.ControlledApp) (*pdnsdata.ServerInfo, error) {
+func (fa *FakeAgents) GetPowerDNSServerInfo(ctx context.Context, daemon agentcomm.ControlledDaemon) (*pdnsdata.ServerInfo, error) {
 	return &pdnsdata.ServerInfo{
 		Version: "4.7.0",
 	}, nil
@@ -196,10 +197,10 @@ func (fa *FakeAgents) TailTextFile(ctx context.Context, machine dbmodel.MachineT
 
 // FakeAgents specific implementation of the function which gathers the zones from the
 // agents one by one.
-func (fa *FakeAgents) ReceiveZones(ctx context.Context, app agentcomm.ControlledApp, filter *bind9stats.ZoneFilter) iter.Seq2[*bind9stats.ExtendedZone, error] {
+func (fa *FakeAgents) ReceiveZones(ctx context.Context, daemon agentcomm.ControlledDaemon, filter *bind9stats.ZoneFilter) iter.Seq2[*bind9stats.ExtendedZone, error] {
 	return nil
 }
 
-func (fa *FakeAgents) ReceiveZoneRRs(ctx context.Context, app agentcomm.ControlledApp, zoneName string, viewName string) iter.Seq2[[]*dnsconfig.RR, error] {
+func (fa *FakeAgents) ReceiveZoneRRs(ctx context.Context, daemon agentcomm.ControlledDaemon, zoneName string, viewName string) iter.Seq2[[]*dnsconfig.RR, error] {
 	return nil
 }

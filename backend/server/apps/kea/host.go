@@ -41,7 +41,7 @@ type ReservationGetPageResponse struct {
 }
 
 // Instance of the puller that periodically pulls host reservations from
-// the Kea apps.
+// the Kea daemons.
 type HostsPuller struct {
 	*agentcomm.PeriodicPuller
 	ReviewDispatcher           configreview.Dispatcher
@@ -50,7 +50,7 @@ type HostsPuller struct {
 }
 
 // Create an instance of the puller that periodically fetches host reservations
-// from the monitored Kea apps via control channel.
+// from the monitored Kea daemons via control channel.
 func NewHostsPuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) (*HostsPuller, error) {
 	hostsPuller := &HostsPuller{
 		ReviewDispatcher:           reviewDispatcher,
@@ -66,16 +66,16 @@ func NewHostsPuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, reviewDisp
 	return hostsPuller, nil
 }
 
-// Stops the timer triggering pulling host reservations from the monitored apps.
+// Stops the timer triggering pulling host reservations from the monitored daemons.
 func (puller *HostsPuller) Shutdown() {
 	puller.PeriodicPuller.Shutdown()
 }
 
-// Pulls host reservations from the monitored Kea apps and updates them in
+// Pulls host reservations from the monitored Kea DHCP daemons and updates them in
 // the Stork database.
 func (puller *HostsPuller) pull() error {
-	// Get all Kea apps from the database.
-	apps, err := dbmodel.GetAppsByType(puller.DB, dbmodel.AppTypeKea)
+	// Get all Kea DHCP daemons from the database.
+	daemons, err := dbmodel.GetDHCPDaemons(puller.DB)
 	if err != nil {
 		return err
 	}
@@ -86,17 +86,21 @@ func (puller *HostsPuller) pull() error {
 		erredCount   int
 	)
 
-	// Iterate over the Kea apps and attempt to pull host reservations
+	// Iterate over the Kea daemons and attempt to pull host reservations
 	// from them via the host_cmds hooks library. Next, update the
 	// hosts in the Stork database.
-	for i := range apps {
-		success, skip, e := puller.pullFromApp(&apps[i])
-		successCount += success
-		skippedCount += skip
-		erredCount += e
+	for i := range daemons {
+		pulled, err := puller.pullFromDaemon(&daemons[i])
+		if pulled {
+			successCount += 1
+		} else if err != nil {
+			erredCount += 1
+		} else {
+			skippedCount += 1
+		}
 	}
 
-	// Remove the hosts that no longer belong to any app.
+	// Remove the hosts that no longer belong to any daemon.
 	_, err = dbmodel.DeleteOrphanedHosts(puller.DB)
 	if err != nil {
 		return err
@@ -112,35 +116,12 @@ func (puller *HostsPuller) pull() error {
 }
 
 // Pulls all host reservations stored in the hosts backend for the particular
-// Kea app. The returned values are the daemon counters for which the pull
-// was successful, skipped and/or erred. They are used for logging purposes.
-func (puller *HostsPuller) pullFromApp(app *dbmodel.App) (successCount, skippedCount, erredCount int) {
-	for _, daemon := range app.Daemons {
-		if daemon.KeaDaemon.KeaDHCPDaemon == nil {
-			continue
-		}
-		pulled, err := puller.pullFromDaemon(app, daemon)
-		if err != nil {
-			erredCount++
-			log.WithError(err).Errorf("Problem pulling Kea hosts from daemon %d", daemon.ID)
-			continue
-		}
-		if !pulled {
-			skippedCount++
-			continue
-		}
-		successCount++
-	}
-	return
-}
-
-// Pulls all host reservations stored in the hosts backend for the particular
 // Kea daemon. The first returned value indicates whether or not the function
 // attempted to pull the reservations (i.e., host_cmds hook library is used by
 // the daemon and the daemon is active). The function uses the iterator mechanism
 // to pull the hosts. It can result in sending multiple reservation-get-page
 // commands to each Kea instance.
-func (puller *HostsPuller) pullFromDaemon(app *dbmodel.App, daemon *dbmodel.Daemon) (bool, error) {
+func (puller *HostsPuller) pullFromDaemon(daemon *dbmodel.Daemon) (bool, error) {
 	// Hosts update is performed in a transaction but we don't begin the
 	// transaction until we detect that there were some changes in the
 	// host reservations.
@@ -168,7 +149,7 @@ func (puller *HostsPuller) pullFromDaemon(app *dbmodel.App, daemon *dbmodel.Daem
 	}
 
 	// Fetch the hosts as long as they are returned by Kea.
-	it := newHostIterator(puller.DB, app, daemon, puller.Agents, defaultHostCmdsPageLimit)
+	it := newHostIterator(puller.DB, daemon, puller.Agents, defaultHostCmdsPageLimit)
 	var done bool
 	for !done {
 		// Send reservation-get-page to Kea.
@@ -320,7 +301,6 @@ func (trace *hostIteratorTrace) hasEqualHashes(other *hostIteratorTrace) bool {
 // the current subnet for which the hosts are fetched.
 type hostIterator struct {
 	db          dbops.DBI
-	app         *dbmodel.App
 	daemon      *dbmodel.Daemon
 	agents      agentcomm.ConnectedAgents
 	limit       int64
@@ -332,10 +312,9 @@ type hostIterator struct {
 }
 
 // Creates new iterator instance.
-func newHostIterator(dbi dbops.DBI, app *dbmodel.App, daemon *dbmodel.Daemon, agents agentcomm.ConnectedAgents, limit int64) *hostIterator {
+func newHostIterator(dbi dbops.DBI, daemon *dbmodel.Daemon, agents agentcomm.ConnectedAgents, limit int64) *hostIterator {
 	it := &hostIterator{
 		db:          dbi,
-		app:         app,
 		daemon:      daemon,
 		agents:      agents,
 		limit:       limit,
@@ -352,11 +331,8 @@ func newHostIterator(dbi dbops.DBI, app *dbmodel.App, daemon *dbmodel.Daemon, ag
 // it is returned. Otherwise, the "from" and "source-index" are updated in the
 // iterator's state. Finally the list of hosts is retrieved and returned.
 func (iterator *hostIterator) sendReservationGetPage() ([]keaconfig.Reservation, keactrl.ResponseResult, error) {
-	// Depending on the family we should set the service parameter to
-	// dhcp4 or dhcp6.
-	daemons := []string{iterator.daemon.Name}
 	// We need to set subnet-id. It requires extracting the local subnet-id
-	// for the given app.
+	// for the given daemon.
 	subnetID := int64(0)
 	subnet := iterator.getCurrentSubnet()
 	// The returned subnet will be nil if we're fetching global host reservations.
@@ -369,11 +345,11 @@ func (iterator *hostIterator) sendReservationGetPage() ([]keaconfig.Reservation,
 		}
 	}
 	// Prepare the command.
-	command := keactrl.NewCommandReservationGetPage(subnetID, iterator.sourceIndex, iterator.from, iterator.limit, daemons...)
+	command := keactrl.NewCommandReservationGetPage(subnetID, iterator.sourceIndex, iterator.from, iterator.limit, iterator.daemon.Name)
 	commands := []keactrl.SerializableCommand{command}
 	response := make([]ReservationGetPageResponse, 1)
 	ctx := context.Background()
-	respResult, err := iterator.agents.ForwardToKeaOverHTTP(ctx, iterator.app, commands, &response)
+	respResult, err := iterator.agents.ForwardToKeaOverHTTP(ctx, iterator.daemon, commands, &response)
 	if err != nil {
 		return []keaconfig.Reservation{}, keactrl.ResponseError, err
 	}
@@ -435,7 +411,7 @@ func (iterator *hostIterator) getCurrentSubnet() *dbmodel.Subnet {
 // calling this function.
 func (iterator *hostIterator) getPageFromHostCmds() (hosts []keaconfig.Reservation, done bool, err error) {
 	// The default behavior is that an error terminates hosts fetching from
-	// the particular app.
+	// the particular daemon.
 	defer func() {
 		if done || err != nil {
 			done = true

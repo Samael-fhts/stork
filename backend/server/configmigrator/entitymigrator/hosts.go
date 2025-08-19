@@ -334,7 +334,7 @@ func (m *hostMigrator) prepareAndSendHostCommands(daemon *dbmodel.Daemon, f func
 	}
 
 	result, err := m.connectedAgents.ForwardToKeaOverHTTP(
-		context.Background(), daemon.App, commands, responsesAny...,
+		context.Background(), daemon, commands, responsesAny...,
 	)
 	if err == nil {
 		err = result.Error
@@ -421,7 +421,7 @@ func (m *hostMigrator) saveConfigChanges(daemon *dbmodel.Daemon) {
 
 	var response keactrl.ResponseList
 	result, err := m.connectedAgents.ForwardToKeaOverHTTP(
-		context.Background(), daemon.App,
+		context.Background(), daemon,
 		[]keactrl.SerializableCommand{commandWrite}, &response,
 	)
 	if err == nil {

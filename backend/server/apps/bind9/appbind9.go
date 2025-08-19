@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	agentapi "isc.org/stork/api"
 	"isc.org/stork/appdata/bind9stats"
@@ -43,79 +44,76 @@ type NamedStatsGetResponse struct {
 }
 
 // Get statistics from named daemon using ForwardToNamedStats function.
-func GetAppStatistics(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *dbmodel.App) {
+func GetDaemonStatistics(ctx context.Context, agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon) error {
 	// prepare URL to named
-	statsChannel, err := dbApp.GetAccessPoint(dbmodel.AccessPointStatistics)
-	if err != nil {
-		log.Warnf("Problem getting named statistics-channel access point: %s", err)
-		return
-	}
-
 	ctx2, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	// store all collected details in app db record
+	// store all collected details in daemon db record
 	statsOutput := NamedStatsGetResponse{}
-	err = agents.ForwardToNamedStats(ctx2, dbApp, statsChannel.Address, statsChannel.Port, agentapi.ForwardToNamedStatsReq_SERVER, &statsOutput)
+	err := agents.ForwardToNamedStats(ctx2, daemon, agentapi.ForwardToNamedStatsReq_SERVER, &statsOutput)
 	if err != nil {
-		log.Warnf("Problem retrieving stats from named: %s", err)
+		return errors.WithMessage(err, "problem retrieving stats from named")
+	}
+
+	if statsOutput.Views == nil {
+		// Nothing to do.
+		return nil
 	}
 
 	namedStats := &bind9stats.Bind9NamedStats{}
 
-	if statsOutput.Views != nil {
-		viewStats := make(map[string]*bind9stats.Bind9StatsView)
+	viewStats := make(map[string]*bind9stats.Bind9StatsView)
 
-		for name, view := range statsOutput.Views {
-			// Exclude _bind view as it is a special kind of view for which
-			// we don't have query stats.
-			if name == "_bind" {
-				continue
-			}
+	for name, view := range statsOutput.Views {
+		// Exclude _bind view as it is a special kind of view for which
+		// we don't have query stats.
+		if name == "_bind" {
+			continue
+		}
 
-			cacheStats := make(map[string]int64)
-			cacheStats["CacheHits"] = view.Resolver.CacheStats.CacheHits
-			cacheStats["CacheMisses"] = view.Resolver.CacheStats.CacheMisses
-			cacheStats["QueryHits"] = view.Resolver.CacheStats.QueryHits
-			cacheStats["QueryMisses"] = view.Resolver.CacheStats.QueryMisses
+		cacheStats := make(map[string]int64)
+		cacheStats["CacheHits"] = view.Resolver.CacheStats.CacheHits
+		cacheStats["CacheMisses"] = view.Resolver.CacheStats.CacheMisses
+		cacheStats["QueryHits"] = view.Resolver.CacheStats.QueryHits
+		cacheStats["QueryMisses"] = view.Resolver.CacheStats.QueryMisses
 
-			viewStats[name] = &bind9stats.Bind9StatsView{
-				Resolver: &bind9stats.Bind9StatsResolver{
-					CacheStats: cacheStats,
-				},
-			}
+		viewStats[name] = &bind9stats.Bind9StatsView{
+			Resolver: &bind9stats.Bind9StatsResolver{
+				CacheStats: cacheStats,
+			},
 		}
 
 		namedStats.Views = viewStats
 	}
 
-	dbApp.Daemons[0].Bind9Daemon.Stats.NamedStats = namedStats
+	daemon.Bind9Daemon.Stats.NamedStats = namedStats
+	return nil
 }
 
 // Get state of named daemon using ForwardRndcCommand function.
-// The state that is stored into dbApp includes: version, number of zones, and
+// The state that is stored into daemon includes: version, number of zones, and
 // some runtime state.
-func GetAppState(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, eventCenter eventcenter.EventCenter) {
+func GetDaemonState(ctx context.Context, agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, eventCenter eventcenter.EventCenter) {
 	ctx2, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	command := "status"
-	out, err := agents.ForwardRndcCommand(ctx2, dbApp, command)
+	out, err := agents.ForwardRndcCommand(ctx2, daemon, command)
 	if err != nil {
 		log.Warnf("Problem getting BIND 9 status: %s", err)
 		return
 	}
 
-	bind9Daemon := dbmodel.NewBind9Daemon(false)
-	if len(dbApp.Daemons) > 0 && dbApp.Daemons[0].ID != 0 {
-		bind9Daemon = dbApp.Daemons[0]
+	if daemon.Bind9Daemon == nil {
+		daemon.Bind9Daemon = &dbmodel.Bind9Daemon{}
 	}
 
 	// Get version
 	pattern := regexp.MustCompile(`version:\s+(.+)\n`)
 	match := pattern.FindStringSubmatch(out.Output)
 	if match != nil {
-		bind9Daemon.Version = match[1]
+		daemon.Version = match[1]
 	} else {
 		log.Warnf("Cannot get BIND 9 version: unable to find version in output")
 	}
@@ -123,7 +121,7 @@ func GetAppState(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *d
 	// Is the named daemon running?
 	pattern = regexp.MustCompile(`server is up and running`)
 	up := pattern.FindString(out.Output)
-	bind9Daemon.Active = up != ""
+	daemon.Active = up != ""
 
 	// Up time
 	pattern = regexp.MustCompile(`boot time:\s+(.+)`)
@@ -135,7 +133,7 @@ func GetAppState(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *d
 		}
 		now := time.Now()
 		elapsed := now.Sub(bootTime)
-		bind9Daemon.Uptime = int64(elapsed.Seconds())
+		daemon.Uptime = int64(elapsed.Seconds())
 	} else {
 		log.Warnf("Cannot get BIND 9 uptime: unable to find boot time in output")
 	}
@@ -148,7 +146,7 @@ func GetAppState(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *d
 		if err != nil {
 			log.Warnf("Cannot get BIND 9 reload time: %s", err.Error())
 		}
-		bind9Daemon.ReloadedAt = reloadTime
+		daemon.ReloadedAt = reloadTime
 	} else {
 		log.Warnf("Cannot get BIND 9 reload time: unable to find last configured time in output")
 	}
@@ -165,30 +163,26 @@ func GetAppState(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *d
 		if err != nil {
 			log.Warnf("Cannot get BIND 9 number of automatic zones: %s", err.Error())
 		}
-		bind9Daemon.Bind9Daemon.Stats.ZoneCount = int64(count - autoCount)
-		bind9Daemon.Bind9Daemon.Stats.AutomaticZoneCount = int64(autoCount)
+		daemon.Bind9Daemon.Stats.ZoneCount = int64(count - autoCount)
+		daemon.Bind9Daemon.Stats.AutomaticZoneCount = int64(autoCount)
 	} else {
 		log.Warnf("Cannot get BIND 9 number of zones: unable to find number of zones in output")
 	}
 
-	// Save status
-	dbApp.Active = bind9Daemon.Active
-	dbApp.Meta.Version = bind9Daemon.Version
-	dbApp.Daemons = []*dbmodel.Daemon{
-		bind9Daemon,
-	}
-
 	// Get statistics
-	GetAppStatistics(ctx, agents, dbApp)
+	err = GetDaemonStatistics(ctx, agents, daemon)
+	if err != nil {
+		log.Warnf("Problem getting BIND 9 statistics: %s", err)
+	}
 }
 
-// Inserts or updates information about BIND 9 app in the database.
-func CommitAppIntoDB(db *dbops.PgDB, app *dbmodel.App, eventCenter eventcenter.EventCenter) (err error) {
-	if app.ID == 0 {
-		_, err = dbmodel.AddApp(db, app)
-		eventCenter.AddInfoEvent("added {app}", app.Machine, app)
+// Inserts or updates information about BIND 9 daemon in the database.
+func CommitIntoDB(db *dbops.PgDB, daemon *dbmodel.Daemon, eventCenter eventcenter.EventCenter) (err error) {
+	if daemon.ID == 0 {
+		err = dbmodel.AddDaemon(db, daemon)
+		eventCenter.AddInfoEvent("added {daemon}", daemon.Machine, daemon)
 	} else {
-		_, _, err = dbmodel.UpdateApp(db, app)
+		err = dbmodel.UpdateDaemon(db, daemon)
 	}
 	// todo: perform any additional actions required after storing the
 	// app in the db.

@@ -65,11 +65,11 @@ func validateGetLeasesResponse(commandName keactrl.CommandName, result keactrl.R
 // Sends a lease4-get command with ip-address argument specifying a searched lease.
 // If the lease is found, the pointer to it is returned. If the lease does not
 // exist, a nil pointer and nil error are returned.
-func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, ipAddress string) (lease *dbmodel.Lease, err error) {
+func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, ipAddress string) (lease *dbmodel.Lease, err error) {
 	command := keactrl.NewCommandLease4Get(ipAddress, keactrl.DHCPv4)
 	response := make([]Lease4GetResponse, 1)
 	ctx := context.Background()
-	respResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, []keactrl.SerializableCommand{command}, &response)
+	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{command}, &response)
 	if err != nil {
 		return lease, err
 	}
@@ -86,8 +86,8 @@ func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, 
 		return lease, err
 	}
 	lease = response[0].Arguments
-	lease.AppID = dbApp.ID
-	lease.App = dbApp
+	lease.DaemonId = daemon.ID
+	lease.Daemon = daemon
 	return lease, nil
 }
 
@@ -95,11 +95,11 @@ func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, 
 // searched lease type and IP address. If the lease is found, the pointer to
 // it is returned. If the lease does not exist, a nil pointer and nil error
 // are returned.
-func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, leaseType keactrl.LeaseType, ipAddress string) (lease *dbmodel.Lease, err error) {
+func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, leaseType keactrl.LeaseType, ipAddress string) (lease *dbmodel.Lease, err error) {
 	command := keactrl.NewCommandLease6Get(leaseType, ipAddress, "dhcp6")
 	response := make([]Lease6GetResponse, 1)
 	ctx := context.Background()
-	respResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, []keactrl.SerializableCommand{command}, &response)
+	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{command}, &response)
 	if err != nil {
 		return lease, err
 	}
@@ -116,8 +116,8 @@ func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, 
 		return lease, err
 	}
 	lease = response[0].Arguments
-	lease.AppID = dbApp.ID
-	lease.App = dbApp
+	lease.DaemonId = daemon.ID
+	lease.Daemon = daemon
 	return lease, nil
 }
 
@@ -130,15 +130,13 @@ func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, 
 // lease4-get-by-hw-address, lease4-get-by-client-id and lease6-get-by-duid
 // commands. The specified commands are combined in a single gRPC transaction
 // to minimize the number of roundtrips between the Stork Server and an agent.
-func getLeasesByProperties(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, propertyValue string, commandNames ...keactrl.CommandName) (leases []dbmodel.Lease, warns bool, err error) {
+func getLeasesByProperties(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, propertyValue string, commandNames ...keactrl.CommandName) (leases []dbmodel.Lease, warns bool, err error) {
 	var commands []keactrl.SerializableCommand
 	for _, commandName := range commandNames {
-		var daemons []string
 		var propertyName string
 		sentPropertyValue := propertyValue
 		switch commandName {
 		case keactrl.Lease4GetByHWAddress:
-			daemons = append(daemons, "dhcp4")
 			// Searching by empty MAC address is allowed when trying to find declined leases.
 			// If the value is non-empty, it has to be properly formatted.
 			if len(sentPropertyValue) > 0 {
@@ -152,33 +150,29 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App,
 			}
 			propertyName = "hw-address"
 		case keactrl.Lease4GetByClientID:
-			daemons = append(daemons, "dhcp4")
 			propertyName = "client-id"
 		case keactrl.Lease6GetByDUID:
 			// Kea does not accept empty DUIDs. Empty DUID in Kea is represented by 1 zero byte (Kea < 2.3.8) or 3 zero bytes (Kea >= 2.3.8).
 			if len(sentPropertyValue) == 0 {
-				semver := storkutil.ParseSemanticVersionOrLatest(dbApp.Meta.Version)
+				semver := storkutil.ParseSemanticVersionOrLatest(daemon.Version)
 				if semver.LessThan(storkutil.NewSemanticVersion(2, 3, 8)) {
 					sentPropertyValue = "0"
 				} else {
 					sentPropertyValue = "00:00:00"
 				}
 			}
-			daemons = append(daemons, "dhcp6")
 			propertyName = "duid"
 		case keactrl.Lease4GetByHostname:
-			daemons = append(daemons, "dhcp4")
 			if err != nil {
 				return leases, false, err
 			}
 			propertyName = "hostname"
 		case keactrl.Lease6GetByHostname:
-			daemons = append(daemons, "dhcp6")
 			propertyName = "hostname"
 		default:
 			continue
 		}
-		command := keactrl.NewCommandBase(commandName, daemons...).
+		command := keactrl.NewCommandBase(commandName, daemon.Name).
 			WithArgument(propertyName, sentPropertyValue)
 		commands = append(commands, command)
 	}
@@ -198,7 +192,7 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App,
 	ctx := context.Background()
 
 	// Send all commands to Kea via Stork Agent.
-	respResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, commands, responses...)
+	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, commands, responses...)
 	if err != nil {
 		return leases, false, err
 	}
@@ -230,46 +224,15 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App,
 		}
 	}
 	for i := range leases {
-		leases[i].AppID = dbApp.ID
-		leases[i].App = dbApp
+		leases[i].DaemonId = daemon.ID
+		leases[i].Daemon = daemon
 	}
 	return leases, warns, nil
 }
 
-// Sends lease4-get-by-hw-address command to Kea.
-func GetLeases4ByHWAddress(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, hwAddress string) (leases []dbmodel.Lease, err error) {
-	leases, _, err = getLeasesByProperties(agents, dbApp, hwAddress, "lease4-get-by-hw-address")
-	return leases, err
-}
-
-// Sends lease4-get-by-client-id command to Kea.
-func GetLeases4ByClientID(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, clientID string) (leases []dbmodel.Lease, err error) {
-	leases, _, err = getLeasesByProperties(agents, dbApp, clientID, "lease4-get-by-client-id")
-	return leases, err
-}
-
-// Sends lease4-get-by-hostname command to Kea.
-func GetLeases4ByHostname(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, hostname string) (leases []dbmodel.Lease, err error) {
-	leases, _, err = getLeasesByProperties(agents, dbApp, hostname, "lease4-get-by-hostname")
-	return leases, err
-}
-
-// Sends lease6-get-by-duid command to Kea.
-func GetLeases6ByDUID(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, duid string) (leases []dbmodel.Lease, err error) {
-	leases, _, err = getLeasesByProperties(agents, dbApp, duid, "lease6-get-by-duid")
-	return leases, err
-}
-
-// Sends lease6-get-by-hostname command to Kea.
-func GetLeases6ByHostname(agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, hostname string) (leases []dbmodel.Lease, err error) {
-	leases, _, err = getLeasesByProperties(agents, dbApp, hostname, "lease6-get-by-hostname")
-	return leases, err
-}
-
-// Convenience function checking if a daemon being a part of the specified app
-// has the libdhcp_lease_cmds hooks library configured.
-func hasLeaseCmdsHook(app *dbmodel.App, daemonName string) bool {
-	daemon := app.GetDaemonByName(daemonName)
+// Convenience function checking if a given daemon has the libdhcp_lease_cmds
+// hooks library configured.
+func hasLeaseCmdsHook(daemon *dbmodel.Daemon) bool {
 	if daemon != nil && daemon.KeaDaemon != nil && daemon.KeaDaemon.Config != nil {
 		if _, _, ok := daemon.KeaDaemon.Config.GetHookLibrary("libdhcp_lease_cmds"); ok {
 			return true
@@ -290,7 +253,7 @@ func hasLeaseCmdsHook(app *dbmodel.App, daemonName string) bool {
 // that some leases may not be included due to the communication
 // errors with some servers. The third returned value indicates
 // a general error, e.g. issues with Stork database communication.
-func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (leases []dbmodel.Lease, erredApps []*dbmodel.App, err error) {
+func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (leases []dbmodel.Lease, erredDaemons []*dbmodel.Daemon, err error) {
 	// Recognize if the text comprises an IP address or some identifier,
 	// e.g. MAC address or client identifier.
 	const (
@@ -315,46 +278,54 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 		queryType = identifier
 	}
 
-	// Get Kea apps from the database. We will send commands to these
-	// apps to find leases.
-	apps, err := dbmodel.GetAppsByType(db, dbmodel.AppTypeKea)
+	// Get Kea daemons from the database. We will send commands to these
+	// daemons to find leases.
+	daemons, err := dbmodel.GetDHCPDaemons(db)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to fetch Kea apps while searching for leases by %s", text)
-		return leases, erredApps, err
+		err = errors.WithMessagef(err, "failed to fetch Kea daemons while searching for leases by %s", text)
+		return leases, erredDaemons, err
 	}
 
-	for i := range apps {
-		appError := false
-		app := &apps[i]
+	for i := range daemons {
+		daemonError := false
+		daemon := &daemons[i]
+
+		if !hasLeaseCmdsHook(daemon) {
+			continue
+		}
 
 		switch queryType {
 		case ipv4:
-			if hasLeaseCmdsHook(app, dbmodel.DaemonNameDHCPv4) {
-				// This is an IPv4 address, so send the command to the DHCPv4 server.
-				lease, err := GetLease4ByIPAddress(agents, app, text)
-				if err != nil {
-					appError = true
-					log.Warn(err)
-				} else if lease != nil {
-					leases = append(leases, *lease)
-				}
+			if daemon.Name != dbmodel.DaemonNameDHCPv4 {
+				// This is not a DHCPv4 daemon, so skip it.
+				continue
+			}
+			// This is an IPv4 address, so send the command to the DHCPv4 server.
+			lease, err := GetLease4ByIPAddress(agents, daemon, text)
+			if err != nil {
+				daemonError = true
+				log.WithError(err).Warn("Failed to fetch lease by IPv4 address from Kea")
+			} else if lease != nil {
+				leases = append(leases, *lease)
 			}
 		case ipv6:
-			if hasLeaseCmdsHook(app, dbmodel.DaemonNameDHCPv6) {
-				// This is an IPv6 address (or prefix), so send the command to the
-				// DHCPv6 server instead.
-				for _, leaseType := range []keactrl.LeaseType{keactrl.LeaseTypeNA, keactrl.LeaseTypePD} {
-					lease, err := GetLease6ByIPAddress(agents, app, leaseType, text)
-					if err != nil {
-						appError = true
-						log.Warn(err)
-					} else if lease != nil {
-						leases = append(leases, *lease)
-						// If we found a lease by IP address there is no reason to
-						// query by delegated prefix because the IP address/prefix
-						// must be unique in the database.
-						break
-					}
+			if daemon.Name != dbmodel.DaemonNameDHCPv6 {
+				// This is not a DHCPv6 daemon, so skip it.
+				continue
+			}
+			// This is an IPv6 address (or prefix), so send the command to the
+			// DHCPv6 server instead.
+			for _, leaseType := range []keactrl.LeaseType{keactrl.LeaseTypeNA, keactrl.LeaseTypePD} {
+				lease, err := GetLease6ByIPAddress(agents, daemon, leaseType, text)
+				if err != nil {
+					daemonError = true
+					log.WithError(err).Warn("Failed to fetch lease by IPv6 address from Kea")
+				} else if lease != nil {
+					leases = append(leases, *lease)
+					// If we found a lease by IP address there is no reason to
+					// query by delegated prefix because the IP address/prefix
+					// must be unique in the database.
+					break
 				}
 			}
 		default:
@@ -362,12 +333,10 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 			// lots of common code, so they are combined in their own switch statement.
 			var commands []keactrl.CommandName
 
-			hasLeseCmdHookIPv6 := hasLeaseCmdsHook(app, dbmodel.DaemonNameDHCPv6)
-
 			// From Kea 2.3.8, the DUID identifier must be at least 3 bytes long.
 			// If the value is shorter, it must be a hostname.
-			if queryType == identifier && hasLeseCmdHookIPv6 && storkutil.CountHexIdentifierBytes(text) < 3 {
-				semver := storkutil.ParseSemanticVersionOrLatest(app.Meta.Version)
+			if queryType == identifier && storkutil.CountHexIdentifierBytes(text) < 3 {
+				semver := storkutil.ParseSemanticVersionOrLatest(daemon.Version)
 				if semver.GreaterThanOrEqual(storkutil.NewSemanticVersion(2, 3, 8)) {
 					// It isn't an identifier in the Kea 2.3.8+ sense.
 					queryType = hostname
@@ -376,35 +345,35 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 
 			switch queryType {
 			case identifier:
-				if hasLeaseCmdsHook(app, dbmodel.DaemonNameDHCPv4) {
+				if daemon.Name == dbmodel.DaemonNameDHCPv4 {
 					commands = append(commands, "lease4-get-by-hw-address", "lease4-get-by-client-id")
 				}
-				if hasLeseCmdHookIPv6 {
+				if daemon.Name == dbmodel.DaemonNameDHCPv6 {
 					commands = append(commands, "lease6-get-by-duid")
 				}
 			default:
-				if hasLeaseCmdsHook(app, dbmodel.DaemonNameDHCPv4) {
+				if daemon.Name == dbmodel.DaemonNameDHCPv4 {
 					commands = append(commands, "lease4-get-by-hostname")
 				}
-				if hasLeseCmdHookIPv6 {
+				if daemon.Name == dbmodel.DaemonNameDHCPv6 {
 					commands = append(commands, "lease6-get-by-hostname")
 				}
 			}
 			// Search for leases by identifier or hostname.
-			leasesByProperties, warns, err := getLeasesByProperties(agents, app, text, commands...)
-			appError = warns
+			leasesByProperties, warns, err := getLeasesByProperties(agents, daemon, text, commands...)
+			daemonError = warns
 			if err != nil {
-				appError = true
-				log.WithError(err).Warnf("Failed to fetch leases from Kea [%d] %s app", app.ID, app.Name)
+				daemonError = true
+				log.WithError(err).Warnf("Failed to fetch leases from Kea [%d] %s daemon", daemon.ID, daemon.Name)
 			} else {
 				leases = append(leases, leasesByProperties...)
 			}
 		}
-		if appError {
-			erredApps = append(erredApps, app)
+		if daemonError {
+			erredDaemons = append(erredDaemons, daemon)
 		}
 	}
-	return leases, erredApps, nil
+	return leases, erredDaemons, nil
 }
 
 // Attempts to find declined leases on the Kea servers. Kea provides no
@@ -418,32 +387,39 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 // aware that some leases may not be included due to the communication
 // errors with some servers. The third returned value indicates a general
 // error, e.g. issues with Stork database communication.
-func FindDeclinedLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents) (leases []dbmodel.Lease, erredApps []*dbmodel.App, err error) {
-	// Get all Kea apps.
-	apps, err := dbmodel.GetAppsByType(db, dbmodel.AppTypeKea)
+func FindDeclinedLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents) (leases []dbmodel.Lease, erredDaemons []*dbmodel.Daemon, err error) {
+	// Get all Kea daemons.
+	daemons, err := dbmodel.GetDHCPDaemons(db)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to fetch Kea apps while searching for declined leases")
-		return leases, erredApps, err
+		err = errors.WithMessagef(err, "failed to fetch Kea daemons while searching for declined leases")
+		return leases, erredDaemons, err
 	}
 
-	// Send appropriate commands to each app.
-	for i := range apps {
-		appError := false
+	// Send appropriate commands to each daemon.
+	for i := range daemons {
+		daemon := &daemons[i]
+		daemonError := false
+
+		if !hasLeaseCmdsHook(daemon) {
+			// This daemon does not have the libdhcp_lease_cmds hook library configured
+			// so it cannot return leases.
+			continue
+		}
 
 		var commands []keactrl.CommandName
-		if hasLeaseCmdsHook(&apps[i], dbmodel.DaemonNameDHCPv4) {
+		if daemon.Name == dbmodel.DaemonNameDHCPv4 {
 			commands = append(commands, "lease4-get-by-hw-address")
 		}
-		if hasLeaseCmdsHook(&apps[i], dbmodel.DaemonNameDHCPv6) {
+		if daemon.Name == dbmodel.DaemonNameDHCPv6 {
 			commands = append(commands, "lease6-get-by-duid")
 		}
 
 		// Send these commands with empty hw-address and empty duid.
-		leasesByProperties, warns, err := getLeasesByProperties(agents, &apps[i], "", commands...)
-		appError = warns
+		leasesByProperties, warns, err := getLeasesByProperties(agents, daemon, "", commands...)
+		daemonError = warns
 		if err != nil {
-			appError = true
-			log.Warn(err)
+			daemonError = true
+			log.WithError(err).Warnf("Failed to fetch leases from Kea [%d] %s daemon", daemon.ID, daemon.Name)
 		} else {
 			for j := range leasesByProperties {
 				// Only return the leases in the declined state.
@@ -452,11 +428,11 @@ func FindDeclinedLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents) (lease
 				}
 			}
 		}
-		if appError {
-			erredApps = append(erredApps, &apps[i])
+		if daemonError {
+			erredDaemons = append(erredDaemons, daemon)
 		}
 	}
-	return leases, erredApps, nil
+	return leases, erredDaemons, nil
 }
 
 // Selects leases not matching specified host reservation. It compares DHCP
@@ -514,33 +490,40 @@ func findHostLeaseConflicts(host *dbmodel.Host, leases []dbmodel.Lease) (conflic
 // exist, no leases are returned. This function will send commands to all
 // monitored Kea servers querying for leases assigned to the given host.
 // If there is a communication problem with any of the Kea servers, the details
-// of the server are recorded in the erredApps slice.
-func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID int64) (leases []dbmodel.Lease, conflicts []int64, erredApps []*dbmodel.App, err error) {
+// of the server are recorded in the erredDaemons slice.
+func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID int64) (leases []dbmodel.Lease, conflicts []int64, erredDaemons []*dbmodel.Daemon, err error) {
 	host, err := dbmodel.GetHost(db, hostID)
 	if err != nil {
 		err = errors.WithMessagef(err, "failed to fetch host with ID %d while searching for its leases", hostID)
-		return leases, conflicts, erredApps, err
+		return leases, conflicts, erredDaemons, err
 	}
 	if host == nil {
-		return leases, conflicts, erredApps, err
+		return leases, conflicts, erredDaemons, err
 	}
 
-	// Get Kea apps from the database. We will send commands to these
-	// apps to find leases.
-	apps, err := dbmodel.GetAppsByType(db, dbmodel.AppTypeKea)
+	// Get Kea daemons from the database. We will send commands to these
+	// daemons to find leases.
+	daemons, err := dbmodel.GetDHCPDaemons(db)
 	if err != nil {
-		err = errors.WithMessagef(err, "failed to fetch Kea apps while searching for leases for host ID %d", hostID)
-		return leases, conflicts, erredApps, err
+		err = errors.WithMessagef(err, "failed to fetch Kea daemons while searching for leases for host ID %d", hostID)
+		return leases, conflicts, erredDaemons, err
 	}
 
 	currentLeaseID := int64(1)
-	for i := range apps {
+	for i := range daemons {
+		daemon := &daemons[i]
+		if !hasLeaseCmdsHook(daemon) {
+			// This daemon does not have the libdhcp_lease_cmds hook library configured
+			// so it cannot return leases.
+			continue
+		}
+
 		// Monitor if a daemon returned an error. We stop sending commands to the
 		// daemon it first returns an error.
 		dhcp4Error := false
 		dhcp6Error := false
-		appError := false
-		// Go over all IP reservations and send appropriate commands to the app
+		daemonError := false
+		// Go over all IP reservations and send appropriate commands to the daemon
 		// for each of them.
 		for _, address := range host.GetIPReservations() {
 			parsedIP := storkutil.ParseIP(address)
@@ -551,8 +534,8 @@ func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID
 			// Determine if this is IPv4 or IPv6 lease.
 			switch parsedIP.Protocol {
 			case storkutil.IPv4:
-				if !dhcp4Error && hasLeaseCmdsHook(&apps[i], dbmodel.DaemonNameDHCPv4) {
-					lease, err := GetLease4ByIPAddress(agents, &apps[i], parsedIP.NetworkPrefix)
+				if !dhcp4Error {
+					lease, err := GetLease4ByIPAddress(agents, daemon, parsedIP.NetworkPrefix)
 					if err != nil {
 						dhcp4Error = true
 						log.Warn(err)
@@ -563,14 +546,14 @@ func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID
 					}
 				}
 			case storkutil.IPv6:
-				if !dhcp6Error && hasLeaseCmdsHook(&apps[i], dbmodel.DaemonNameDHCPv6) {
+				if !dhcp6Error {
 					// These commands distinguish between IA_NA and IA_PD. A caller
 					// must specify the lease type.
 					leaseType := keactrl.LeaseTypeNA
 					if parsedIP.Prefix {
 						leaseType = keactrl.LeaseTypePD
 					}
-					lease, err := GetLease6ByIPAddress(agents, &apps[i], leaseType, parsedIP.NetworkPrefix)
+					lease, err := GetLease6ByIPAddress(agents, daemon, leaseType, parsedIP.NetworkPrefix)
 					if err != nil {
 						dhcp6Error = true
 						log.Warn(err)
@@ -584,17 +567,17 @@ func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID
 				// Again, this is impossible condition.
 				continue
 			}
-			// The app returned an error. Maybe the server is unavailable. We don't
+			// The daemon returned an error. Maybe the server is unavailable. We don't
 			// want to send more commands to a daemon returning an error because there
 			// is a minimal chance it will reply with success.
 			if dhcp4Error || dhcp6Error {
-				if !appError {
-					// Record an app for which the error was returned.
-					erredApps = append(erredApps, &apps[i])
-					appError = true
+				if !daemonError {
+					// Record a daemon for which the error was returned.
+					erredDaemons = append(erredDaemons, daemon)
+					daemonError = true
 				}
 				// If both daemons returned an error, stop sending any commands to
-				// this app.
+				// this daemon.
 				if dhcp4Error && dhcp6Error {
 					break
 				}
@@ -606,5 +589,5 @@ func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID
 	// DHCP identifiers than those in our host reservations.
 	conflicts = findHostLeaseConflicts(host, leases)
 
-	return leases, conflicts, erredApps, err
+	return leases, conflicts, erredDaemons, err
 }

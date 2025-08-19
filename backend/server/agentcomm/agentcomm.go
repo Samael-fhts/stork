@@ -39,13 +39,13 @@ type ConnectedAgents interface {
 	GetConnectedAgentStatsWrapper(address string, port int64) *AgentCommStatsWrapper
 	Ping(ctx context.Context, machine dbmodel.MachineTag) error
 	GetState(ctx context.Context, machine dbmodel.MachineTag) (*State, error)
-	ForwardRndcCommand(ctx context.Context, app ControlledApp, command string) (*RndcOutput, error)
-	ForwardToNamedStats(ctx context.Context, app ControlledApp, statsAddress string, statsPort int64, requestType ForwardToNamedStatsRequestType, statsOutput any) error
-	ForwardToKeaOverHTTP(ctx context.Context, app ControlledApp, commands []keactrl.SerializableCommand, cmdResponses ...any) (*KeaCmdsResult, error)
-	GetPowerDNSServerInfo(ctx context.Context, app ControlledApp) (*pdnsdata.ServerInfo, error)
+	ForwardRndcCommand(ctx context.Context, daemon ControlledDaemon, command string) (*RndcOutput, error)
+	ForwardToNamedStats(ctx context.Context, daemon ControlledDaemon, requestType ForwardToNamedStatsRequestType, statsOutput any) error
+	ForwardToKeaOverHTTP(ctx context.Context, daemon ControlledDaemon, commands []keactrl.SerializableCommand, cmdResponses ...any) (*KeaCmdsResult, error)
+	GetPowerDNSServerInfo(ctx context.Context, daemon ControlledDaemon) (*pdnsdata.ServerInfo, error)
 	TailTextFile(ctx context.Context, machine dbmodel.MachineTag, path string, offset int64) ([]string, error)
-	ReceiveZones(ctx context.Context, app ControlledApp, filter *bind9stats.ZoneFilter) iter.Seq2[*bind9stats.ExtendedZone, error]
-	ReceiveZoneRRs(ctx context.Context, app ControlledApp, zoneName string, viewName string) iter.Seq2[[]*dnsconfig.RR, error]
+	ReceiveZones(ctx context.Context, daemon ControlledDaemon, filter *bind9stats.ZoneFilter) iter.Seq2[*bind9stats.ExtendedZone, error]
+	ReceiveZoneRRs(ctx context.Context, daemon ControlledDaemon, zoneName string, viewName string) iter.Seq2[[]*dnsconfig.RR, error]
 }
 
 // Interface representing a connector to a selected agent over gRPC.

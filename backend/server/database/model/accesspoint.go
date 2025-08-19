@@ -10,9 +10,8 @@ import (
 
 // A structure reflecting the access_point SQL table.
 type AccessPoint struct {
-	AppID             int64  `pg:",pk"`
+	DaemonID          int64  `pg:",pk"`
 	Type              string `pg:",pk"`
-	MachineID         int64
 	Address           string
 	Port              int64
 	Key               string
@@ -38,9 +37,9 @@ func AppendAccessPoint(list []*AccessPoint, tp, address, key string, port int64,
 	return list
 }
 
-// Get an access point by app id and access point type.
-func GetAccessPointByID(db dbops.DBI, appID int64, accessPointType string) (*AccessPoint, error) {
-	accessPoint := &AccessPoint{AppID: appID, Type: accessPointType}
+// Get an access point by daemon id and access point type.
+func GetAccessPointByID(db dbops.DBI, daemonID int64, accessPointType string) (*AccessPoint, error) {
+	accessPoint := &AccessPoint{DaemonID: daemonID, Type: accessPointType}
 	err := db.Model(accessPoint).WherePK().Select()
 
 	if errors.Is(err, pg.ErrNoRows) {
@@ -48,10 +47,62 @@ func GetAccessPointByID(db dbops.DBI, appID int64, accessPointType string) (*Acc
 	} else if err != nil {
 		return nil, pkgerrors.Wrapf(
 			err,
-			"problem getting access point of app: %d and with type: %s",
-			appID,
+			"problem getting access point of daemon: %d and with type: %s",
+			daemonID,
 			accessPointType,
 		)
 	}
 	return accessPoint, nil
+}
+
+// Add or update an access point in the database.
+func AddOrUpdateAccessPoint(db dbops.DBI, accessPoint *AccessPoint) error {
+	// If the access point already exists, update it.
+	_, err := db.Model(accessPoint).WherePK().OnConflict("(daemon_id, type) DO UPDATE").Insert()
+	if err != nil {
+		return pkgerrors.Wrapf(
+			err,
+			"problem adding or updating access point: %v",
+			accessPoint,
+		)
+	}
+	return nil
+}
+
+// Deletes an access point by daemon id and access point type.
+func DeleteAccessPoint(db dbops.DBI, daemonID int64, accessPointType string) error {
+	accessPoint := &AccessPoint{DaemonID: daemonID, Type: accessPointType}
+	_, err := db.Model(accessPoint).WherePK().Delete()
+	if err != nil {
+		return pkgerrors.Wrapf(
+			err,
+			"problem deleting access point of daemon: %d and with type: %s",
+			daemonID,
+			accessPointType,
+		)
+	}
+	return nil
+}
+
+// Deletes all access points for a given daemon that doesn't match the provided
+// types. If `keepTypes` is empty, all access points for the daemon will be
+// deleted.
+func DeleteAccessPointsByDaemonID(db dbops.DBI, daemonID int64, keepTypes []string) error {
+	accessPoint := &AccessPoint{DaemonID: daemonID}
+	query := db.Model(accessPoint).Where("daemon_id = ?", daemonID)
+
+	if len(keepTypes) > 0 {
+		query.Where("type NOT IN (?)", pg.In(keepTypes))
+	}
+
+	_, err := query.Delete()
+	if err != nil {
+		return pkgerrors.Wrapf(
+			err,
+			"problem deleting access points for daemon: %d, keeping types: %v",
+			daemonID,
+			keepTypes,
+		)
+	}
+	return nil
 }

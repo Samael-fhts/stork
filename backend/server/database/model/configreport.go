@@ -186,8 +186,8 @@ func (r *ConfigReport) AfterSelect(ctx context.Context) error {
 
 	for _, daemon := range r.RefDaemons {
 		content := strings.Replace(*r.Content, "{daemon}",
-			fmt.Sprintf("<daemon id=\"%d\" name=\"%s\" appId=\"%d\" appType=\"%s\">",
-				daemon.ID, daemon.Name, daemon.AppID, daemon.App.Type),
+			fmt.Sprintf("<daemon id=\"%d\" name=\"%s\" machineId=\"%d\">",
+				daemon.ID, daemon.Name, daemon.MachineID),
 			1)
 		r.Content = &content
 	}
