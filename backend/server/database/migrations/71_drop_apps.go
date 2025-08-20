@@ -49,6 +49,11 @@ func init() {
 				ON DELETE CASCADE;
 			-- Drop the unnecessary reference to the app table.
 			ALTER TABLE daemon DROP COLUMN app_id;
+
+			-- Update name of the state puller puller in settings.
+			UPDATE setting
+			SET name = 'state_puller_interval'
+			WHERE name = 'apps_state_puller_interval';
 		`)
 		return err
 	}, func(db migrations.DB) error {

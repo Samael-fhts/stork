@@ -50,10 +50,10 @@ func (r *RestAPI) GetLeases(ctx context.Context, params dhcp.GetLeasesParams) mi
 
 	// Try to find the leases from monitored Kea servers.
 	var (
-		keaLeases []dbmodel.Lease
-		conflicts []int64
+		keaLeases    []dbmodel.Lease
+		conflicts    []int64
 		erredDaemons []*dbmodel.Daemon
-		err       error
+		err          error
 	)
 	if len(text) > 0 {
 		// Handle a special case when user specified state:declined search text
@@ -78,9 +78,9 @@ func (r *RestAPI) GetLeases(ctx context.Context, params dhcp.GetLeasesParams) mi
 	// Return leases over the REST API.
 	for i := range keaLeases {
 		l := keaLeases[i]
-		var appName string
-		if l.App != nil {
-			appName = l.App.Name
+		var daemonName string
+		if l.Daemon != nil {
+			daemonName = l.Daemon.Name
 		}
 		cltt := int64(l.CLTT)
 		state := int64(l.State)
@@ -95,8 +95,8 @@ func (r *RestAPI) GetLeases(ctx context.Context, params dhcp.GetLeasesParams) mi
 		}
 		lease := models.Lease{
 			ID:                &l.ID,
-			AppID:             &l.AppID,
-			AppName:           &appName,
+			DaemonID:          &l.DaemonId,
+			DaemonName:        &daemonName,
 			ClientID:          l.ClientID,
 			Cltt:              &cltt,
 			Duid:              duid,
@@ -121,11 +121,11 @@ func (r *RestAPI) GetLeases(ctx context.Context, params dhcp.GetLeasesParams) mi
 	leases.Conflicts = append(leases.Conflicts, conflicts...)
 	leases.Total = int64(len(leases.Items))
 
-	// Record apps for which there was an error communicating with the Kea servers.
-	for i := range erredApps {
-		leases.ErredApps = append(leases.ErredApps, &models.LeasesSearchErredApp{
-			ID:   &erredApps[i].ID,
-			Name: &erredApps[i].Name,
+	// Record daemons for which there was an error communicating with the Kea servers.
+	for i := range erredDaemons {
+		leases.ErredDaemons = append(leases.ErredDaemons, &models.LeasesSearchErredDaemon{
+			ID:   &erredDaemons[i].ID,
+			Name: &erredDaemons[i].Name,
 		})
 	}
 

@@ -45,7 +45,6 @@ const (
 // Relations between the event and other entities.
 type Relations struct {
 	MachineID int64 `json:",omitempty"`
-	AppID     int64 `json:",omitempty"`
 	SubnetID  int64 `json:",omitempty"`
 	DaemonID  int64 `json:",omitempty"`
 	UserID    int64 `json:",omitempty"`

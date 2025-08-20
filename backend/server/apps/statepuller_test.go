@@ -22,7 +22,7 @@ func TestStatsPullerBasic(t *testing.T) {
 
 	// set one setting that is needed by puller
 	setting := dbmodel.Setting{
-		Name:    "apps_state_puller_interval",
+		Name:    "state_puller_interval",
 		ValType: dbmodel.SettingValTypeInt,
 		Value:   "60",
 	}
@@ -111,7 +111,7 @@ func TestStatePullerPullData(t *testing.T) {
 
 	// set one setting that is needed by puller
 	setting := dbmodel.Setting{
-		Name:    "apps_state_puller_interval",
+		Name:    "state_puller_interval",
 		ValType: dbmodel.SettingValTypeInt,
 		Value:   "60",
 	}

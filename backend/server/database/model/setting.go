@@ -72,7 +72,7 @@ func InitializeSettings(db *pg.DB, initialPullerInterval int64) error {
 			Value:   mediumInterval,
 		},
 		{
-			Name:    "apps_state_puller_interval", // in seconds
+			Name:    "state_puller_interval", // in seconds
 			ValType: SettingValTypeInt,
 			Value:   mediumInterval,
 		},

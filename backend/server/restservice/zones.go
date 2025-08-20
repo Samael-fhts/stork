@@ -59,8 +59,6 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 		var restLocalZones []*models.LocalZone
 		for _, localZone := range zone.LocalZones {
 			restLocalZones = append(restLocalZones, &models.LocalZone{
-				AppID:    localZone.Daemon.App.ID,
-				AppName:  localZone.Daemon.App.Name,
 				Class:    localZone.Class,
 				DaemonID: localZone.DaemonID,
 				LoadedAt: strfmt.DateTime(localZone.LoadedAt),
@@ -113,8 +111,6 @@ func (r *RestAPI) GetZonesFetch(ctx context.Context, params dns.GetZonesFetchPar
 	var restStates []*models.ZoneInventoryState
 	for _, state := range states {
 		restStates = append(restStates, &models.ZoneInventoryState{
-			AppID:              state.Daemon.AppID,
-			AppName:            state.Daemon.App.Name,
 			CreatedAt:          strfmt.DateTime(state.CreatedAt),
 			DaemonID:           state.DaemonID,
 			Error:              state.State.Error,

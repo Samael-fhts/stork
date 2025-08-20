@@ -663,7 +663,7 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         until the end of writing all application-related entries (subnets,
         shared networks, hosts) to the database.
         """
-        self._wait_for_puller("apps_state_puller_interval", start)
+        self._wait_for_puller("state_puller_interval", start)
 
     @wait_for_success(
         DatabaseDeadlockError, wait_msg="Waiting to fetch next machine state..."

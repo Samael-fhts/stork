@@ -86,14 +86,12 @@ func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemon
 	}
 
 	rsp := services.NewGetDaemonConfigOK().WithPayload(&models.KeaDaemonConfig{
-		DaemonID:   dbDaemon.GetID(),
-		AppID:      dbDaemon.App.GetID(),
-		AppName:    dbDaemon.App.GetName(),
-		AppType:    dbDaemon.GetAppType().String(),
-		DaemonName: dbDaemon.GetName(),
-		Editable:   dbDaemon.Monitored && dbDaemon.Active,
-		Config:     dbDaemon.KeaDaemon.Config,
-		Options:    options,
+		DaemonID:      dbDaemon.GetID(),
+		DaemonVersion: dbDaemon.Version,
+		DaemonName:    dbDaemon.GetName(),
+		Editable:      dbDaemon.Monitored && dbDaemon.Active,
+		Config:        dbDaemon.KeaDaemon.Config,
+		Options:       options,
 	})
 	return rsp
 }
@@ -601,9 +599,6 @@ func (r *RestAPI) UpdateKeaGlobalParametersBegin(ctx context.Context, params dhc
 		}
 
 		configs = append(configs, &models.KeaDaemonConfig{
-			AppID:         daemon.GetAppID(),
-			AppName:       daemon.App.GetName(),
-			AppType:       "kea",
 			DaemonID:      daemon.ID,
 			DaemonName:    daemon.Name,
 			DaemonVersion: daemon.Version,

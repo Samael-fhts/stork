@@ -172,8 +172,8 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 	// is global for the server so various parts of the application can use it.
 	ss.DaemonLocker = config.NewDaemonLocker()
 
-	// setup apps state puller
-	ss.Pullers.AppsStatePuller, err = apps.NewStatePuller(ss.DB, ss.Agents, ss.EventCenter, ss.ReviewDispatcher, ss.DHCPOptionDefinitionLookup)
+	// setup state puller
+	ss.Pullers.StatePuller, err = apps.NewStatePuller(ss.DB, ss.Agents, ss.EventCenter, ss.ReviewDispatcher, ss.DHCPOptionDefinitionLookup)
 	if err != nil {
 		return err
 	}
@@ -252,7 +252,7 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 		ss.Pullers.KeaHostsPuller.Shutdown()
 		ss.Pullers.KeaStatsPuller.Shutdown()
 		ss.Pullers.Bind9StatsPuller.Shutdown()
-		ss.Pullers.AppsStatePuller.Shutdown()
+		ss.Pullers.StatePuller.Shutdown()
 		ss.DNSManager.Shutdown()
 		if ss.MetricsCollector != nil {
 			ss.MetricsCollector.Shutdown()
@@ -300,7 +300,7 @@ func (ss *StorkServer) Shutdown(reload bool) {
 		ss.Pullers.KeaHostsPuller.Shutdown()
 		ss.Pullers.KeaStatsPuller.Shutdown()
 		ss.Pullers.Bind9StatsPuller.Shutdown()
-		ss.Pullers.AppsStatePuller.Shutdown()
+		ss.Pullers.StatePuller.Shutdown()
 		ss.DNSManager.Shutdown()
 		ss.Agents.Shutdown()
 		ss.EventCenter.Shutdown()

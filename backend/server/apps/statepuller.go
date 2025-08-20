@@ -34,8 +34,8 @@ func NewStatePuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, eventCente
 		ReviewDispatcher:           reviewDispatcher,
 		DHCPOptionDefinitionLookup: lookup,
 	}
-	periodicPuller, err := agentcomm.NewPeriodicPuller(db, agents, "Apps State puller",
-		"apps_state_puller_interval", puller.pullData)
+	periodicPuller, err := agentcomm.NewPeriodicPuller(db, agents, "State Puller",
+		"state_puller_interval", puller.pullData)
 	if err != nil {
 		return nil, err
 	}

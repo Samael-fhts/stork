@@ -46,9 +46,9 @@
       parameters:
         - $ref: '#/parameters/paginationStartParam'
         - $ref: '#/parameters/paginationLimitParam'
-        - name: appId
+        - name: machineId
           in: query
-          description: Limit returned list of hosts to these which are served by given app ID.
+          description: Limit returned list of hosts to these which are served by given machine ID.
           type: integer
         - name: subnetId
           in: query

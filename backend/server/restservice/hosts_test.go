@@ -1730,8 +1730,8 @@ func TestStartHostsMigration(t *testing.T) {
 	hostPuller, err := kea.NewHostsPuller(db, nil, nil, nil)
 	require.NoError(t, err)
 	pullers := &apps.Pullers{
-		KeaHostsPuller:  hostPuller,
-		AppsStatePuller: statePuller,
+		KeaHostsPuller: hostPuller,
+		StatePuller:    statePuller,
 	}
 	require.False(t, statePuller.Paused())
 	require.False(t, hostPuller.Paused())

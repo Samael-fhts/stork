@@ -7,7 +7,7 @@ import (
 
 // Collection of pullers used by the server.
 type Pullers struct {
-	AppsStatePuller  *StatePuller
+	StatePuller      *StatePuller
 	Bind9StatsPuller *bind9.StatsPuller
 	KeaStatsPuller   *kea.StatsPuller
 	KeaHostsPuller   *kea.HostsPuller

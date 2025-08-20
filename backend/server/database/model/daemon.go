@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-pg/pg/v10"
+	"github.com/go-pg/pg/v10/orm"
 	pkgerrors "github.com/pkg/errors"
 	keaconfig "isc.org/stork/appcfg/kea"
 	"isc.org/stork/appdata/bind9stats"
@@ -25,6 +26,22 @@ const (
 	DaemonNameD2     DaemonName = "d2"
 	DaemonNameCA     DaemonName = "ca"
 	DaemonNamePDNS   DaemonName = "pdns"
+)
+
+// Available daemon relations to other tables.
+type DaemonRelation = string
+
+const (
+	DaemonRelationAccessPoints  DaemonRelation = "AccessPoints"
+	DaemonRelationLogTargets    DaemonRelation = "LogTargets"
+	DaemonRelationKeaDaemon     DaemonRelation = "KeaDaemon"
+	DaemonRelationKeaDHCPDaemon DaemonRelation = "KeaDaemon.KeaDHCPDaemon"
+	DaemonRelationBind9Daemon   DaemonRelation = "Bind9Daemon"
+	DaemonRelationPDNSDaemon    DaemonRelation = "PDNSDaemon"
+	DaemonRelationMachine       DaemonRelation = "Machine"
+	DaemonRelationConfigReview  DaemonRelation = "ConfigReview"
+	DaemonRelationServices      DaemonRelation = "Services"
+	DaemonRelationHAService     DaemonRelation = "Services.HAService"
 )
 
 // KEA
@@ -223,9 +240,9 @@ func NewPDNSDaemon(active bool) *Daemon {
 func GetDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
 	daemon := Daemon{}
 	q := dbi.Model(&daemon)
-	q = q.Relation("AccessPoints")
-	q = q.Relation("Machine")
-	q = q.Relation("KeaDaemon")
+	q = q.Relation(DaemonRelationAccessPoints)
+	q = q.Relation(DaemonRelationMachine)
+	q = q.Relation(DaemonRelationKeaDaemon)
 	q = q.Where("daemon.id = ?", id)
 	err := q.Select()
 	if errors.Is(err, pg.ErrNoRows) {
@@ -239,9 +256,9 @@ func GetDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
 // Get selected daemons by their ids.
 func GetDaemonsByIDs(dbi pg.DBI, ids []int64) (daemons []Daemon, err error) {
 	err = dbi.Model(&daemons).
-		Relation("AccessPoints").
-		Relation("Machine").
-		Relation("KeaDaemon.KeaDHCPDaemon").
+		Relation(DaemonRelationAccessPoints).
+		Relation(DaemonRelationMachine).
+		Relation(DaemonRelationKeaDHCPDaemon).
 		Where("daemon.id IN (?)", pg.In(ids)).
 		OrderExpr("daemon.id ASC").
 		Select()
@@ -259,12 +276,105 @@ func GetDaemonsByIDs(dbi pg.DBI, ids []int64) (daemons []Daemon, err error) {
 	return daemons, nil
 }
 
+// Retrieves all daemons.
+func GetAllDaemons(dbi dbops.DBI) ([]Daemon, error) {
+	return GetAllDaemonsWithRelations(dbi,
+		DaemonRelationAccessPoints,
+		DaemonRelationMachine,
+		DaemonRelationLogTargets,
+		DaemonRelationKeaDHCPDaemon,
+		DaemonRelationBind9Daemon,
+		DaemonRelationPDNSDaemon,
+	)
+}
+
+// Retrieves all daemons with no relationships to other tables.
+func GetAllDaemonsWithRelations(dbi dbops.DBI, relations ...DaemonRelation) ([]Daemon, error) {
+	var daemons []Daemon
+
+	q := dbi.Model(&daemons)
+	for _, relation := range relations {
+		q = q.Relation(relation)
+	}
+	err := q.OrderExpr("id ASC").Select()
+	if err != nil {
+		return nil, pkgerrors.Wrapf(err, "problem getting daemons from the database")
+	}
+	return daemons, nil
+}
+
+// Fetches a collection of daemons from the database. The offset and
+// limit specify the beginning of the page and the maximum size of the
+// page. Limit has to be greater then 0, otherwise error is
+// returned. sortField allows indicating sort column in database and
+// sortDir allows selection the order of sorting. If sortField is
+// empty then id is used for sorting. If SortDirAny is used then ASC
+// order is used.
+func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *string, sortField string, sortDir SortDirEnum, daemonNames ...DaemonName) ([]Daemon, int64, error) {
+	if limit == 0 {
+		return nil, 0, pkgerrors.New("limit should be greater than 0")
+	}
+	var daemons []Daemon
+
+	// prepare query
+	q := dbi.Model(&daemons).
+		Relation(DaemonRelationAccessPoints).
+		Relation(DaemonRelationMachine).
+		Relation(DaemonRelationLogTargets)
+
+	for _, daemonName := range daemonNames {
+		q = q.WhereOr("name = ?", daemonName)
+		switch daemonName {
+		case DaemonNameDHCPv4, DaemonNameDHCPv6:
+			q = q.Relation(DaemonRelationHAService)
+			q = q.Relation(DaemonRelationKeaDHCPDaemon)
+		case DaemonNameBind9:
+			q = q.Relation(DaemonRelationBind9Daemon)
+		case DaemonNamePDNS:
+			q = q.Relation(DaemonRelationPDNSDaemon)
+		}
+	}
+
+	if len(daemonNames) == 0 {
+		q = q.Relation(DaemonRelationHAService).
+			Relation(DaemonRelationKeaDHCPDaemon).
+			Relation(DaemonRelationBind9Daemon).
+			Relation(DaemonRelationPDNSDaemon)
+	}
+
+	if filterText != nil {
+		text := "%" + *filterText + "%"
+		q = q.WhereGroup(func(qq *orm.Query) (*orm.Query, error) {
+			qq = qq.WhereOr("name ILIKE ?", text)
+			qq = qq.WhereOr("meta->>'Version' ILIKE ?", text)
+			qq = qq.WhereOr("machine.address ILIKE ?", text)
+			qq = qq.WhereOr("machine.state->>'Hostname' ILIKE ?", text)
+			return qq, nil
+		})
+	}
+
+	// prepare sorting expression, offset and limit
+	ordExpr := prepareOrderExpr("daemon", sortField, sortDir)
+	q = q.OrderExpr(ordExpr)
+	q = q.Offset(int(offset))
+	q = q.Limit(int(limit))
+
+	total, err := q.SelectAndCount()
+	if err != nil {
+		if errors.Is(err, pg.ErrNoRows) {
+			return []Daemon{}, 0, nil
+		}
+		return nil, 0, pkgerrors.Wrapf(err, "problem getting daemons")
+	}
+	return daemons, int64(total), nil
+}
+
 // Get daemons by their name.
 func GetDaemonsByName(dbi pg.DBI, names ...DaemonName) (daemons []Daemon, err error) {
 	err = dbi.Model(&daemons).
-		Relation("AccessPoints").
-		Relation("Machine").
-		Relation("KeaDaemon.KeaDHCPDaemon").
+		Relation(DaemonRelationAccessPoints).
+		Relation(DaemonRelationMachine).
+		Relation(DaemonRelationKeaDHCPDaemon).
 		Where("daemon.name IN (?)", pg.In(names)).
 		OrderExpr("daemon.id ASC").
 		Select()
@@ -282,10 +392,15 @@ func GetDHCPDaemons(dbi pg.DBI) (daemons []Daemon, err error) {
 	return GetDaemonsByName(dbi, DaemonNameDHCPv4, DaemonNameDHCPv6)
 }
 
+// Get DNS daemons (BIND9 and PowerDNS).
+func GetDNSDaemons(dbi pg.DBI) (daemons []Daemon, err error) {
+	return GetDaemonsByName(dbi, DaemonNameBind9, DaemonNamePDNS)
+}
+
 // Get all Kea DHCP daemons.
 func GetKeaDHCPDaemons(dbi pg.DBI) (daemons []Daemon, err error) {
 	err = dbi.Model(&daemons).
-		Relation("KeaDaemon.KeaDHCPDaemon").
+		Relation(DaemonRelationKeaDHCPDaemon).
 		Where("daemon.name ILIKE 'dhcp%'").
 		OrderExpr("daemon.id ASC").
 		Select()

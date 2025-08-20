@@ -41,24 +41,32 @@ func NewMachine(db *pg.DB) (*Machine, error) {
 }
 
 // Creates new Kea app instance in the machine.
-func (machine *Machine) NewKea() (*Kea, error) {
+func (machine *Machine) newKeaDaemon(name dbmodel.DaemonName) (*KeaServer, error) {
 	ap := []*dbmodel.AccessPoint{}
 	ap = dbmodel.AppendAccessPoint(ap, dbmodel.AccessPointControl, "localhost", "", int64(getRandInt31()), true)
 
-	keaApp := dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		MachineID:    machine.ID,
-		Type:         dbmodel.AppTypeKea,
-		Name:         fmt.Sprintf("dhcp%d", getRandInt31()),
+		Name:         name,
 		Active:       true,
 		AccessPoints: ap,
-		Daemons:      []*dbmodel.Daemon{},
 	}
-	if _, err := dbmodel.AddApp(machine.db, &keaApp); err != nil {
+	if err := dbmodel.AddDaemon(machine.db, daemon); err != nil {
 		return nil, err
 	}
-	kea := &Kea{
-		machine: machine,
-		ID:      keaApp.ID,
-	}
-	return kea, nil
+
+	return &KeaServer{
+		machine:  machine,
+		DaemonID: daemon.ID,
+	}, nil
+}
+
+// Creates DHCOPv4 server instance for the Kea app.
+func (m *Machine) NewKeaDHCPv4Server() (*KeaServer, error) {
+	return m.newKeaDaemon(dbmodel.DaemonNameDHCPv4)
+}
+
+// Creates DHCPv6 server instance for the Kea app.
+func (m *Machine) NewKeaDHCPv6Server() (*KeaServer, error) {
+	return m.newKeaDaemon(dbmodel.DaemonNameDHCPv6)
 }

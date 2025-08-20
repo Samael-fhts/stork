@@ -105,9 +105,9 @@
 
   /machines/versions:
     get:
-      summary: Returns authorized machines with ISC apps software versions.
+      summary: Returns authorized machines with ISC software versions.
       description: >-
-        Returns a list of all machines' ids and ISC apps versions. It excludes detailed
+        Returns a list of all machines' ids and ISC versions. It excludes detailed
         information about the machines to return reasonably compact information. Having
         the machines' names and/or daemon versions is useful for assessment of ISC software
         versions being used on machines that are monitored by Stork.
@@ -116,7 +116,7 @@
         - Services
       responses:
         200:
-          description: List of machine ids and apps versions.
+          description: List of machine ids and software versions.
           schema:
             $ref: '#/definitions/Machines'
         default:
@@ -286,14 +286,14 @@
           schema:
             $ref: "#/definitions/ApiError"
 
-  /machines/{id}/services/status:
+  /daemons/{id}/services/status:
     get:
-      summary: Get services status for a given machine.
+      summary: Get services status for a given daemon.
       description: >-
         Services status comprises runtime information about the services.
-        In particular, a Kea application status comprises information about
+        In particular, a Kea status comprises information about
         the High Availability service, such as HA state, partner's state etc.
-      operationId: getMachineServicesStatus
+      operationId: getDaemonServicesStatus
       tags:
         - Services
       parameters:
@@ -301,7 +301,7 @@
           name: id
           type: integer
           required: true
-          description: Machine ID.
+          description: Daemon ID.
       responses:
         200:
           description: Services with their status.
@@ -371,9 +371,9 @@
         - $ref: '#/parameters/paginationStartParam'
         - $ref: '#/parameters/paginationLimitParam'
         - $ref: '#/parameters/filterTextParam'
-        - name: apps
+        - name: daemons
           in: query
-          description: Limit returned list of daemons, possible values 'bind9', 'kea' or 'pdns'.
+          description: Limit returned list of daemons, possible values 'bind9', 'dhcp4', 'dhcp6', 'ca', 'netconf' or 'pdns'.
           type: array
           items:
             type: string
@@ -447,7 +447,7 @@
         200:
           description: A daemon
           schema:
-            $ref: "#/definitions/Daemon"
+            $ref: "#/definitions/AnyDaemon"
         default:
           description: generic error response
           schema:
@@ -480,7 +480,7 @@
           schema:
             $ref: "#/definitions/ApiError"
 
-  /daemons-stats:
+  /machine-stats:
     get:
       summary: Get daemon statistics.
       description: It returns a number of daemons of a given type, a number of inactive daemons, etc.
@@ -857,9 +857,9 @@
       tags:
         - DHCP
       parameters:
-        - name: appId
+        - name: machineId
           in: query
-          description: Limit migrated hosts to these which are served by given app ID.
+          description: Limit migrated hosts to these which are served by given machine ID.
           type: integer
         - name: subnetId
           in: query

@@ -254,29 +254,17 @@ func GetMachinesByPage(db *pg.DB, offset int64, limit int64, filterText *string,
 
 // Get all machines from database. It can be filtered by authorized field.
 func GetAllMachines(db *pg.DB, authorized *bool) ([]Machine, error) {
-	var machines []Machine
-
-	// prepare query
-	q := db.Model(&machines)
-	if authorized != nil {
-		q = q.Where("authorized = ?", *authorized)
-	}
-	q = q.Relation(string(MachineRelationDaemonAccessPoints))
-	q = q.Relation(string(MachineRelationKeaDHCPConfigs))
-	q = q.Relation(string(MachineRelationBind9Daemons))
-	q = q.Relation(string(MachineRelationPDNSDaemons))
-	q = q.Relation(string(MachineRelationDaemonConfigReview))
-
-	err := q.Select()
-	if err != nil && errors.Is(err, pg.ErrNoRows) {
-		return nil, pkgerrors.Wrapf(err, "problem getting machines")
-	}
-
-	return machines, nil
+	return GetAllMachinesWithRelations(db, authorized,
+		MachineRelationDaemonAccessPoints,
+		MachineRelationKeaDHCPConfigs,
+		MachineRelationBind9Daemons,
+		MachineRelationPDNSDaemons,
+		MachineRelationDaemonConfigReview)
 }
 
-// Get all machines from database with minimal data about Kea daemons. It can be filtered by authorized field.
-func GetAllMachinesSimplified(db *pg.DB, authorized *bool) ([]Machine, error) {
+// Get all machines from database with specific relations. It can be filtered
+// by authorized field.
+func GetAllMachinesWithRelations(db *pg.DB, authorized *bool, relations ...MachineRelation) ([]Machine, error) {
 	var machines []Machine
 
 	// prepare query
@@ -284,7 +272,9 @@ func GetAllMachinesSimplified(db *pg.DB, authorized *bool) ([]Machine, error) {
 	if authorized != nil {
 		q = q.Where("authorized = ?", *authorized)
 	}
-	q = q.Relation(string(MachineRelationDaemons))
+	for _, relation := range relations {
+		q = q.Relation(string(relation))
+	}
 
 	err := q.Select()
 	if err != nil && errors.Is(err, pg.ErrNoRows) {
