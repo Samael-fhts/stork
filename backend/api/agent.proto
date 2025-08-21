@@ -299,3 +299,11 @@ message ReceiveZoneRRsReq {
 message ReceiveZoneRRsRsp {
   repeated string rrs = 1;
 }
+
+message LeaseUpdate {
+  string address = 1;
+  bytes hw_address = 2;
+  bytes client_id = 3;
+  uint64 valid_lifetime = 4;
+  uint64 app_id = 5;
+}

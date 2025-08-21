@@ -1,10 +1,6 @@
 #!/bin/sh
 set -eu
 
-BENCH_TYPE="$1"
-BENCH_OUTPUT_FILE="$PWD/copy_$BENCH_TYPE.txt"
-BENCH_CPROF_FILE="$PWD/cpu_$BENCH_TYPE.out"
-BENCH_MPROF_FILE="$PWD/mem_$BENCH_TYPE.out"
 export STORK_DATABASE_HOST="localhost"
 export STORK_DATABASE_PORT="5432"
 export STORK_DATABASE_USER_NAME="william"
@@ -15,9 +11,7 @@ export STORK_DATABASE_MAINTENANCE_USER_NAME="postgres"
 export STORK_DATABASE_MAINTENANCE_PASSWORD=""
 export STORK_LOG_LEVEL="ERROR"
 
-./dbclean.sh
-
 (\
     cd backend/server/apps/kea && \
-    go test . -test.run=^$ -test.bench=BenchmarkLeaseFileLoadProtobuf -benchmem -count 7 -cpuprofile "$BENCH_CPROF_FILE" -memprofile "$BENCH_MPROF_FILE" -timeout 20m \
-) | tee "$BENCH_OUTPUT_FILE"
+    dlv test . -- -test.run=^$ -test.bench=BenchmarkLeaseFileLoad \
+)
