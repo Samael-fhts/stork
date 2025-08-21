@@ -27,7 +27,7 @@ import (
 
 var _ ConnectedAgents = (*connectedAgentsImpl)(nil)
 
-// An access point for an application to retrieve information such
+// An access point for a daemon to retrieve information such
 // as status or metrics.
 type AccessPoint struct {
 	Type              string
@@ -43,18 +43,72 @@ const (
 	AccessPointStatistics = "statistics"
 )
 
-// The application entry detected by an agent. It unambiguously indicates the
-// application location.
-type App struct {
-	Type         string
-	AccessPoints []AccessPoint
+// Daemon names returned by the Stork Agent.
+type DaemonName string
+
+const (
+	// It is a deprecated name that Stork agents prior 2.3 use for the Kea
+	// Control Agent.
+	DaemonNameKea    DaemonName = "kea"
+	DaemonNameDHCPv4 DaemonName = "dhcp4"
+	DaemonNameDHCPv6 DaemonName = "dhcp6"
+	DaemonNameD2     DaemonName = "d2"
+	DaemonNameCA     DaemonName = "ca"
+	DaemonNamePDNS   DaemonName = "pdns"
+	DaemonNameBind9  DaemonName = "bind9"
+)
+
+// An interface to a daemon that can receive commands from Stork.
+// Kea daemon receiving control commands is an example.
+type ControlledDaemon interface {
+	GetControlAccessPoint() (string, int64, string, bool, error)
+	GetStatisticsAccessPoint() (string, int64, string, bool, error)
+	GetMachineTag() dbmodel.MachineTag
 }
 
-// Currently supported types are: "kea" and "bind9".
-const (
-	AppTypeKea   = "kea"
-	AppTypeBind9 = "bind9"
-)
+// An interface to a machine that can receive commands from Stork.
+type ControlledMachine interface {
+	GetAddress() string
+	GetAgentPort() int64
+}
+
+// The daemon entry detected by an agent. It unambiguously indicates the
+// daemon location.
+type Daemon struct {
+	Name         DaemonName
+	AccessPoints []AccessPoint
+	Machine      dbmodel.MachineTag
+}
+
+// Implements the agentcomm.ControlledDaemon interface.
+var _ ControlledDaemon = (*Daemon)(nil)
+
+// Returns the control access point of the daemon. It returns an error if
+// no control access point is found.
+func (d *Daemon) GetControlAccessPoint() (string, int64, string, bool, error) {
+	for _, ap := range d.AccessPoints {
+		if ap.Type == AccessPointControl {
+			return ap.Address, ap.Port, ap.Key, ap.UseSecureProtocol, nil
+		}
+	}
+	return "", 0, "", false, errors.Errorf("no control access point for daemon %s", d.Name)
+}
+
+// Returns the statistics access point of the daemon. It returns an error if
+// no statistics access point is found.
+func (d *Daemon) GetStatisticsAccessPoint() (string, int64, string, bool, error) {
+	for _, ap := range d.AccessPoints {
+		if ap.Type == AccessPointStatistics {
+			return ap.Address, ap.Port, ap.Key, ap.UseSecureProtocol, nil
+		}
+	}
+	return "", 0, "", false, errors.Errorf("no statistics access point for daemon %s", d.Name)
+}
+
+// Returns the machine tag of the daemon.
+func (d *Daemon) GetMachineTag() dbmodel.MachineTag {
+	return d.Machine
+}
 
 // State of the machine. It describes multiple properties of the machine like number of CPUs
 // or operating system name and version.
@@ -78,22 +132,7 @@ type State struct {
 	HostID               string
 	LastVisitedAt        time.Time
 	Error                string
-	Apps                 []*App
-}
-
-// An interface to a daemon that can receive commands from Stork.
-// Kea daemon receiving control commands is an example.
-type ControlledDaemon interface {
-	dbmodel.DaemonTag
-	GetControlAccessPoint() (string, int64, string, bool, error)
-	GetStatisticsAccessPoint() (string, int64, string, bool, error)
-	GetMachineTag() dbmodel.MachineTag
-}
-
-// An interface to a machine that can receive commands from Stork.
-type ControlledMachine interface {
-	GetAddress() string
-	GetAgentPort() int64
+	Daemons              []*Daemon
 }
 
 // MakeAccessPoint is an utility to make an array of one access point.
@@ -355,7 +394,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 		return nil, errors.Errorf("wrong response to get state from agent %s", addrPort)
 	}
 
-	var apps []*App
+	var daemons []*Daemon
 	for _, app := range grpcState.Apps {
 		var accessPoints []AccessPoint
 
@@ -369,9 +408,10 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 			})
 		}
 
-		apps = append(apps, &App{
-			Type:         app.Type,
+		daemons = append(daemons, &Daemon{
+			Name:         DaemonName(app.Type),
 			AccessPoints: accessPoints,
+			Machine:      machine,
 		})
 	}
 
@@ -395,7 +435,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 		HostID:               grpcState.HostID,
 		LastVisitedAt:        storkutil.UTCNow(),
 		Error:                grpcState.Error,
-		Apps:                 apps,
+		Daemons:              daemons,
 	}
 
 	return &state, nil
@@ -464,7 +504,7 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 
 	// Check the result of the communication between the Stork agent and named by
 	// examining the returned status code.
-	commState, details = agents.checkBind9CommState(stats.GetBind9CommErrorStats(daemon.GetMachineID()), Bind9ChannelRNDC, resp)
+	commState, details = agents.checkBind9CommState(stats.GetBind9CommErrorStats(daemon.GetMachineTag().GetID()), Bind9ChannelRNDC, resp)
 	switch commState {
 	case CommErrorNew:
 		log.WithFields(log.Fields{
@@ -508,7 +548,7 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 
 	// named has responded but the response may also contain an error status.
 	rndcResponse := response.GetRndcResponse()
-	bind9CommErrors := stats.GetBind9CommErrorStats(daemon.GetMachineID())
+	bind9CommErrors := stats.GetBind9CommErrorStats(daemon.GetMachineTag().GetID())
 
 	// If the status is ok, let's just return the result.
 	if rndcResponse.Status.Code == agentapi.Status_OK {
@@ -597,7 +637,7 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, daem
 
 	// Check the result of the communication between the Stork agent and named by
 	// examining the returned status code.
-	commState, details = agents.checkBind9CommState(stats.GetBind9CommErrorStats(daemon.GetMachineID()), Bind9ChannelStats, response.NamedStatsResponse)
+	commState, details = agents.checkBind9CommState(stats.GetBind9CommErrorStats(daemon.GetMachineTag().GetID()), Bind9ChannelStats, response.NamedStatsResponse)
 	switch commState {
 	case CommErrorNew:
 		log.WithFields(log.Fields{
@@ -637,7 +677,7 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, daem
 		err = errors.New(statsResp.Status.Message)
 	}
 
-	bind9CommErrors := stats.GetBind9CommErrorStats(daemon.GetMachineID())
+	bind9CommErrors := stats.GetBind9CommErrorStats(daemon.GetMachineTag().GetID())
 
 	// If status was ok, let's try to parse the response from the on-wire format.
 	if err == nil {

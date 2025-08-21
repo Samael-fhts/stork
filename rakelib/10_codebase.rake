@@ -467,6 +467,9 @@ namespace :gen do
 
         desc 'Generate standard DHCP option definitions for the backend'
         task :std_option_defs => [std_option_defs4_go_file, std_option_defs6_go_file]
+
+        desc 'Generate Protobuf files for the backend'
+        task :protobuf => [agent_pb_go_file, agent_grpc_pb_go_file]
     end
 
     namespace :ui do

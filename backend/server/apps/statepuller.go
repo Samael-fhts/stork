@@ -15,6 +15,7 @@ import (
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/eventcenter"
+	storkutil "isc.org/stork/util"
 )
 
 // Instance of the puller which periodically checks the status of the Kea apps.
@@ -27,7 +28,7 @@ type StatePuller struct {
 }
 
 // Create an instance of the puller which periodically checks the status of
-// the Kea apps.
+// the Kea daemons.
 func NewStatePuller(db *dbops.PgDB, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) (*StatePuller, error) {
 	puller := &StatePuller{
 		EventCenter:                eventCenter,
@@ -48,7 +49,7 @@ func (puller *StatePuller) Shutdown() {
 	puller.PeriodicPuller.Shutdown()
 }
 
-// Gets the status of machines and their apps and stores useful information in the database.
+// Gets the status of machines and their daemons and stores useful information in the database.
 func (puller *StatePuller) pullData() error {
 	// get list of all authorized machines from database
 	authorized := true
@@ -57,13 +58,13 @@ func (puller *StatePuller) pullData() error {
 		return err
 	}
 
-	// get state from machines and their apps
+	// get state from machines and their daemons
 	var lastErr error
 	okCnt := 0
 	for _, dbM := range dbMachines {
 		dbM2 := dbM
 		ctx := context.Background()
-		errStr := UpdateMachineAndAppsState(ctx, puller.DB, &dbM2, puller.Agents, puller.EventCenter, puller.ReviewDispatcher, puller.DHCPOptionDefinitionLookup)
+		errStr := UpdateMachineAndDaemonsState(ctx, puller.DB, &dbM2, puller.Agents, puller.EventCenter, puller.ReviewDispatcher, puller.DHCPOptionDefinitionLookup)
 		if errStr != "" {
 			lastErr = errors.New(errStr)
 			log.Errorf("Error occurred while getting info from machine %d: %s", dbM2.ID, errStr)
@@ -103,137 +104,88 @@ func updateMachineFields(db *dbops.PgDB, dbMachine *dbmodel.Machine, m *agentcom
 	return nil
 }
 
-// appCompare compares two apps for equality.  Two apps are considered equal if
-// their type matches and if they have the same control port.  Return true if
-// equal, false otherwise.
-func appCompare(dbApp *dbmodel.App, app *agentcomm.App) bool {
-	if dbApp.Type.String() != app.Type {
+// daemonCompare compares two daemons for equality. Two daemons are considered
+// equal if their type matches and if they have the same control port. Return
+// true if equal, false otherwise.
+func daemonCompare(dbDaemon dbmodel.Daemon, grpcDaemon *agentcomm.Daemon) bool {
+	if dbDaemon.Name != dbmodel.DaemonName(grpcDaemon.Name) {
 		return false
 	}
+	if len(dbDaemon.AccessPoints) != len(grpcDaemon.AccessPoints) {
+		return false
+	}
+	accessPointIndex := map[string]*dbmodel.AccessPoint{}
+	for _, pt := range dbDaemon.AccessPoints {
+		accessPointIndex[pt.Type] = pt
+	}
 
-	var controlPortEqual bool
-	for _, pt1 := range dbApp.AccessPoints {
-		if pt1.Type != dbmodel.AccessPointControl {
-			continue
-		}
-		for _, pt2 := range app.AccessPoints {
-			if pt2.Type != dbmodel.AccessPointControl {
-				continue
-			}
-
-			if pt1.Port == pt2.Port {
-				controlPortEqual = true
-				break
-			}
+	for _, grpcPt := range grpcDaemon.AccessPoints {
+		dbPt, ok := accessPointIndex[grpcPt.Type]
+		if !ok {
+			return false
 		}
 
-		// If a match is found, we can break.
-		if controlPortEqual {
-			break
+		if dbPt.Port != grpcPt.Port || dbPt.Address != grpcPt.Address || dbPt.Key != grpcPt.Key || dbPt.UseSecureProtocol != grpcPt.UseSecureProtocol {
+			return false
 		}
 	}
 
-	return controlPortEqual
+	return true
 }
 
-// Get old apps from the machine db object and new apps retrieved from the machine remotely
-// and merge them into one list of all, unique apps.
-func mergeNewAndOldApps(db *dbops.PgDB, dbMachine *dbmodel.Machine, discoveredApps []*agentcomm.App) ([]*dbmodel.App, string) {
-	// If there are any new apps then get their state and add to db.
-	// Old ones are just updated. Use GetAppsByMachine to retrieve
-	// machine's apps with their daemons.
-	oldAppsList, err := dbmodel.GetAppsByMachine(db, dbMachine.ID)
+// For each provided discovered daemon, try to find a matching daemon in the
+// database. If it is found, use it, otherwise create a new daemon.
+func mergeNewAndOldDaemons(db *dbops.PgDB, dbMachine *dbmodel.Machine, discoveredDaemons []*agentcomm.Daemon) (existing, deleted []dbmodel.Daemon, err error) {
+	oldDaemons, err := dbmodel.GetDaemonsByMachine(db, dbMachine.ID)
 	if err != nil {
-		log.Error(err)
-		return nil, "Cannot get machine's apps from db"
+		return nil, nil, errors.WithMessage(err, "cannot get machine's daemons from db")
 	}
 
-	// Count the number of apps of each type.
-	oldAppsCounts := make(map[dbmodel.AppType]int)
-	for _, dbApp := range oldAppsList {
-		oldAppsCounts[dbApp.Type]++
-	}
+	matchedDaemons := make([]dbmodel.Daemon, 0, len(discoveredDaemons))
 
-	// Count the number of apps of each type.
-	newAppsCounts := make(map[dbmodel.AppType]int)
-	for _, app := range discoveredApps {
-		newAppsCounts[dbmodel.AppType(app.Type)]++
-	}
-
-	// new and old apps
-	allApps := []*dbmodel.App{}
-
-	// old apps found in new apps fetched from the machine
-	matchedApps := []*dbmodel.App{}
-	for _, app := range discoveredApps {
-		// try to match apps on machine with old apps from database
-		var dbApp *dbmodel.App
-		for _, dbAppOld := range oldAppsList {
-			// If there is one app of a given type detected on the machine and one app recorded in the database
-			// we assume that this is the same app. If there are more apps of a given type than used to be,
-			// or there are less apps than it used to be we have to compare their access control information
-			// to identify matching ones.
-			if (app.Type == dbAppOld.Type.String() && oldAppsCounts[dbAppOld.Type] == 1 && newAppsCounts[dbAppOld.Type] == 1) ||
-				appCompare(dbAppOld, app) {
-				dbApp = dbAppOld
-				matchedApps = append(matchedApps, dbApp)
-				break
+DISCOVERED_LOOP:
+	for _, discoveredDaemon := range discoveredDaemons {
+		for _, oldDaemon := range oldDaemons {
+			if daemonCompare(oldDaemon, discoveredDaemon) {
+				matchedDaemons = append(matchedDaemons, oldDaemon)
+				oldDaemons = append(oldDaemons[:0], oldDaemons[1:]...) // remove matched daemon
+				continue DISCOVERED_LOOP
 			}
 		}
-		// if no old app in db then prepare new record
-		if dbApp == nil {
-			dbApp = &dbmodel.App{
-				ID:        0,
-				MachineID: dbMachine.ID,
-				Machine:   dbMachine,
-				Type:      dbmodel.AppType(app.Type),
-			}
-		} else {
-			dbApp.Machine = dbMachine
-		}
-		allApps = append(allApps, dbApp)
 
-		// add or update access points
-		var accessPoints []*dbmodel.AccessPoint
-		for _, point := range app.AccessPoints {
-			accessPoints = append(accessPoints, &dbmodel.AccessPoint{
+		// The daemon was not found in the old daemons, so create a new one.
+		accessPoints := make([]*dbmodel.AccessPoint, len(discoveredDaemon.AccessPoints))
+		for i, point := range discoveredDaemon.AccessPoints {
+			accessPoints[i] = &dbmodel.AccessPoint{
 				Type:              point.Type,
 				Address:           point.Address,
 				Port:              point.Port,
 				Key:               point.Key,
 				UseSecureProtocol: point.UseSecureProtocol,
-			})
-		}
-		dbApp.AccessPoints = accessPoints
-	}
-
-	// add old, not matched apps to all apps
-	for _, dbApp := range oldAppsList {
-		toAdd := true
-		for _, app := range matchedApps {
-			if dbApp == app {
-				toAdd = false
-				break
 			}
 		}
-		if toAdd {
-			dbApp.Machine = dbMachine
-			allApps = append(allApps, dbApp)
+
+		newDaemon := dbmodel.Daemon{
+			MachineID:    dbMachine.ID,
+			Machine:      dbMachine,
+			Name:         dbmodel.DaemonName(discoveredDaemon.Name),
+			AccessPoints: accessPoints,
 		}
+		matchedDaemons = append(matchedDaemons, newDaemon)
 	}
 
-	return allApps, ""
+	return matchedDaemons, oldDaemons, nil
 }
 
-// Retrieve remotely machine and its apps state, and store it in the database.
-func UpdateMachineAndAppsState(ctx context.Context, db *dbops.PgDB, dbMachine *dbmodel.Machine, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) string {
+// Retrieve remotely machine and its daemons state, and store it in the database.
+func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine *dbmodel.Machine, agents agentcomm.ConnectedAgents, eventCenter eventcenter.EventCenter, reviewDispatcher configreview.Dispatcher, lookup keaconfig.DHCPOptionDefinitionLookup) string {
 	ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
 	// get state of machine from agent
 	state, err := agents.GetState(ctx2, dbMachine)
 	if err != nil {
-		log.Warn(err)
+		log.WithError(err).Warn("Cannot get state of machine")
 		dbMachine.Error = "Cannot get state of machine"
 		err = dbmodel.UpdateMachine(db, dbMachine)
 		if err != nil {
@@ -243,9 +195,56 @@ func UpdateMachineAndAppsState(ctx context.Context, db *dbops.PgDB, dbMachine *d
 		return ""
 	}
 
+	agentVersion, err := storkutil.ParseSemanticVersion(state.AgentVersion)
+	if err != nil {
+		log.WithError(err).Error("Cannot parse agent version: %s", state.AgentVersion)
+		return "Cannot parse agent version"
+	}
+
+	if agentVersion.LessThanOrEqual(storkutil.NewSemanticVersion(2, 3, 0)) {
+		// The agent communicates through the Kea CA. It cannot detect the
+		// other daemons.
+		var additionalDaemons []*agentcomm.Daemon
+
+		for _, daemon := range state.Daemons {
+			// The old agent used app type instead of daemon name. The app type
+			// for Kea was "kea" that means that the Kea CA daemon has been
+			// detected.
+			if daemon.Name != agentcomm.DaemonNameKea {
+				continue
+			}
+			// Convert the daemon name to the proper one.
+			daemon.Name = agentcomm.DaemonNameCA
+
+			// Fetch the Kea CA configuration to retrieve a list of running
+			// daemons.
+			config, _, err := kea.GetConfig(ctx, agents, daemon)
+			if err != nil {
+				return "Cannot get Kea CA configuration: " + err.Error()
+			}
+
+			daemonNames := config.ControlSockets.GetConfiguredDaemonNames()
+			for _, name := range daemonNames {
+				if name == string(agentcomm.DaemonNameCA) {
+					continue
+				}
+
+				additionalDaemons = append(additionalDaemons, &agentcomm.Daemon{
+					Name: agentcomm.DaemonName(name),
+					// Communication with this daemon is done through the Kea CA.
+					AccessPoints: daemon.AccessPoints,
+					Machine:      daemon.Machine,
+				})
+			}
+		}
+
+		// Append the additional daemons to the list of daemons.
+		state.Daemons = append(state.Daemons, additionalDaemons...)
+	}
+
 	// The Stork server doesn't gather the Stork agent configuration, so we cannot
 	// detect its change. It used to compare the current agent state and the database
-	// entry to merely recognise the HTTP credentials state change but this
+	// entry to merely recognize the HTTP credentials state change but this
 	// parameter has been removed from the agent state. The following variable is
 	// a placeholder for the possible future implementation of the Stork agent
 	// configuration change detection.
@@ -254,85 +253,94 @@ func UpdateMachineAndAppsState(ctx context.Context, db *dbops.PgDB, dbMachine *d
 	// store machine's state in db
 	err = updateMachineFields(db, dbMachine, state)
 	if err != nil {
-		log.Error(err)
-		return "Cannot update machine in db"
+		msg := "Cannot update machine in db"
+		log.WithError(err).Error(msg)
+		return msg
 	}
 
-	// take old apps from db and new apps fetched from the machine
-	// and match them and prepare a list of all apps
-	allApps, errStr := mergeNewAndOldApps(db, dbMachine, state.Apps)
-	if errStr != "" {
-		return errStr
+	// take old daemons from db and new daemons fetched from the machine
+	// and match them and prepare a list of all daemons
+	existingDaemons, deletedDaemons, err := mergeNewAndOldDaemons(db, dbMachine, state.Daemons)
+	if err != nil {
+		return "Cannot merge new and old daemons: " + err.Error()
 	}
 
-	// go through all apps and store their changes in database
-	for _, dbApp := range allApps {
-		// get app state from the machine
-		switch dbApp.Type {
-		case dbmodel.AppTypeKea:
-			state := kea.GetAppState(ctx2, agents, dbApp, eventCenter)
-			err = kea.CommitAppIntoDB(db, dbApp, eventCenter, state, lookup)
+	// remove daemons that no longer exist on the machine
+	for _, dbDaemon := range deletedDaemons {
+		log.Infof("Removing daemon %s from machine %s", dbDaemon.Name, dbMachine.Name)
+		err = dbmodel.DeleteDaemon(db, &dbDaemon)
+		if err != nil {
+			log.WithError(err).Errorf("Cannot delete daemon %s from machine %s", dbDaemon.Name, dbMachine.Name)
+			return "Cannot delete daemon from database"
+		}
+	}
+
+	// go through all daemons and store their changes in database
+	for _, dbDaemon := range allDaemons {
+		// get daemon state from the machine
+		switch dbDaemon.Name {
+		case dbmodel.DaemonNameDHCPv4, dbmodel.DaemonNameDHCPv6, dbmodel.DaemonNameCA, dbmodel.DaemonNameD2:
+			state := kea.GetDaemonState(ctx2, agents, dbDaemon, eventCenter)
+			err = kea.CommitDaemonIntoDB(db, dbDaemon, eventCenter, state, lookup)
 			if err == nil {
 				// Let's now identify new daemons or the daemons with updated
 				// configurations and schedule configuration reviews for them
-				conditionallyBeginKeaConfigReviews(dbApp, state, reviewDispatcher, isStorkAgentChanged)
+				conditionallyBeginKeaConfigReviews(dbDaemon, state, reviewDispatcher, isStorkAgentChanged)
 			}
-		case dbmodel.AppTypeBind9:
-			bind9.GetAppState(ctx2, agents, dbApp, eventCenter)
-			err = bind9.CommitAppIntoDB(db, dbApp, eventCenter)
-		case dbmodel.AppTypePDNS:
-			pdns.GetAppState(ctx2, agents, dbApp, eventCenter)
-			err = pdns.CommitAppIntoDB(db, dbApp, eventCenter)
+		case dbmodel.DaemonNameBind9:
+			bind9.GetDaemonState(ctx2, agents, dbDaemon, eventCenter)
+			err = bind9.CommitDaemonIntoDB(db, dbDaemon, eventCenter)
+		case dbmodel.DaemonNamePDNS:
+			pdns.GetDaemonState(ctx2, agents, dbDaemon, eventCenter)
+			err = pdns.CommitDaemonIntoDB(db, dbDaemon, eventCenter)
 		default:
 			err = nil
 		}
 
 		if err != nil {
-			log.Errorf("Cannot store application state: %+v", err)
-			return "Problem storing application state in the database"
+			log.WithError(err).Errorf("Cannot store daemon state")
+			return "Problem storing daemon state in the database"
 		}
 	}
 
-	// add all apps to machine's apps list - it will be used in ReST API functions
-	// to return state of machine and its apps
-	dbMachine.Apps = allApps
+	// add all daemons to machine's daemons list - it will be used in ReST API functions
+	// to return state of machine and its daemons
+	dbMachine.Daemons = allDaemons
 
 	return ""
 }
 
-// This function iterates over the app's daemons and checks if a new config
+// This function iterates over the daemon and checks if a new config
 // review should be performed. It is performed when daemon's configuration
 // or dispatcher's signature has changed.
-func conditionallyBeginKeaConfigReviews(dbApp *dbmodel.App, state *kea.AppStateMeta, reviewDispatcher configreview.Dispatcher, storkAgentConfigChanged bool) {
-	for i, daemon := range dbApp.Daemons {
-		// Let's make sure that the config pointer is set. It can be nil
-		// when the daemon is inactive.
-		if daemon.KeaDaemon == nil || daemon.KeaDaemon.Config == nil {
-			continue
-		}
+func conditionallyBeginKeaConfigReviews(daemon *dbmodel.Daemon, state *kea.AppStateMeta, reviewDispatcher configreview.Dispatcher, storkAgentConfigChanged bool) {
+	// Let's make sure that the config pointer is set. It can be nil
+	// when the daemon is inactive.
+	if daemon.KeaDaemon == nil || daemon.KeaDaemon.Config == nil {
+		return
+	}
 
-		var triggers configreview.Triggers
-		if storkAgentConfigChanged {
-			triggers = append(triggers, configreview.StorkAgentConfigModified)
-		}
+	var triggers configreview.Triggers
+	if storkAgentConfigChanged {
+		triggers = append(triggers, configreview.StorkAgentConfigModified)
+	}
 
-		isConfigModified := true
-		if state != nil && state.SameConfigDaemons != nil {
-			if isSame, ok := state.SameConfigDaemons[daemon.Name]; ok && isSame {
-				if daemon.ConfigReview != nil &&
-					daemon.ConfigReview.Signature == reviewDispatcher.GetSignature() {
-					// Configuration of this daemon hasn't changed and the dispatcher has
-					// no checkers modified since the last review. Skip the config modified trigger.
-					isConfigModified = false
-				}
+	isConfigModified := true
+	if state != nil && state.SameConfigDaemons != nil {
+		if isSame, ok := state.SameConfigDaemons[daemon.Name]; ok && isSame {
+			if daemon.ConfigReview != nil &&
+				daemon.ConfigReview.Signature == reviewDispatcher.GetSignature() {
+				// Configuration of this daemon hasn't changed and the dispatcher has
+				// no checkers modified since the last review. Skip the config modified trigger.
+				isConfigModified = false
 			}
 		}
-		if isConfigModified {
-			triggers = append(triggers, configreview.ConfigModified)
-		}
+	}
+	if isConfigModified {
+		triggers = append(triggers, configreview.ConfigModified)
+	}
 
-		if len(triggers) != 0 {
-			_ = reviewDispatcher.BeginReview(dbApp.Daemons[i], triggers, nil)
-		}
+	if len(triggers) != 0 {
+		_ = reviewDispatcher.BeginReview(daemon, triggers, nil)
 	}
 }

@@ -276,6 +276,23 @@ func GetDaemonsByIDs(dbi pg.DBI, ids []int64) (daemons []Daemon, err error) {
 	return daemons, nil
 }
 
+// Get daemons by their machine ID.
+func GetDaemonsByMachine(dbi pg.DBI, machineID int64) (daemons []Daemon, err error) {
+	err = dbi.Model(&daemons).
+		Relation(DaemonRelationAccessPoints).
+		Relation(DaemonRelationMachine).
+		Where("daemon.machine_id = ?", machineID).
+		OrderExpr("daemon.id ASC").
+		Select()
+
+	if errors.Is(err, pg.ErrNoRows) {
+		return daemons, nil
+	} else if err != nil {
+		return nil, pkgerrors.Wrapf(err, "problem selecting daemons for machine ID %d", machineID)
+	}
+	return daemons, nil
+}
+
 // Retrieves all daemons.
 func GetAllDaemons(dbi dbops.DBI) ([]Daemon, error) {
 	return GetAllDaemonsWithRelations(dbi,
@@ -718,6 +735,29 @@ func UpdateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 		})
 	}
 	return updateDaemon(dbi.(*pg.Tx), daemon)
+}
+
+// Deletes a daemon from the database and its references.
+func deleteDaemon(tx *pg.Tx, daemon *Daemon) error {
+	result, err := tx.Model(daemon).WherePK().Delete()
+	if err != nil {
+		return pkgerrors.Wrapf(err, "problem deleting daemon: %d", daemon.ID)
+	} else if result.RowsAffected() <= 0 {
+		return pkgerrors.Wrapf(ErrNotExists, "daemon with ID %d does not exist", daemon.ID)
+	}
+	return nil
+}
+
+// Deletes a daemon from the database. It deletes the daemon and all
+// associated access points, log targets, KeaDaemon, KeaDHCPDaemon and Bind9Daemon
+// if they are not nil.
+func DeleteDaemon(dbi dbops.DBI, daemon *Daemon) error {
+	if db, ok := dbi.(*pg.DB); ok {
+		return db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
+			return deleteDaemon(tx, daemon)
+		})
+	}
+	return deleteDaemon(dbi.(*pg.Tx), daemon)
 }
 
 // Deletes the config hash values for all Kea daemons.
