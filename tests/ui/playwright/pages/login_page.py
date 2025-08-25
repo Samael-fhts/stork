@@ -1,4 +1,4 @@
-from re import compile as _re
+import re
 from playwright.sync_api import Page, expect
 
 
@@ -37,7 +37,7 @@ class LoginPage:
         user.fill(username)
         pwd.fill(password)
 
-        btn = self.page.get_by_role("button", name=_re("sign in|log in|login", _re.I))
+        btn = self.page.get_by_role("button", name=re.compile(r"(sign in|log in|login)", re.I))
         if not btn.count():
             btn = self.page.locator("button[type='submit']").first
         btn.click()
