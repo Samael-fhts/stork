@@ -1,115 +1,139 @@
 """
-Playwright UI tests using the exact same Docker stack as system tests.
+Playwright UI tests against the SAME stack as system tests,
+with a tiny Compose override that builds the full UI (server-ui target)
+but keeps the service name 'server'.
 """
 
 import os
-import sys
 import subprocess
+import time
 from pathlib import Path
+from typing import List
+
 import pytest
 from playwright.sync_api import Page
-from core.compose_factory import create_docker_compose  # type: ignore
 
-cur = Path(__file__).resolve()
-tests_dir = next(p for p in cur.parents if p.name == "tests")
-system_dir = tests_dir / "system"
-if str(system_dir) not in sys.path:
-    sys.path.insert(0, str(system_dir))
+# --- paths -------------------------------------------------------------------
 
+CUR = Path(__file__).resolve()
+TESTS_DIR = next(p for p in CUR.parents if p.name == "tests")
+SYSTEM_DIR = TESTS_DIR / "system"
+ROOT = TESTS_DIR.parent  # repo root
 
-STORK_BASE_URL = os.getenv("STORK_BASE_URL", "http://localhost:42080")
-STORK_UI_SERVICE = os.getenv("STORK_UI_SERVICE", "server")
-STORK_PROJECT = os.getenv("STORK_PROJECT", "stork_tests")
-COMPOSE_FILE = str(system_dir / "docker-compose.yaml")
+COMPOSE_BASE = str(SYSTEM_DIR / "docker-compose.yaml")
+COMPOSE_UI = str(SYSTEM_DIR / "docker-compose.ui.yaml")
 
-
-def _run(cmd: list[str], check: bool = True) -> subprocess.CompletedProcess:
-    return subprocess.run(
-        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, check=check
-    )
+PROJECT_NAME = os.getenv("STORK_PROJECT", "stork_tests")
+BASE_URL = os.getenv("STORK_BASE_URL", "http://localhost:42080")
 
 
-def _hard_cleanup():
-    """Remove orphans and conflicting networks from previous runs."""
-    _run(
-        [
-            "docker",
-            "compose",
-            "--project-directory",
-            str(tests_dir.parent),
-            "-p",
-            STORK_PROJECT,
-            "-f",
-            COMPOSE_FILE,
-            "down",
-            "--remove-orphans",
-            "--volumes",
-        ],
-        check=False,
-    )
+# --- helpers -----------------------------------------------------------------
 
-    ps = _run(["docker", "ps", "-a", "--format", "{{.ID}} {{.Names}}"], check=False)
-    stray_ids = [
-        line.split()[0] for line in ps.stdout.splitlines() if STORK_PROJECT in line
+
+def _dc_cmd(*args: str, capture: bool = False) -> subprocess.CompletedProcess:
+    """Run docker compose with BOTH files loaded (base + UI override)."""
+    cmd: List[str] = [
+        "docker",
+        "compose",
+        "--ansi",
+        "never",
+        "--project-directory",
+        str(ROOT),
+        "-p",
+        PROJECT_NAME,
+        "-f",
+        COMPOSE_BASE,
+        "-f",
+        COMPOSE_UI,
+        *args,
     ]
-    if stray_ids:
-        _run(["docker", "rm", "-f", *stray_ids], check=False)
+    return subprocess.run(
+        cmd,
+        check=True,
+        text=True,
+        stdout=(subprocess.PIPE if capture else None),
+        stderr=(subprocess.PIPE if capture else None),
+        cwd=str(ROOT),
+        env={**os.environ, "COMPOSE_DOCKER_CLI_BUILD": "1"},
+    )
 
-    # Remove unused networks (safe: only unused)
-    _run(["docker", "network", "prune", "-f"], check=False)
+
+def _hard_cleanup() -> None:
+    """Clean previous runs (containers, volumes, orphan networks)."""
+    try:
+        _dc_cmd("down", "--remove-orphans", "--volumes")
+    except Exception:
+        pass
+    subprocess.run(["docker", "network", "prune", "-f"], check=False)
+
+
+def _wait_http_ok(url: str, timeout: float = 90.0) -> None:
+    """Wait until a URL returns HTTP 200."""
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        try:
+            cp = subprocess.run(
+                ["curl", "-sS", "-o", "/dev/null", "-w", "%{http_code}", url],
+                check=True,
+                text=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+            )
+            if cp.stdout.strip() == "200":
+                return
+        except Exception:
+            pass
+        time.sleep(1)
+    raise RuntimeError(f"Timeout waiting for {url}")
+
+
+# --- pytest fixtures ---------------------------------------------------------
 
 
 @pytest.fixture(scope="session")
 def stork_base_url() -> str:
     """
-    Bring up the SAME environment as system tests, or reuse an already running one.
-    """
+    SAME environment as system tests, with UI assets enabled via override file.
 
-    os.environ.setdefault("IPWD", os.getcwd())
+    Workflow:
+      - If STORK_REUSE=1: just wait for health (reuse an already-running stack).
+      - Else: build and start postgres, server, agent-kea; then try registering.
+    """
+    # env used by system compose & for Apple Silicon
+    os.environ.setdefault("IPWD", str(ROOT))
     os.environ.setdefault("DOCKER_DEFAULT_PLATFORM", "linux/amd64")
 
     if os.getenv("STORK_REUSE") == "1":
-        return STORK_BASE_URL
+        _wait_http_ok(f"{BASE_URL}/api/version", timeout=120)
+        return BASE_URL
 
+    # Fresh stack
     _hard_cleanup()
 
-    compose = create_docker_compose()
+    # Build only what we need, then bring them up
+    _dc_cmd("build", "--", "postgres", "server", "agent-kea")
+    _dc_cmd("up", "-d", "--", "postgres")
+    _dc_cmd(
+        "up", "-d", "--", "server"
+    )  # NOTE: service name is 'server' (overridden to target server-ui)
+    _dc_cmd("up", "-d", "--", "agent-kea")
 
-    compose.kill()
-    compose.down()
+    # Wait until API responds (verifies port mapping + UI-enabled image)
+    _wait_http_ok(f"{BASE_URL}/api/version", timeout=120)
 
-    compose.bootstrap("postgres")
-    compose.bootstrap(STORK_UI_SERVICE)
-    compose.bootstrap("agent-kea")
-
-    def _try_register():
-        compose.run("register", "register --non-interactive")
-
+    # Register the agent (non-fatal for UI flows)
     try:
-        _try_register()
-    except Exception as e1:
+        _dc_cmd("run", "--no-deps", "register", "register", "--non-interactive")
+    except subprocess.CalledProcessError as e:
+        print("WARN: 'register' helper failed; continuing for UI tests.\n", e)
 
-        _hard_cleanup()
-        compose.bootstrap("postgres")
-        compose.bootstrap(STORK_UI_SERVICE)
-        compose.bootstrap("agent-kea")
-        try:
-            _try_register()
-        except Exception as e2:
-
-            print(
-                "WARN: Agent registration failed after retry. "
-                "Continuing so UI tests/debugging can proceed.\n"
-                f"First error: {e1}\nSecond error: {e2}"
-            )
-
-    return STORK_BASE_URL
+    return BASE_URL
 
 
 @pytest.fixture(scope="function")
 def logged_in_page(page: Page, stork_base_url: str):
     """Open login and authenticate with seeded admin credentials."""
-    from tests.ui.playwright.pages.login_page import LoginPage  # type: ignore
+    from tests.ui.playwright.pages.login_page import LoginPage  # lazy import
 
     lp = LoginPage(page)
     lp.open(stork_base_url)
