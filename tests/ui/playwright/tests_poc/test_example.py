@@ -1,17 +1,16 @@
-
 from playwright.sync_api import Page
 from tests.ui.playwright.pages.login_page import LoginPage
 from tests.ui.playwright.pages.navigation import Navigation
 from tests.ui.playwright.pages.shared_network_page import SharedNetworkPage
+
 
 def test_shared_network_edit_bug(page: Page, stork_base_url: str):
     login_page = LoginPage(page)
     navigation_page = Navigation(page)
     shared_page = SharedNetworkPage(page)
 
-  
-    page.goto(f"{stork_base_url}/login?returnUrl=%2Fdashboard")
-   
+    # Open & login on the SAME stack the system tests start
+    login_page.open(stork_base_url)
     login_page.login("admin", "admin")
 
     navigation_page.go_to_shared_network("esperanto")
