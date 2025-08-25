@@ -1,8 +1,10 @@
 services:
   server:
     build:
-      context: .
+      context: ../..
       dockerfile: docker/images/stork.Dockerfile
-      target: server-ui
+      target: server-full-builder
     ports:
       - "42080:8080"
+    entrypoint: []
+    command: ["/app/dist/server/usr/bin/stork-server"]
