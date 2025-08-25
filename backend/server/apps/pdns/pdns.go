@@ -13,24 +13,15 @@ import (
 
 // Fetches the general information about the PowerDNS server and updates the
 // provided daemon instance.
-func GetAppState(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *dbmodel.App, eventCenter eventcenter.EventCenter) {
-	ctx2, cancel := context.WithTimeout(ctx, 2*time.Second)
+func GetDaemonState(ctx context.Context, agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, eventCenter eventcenter.EventCenter) {
+	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
 	// Try to get the server info from the agent.
-	serverInfo, err := agents.GetPowerDNSServerInfo(ctx2, dbApp)
+	serverInfo, err := agents.GetPowerDNSServerInfo(ctx, daemon)
 	if err != nil {
-		log.Warnf("Problem getting PowerDNS server info: %s", err)
+		log.WithError(err).Warn("Problem getting PowerDNS server info")
 		return
-	}
-
-	// Check if the app already contains a daemon.
-	var daemon *dbmodel.Daemon
-	if len(dbApp.Daemons) > 0 && dbApp.Daemons[0].ID != 0 {
-		daemon = dbApp.Daemons[0]
-	} else {
-		// This is the first time we see this app, so it has no daemon.
-		daemon = dbmodel.NewPDNSDaemon(true)
 	}
 	daemon.Version = serverInfo.Version
 	daemon.ExtendedVersion = serverInfo.Version
@@ -39,22 +30,15 @@ func GetAppState(ctx context.Context, agents agentcomm.ConnectedAgents, dbApp *d
 	daemon.PDNSDaemon.Details.ConfigURL = serverInfo.ConfigURL
 	daemon.PDNSDaemon.Details.ZonesURL = serverInfo.ZonesURL
 	daemon.PDNSDaemon.Details.AutoprimariesURL = serverInfo.AutoprimariesURL
-
-	dbApp.Active = daemon.Active
-	dbApp.Meta.Version = daemon.Version
-	dbApp.Meta.ExtendedVersion = daemon.ExtendedVersion
-	dbApp.Daemons = []*dbmodel.Daemon{
-		daemon,
-	}
 }
 
-// Inserts or updates information about PowerDNS app in the database.
-func CommitAppIntoDB(db *pg.DB, app *dbmodel.App, eventCenter eventcenter.EventCenter) (err error) {
-	if app.ID == 0 {
-		_, err = dbmodel.AddApp(db, app)
-		eventCenter.AddInfoEvent("added {app}", app.Machine, app)
+// Inserts or updates information about PowerDNS daemon in the database.
+func CommitDaemonIntoDB(db *pg.DB, daemon *dbmodel.Daemon, eventCenter eventcenter.EventCenter) (err error) {
+	if daemon.ID == 0 {
+		err = dbmodel.AddDaemon(db, daemon)
+		eventCenter.AddInfoEvent("added {daemon} to {machine}", daemon, daemon.Machine)
 	} else {
-		_, _, err = dbmodel.UpdateApp(db, app)
+		err = dbmodel.UpdateDaemon(db, daemon)
 	}
 	return err
 }

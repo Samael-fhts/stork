@@ -177,7 +177,7 @@ func GetDaemonState(ctx context.Context, agents agentcomm.ConnectedAgents, daemo
 }
 
 // Inserts or updates information about BIND 9 daemon in the database.
-func CommitIntoDB(db *dbops.PgDB, daemon *dbmodel.Daemon, eventCenter eventcenter.EventCenter) (err error) {
+func CommitDaemonIntoDB(db *dbops.PgDB, daemon *dbmodel.Daemon, eventCenter eventcenter.EventCenter) (err error) {
 	if daemon.ID == 0 {
 		err = dbmodel.AddDaemon(db, daemon)
 		eventCenter.AddInfoEvent("added {daemon}", daemon.Machine, daemon)

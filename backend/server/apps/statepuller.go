@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/appcfg/kea"
@@ -265,34 +266,78 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 		return "Cannot merge new and old daemons: " + err.Error()
 	}
 
-	// remove daemons that no longer exist on the machine
-	for _, dbDaemon := range deletedDaemons {
-		log.Infof("Removing daemon %s from machine %s", dbDaemon.Name, dbMachine.Name)
-		err = dbmodel.DeleteDaemon(db, &dbDaemon)
-		if err != nil {
-			log.WithError(err).Errorf("Cannot delete daemon %s from machine %s", dbDaemon.Name, dbMachine.Name)
-			return "Cannot delete daemon from database"
+	// Delete the daemons that are no longer exist.
+	db.RunInTransaction(ctx2, func(tx *pg.Tx) error {
+		for _, daemon := range deletedDaemons {
+			err := dbmodel.DeleteDaemon(tx, &daemon)
+			if err != nil {
+				return err
+			}
+
+			eventCenter.AddInfoEvent("removed {daemon} from {machine}", daemon, daemon.Machine)
+		}
+		return nil
+	})
+
+	// Group daemons by Kea, BIND 9, PowerDNS, etc.
+	existingDaemonsByType := make(map[string][]*dbmodel.Daemon)
+	for _, daemon := range existingDaemons {
+		switch daemon.Name {
+		case dbmodel.DaemonNameDHCPv4, dbmodel.DaemonNameDHCPv6, dbmodel.DaemonNameCA, dbmodel.DaemonNameD2:
+			existingDaemonsByType["kea"] = append(existingDaemonsByType["kea"], &daemon)
+		case dbmodel.DaemonNameBind9:
+			existingDaemonsByType["bind9"] = append(existingDaemonsByType["bind9"], &daemon)
+		case dbmodel.DaemonNamePDNS:
+			existingDaemonsByType["pdns"] = append(existingDaemonsByType["pdns"], &daemon)
+		default:
+			log.Warnf("Unknown daemon type %s", daemon.Name)
 		}
 	}
 
+	// List of all daemons belonging to the machine with updated state.
+	allDaemons := make([]*dbmodel.Daemon, 0, len(existingDaemons))
 	// go through all daemons and store their changes in database
-	for _, dbDaemon := range allDaemons {
+	for daemonType, existingDaemons := range existingDaemonsByType {
 		// get daemon state from the machine
-		switch dbDaemon.Name {
-		case dbmodel.DaemonNameDHCPv4, dbmodel.DaemonNameDHCPv6, dbmodel.DaemonNameCA, dbmodel.DaemonNameD2:
-			state := kea.GetDaemonState(ctx2, agents, dbDaemon, eventCenter)
-			err = kea.CommitDaemonIntoDB(db, dbDaemon, eventCenter, state, lookup)
+		switch daemonType {
+		case "kea":
+			var states []kea.DaemonStateMeta
+			var enhancedDaemons []*dbmodel.Daemon
+			for _, daemon := range existingDaemons {
+				enhancedDaemon, state := kea.GetDaemonWithRefreshedState(ctx2, agents, daemon, eventCenter)
+				enhancedDaemons = append(enhancedDaemons, enhancedDaemon)
+				states = append(states, state)
+			}
+
+			err = kea.CommitDaemonsIntoDB(db, enhancedDaemons, eventCenter, states, lookup)
+
 			if err == nil {
-				// Let's now identify new daemons or the daemons with updated
-				// configurations and schedule configuration reviews for them
-				conditionallyBeginKeaConfigReviews(dbDaemon, state, reviewDispatcher, isStorkAgentChanged)
+				for i, daemon := range enhancedDaemons {
+					state := states[i]
+					// Let's now identify new daemons or the daemons with updated
+					// configurations and schedule configuration reviews for them
+					conditionallyBeginKeaConfigReviews(daemon, state, reviewDispatcher, isStorkAgentChanged)
+					allDaemons = append(allDaemons, daemon)
+				}
 			}
 		case dbmodel.DaemonNameBind9:
-			bind9.GetDaemonState(ctx2, agents, dbDaemon, eventCenter)
-			err = bind9.CommitDaemonIntoDB(db, dbDaemon, eventCenter)
+			for _, daemon := range existingDaemons {
+				bind9.GetDaemonState(ctx2, agents, daemon, eventCenter)
+				err = bind9.CommitDaemonIntoDB(db, daemon, eventCenter)
+				if err != nil {
+					break
+				}
+				allDaemons = append(allDaemons, daemon)
+			}
 		case dbmodel.DaemonNamePDNS:
-			pdns.GetDaemonState(ctx2, agents, dbDaemon, eventCenter)
-			err = pdns.CommitDaemonIntoDB(db, dbDaemon, eventCenter)
+			for _, daemon := range existingDaemons {
+				pdns.GetDaemonState(ctx2, agents, daemon, eventCenter)
+				err = pdns.CommitDaemonIntoDB(db, daemon, eventCenter)
+				if err != nil {
+					break
+				}
+				allDaemons = append(allDaemons, daemon)
+			}
 		default:
 			err = nil
 		}
@@ -310,10 +355,9 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 	return ""
 }
 
-// This function iterates over the daemon and checks if a new config
-// review should be performed. It is performed when daemon's configuration
-// or dispatcher's signature has changed.
-func conditionallyBeginKeaConfigReviews(daemon *dbmodel.Daemon, state *kea.AppStateMeta, reviewDispatcher configreview.Dispatcher, storkAgentConfigChanged bool) {
+// This function checks if a new config review should be performed. It is
+// performed when daemon's configuration or dispatcher's signature has changed.
+func conditionallyBeginKeaConfigReviews(daemon *dbmodel.Daemon, state kea.DaemonStateMeta, reviewDispatcher configreview.Dispatcher, storkAgentConfigChanged bool) {
 	// Let's make sure that the config pointer is set. It can be nil
 	// when the daemon is inactive.
 	if daemon.KeaDaemon == nil || daemon.KeaDaemon.Config == nil {
@@ -326,14 +370,12 @@ func conditionallyBeginKeaConfigReviews(daemon *dbmodel.Daemon, state *kea.AppSt
 	}
 
 	isConfigModified := true
-	if state != nil && state.SameConfigDaemons != nil {
-		if isSame, ok := state.SameConfigDaemons[daemon.Name]; ok && isSame {
-			if daemon.ConfigReview != nil &&
-				daemon.ConfigReview.Signature == reviewDispatcher.GetSignature() {
-				// Configuration of this daemon hasn't changed and the dispatcher has
-				// no checkers modified since the last review. Skip the config modified trigger.
-				isConfigModified = false
-			}
+	if !state.IsConfigChanged {
+		if daemon.ConfigReview != nil &&
+			daemon.ConfigReview.Signature == reviewDispatcher.GetSignature() {
+			// Configuration of this daemon hasn't changed and the dispatcher has
+			// no checkers modified since the last review. Skip the config modified trigger.
+			isConfigModified = false
 		}
 	}
 	if isConfigModified {

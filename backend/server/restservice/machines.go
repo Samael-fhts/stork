@@ -270,7 +270,7 @@ func (r *RestAPI) GetMachineState(ctx context.Context, params services.GetMachin
 		return rsp
 	}
 
-	errStr := apps.UpdateMachineAndAppsState(ctx, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
+	errStr := apps.UpdateMachineAndDaemonsState(ctx, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
 	if errStr != "" {
 		rsp := services.NewGetMachineStateDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &errStr,
@@ -755,7 +755,7 @@ func (r *RestAPI) PingMachine(ctx context.Context, params services.PingMachinePa
 	}
 
 	// Communication with an agent established, so get machine's state.
-	errStr := apps.UpdateMachineAndAppsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
+	errStr := apps.UpdateMachineAndDaemonsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
 	if errStr != "" {
 		rsp := services.NewPingMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &errStr,
@@ -857,7 +857,7 @@ func (r *RestAPI) UpdateMachine(ctx context.Context, params services.UpdateMachi
 	if !prevAuthorized && dbMachine.Authorized {
 		ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
-		errStr := apps.UpdateMachineAndAppsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
+		errStr := apps.UpdateMachineAndDaemonsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
 		if errStr != "" {
 			rsp := services.NewUpdateMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 				Message: &errStr,
@@ -1383,10 +1383,10 @@ func (r *RestAPI) GetDaemon(ctx context.Context, params services.GetDaemonParams
 }
 
 // Gets current status of services for a given Kea daemon.
-func getKeaServicesStatus(db *dbops.PgDB, app *dbmodel.Daemon) *models.ServicesStatus {
+func getKeaServicesStatus(db *dbops.PgDB, daemon *dbmodel.Daemon) *models.ServicesStatus {
 	servicesStatus := &models.ServicesStatus{}
 
-	keaServices, err := dbmodel.GetDetailedServicesByDaemonID(db, app.ID)
+	keaServices, err := dbmodel.GetDetailedServicesByDaemonID(db, daemon.ID)
 	if err != nil {
 		log.WithError(err).Error("Failed to get detailed services for daemon")
 		return nil
@@ -1536,7 +1536,7 @@ func (r *RestAPI) GetDaemonServicesStatus(ctx context.Context, params services.G
 
 	var servicesStatus *models.ServicesStatus
 
-	// If this is Kea application, get the Kea DHCP servers status which possibly
+	// If this is Kea DHCP daemon, get the Kea DHCP servers status which possibly
 	// includes HA status.
 	if dbDaemon.Name == dbmodel.DaemonNameDHCPv4 || dbDaemon.Name == dbmodel.DaemonNameDHCPv6 {
 		servicesStatus = getKeaServicesStatus(r.DB, dbDaemon)
@@ -1555,7 +1555,7 @@ func (r *RestAPI) GetDaemonServicesStatus(ctx context.Context, params services.G
 	return rsp
 }
 
-// Get statistics about applications.
+// Get statistics about daemons.
 func (r *RestAPI) GetDaemonsStats(ctx context.Context, params services.GetDaemonsStatsParams) middleware.Responder {
 	dbDaemons, err := dbmodel.GetAllDaemonsWithRelations(r.DB)
 	if err != nil {

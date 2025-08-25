@@ -44,7 +44,7 @@ const (
 )
 
 // Daemon names returned by the Stork Agent.
-type DaemonName string
+type DaemonName = string
 
 const (
 	// It is a deprecated name that Stork agents prior 2.3 use for the Kea
@@ -64,6 +64,7 @@ type ControlledDaemon interface {
 	GetControlAccessPoint() (string, int64, string, bool, error)
 	GetStatisticsAccessPoint() (string, int64, string, bool, error)
 	GetMachineTag() dbmodel.MachineTag
+	GetName() DaemonName
 }
 
 // An interface to a machine that can receive commands from Stork.
@@ -82,6 +83,11 @@ type Daemon struct {
 
 // Implements the agentcomm.ControlledDaemon interface.
 var _ ControlledDaemon = (*Daemon)(nil)
+
+// Return the name of the daemon.
+func (d *Daemon) GetName() DaemonName {
+	return d.Name
+}
 
 // Returns the control access point of the daemon. It returns an error if
 // no control access point is found.
