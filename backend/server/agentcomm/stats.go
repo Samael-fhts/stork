@@ -4,9 +4,11 @@ import (
 	"io"
 	"reflect"
 	"sync"
+
+	dbmodel "isc.org/stork/server/database/model"
 )
 
-var _ io.Closer = (*AgentCommStatsWrapper)(nil)
+var _ io.Closer = (*CommStatsWrapper)(nil)
 
 // Enumeration representing a type of the communication state transition
 // while the server tries to send a gRPC command to an agent.
@@ -23,47 +25,6 @@ const (
 	CommErrorContinued
 )
 
-// Enumeration representing a Kea daemon type for which one of the
-// statistics manipulation functions is called.
-type KeaDaemonType int
-
-const (
-	KeaDaemonDHCPv4 KeaDaemonType = iota
-	KeaDaemonDHCPv6
-	KeaDaemonD2
-	KeaDaemonCA
-	KeaDaemonUnknown
-)
-
-// Enumeration representing a communication channel with a BIND 9
-// daemon (i.e., RNDC or statistics channel).
-type Bind9ChannelType int
-
-const (
-	Bind9ChannelRNDC Bind9ChannelType = iota
-	Bind9ChannelStats
-)
-
-// Holds runtime communication statistics with Kea daemons on single machine.
-type KeaCommErrorStats struct {
-	// Communication error counts for different Kea daemons.
-	errorCounts map[KeaDaemonType]int64
-}
-
-// Holds runtime communication statistics with BIND 9 daemon on a single machine.
-type Bind9CommErrorStats struct {
-	// Communication error counts for different BIND 9
-	// communication channels.
-	errorCounts map[Bind9ChannelType]int64
-}
-
-// A wrapper for AgentCommStats which locks the stats for reading and
-// implements the Closer interface releasing the lock when desired.
-type AgentCommStatsWrapper struct {
-	/// Agent communication stats to be made available in a safe manner.
-	agentCommStats *AgentCommStats
-}
-
 // Holds runtime statistics of the communication with a given agent and
 // with the daemons behind this agent. The statistics are maintained by the
 // logic in the agentcomm package but can be read from other packages.
@@ -77,40 +38,26 @@ type AgentCommStatsWrapper struct {
 // this locking. The functions implemented here do not lock because
 // locking outside is more efficient when several operations on the
 // statistics must be performed.
-type AgentCommStats struct {
+type CommStats struct {
 	// Number of the communication errors with a Stork Agent for a
 	// particular type of gRPC message.
 	agentCommErrors map[string]int64
-	// Number of the communication errors with a Kea instance having
-	// a particular Machine ID.
-	keaCommErrors map[int64]*KeaCommErrorStats
-	// Number of the communication errors with a BIND 9 instance having
-	// a particular Machine ID.
-	bind9CommErrors map[int64]*Bind9CommErrorStats
+	// Number of the communication errors with a specific access point of a
+	// particular kind of daemon.
+	daemonCommErrors map[string]map[string]int64
 	// A mutex to be used when the data is accessed or updated. This
 	// mutex is returned to the caller and the caller is responsible
 	// for locking and unlocking the mutex.
 	mutex *sync.RWMutex
 }
 
-// Instantiates the stats wrapper and locks the stats for reading.
-func NewAgentCommStatsWrapper(stats *AgentCommStats) *AgentCommStatsWrapper {
-	stats.mutex.RLock()
-	return &AgentCommStatsWrapper{
-		agentCommStats: stats,
+// Instantiates communication statistics for a new agent.
+func NewAgentStats() *CommStats {
+	return &CommStats{
+		agentCommErrors:  make(map[string]int64),
+		daemonCommErrors: make(map[string]map[string]int64),
+		mutex:            &sync.RWMutex{},
 	}
-}
-
-// Returns the wrapped agent communication stats. The returned stats are locked
-// for reading. An attempt to write to the stats can cause a race condition.
-func (wrapper *AgentCommStatsWrapper) GetStats() *AgentCommStats {
-	return wrapper.agentCommStats
-}
-
-// Releases the lock.
-func (wrapper *AgentCommStatsWrapper) Close() error {
-	wrapper.agentCommStats.mutex.RUnlock()
-	return nil
 }
 
 // Communication errors with an agent are grouped by the type of the
@@ -125,41 +72,23 @@ func encodeAsCommStatsRequestName(request any) string {
 	return requestType.Name()
 }
 
-// Convenience function converting a Kea daemon name to its type.
-func GetKeaDaemonTypeFromName(daemonName string) KeaDaemonType {
-	switch daemonName {
-	case "dhcp4":
-		return KeaDaemonDHCPv4
-	case "dhcp6":
-		return KeaDaemonDHCPv6
-	case "d2":
-		return KeaDaemonD2
-	case "", "ca":
-		return KeaDaemonCA
-	default:
-		return KeaDaemonUnknown
-	}
-}
-
-// Instantiates the communication statistics for a new Kea instance.
-func NewKeaCommErrorStats() *KeaCommErrorStats {
-	return &KeaCommErrorStats{
-		errorCounts: make(map[KeaDaemonType]int64),
-	}
-}
-
-// Increases an error count for a selected Kea daemon type by 1.
+// Increases an error count for a selected daemon type by 1.
 // Returns an updated count.
-func (stats *KeaCommErrorStats) IncreaseErrorCount(daemonType KeaDaemonType) int64 {
-	stats.errorCounts[daemonType]++
-	return stats.errorCounts[daemonType]
+func (stats *CommStats) increaseDaemonErrorCount(daemonName string, accessPointType string) int64 {
+	return stats.increaseDaemonErrorCountBy(daemonName, accessPointType, 1)
 }
 
-// Increases an error count for a selected Kea daemon type by
+// Increases an error count for a selected daemon type by
 // an arbitrary number. Returns an updated count.
-func (stats *KeaCommErrorStats) IncreaseErrorCountBy(daemonType KeaDaemonType, increment int64) int64 {
-	stats.errorCounts[daemonType] += increment
-	return stats.errorCounts[daemonType]
+func (stats *CommStats) increaseDaemonErrorCountBy(daemonName string, accessPointType string, increment int64) int64 {
+	if _, ok := stats.daemonCommErrors[daemonName]; !ok {
+		stats.daemonCommErrors[daemonName] = make(map[string]int64)
+	}
+	if _, ok := stats.daemonCommErrors[daemonName][accessPointType]; !ok {
+		stats.daemonCommErrors[daemonName][accessPointType] = 0
+	}
+	stats.daemonCommErrors[daemonName][accessPointType] += increment
+	return stats.daemonCommErrors[daemonName][accessPointType]
 }
 
 // Updates an error count for a daemon using a specified new count.
@@ -171,106 +100,67 @@ func (stats *KeaCommErrorStats) IncreaseErrorCountBy(daemonType KeaDaemonType, i
 // caller for determining if there is a new communication problem or
 // the previous no gone. Based on that, the caller can issue
 // appropriate events.
-func (stats *KeaCommErrorStats) UpdateErrorCount(daemonType KeaDaemonType, newCount int64) CommErrorTransition {
-	currentCount := stats.GetErrorCount(daemonType)
+func (stats *CommStats) updateDaemonErrorCount(daemonName string, accessPointType string, newCount int64) CommErrorTransition {
+	currentCount := stats.getDaemonErrorCount(daemonName, accessPointType)
 	switch {
 	case newCount == 0 && currentCount == 0:
 		return CommErrorNone
 	case newCount > 0 && currentCount > 0:
-		_ = stats.IncreaseErrorCountBy(daemonType, newCount)
+		_ = stats.increaseDaemonErrorCountBy(daemonName, accessPointType, newCount)
 		return CommErrorContinued
 	case newCount == 0 && currentCount > 0:
-		stats.ResetErrorCount(daemonType)
+		stats.resetDaemonErrorCount(daemonName, accessPointType)
 		return CommErrorReset
 	case newCount > 0 && currentCount == 0:
-		_ = stats.IncreaseErrorCountBy(daemonType, newCount)
+		_ = stats.increaseDaemonErrorCountBy(daemonName, accessPointType, newCount)
 		return CommErrorNew
 	default:
 		return CommErrorNone
 	}
 }
 
-// Resets an error count for a selected daemon to 0.
-func (stats *KeaCommErrorStats) ResetErrorCount(daemonType KeaDaemonType) {
-	delete(stats.errorCounts, daemonType)
-}
-
-// Returns a current error count for a selected daemon.
-func (stats *KeaCommErrorStats) GetErrorCount(daemonType KeaDaemonType) int64 {
-	if errorCount, ok := stats.errorCounts[daemonType]; ok {
-		return errorCount
-	}
-	return 0
-}
-
-// Instantiates the communication statistics for a new BIND 9 instance.
-func NewBind9CommErrorStats() *Bind9CommErrorStats {
-	return &Bind9CommErrorStats{
-		errorCounts: make(map[Bind9ChannelType]int64),
-	}
-}
-
-// Increases an error count for a selected channel type by 1.
-// Returns an updated count.
-func (stats *Bind9CommErrorStats) IncreaseErrorCount(channelType Bind9ChannelType) int64 {
-	stats.errorCounts[channelType]++
-	return stats.errorCounts[channelType]
-}
-
-// Increases an error count for a selected channel type by an
-// arbitrary number. Returns an updated count.
-func (stats *Bind9CommErrorStats) IncreaseErrorCountBy(channelType Bind9ChannelType, increment int64) int64 {
-	stats.errorCounts[channelType] += increment
-	return stats.errorCounts[channelType]
-}
-
-// Resets an error count for a selected channel type to 0.
-func (stats *Bind9CommErrorStats) ResetErrorCount(channelType Bind9ChannelType) {
-	delete(stats.errorCounts, channelType)
-}
-
-// Returns a current error count for a selected channel type.
-func (stats *Bind9CommErrorStats) GetErrorCount(channelType Bind9ChannelType) int64 {
-	if errorCount, ok := stats.errorCounts[channelType]; ok {
-		return errorCount
-	}
-	return 0
-}
-
-// Instantiates communication statistics for a new agent.
-func NewAgentStats() *AgentCommStats {
-	return &AgentCommStats{
-		agentCommErrors: make(map[string]int64),
-		keaCommErrors:   make(map[int64]*KeaCommErrorStats),
-		bind9CommErrors: make(map[int64]*Bind9CommErrorStats),
-		mutex:           &sync.RWMutex{},
-	}
-}
-
 // Increases communication error count with an agent by 1. Returns
 // an updated count.
-func (stats *AgentCommStats) IncreaseErrorCount(request any) int64 {
+func (stats *CommStats) IncreaseAgentErrorCount(request any) int64 {
 	requestName := encodeAsCommStatsRequestName(request)
 	stats.agentCommErrors[requestName]++
 	return stats.agentCommErrors[requestName]
 }
 
+// Resets the communication error count with a daemon to 0.
+func (stats *CommStats) resetDaemonErrorCount(daemonName string, accessPointType string) {
+	if _, ok := stats.daemonCommErrors[daemonName]; !ok {
+		return
+	}
+	if _, ok := stats.daemonCommErrors[daemonName][accessPointType]; !ok {
+		return
+	}
+	delete(stats.daemonCommErrors[daemonName], accessPointType)
+}
+
 // Resets the communication error count with an agent to 0.
-func (stats *AgentCommStats) ResetErrorCount(request any) {
+func (stats *CommStats) ResetAgentErrorCount(request any) {
 	delete(stats.agentCommErrors, encodeAsCommStatsRequestName(request))
 }
 
+// Returns a current communication error count with a daemon.
+func (stats *CommStats) getDaemonErrorCount(daemonName string, accessPointType string) int64 {
+	if daemonCommErrors, ok := stats.daemonCommErrors[daemonName]; ok {
+		return daemonCommErrors[accessPointType]
+	}
+	return 0
+}
+
 // Returns a current communication error count with an agent.
-func (stats *AgentCommStats) GetErrorCount(request any) int64 {
+func (stats *CommStats) GetAgentErrorCount(request any) int64 {
 	if agentCommErrors, ok := stats.agentCommErrors[encodeAsCommStatsRequestName(request)]; ok {
 		return agentCommErrors
 	}
 	return 0
 }
 
-// Returns a communication error count with an agent for all
-// gRPC request types.
-func (stats *AgentCommStats) GetTotalErrorCount() int64 {
+// Returns a communication error count with an agent for all gRPC request types.
+func (stats *CommStats) GetTotalAgentErrorCount() int64 {
 	var totalErrorCount int64
 	for _, errorCount := range stats.agentCommErrors {
 		totalErrorCount += errorCount
@@ -278,26 +168,95 @@ func (stats *AgentCommStats) GetTotalErrorCount() int64 {
 	return totalErrorCount
 }
 
-// Returns Kea communication error stats for a selected machine by ID.
-// The returned pointer is guaranteed to be valid. If it doesn't
-// initially exist it is created.
-func (stats *AgentCommStats) GetKeaCommErrorStats(machineID int64) *KeaCommErrorStats {
-	if keaErrorStats, ok := stats.keaCommErrors[machineID]; ok {
-		return keaErrorStats
+// Returns an object with a Kea-specific interface for updating the statistics.
+func (stats *CommStats) GetKeaStats() *CommStatsKea {
+	return &CommStatsKea{
+		comm: stats,
 	}
-	keaErrorStats := NewKeaCommErrorStats()
-	stats.keaCommErrors[machineID] = keaErrorStats
-	return keaErrorStats
 }
 
-// Returns BIND 9 communication error stats for a selected machine by ID.
-// The returned pointer is guaranteed to be valid. If it doesn't
-// initially exist it is created.
-func (stats *AgentCommStats) GetBind9CommErrorStats(machineID int64) *Bind9CommErrorStats {
-	if bind9ErrorStats, ok := stats.bind9CommErrors[machineID]; ok {
-		return bind9ErrorStats
+// Returns an object with a BIND 9-specific interface for updating the statistics.
+func (stats *CommStats) GetBind9Stats() *CommStatsBind9 {
+	return &CommStatsBind9{
+		comm: stats,
 	}
-	bind9ErrorStats := NewBind9CommErrorStats()
-	stats.bind9CommErrors[machineID] = bind9ErrorStats
-	return bind9ErrorStats
+}
+
+// Provides a Kea-specific way of updating the error count for given daemons.
+type CommStatsKea struct {
+	comm *CommStats
+}
+
+// Updates an error count for a daemon using a specified new count.
+// The new counter of 0 indicates that any previous communication
+// issues with the daemon are gone and causes the current error
+// count to be reset. A positive error count indicates an ongoing
+// communication issue and increases the number of unsuccessful
+// communication attempts. The returned transition state allows the
+// caller for determining if there is a new communication problem or
+// the previous no gone. Based on that, the caller can issue
+// appropriate events.
+func (ks *CommStatsKea) UpdateErrorCount(daemonName string, count int64) CommErrorTransition {
+	return ks.comm.updateDaemonErrorCount(daemonName, dbmodel.AccessPointControl, count)
+}
+
+// Returns a number of communication errors with a Kea daemon for a
+// particular channel.
+func (ks *CommStatsKea) GetErrorCount(daemonName dbmodel.DaemonName) int64 {
+	return ks.comm.getDaemonErrorCount(daemonName, dbmodel.AccessPointControl)
+}
+
+// Increases communication error count with a Kea daemon by 1. Returns
+// an updated count.
+func (ks *CommStatsKea) IncreaseErrorCount(daemonName dbmodel.DaemonName) int64 {
+	return ks.comm.increaseDaemonErrorCount(daemonName, dbmodel.AccessPointControl)
+}
+
+// Provides a BIND 9-specific way of updating the error count for given daemons.
+type CommStatsBind9 struct {
+	comm *CommStats
+}
+
+// Returns a number of communication errors with a BIND 9 daemon for a
+// particular channel.
+func (bs *CommStatsBind9) GetErrorCount(accessPointType string) int64 {
+	return bs.comm.getDaemonErrorCount(dbmodel.DaemonNameBind9, accessPointType)
+}
+
+// Increases communication error count with a BIND 9 daemon by 1. Returns
+// an updated count.
+func (bs *CommStatsBind9) IncreaseErrorCount(accessPointType string) int64 {
+	return bs.comm.increaseDaemonErrorCount(dbmodel.DaemonNameBind9, accessPointType)
+}
+
+// Resets the communication error count with a BIND 9 daemon to 0.
+func (bs *CommStatsBind9) ResetErrorCount(accessPointType string) {
+	bs.comm.resetDaemonErrorCount(dbmodel.DaemonNameBind9, accessPointType)
+}
+
+// A wrapper for AgentCommStats which locks the stats for reading and
+// implements the Closer interface releasing the lock when desired.
+type CommStatsWrapper struct {
+	/// Agent communication stats to be made available in a safe manner.
+	agentCommStats *CommStats
+}
+
+// Instantiates the stats wrapper and locks the stats for reading.
+func NewCommStatsWrapper(stats *CommStats) *CommStatsWrapper {
+	stats.mutex.RLock()
+	return &CommStatsWrapper{
+		agentCommStats: stats,
+	}
+}
+
+// Returns the wrapped agent communication stats. The returned stats are locked
+// for reading. An attempt to write to the stats can cause a race condition.
+func (wrapper *CommStatsWrapper) GetStats() *CommStats {
+	return wrapper.agentCommStats
+}
+
+// Releases the lock.
+func (wrapper *CommStatsWrapper) Close() error {
+	wrapper.agentCommStats.mutex.RUnlock()
+	return nil
 }

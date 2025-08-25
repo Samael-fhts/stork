@@ -1124,21 +1124,21 @@ func (r *RestAPI) daemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.AnyDaemon {
 	}
 
 	agentErrors := int64(0)
-	var agentStats *agentcomm.AgentCommStatsWrapper
+	var agentStatsWrapper *agentcomm.CommStatsWrapper
 	if dbDaemon.Machine != nil {
-		agentStats = r.Agents.GetConnectedAgentStatsWrapper(dbDaemon.Machine.Address, dbDaemon.Machine.AgentPort)
-		if agentStats != nil {
-			defer agentStats.Close()
-			agentErrors = agentStats.GetStats().GetTotalErrorCount()
+		agentStatsWrapper = r.Agents.GetConnectedAgentStatsWrapper(dbDaemon.Machine.Address, dbDaemon.Machine.AgentPort)
+		if agentStatsWrapper != nil {
+			defer agentStatsWrapper.Close()
+			agentErrors = agentStatsWrapper.GetStats().GetTotalAgentErrorCount()
 		}
 	}
 	apiDaemon.Daemon.AgentCommErrors = agentErrors
 
 	switch dbDaemon.Name {
 	case dbmodel.DaemonNameDHCPv4, dbmodel.DaemonNameDHCPv6, dbmodel.DaemonNameCA, dbmodel.DaemonNameD2:
-		if agentStats != nil {
-			keaStats := agentStats.GetStats().GetKeaCommErrorStats(dbDaemon.MachineID)
-			apiDaemon.ControlCommErrors = keaStats.GetErrorCount(agentcomm.GetKeaDaemonTypeFromName(dbDaemon.Name))
+		if agentStatsWrapper != nil {
+			stats := agentStatsWrapper.GetStats().GetKeaStats()
+			apiDaemon.ControlCommErrors = stats.GetErrorCount(dbDaemon.Name)
 		}
 
 		files, backends := getKeaStorages(dbDaemon.KeaDaemon.Config.Config)
@@ -1196,10 +1196,10 @@ func (r *RestAPI) daemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.AnyDaemon {
 			Views:         views,
 		}
 
-		if agentStats != nil {
-			bind9Errors := agentStats.GetStats().GetBind9CommErrorStats(dbDaemon.MachineID)
-			apiDaemon.Daemon.ControlCommErrors = bind9Errors.GetErrorCount(agentcomm.Bind9ChannelRNDC)
-			apiDaemon.Bind9DaemonDetails.StatsCommErrors = bind9Errors.GetErrorCount(agentcomm.Bind9ChannelStats)
+		if agentStatsWrapper != nil {
+			stats := agentStatsWrapper.GetStats().GetBind9Stats()
+			apiDaemon.Daemon.ControlCommErrors = stats.GetErrorCount(dbmodel.AccessPointControl)
+			apiDaemon.Bind9DaemonDetails.StatsCommErrors = stats.GetErrorCount(dbmodel.AccessPointStatistics)
 		}
 	case dbmodel.DaemonNamePDNS:
 		if dbDaemon.PDNSDaemon == nil {

@@ -36,7 +36,7 @@ type ForwardToNamedStatsRequestType = agentapi.ForwardToNamedStatsReq_RequestTyp
 // Interface for interacting with Agents via gRPC.
 type ConnectedAgents interface {
 	Shutdown()
-	GetConnectedAgentStatsWrapper(address string, port int64) *AgentCommStatsWrapper
+	GetConnectedAgentStatsWrapper(address string, port int64) *CommStatsWrapper
 	Ping(ctx context.Context, machine dbmodel.MachineTag) error
 	GetState(ctx context.Context, machine dbmodel.MachineTag) (*State, error)
 	ForwardRndcCommand(ctx context.Context, daemon ControlledDaemon, command string) (*RndcOutput, error)
@@ -139,7 +139,7 @@ func (impl *agentConnectorImpl) createClient() agentapi.AgentClient {
 type agentState struct {
 	address   string
 	connector agentConnector
-	stats     *AgentCommStats
+	stats     *CommStats
 }
 
 // Agents management map. It tracks Agents currently connected to the Server.
@@ -236,7 +236,7 @@ func (agents *connectedAgentsImpl) getConnectedAgent(address string) (*agentStat
 // Returns statistics for the connected agent. The statistics include number
 // of errors to communicate with the agent and the number of errors to
 // communicate with the apps behind the agent.
-func (agents *connectedAgentsImpl) getConnectedAgentStats(address string, port int64) *AgentCommStats {
+func (agents *connectedAgentsImpl) getConnectedAgentStats(address string, port int64) *CommStats {
 	if port != 0 {
 		address = net.JoinHostPort(address, strconv.FormatInt(port, 10))
 	}
@@ -251,12 +251,12 @@ func (agents *connectedAgentsImpl) getConnectedAgentStats(address string, port i
 
 // Returns a wrapper for statistics. The wrapper can be used to safely
 // access the returned statistics for reading in other packages.
-func (agents *connectedAgentsImpl) GetConnectedAgentStatsWrapper(address string, port int64) *AgentCommStatsWrapper {
+func (agents *connectedAgentsImpl) GetConnectedAgentStatsWrapper(address string, port int64) *CommStatsWrapper {
 	stats := agents.getConnectedAgentStats(address, port)
 	if stats == nil {
 		return nil
 	}
-	return NewAgentCommStatsWrapper(stats)
+	return NewCommStatsWrapper(stats)
 }
 
 // The GRPC client callback to perform extra verification of the peer

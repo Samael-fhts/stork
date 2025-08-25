@@ -89,8 +89,8 @@ func (fa *FakeAgents) Ping(ctx context.Context, machine dbmodel.MachineTag) erro
 func (fa *FakeAgents) Shutdown() {}
 
 // Returns fake statistics for the selected connected agent.
-func (fa *FakeAgents) GetConnectedAgentStatsWrapper(address string, port int64) *agentcomm.AgentCommStatsWrapper {
-	return agentcomm.NewAgentCommStatsWrapper(agentcomm.NewAgentStats())
+func (fa *FakeAgents) GetConnectedAgentStatsWrapper(address string, port int64) *agentcomm.CommStatsWrapper {
+	return agentcomm.NewCommStatsWrapper(agentcomm.NewAgentStats())
 }
 
 // FakeAgents specific implementation of the GetState.
