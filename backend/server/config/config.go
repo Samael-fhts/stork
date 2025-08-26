@@ -2,15 +2,34 @@ package config
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/go-pg/pg/v10"
 	pkgerrors "github.com/pkg/errors"
 	keaconfig "isc.org/stork/appcfg/kea"
-	"isc.org/stork/datamodel"
 	agentcomm "isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 )
+
+type Operation string
+
+const (
+	OperationKeaHostAdd                Operation = "kea.host_add"
+	OperationKeaHostUpdate             Operation = "kea.host_update"
+	OperationKeaHostDelete             Operation = "kea.host_delete"
+	OperationKeaSharedNetworkAdd       Operation = "kea.shared_network_add"
+	OperationKeaSharedNetworkUpdate    Operation = "kea.shared_network_update"
+	OperationKeaSharedNetworkDelete    Operation = "kea.shared_network_delete"
+	OperationKeaSubnetAdd              Operation = "kea.subnet_add"
+	OperationKeaSubnetUpdate           Operation = "kea.subnet_update"
+	OperationKeaSubnetDelete           Operation = "kea.subnet_delete"
+	OperationKeaGlobalParametersUpdate Operation = "kea.global_parameters_update"
+)
+
+func (op Operation) IsKeaOperation() bool {
+	return strings.HasPrefix(string(op), "kea.")
+}
 
 var _ TransactionStateAccessor = (*TransactionState[any])(nil)
 
@@ -29,10 +48,8 @@ type TransactionStateAccessor interface {
 // generic allows for using the Update structure for configuring different
 // app types.
 type Update[T any] struct {
-	// Type of the configured daemon, e.g. "kea".
-	Target datamodel.AppType
-	// Type of the operation to perform, e.g. "host_add".
-	Operation string
+	// Type of the operation to perform, e.g. "kea.host_add".
+	Operation Operation
 	// Identifiers of the daemons affected by the update. For example,
 	// a host reservation can be shared by two daemons.
 	DaemonIDs []int64
@@ -167,7 +184,6 @@ type ManagerLocker interface {
 func (state TransactionState[T]) GetUpdates() (updates []*Update[any]) {
 	for _, u := range state.Updates {
 		update := Update[any]{
-			Target:    u.Target,
 			Operation: u.Operation,
 			DaemonIDs: u.DaemonIDs,
 			Recipe:    u.Recipe,
@@ -178,9 +194,8 @@ func (state TransactionState[T]) GetUpdates() (updates []*Update[any]) {
 }
 
 // Creates new config update instance.
-func NewUpdate[T any](target datamodel.AppType, operation string, daemonIDs ...int64) *Update[T] {
+func NewUpdate[T any](operation Operation, daemonIDs ...int64) *Update[T] {
 	return &Update[T]{
-		Target:    target,
 		Operation: operation,
 		DaemonIDs: daemonIDs,
 	}
@@ -188,8 +203,8 @@ func NewUpdate[T any](target datamodel.AppType, operation string, daemonIDs ...i
 
 // Creates new transaction state with one config update instance. It is
 // the most typical use case.
-func NewTransactionStateWithUpdate[T any](target datamodel.AppType, operation string, daemonIDs ...int64) *TransactionState[T] {
-	update := NewUpdate[T](target, operation, daemonIDs...)
+func NewTransactionStateWithUpdate[T any](operation Operation, daemonIDs ...int64) *TransactionState[T] {
+	update := NewUpdate[T](operation, daemonIDs...)
 	state := &TransactionState[T]{}
 	state.Updates = append(state.Updates, update)
 	return state
