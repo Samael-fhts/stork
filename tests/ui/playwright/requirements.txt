@@ -1,4 +1,3 @@
 pytest
 playwright
 pytest-playwright
-pyyaml
