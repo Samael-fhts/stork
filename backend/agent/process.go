@@ -60,12 +60,6 @@ func (p *processWrapper) getName() (string, error) {
 	return name, err
 }
 
-// Convenience function checking if the detected process is supported by the agent.
-func isSupportedProcess(p *process.Process) bool {
-	name, _ := p.Name()
-	return name == keaProcName || name == namedProcName || name == pdnsProcName
-}
-
 // An interface for listing the supported processes. It can be mocked in the
 // unit tests.
 type processLister interface {
@@ -75,8 +69,7 @@ type processLister interface {
 // A default implementation of the processLister interface.
 type processListerImpl struct{}
 
-// Lists the supported processes using gopsutil library. It returns only the
-// processes supported by the agent (apps that can be monitored by the agent).
+// Lists the supported processes using gopsutil library.
 func (impl *processListerImpl) listProcesses() ([]supportedProcess, error) {
 	processes, err := process.Processes()
 	if err != nil {
@@ -84,9 +77,7 @@ func (impl *processListerImpl) listProcesses() ([]supportedProcess, error) {
 	}
 	var listedProcesses []supportedProcess
 	for _, p := range processes {
-		if isSupportedProcess(p) {
-			listedProcesses = append(listedProcesses, &processWrapper{process: p})
-		}
+		listedProcesses = append(listedProcesses, &processWrapper{process: p})
 	}
 	return listedProcesses, nil
 }

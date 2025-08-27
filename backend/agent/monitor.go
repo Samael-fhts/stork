@@ -1,7 +1,7 @@
 package agent
 
 import (
-	"slices"
+	"fmt"
 	"strings"
 	"sync"
 	"time"
@@ -13,6 +13,11 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
+// Operations provided by the Stork agent to set up daemon-related configuration.
+type AgentManager interface {
+	AllowLog(path string)
+}
+
 // An access point for an application to retrieve information such
 // as status or metrics.
 type AccessPoint struct {
@@ -23,24 +28,87 @@ type AccessPoint struct {
 	Key               string
 }
 
+// Checks if two access points are equal.
+func (ap *AccessPoint) IsEqual(other AccessPoint) bool {
+	return ap.Type == other.Type &&
+		ap.Address == other.Address &&
+		ap.Port == other.Port &&
+		ap.UseSecureProtocol == other.UseSecureProtocol &&
+		ap.Key == other.Key
+}
+
+// String representation of an access point.
+func (ap *AccessPoint) String() string {
+	var b strings.Builder
+	b.WriteString(ap.Type)
+	b.WriteString(": ")
+	b.WriteString(storkutil.HostWithPortURL(ap.Address, ap.Port, ap.UseSecureProtocol))
+	if ap.Type == AccessPointControl {
+		b.WriteString(" (auth key: ")
+		if ap.Key != "" {
+			b.WriteString("found")
+		} else {
+			b.WriteString("not found")
+		}
+		b.WriteString(")")
+	}
+	return b.String()
+}
+
 // Currently supported types are: "control" and "statistics".
 const (
 	AccessPointControl    = "control"
 	AccessPointStatistics = "statistics"
 )
 
-// Base application information. This structure is embedded
-// in other app specific structures like KeaApp and Bind9App.
-type BaseApp struct {
+type Daemon interface {
+	GetPid() int32
+	GetName() DaemonName
+	GetAccessPoint(apType string) *AccessPoint
+	GetAccessPoints() []AccessPoint
+	// Checks if data of two daemons are equal.
+	IsEqual(other Daemon) bool
+	// Called when the monitor newly detects the daemon.
+	// It allows the daemon to perform initialization tasks
+	// such as starting a background goroutine.
+	Bootstrap() error
+	// Called when the monitor no longer detects the daemon.
+	// It allows the daemon to perform cleanup tasks such as
+	// stopping a background goroutine.
+	Cleanup() error
+	// Performs periodic processing of the daemon, e.g., detect logs or
+	// refresh zone inventory.
+	Evaluate(AgentManager) error
+	String() string
+}
+
+// Daemon information. This structure is embedded
+// in app specific structures like KeaApp and Bind9App.
+type daemon struct {
 	Pid          int32
-	Type         string
+	Name         DaemonName
 	AccessPoints []AccessPoint
+}
+
+// Return the PID of the daemon process.
+func (d *daemon) GetPid() int32 {
+	return d.Pid
+}
+
+// Return the name of the daemon process.
+func (d *daemon) GetName() DaemonName {
+	return d.Name
+}
+
+// Returns all access points of the daemon.
+func (d *daemon) GetAccessPoints() []AccessPoint {
+	return d.AccessPoints
 }
 
 // Returns an access point of a given type. If the access point is not found,
 // it returns nil.
-func (ba *BaseApp) GetAccessPoint(accessPointType string) *AccessPoint {
-	for _, ap := range ba.AccessPoints {
+func (d *daemon) GetAccessPoint(accessPointType string) *AccessPoint {
+	for _, ap := range d.AccessPoints {
 		if ap.Type == accessPointType {
 			return &ap
 		}
@@ -48,134 +116,152 @@ func (ba *BaseApp) GetAccessPoint(accessPointType string) *AccessPoint {
 	return nil
 }
 
-// Checks if two applications have the same type.
-func (ba *BaseApp) HasEqualType(other *BaseApp) bool {
-	return ba.Type == other.Type
+// String representation of a daemon.
+func (d *daemon) String() string {
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("[pid %d] %s: ", d.Pid, d.Name))
+
+	for i := 0; i < len(d.AccessPoints)-1; i++ {
+		b.WriteString(d.AccessPoints[i].String())
+		b.WriteString(", ")
+	}
+	b.WriteString(d.AccessPoints[len(d.AccessPoints)-1].String())
+
+	return b.String()
 }
 
-// Checks if two applications have the same access points. It checks the
-// location (address and port) as well as the access point configuration.
-func (ba *BaseApp) HasEqualAccessPoints(other *BaseApp) bool {
-	if len(ba.AccessPoints) != len(other.AccessPoints) {
+// Checks if two applications are the same. It checks the name and access
+// points including their configuration.
+func (d *daemon) IsEqual(other Daemon) bool {
+	if d.Name != other.GetName() {
 		return false
 	}
 
-	for _, thisAccessPoint := range ba.AccessPoints {
-		otherAccessPoint := other.GetAccessPoint(thisAccessPoint.Type)
-		if otherAccessPoint == nil {
+	otherAccessPoints := other.GetAccessPoints()
+	if len(d.AccessPoints) != len(otherAccessPoints) {
+		return false
+	}
+
+	for _, otherAccessPoint := range otherAccessPoints {
+		thisAccessPoint := d.GetAccessPoint(otherAccessPoint.Type)
+		if thisAccessPoint == nil {
 			return false
 		}
-		if thisAccessPoint.Address != otherAccessPoint.Address {
-			return false
-		}
-		if thisAccessPoint.Port != otherAccessPoint.Port {
-			return false
-		}
-		if thisAccessPoint.UseSecureProtocol != otherAccessPoint.UseSecureProtocol {
-			return false
-		}
-		if thisAccessPoint.Key != otherAccessPoint.Key {
+		if !thisAccessPoint.IsEqual(otherAccessPoint) {
 			return false
 		}
 	}
 	return true
 }
 
-// Checks if two applications are the same. It checks the type and access
-// points including their configuration.
-func (ba *BaseApp) IsEqual(other *BaseApp) bool {
-	return ba.HasEqualType(other) && ba.HasEqualAccessPoints(other)
-}
-
-// An interface to be implemented by all apps detected and monitored
-// by the agent. Not all functions are relevant to all apps. For example,
-// getting zone inventory is only relevant for DNS servers. For other apps
-// it should return nil.
-type App interface {
-	GetBaseApp() *BaseApp
-	DetectAllowedLogs() ([]string, error)
+// An interface representing the DNS daemon.
+type DNSDaemon interface {
+	Daemon
 	GetZoneInventory() *zoneInventory
-	StopZoneInventory()
 }
 
-// Supported app types: "kea", "bind9" and "pdns".
+// Monitored daemon names.
+type DaemonName string
+
 const (
-	AppTypeKea      = "kea"
-	AppTypeBind9    = "bind9"
-	AppTypePowerDNS = "pdns"
+	DaemonNameDHCPv4 DaemonName = "dhcp4"
+	DaemonNameDHCPv6 DaemonName = "dhcp6"
+	DaemonNameD2     DaemonName = "d2"
+	DaemonNameCA     DaemonName = "ca"
+	DaemonNameBind9  DaemonName = "bind9"
+	DaemonNamePDNS   DaemonName = "pdns"
 )
 
-// The application monitor is responsible for detecting the applications
+// Converts a process name to a daemon name. If the process name
+// is not recognized, it returns an empty string.
+func convertProcessNameToDaemonName(procName string) DaemonName {
+	switch procName {
+	case "kea-dhcp4":
+		return DaemonNameDHCPv4
+	case "kea-dhcp6":
+		return DaemonNameDHCPv6
+	case "kea-d2":
+		return DaemonNameD2
+	case "kea-ctrl-agent":
+		return DaemonNameCA
+	case "named":
+		return DaemonNameBind9
+	case "pdns_server":
+		return DaemonNamePDNS
+	default:
+		return ""
+	}
+}
+
+// The daemon monitor is responsible for detecting the daemons
 // running in the operating system and periodically refreshing their states.
 // They are available through assessors.
-type AppMonitor interface {
-	GetApps() []App
-	GetApp(apType, address string, port int64) App
+type Monitor interface {
+	GetDaemons() []Daemon
+	GetDaemonByAccessPoint(apType, address string, port int64) Daemon
 	Start(agent *StorkAgent)
 	Shutdown()
 }
 
-type appMonitor struct {
-	requests         chan chan []App // input to app monitor, ie. channel for receiving requests
-	quit             chan bool       // channel for stopping app monitor
-	running          bool
-	wg               *sync.WaitGroup
-	commander        storkutil.CommandExecutor
-	processManager   *ProcessManager
-	bind9FileParser  bind9FileParser
-	pdnsConfigParser pdnsConfigParser
-	// A flag indicating if the monitor has already detected no apps and reported it.
-	isNoAppsReported bool
+type monitor struct {
+	requests                chan chan []Daemon // input to monitor, ie. channel for receiving requests
+	quit                    chan bool          // channel for stopping app monitor
+	running                 bool
+	wg                      *sync.WaitGroup
+	commander               storkutil.CommandExecutor
+	processManager          *ProcessManager
+	bind9FileParser         bind9FileParser
+	explicitBind9ConfigPath string
+	pdnsConfigParser        pdnsConfigParser
+	keaHTTPClientConfig     HTTPClientConfig
 
-	apps []App // list of detected apps on the host
+	// List of detected daemons on the host.
+	// Nil if the monitor has no perform detection yet.
+	daemons []Daemon
 }
 
-// Names of apps that are being detected.
-const (
-	keaProcName   = "kea-ctrl-agent"
-	namedProcName = "named"
-	pdnsProcName  = "pdns_server"
-)
-
-// Creates an AppMonitor instance. It used to start it as well, but this is now done
-// by a dedicated method Start(). Make sure you call Start() before using app monitor.
-func NewAppMonitor() AppMonitor {
-	sm := &appMonitor{
-		requests:         make(chan chan []App),
-		quit:             make(chan bool),
-		wg:               &sync.WaitGroup{},
-		commander:        storkutil.NewSystemCommandExecutor(),
-		processManager:   NewProcessManager(),
-		bind9FileParser:  bind9config.NewParser(),
-		pdnsConfigParser: pdnsconfig.NewParser(),
+// Creates an Monitor instance. It used to start it as well, but this is now done
+// by a dedicated method Start(). Make sure you call Start() before using daemon
+// monitor.
+func NewMonitor(explicitBind9ConfigPath string, keaHTTPClientConfig HTTPClientConfig) Monitor {
+	sm := &monitor{
+		requests:                make(chan chan []Daemon),
+		quit:                    make(chan bool),
+		wg:                      &sync.WaitGroup{},
+		commander:               storkutil.NewSystemCommandExecutor(),
+		processManager:          NewProcessManager(),
+		bind9FileParser:         bind9config.NewParser(),
+		pdnsConfigParser:        pdnsconfig.NewParser(),
+		explicitBind9ConfigPath: explicitBind9ConfigPath,
+		keaHTTPClientConfig:     keaHTTPClientConfig,
+		running:                 false,
+		daemons:                 nil,
 	}
 	return sm
 }
 
 // This function starts the actual monitor. This start is delayed in case we want to only
 // do command line parameters parsing, e.g. to print version or help and quit.
-func (sm *appMonitor) Start(storkAgent *StorkAgent) {
+func (sm *monitor) Start(storkAgent AgentManager) {
 	sm.wg.Add(1)
 	go sm.run(storkAgent)
 }
 
-func (sm *appMonitor) run(storkAgent *StorkAgent) {
-	log.Printf("Started app monitor")
+// Run the main loop of the monitor. It continually detects the daemons
+// running on the host and refreshes their states.
+func (sm *monitor) run(storkAgent AgentManager) {
+	log.Printf("Started daemon monitor")
 
 	sm.running = true
 	defer sm.wg.Done()
 
-	// run app detection one time immediately at startup
-	sm.detectApps(storkAgent)
+	// Run app detection one time immediately at startup.
+	sm.detectDaemons()
 
-	// For each detected Kea app, let's gather the logs which can be viewed
-	// from the UI.
-	sm.detectAllowedLogs(storkAgent)
+	// Evaluate all detected daemons.
+	sm.evaluateDaemons(storkAgent)
 
-	// Populate zone inventories for all detected DNS servers.
-	sm.populateZoneInventories()
-
-	// prepare ticker
+	// Prepare ticker.
 	const detectionInterval = 10 * time.Second
 	ticker := time.NewTicker(detectionInterval)
 	defer ticker.Stop()
@@ -183,15 +269,17 @@ func (sm *appMonitor) run(storkAgent *StorkAgent) {
 	for {
 		select {
 		case ret := <-sm.requests:
-			// process user request
-			ret <- sm.apps
+			// Process user request.
+			ret <- sm.daemons
 
 		case <-ticker.C:
-			// periodic detection
+			// Periodic detection.
 			ticker.Stop()
-			sm.detectApps(storkAgent)
-			sm.detectAllowedLogs(storkAgent)
-			sm.populateZoneInventories()
+
+			sm.detectDaemons()
+			sm.evaluateDaemons(storkAgent)
+
+			// Reset ticker.
 			ticker.Reset(detectionInterval)
 
 		case <-sm.quit:
@@ -203,159 +291,146 @@ func (sm *appMonitor) run(storkAgent *StorkAgent) {
 	}
 }
 
-func printNewOrUpdatedApps(detectedApps []App, existingApps []App) {
-	// Check if the detected apps are new or updated.
-	var newOrUpdatedApps []App
-	for _, detectedApp := range detectedApps {
-		if !slices.ContainsFunc(existingApps, func(existingApp App) bool {
-			return detectedApp.GetBaseApp().IsEqual(existingApp.GetBaseApp())
-		}) {
-			newOrUpdatedApps = append(newOrUpdatedApps, detectedApp)
-		}
+// Splits the daemons into newly started, untouched and stopped ones.
+func splitDaemonsByTransition(previous, next []Daemon) (started, unchanged, stopped []Daemon) {
+	// Daemons no longer running.
+	stoppedMap := make(map[int]bool)
+	for i := 0; i < len(previous); i++ {
+		stoppedMap[i] = true
 	}
-	if len(newOrUpdatedApps) == 0 {
-		// No new or updated apps detected.
-		return
-	}
-	log.Infof("New or updated apps detected:")
-	for _, app := range newOrUpdatedApps {
-		var accessPoints []string
-		for _, accessPoint := range app.GetBaseApp().AccessPoints {
-			url := storkutil.HostWithPortURL(accessPoint.Address, accessPoint.Port, accessPoint.UseSecureProtocol)
-			var b strings.Builder
-			b.WriteString(accessPoint.Type)
-			b.WriteString(": ")
-			b.WriteString(url)
 
-			// The key attribute is currently only relevant for BIND 9 and PowerDNS servers.
-			if (app.GetBaseApp().Type == AppTypeBind9 || app.GetBaseApp().Type == AppTypePowerDNS) && accessPoint.Type == AccessPointControl {
-				b.WriteString(" (auth key: ")
-				if accessPoint.Key != "" {
-					b.WriteString("found")
-				} else {
-					b.WriteString("not found")
-				}
-				b.WriteString(")")
+	// Daemons newly started.
+	startedMap := make(map[int]bool)
+	for i := 0; i < len(next); i++ {
+		startedMap[i] = true
+	}
+
+	// Daemons unchanged.
+	unchangedMap := make(map[int]bool)
+
+	for ip, p := range previous {
+		for in, n := range next {
+			if p.IsEqual(n) {
+				// Daemon is still running.
+				stoppedMap[ip] = false
+				startedMap[in] = false
+				unchangedMap[in] = true
+				break
 			}
-
-			accessPoints = append(accessPoints, b.String())
 		}
-		log.Printf("   %s: %s", app.GetBaseApp().Type, strings.Join(accessPoints, ", "))
 	}
+
+	for ip, isStopped := range stoppedMap {
+		if isStopped {
+			stopped = append(stopped, previous[ip])
+			log.Infof("Daemon stopped: %s", previous[ip].String())
+		}
+	}
+
+	for in, isStarted := range startedMap {
+		if isStarted {
+			started = append(started, next[in])
+			log.Infof("Daemon started: %s", next[in].String())
+		}
+	}
+
+	for in, isUnchanged := range unchangedMap {
+		if isUnchanged {
+			unchanged = append(unchanged, previous[in])
+		}
+	}
+
+	return
 }
 
-func (sm *appMonitor) detectApps(storkAgent *StorkAgent) {
-	var apps []App
+// Analyzes the processes running on the host and detects supported daemons.
+func (sm *monitor) detectDaemons() {
+	var daemons []Daemon
 
 	// Lists processes running on the host and detectable by the monitor.
 	processes, _ := sm.processManager.ListProcesses()
 
 	for _, p := range processes {
 		procName, _ := p.getName()
-		var (
-			detectedApp App
-			err         error
-		)
-		switch procName {
-		case keaProcName:
+		daemonName := convertProcessNameToDaemonName(procName)
+		if daemonName == "" {
+			// Process is not a supported daemon.
+			continue
+		}
+
+		switch daemonName {
+		case DaemonNameDHCPv4, DaemonNameDHCPv6, DaemonNameD2, DaemonNameCA:
 			// Kea DHCP server.
-			detectedApp, err = detectKeaApp(p, storkAgent.KeaHTTPClientConfig)
+			detectedDaemons, err := detectKeaDaemons(p, sm.keaHTTPClientConfig, sm.commander)
 			if err != nil {
-				log.WithError(err).Warn("Failed to detect Kea app")
+				log.WithField("daemon", daemonName).WithError(err).Warn("Failed to detect Kea daemon(s)")
 				continue
 			}
+			daemons = append(daemons, detectedDaemons...)
 
-			// Look for the previously detected application.
-			var recentlyActiveDaemons []string
-			if i := slices.IndexFunc(sm.apps, func(app App) bool {
-				return app.GetBaseApp().IsEqual(detectedApp.GetBaseApp())
-			}); i >= 0 {
-				recentlyActiveDaemons = sm.apps[i].(*KeaApp).ActiveDaemons
-			}
-
-			// Detect the active daemons.
-			keaApp := detectedApp.(*KeaApp)
-			keaApp.ActiveDaemons, err = detectKeaActiveDaemons(keaApp, recentlyActiveDaemons)
-			if err != nil {
-				log.WithError(err).Warn("Failed to detect active Kea daemons")
-			}
-		case namedProcName:
+		case DaemonNameBind9:
 			// BIND 9 DNS server.
-			if detectedApp, err = detectBind9App(
+			detectedDaemon, err := detectBind9App(
 				p,
 				sm.commander,
-				storkAgent.ExplicitBind9ConfigPath,
+				sm.explicitBind9ConfigPath,
 				sm.bind9FileParser,
-			); err != nil {
+			)
+			if err != nil {
 				log.WithError(err).Warnf("Failed to detect BIND 9 DNS server app")
 				continue
 			}
-			for _, app := range sm.apps {
-				if app.GetBaseApp().IsEqual(detectedApp.GetBaseApp()) {
-					existingApp := app.(*Bind9App)
-					if existingApp.zoneInventory != nil {
-						// Stop the zone inventory of the detected app because we're going
-						// inherit the zone inventory from the existing app. This is a
-						// temporary solution to be removed with:
-						// https://gitlab.isc.org/isc-projects/stork/-/issues/1934
-						detectedApp.StopZoneInventory()
-						detectedApp = existingApp
-					}
-					break
-				}
-			}
-		case pdnsProcName:
+			daemons = append(daemons, detectedDaemon)
+		case DaemonNamePDNS:
 			// PowerDNS server.
-			if detectedApp, err = detectPowerDNSApp(p, sm.pdnsConfigParser); err != nil {
+			detectedDaemon, err := detectPowerDNSApp(p, sm.pdnsConfigParser)
+			if err != nil {
 				log.WithError(err).Warn("Failed to detect PowerDNS server app")
 				continue
 			}
-			for _, app := range sm.apps {
-				if app.GetBaseApp().IsEqual(detectedApp.GetBaseApp()) {
-					existingApp := app.(*PDNSApp)
-					if existingApp.zoneInventory != nil {
-						// Stop the zone inventory of the detected app because we're going
-						// inherit the zone inventory from the existing app. This is a
-						// temporary solution to be removed with:
-						// https://gitlab.isc.org/isc-projects/stork/-/issues/1934
-						detectedApp.StopZoneInventory()
-						detectedApp = existingApp
-					}
-					break
-				}
-			}
+			daemons = append(daemons, detectedDaemon)
 		default:
 			// This should never be the case given that we list only supported processes.
+			log.Warnf("Unsupported daemon name %s", daemonName)
 			continue
 		}
-		detectedApp.GetBaseApp().Pid = p.getPid()
-		apps = append(apps, detectedApp)
 	}
 
-	// Check changes in apps and print them.
-	if len(apps) == 0 {
-		if !sm.isNoAppsReported {
-			// Agent is starting up but no app to monitor has been detected.
-			// Usually, the agent is installed with at least one monitored app.
-			// The below message is printed for easier troubleshooting.
-			log.Warn("No app detected for monitoring; please check if they are running, and Stork can communicate with them.")
-			// Mark this message as reported to avoid printing it continuously.
-			sm.isNoAppsReported = true
-		}
-	} else {
-		printNewOrUpdatedApps(apps, sm.apps)
-		sm.isNoAppsReported = false
+	if len(daemons) == 0 && (sm.daemons == nil || len(sm.daemons) != 0) {
+		// It is a first detection when no daemon is detected.
+		// Agent is starting up but no app to monitor has been detected.
+		// Usually, the agent is installed with at least one monitored app.
+		// The below message is printed for easier troubleshooting.
+		log.Warn("No app detected for monitoring; please check if they are running, and Stork can communicate with them.")
+		sm.daemons = []Daemon{}
 	}
 
-	// Stop no longer used zone inventories and wait for the completion of
-	// the pending operations.
-	for _, app := range sm.apps {
-		if !slices.Contains(apps, app) {
-			app.StopZoneInventory()
+	startedDaemons, runningDaemons, stoppedDaemons := splitDaemonsByTransition(sm.daemons, daemons)
+	newMonitorDaemons := []Daemon{} // Non-nil slice.
+	newMonitorDaemons = append(newMonitorDaemons, runningDaemons...)
+
+	for _, d := range stoppedDaemons {
+		if err := d.Cleanup(); err != nil {
+			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to cleanup daemon")
 		}
 	}
-	// Remember detected apps.
-	sm.apps = apps
+	for _, d := range startedDaemons {
+		if err := d.Bootstrap(); err != nil {
+			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to bootstrap daemon")
+		}
+		newMonitorDaemons = append(newMonitorDaemons, d)
+	}
+
+	sm.daemons = newMonitorDaemons
+}
+
+// Evaluates the detected daemons.
+func (sm *monitor) evaluateDaemons(storkAgent AgentManager) {
+	for _, d := range sm.daemons {
+		if err := d.Evaluate(storkAgent); err != nil {
+			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to evaluate daemon")
+		}
+	}
 }
 
 // Gathers the configured log files for detected apps and enables them
@@ -406,20 +481,20 @@ func (sm *appMonitor) populateZoneInventories() {
 	}
 }
 
-// Get a list of detected apps by a monitor.
-func (sm *appMonitor) GetApps() []App {
-	ret := make(chan []App)
+// Get a list of detected daemons by a monitor.
+func (sm *monitor) GetDaemons() []Daemon {
+	ret := make(chan []Daemon)
 	sm.requests <- ret
-	applications := <-ret
-	return applications
+	daemons := <-ret
+	return daemons
 }
 
-// Get an app from a monitor that matches provided params.
-func (sm *appMonitor) GetApp(apType, address string, port int64) App {
-	for _, app := range sm.GetApps() {
-		for _, ap := range app.GetBaseApp().AccessPoints {
+// Get a daemon from a monitor that matches provided params.
+func (sm *monitor) GetDaemonByAccessPoint(apType, address string, port int64) Daemon {
+	for _, d := range sm.GetDaemons() {
+		for _, ap := range d.GetAccessPoints() {
 			if ap.Type == apType && ap.Address == address && ap.Port == port {
-				return app
+				return d
 			}
 		}
 	}
@@ -427,30 +502,13 @@ func (sm *appMonitor) GetApp(apType, address string, port int64) App {
 }
 
 // Shut down monitor. Stop background goroutines.
-func (sm *appMonitor) Shutdown() {
-	for _, app := range sm.GetApps() {
-		app.StopZoneInventory()
+func (sm *monitor) Shutdown() {
+	for _, d := range sm.GetDaemons() {
+		err := d.Cleanup()
+		if err != nil {
+			log.WithError(err).Warnf("Failed to cleanup daemon %s", d.String())
+		}
 	}
 	sm.quit <- true
 	sm.wg.Wait()
-}
-
-// getAccessPoint retrieves the requested type of access point from the app.
-func getAccessPoint(app App, accessType string) (*AccessPoint, error) {
-	for _, point := range app.GetBaseApp().AccessPoints {
-		if point.Type != accessType {
-			continue
-		}
-
-		if point.Port == 0 {
-			return nil, errors.Errorf("%s access point does not have port number", accessType)
-		} else if len(point.Address) == 0 {
-			return nil, errors.Errorf("%s access point does not have address", accessType)
-		}
-
-		// found a good access point
-		return &point, nil
-	}
-
-	return nil, errors.Errorf("%s access point not found", accessType)
 }

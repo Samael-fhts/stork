@@ -189,10 +189,12 @@ type CommonDHCPConfig struct {
 	ReservationParameters
 	TimerParameters
 	ValidLifetimeParameters
-	Allocator               *string                  `json:"allocator,omitempty"`
-	ClientClasses           []ClientClass            `json:"client-classes,omitempty"`
-	ConfigControl           *ConfigControl           `json:"config-control,omitempty"`
+	Allocator     *string        `json:"allocator,omitempty"`
+	ClientClasses []ClientClass  `json:"client-classes,omitempty"`
+	ConfigControl *ConfigControl `json:"config-control,omitempty"`
+	// Replaced by ControlSockets in Kea 2.7.2.
 	ControlSocket           *ControlSocket           `json:"control-socket,omitempty"`
+	ControlSockets          []ControlSocket          `json:"control-sockets,omitempty"`
 	DHCPDDNS                *DHCPDDNS                `json:"dhcp-ddns,omitempty"`
 	ExpiredLeasesProcessing *ExpiredLeasesProcessing `json:"expired-leases-processing,omitempty"`
 	HostsDatabase           *Database                `json:"hosts-database,omitempty"`
@@ -292,6 +294,19 @@ func (c *DHCPv4Config) UnmarshalJSON(data []byte) error {
 				c.Subnet4ByPrefix[prefix] = subnet
 			}
 		}
+	}
+	return nil
+}
+
+// Returns the control sockets on which the DHCPv4 server listens for incoming
+// connections. If both ControlSockets and ControlSocket are defined, the
+// ControlSockets takes precedence. If neither is defined, nil is returned.
+func (c *DHCPv4Config) GetListeningControlSockets() []ControlSocket {
+	if c.ControlSockets != nil {
+		return c.ControlSockets
+	}
+	if c.ControlSocket != nil {
+		return []ControlSocket{*c.ControlSocket}
 	}
 	return nil
 }
@@ -586,6 +601,19 @@ func (c *DHCPv6Config) UnmarshalJSON(data []byte) error {
 				c.Subnet6ByPrefix[prefix] = subnet
 			}
 		}
+	}
+	return nil
+}
+
+// Returns the control sockets on which the DHCPv6 server listens for incoming
+// connections. If both ControlSockets and ControlSocket are defined, the
+// ControlSockets takes precedence. If neither is defined, nil is returned.
+func (c *DHCPv6Config) GetListeningControlSockets() []ControlSocket {
+	if c.ControlSockets != nil {
+		return c.ControlSockets
+	}
+	if c.ControlSocket != nil {
+		return []ControlSocket{*c.ControlSocket}
 	}
 	return nil
 }

@@ -224,7 +224,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 				return "Cannot get Kea CA configuration: " + err.Error()
 			}
 
-			daemonNames := config.ControlSockets.GetConfiguredDaemonNames()
+			daemonNames := config.GetManagementControlSockets().GetManagedDaemonNames()
 			for _, name := range daemonNames {
 				if name == string(agentcomm.DaemonNameCA) {
 					continue

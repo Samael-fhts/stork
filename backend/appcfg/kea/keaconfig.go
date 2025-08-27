@@ -21,6 +21,7 @@ var (
 type commonConfigAccessor interface {
 	GetHookLibraries() HookLibraries
 	GetLoggers() []Logger
+	GetListeningControlSockets() []ControlSocket
 }
 
 // A structure holding a configuration of a single Kea server.
@@ -382,6 +383,14 @@ func (c *Config) GetGlobalReservationParameters() (parameters ReservationParamet
 func (c *Config) GetReservations() (reservations []Reservation) {
 	if accessor := c.getDHCPConfigAccessor(); accessor != nil {
 		reservations = accessor.GetCommonDHCPConfig().Reservations
+	}
+	return
+}
+
+// Returns control sockets on which the server listens for incoming connections.
+func (c *Config) GetListeningControlSockets() (sockets []ControlSocket) {
+	if accessor := c.getCommonConfigAccessor(); accessor != nil {
+		sockets = accessor.GetListeningControlSockets()
 	}
 	return
 }

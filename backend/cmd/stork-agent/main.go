@@ -92,24 +92,14 @@ func runAgent(settings *generalSettings, reload bool) error {
 	// Create BIND9 stats client.
 	bind9StatsClient := agent.NewBind9StatsClient()
 
-	// Start app monitor.
-	appMonitor := agent.NewAppMonitor()
-
 	// A base HTTP client. It may use the certificates obtained during
 	// the registration and GRPC credentials as TLS credentials.
 	keaHTTPClientConfig := agent.HTTPClientConfig{
 		SkipTLSVerification: settings.SkipTLSCertVerification,
 	}
 
-	ok, err := keaHTTPClientConfig.LoadGRPCCertificates()
-	switch {
-	case err != nil:
-		log.WithError(err).Error("Could not load the GRPC credentials")
-	case !ok:
-		log.Warn("The GRPC credentials file is missing - the requests to Kea will not contain the client TLS certificate")
-	default:
-		log.Info("The GRPC credentials will be used as the client TLS certificate when connecting to Kea")
-	}
+	// Start app monitor.
+	appMonitor := agent.NewMonitor(settings.Bind9Path, keaHTTPClientConfig)
 
 	// Prepare agent gRPC handler
 	storkAgent := agent.NewStorkAgent(
@@ -117,9 +107,7 @@ func runAgent(settings *generalSettings, reload bool) error {
 		settings.Port,
 		appMonitor,
 		bind9StatsClient,
-		keaHTTPClientConfig,
 		hookManager,
-		settings.Bind9Path,
 	)
 
 	// Let's start the app monitor.

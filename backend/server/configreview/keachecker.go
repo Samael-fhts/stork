@@ -1195,7 +1195,16 @@ func credentialsOverHTTPS(ctx *ReviewContext) (*Report, error) {
 		return nil, nil
 	}
 
-	if config.UseSecureProtocol() {
+	controlSockets := config.GetListeningControlSockets()
+	if len(controlSockets) == 0 {
+		// The listening control socket is not configured. It means that
+		// the Stork agent cannot connect to the Kea Control Agent.
+		return nil, nil
+	}
+	// It is always one listening control socket.
+	controlSocket := controlSockets[0]
+
+	if controlSocket.UseSecureProtocol() {
 		// The TLS is configured. All is OK.
 		return nil, nil
 	}
@@ -1220,7 +1229,7 @@ func controlSocketsCA(ctx *ReviewContext) (*Report, error) {
 	}
 
 	config := ctx.subjectDaemon.KeaDaemon.Config
-	controlSockets := config.GetControlSockets()
+	controlSockets := config.GetManagementControlSockets()
 
 	switch {
 	case controlSockets == nil:
@@ -1230,7 +1239,7 @@ func controlSocketsCA(ctx *ReviewContext) (*Report, error) {
 			"monitor them. You need to provide the proper socket paths in the "+
 			"\"control-sockets\" top-level entry.").
 			referencingDaemon(ctx.subjectDaemon).create()
-	case !controlSockets.HasAnyConfiguredDaemon():
+	case !controlSockets.HasAnyManagedDaemon():
 		return NewReport(ctx, "The control sockets entry in the Kea Control "+
 			"Agent {daemon} configuration is empty. It causes the Kea "+
 			"Control Agent to not connect to the Kea daemons, so Stork cannot "+

@@ -41,7 +41,7 @@ type StorkAgent struct {
 	// Explicitly provided BIND 9 configuration path by user. It will be used
 	// to detect the BIND 9 app. It may be empty.
 	ExplicitBind9ConfigPath string
-	AppMonitor              AppMonitor
+	Monitor                 Monitor
 	// BIND9 HTTP stats client.
 	bind9StatsClient *bind9StatsClient
 	// PowerDNS webserver client.
@@ -61,20 +61,18 @@ type StorkAgent struct {
 }
 
 // API exposed to Stork Server.
-func NewStorkAgent(host string, port int, appMonitor AppMonitor, bind9StatsClient *bind9StatsClient, keaHTTPClientConfig HTTPClientConfig, hookManager *HookManager, explicitBind9ConfigPath string) *StorkAgent {
+func NewStorkAgent(host string, port int, monitor Monitor, bind9StatsClient *bind9StatsClient, hookManager *HookManager) *StorkAgent {
 	logTailer := newLogTailer()
 
 	sa := &StorkAgent{
-		Host:                    host,
-		Port:                    port,
-		ExplicitBind9ConfigPath: explicitBind9ConfigPath,
-		AppMonitor:              appMonitor,
-		bind9StatsClient:        bind9StatsClient,
-		pdnsClient:              newPDNSClient(),
-		KeaHTTPClientConfig:     keaHTTPClientConfig,
-		logTailer:               logTailer,
-		keaInterceptor:          newKeaInterceptor(),
-		hookManager:             hookManager,
+		Host:             host,
+		Port:             port,
+		Monitor:          monitor,
+		bind9StatsClient: bind9StatsClient,
+		pdnsClient:       newPDNSClient(),
+		logTailer:        logTailer,
+		keaInterceptor:   newKeaInterceptor(),
+		hookManager:      hookManager,
 	}
 
 	registerKeaInterceptFns(sa)
@@ -235,9 +233,9 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 
 	var apps []*agentapi.App
 
-	for _, app := range sa.AppMonitor.GetApps() {
+	for _, daemon := range sa.Monitor.GetDaemons() {
 		var accessPoints []*agentapi.AccessPoint
-		for _, point := range app.GetBaseApp().AccessPoints {
+		for _, point := range daemon.GetAccessPoints() {
 			accessPoints = append(accessPoints, &agentapi.AccessPoint{
 				Type:              point.Type,
 				Address:           point.Address,
@@ -248,7 +246,7 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 		}
 
 		apps = append(apps, &agentapi.App{
-			Type:         app.GetBaseApp().Type,
+			Type:         string(daemon.GetName()),
 			AccessPoints: accessPoints,
 		})
 	}
@@ -294,18 +292,18 @@ func (sa *StorkAgent) ForwardRndcCommand(ctx context.Context, in *agentapi.Forwa
 		RndcResponse: rndcRsp,
 	}
 
-	app := sa.AppMonitor.GetApp(AccessPointControl, in.Address, in.Port)
-	if app == nil {
+	daemon := sa.Monitor.GetDaemonByAccessPoint(AccessPointControl, in.Address, in.Port)
+	if daemon == nil {
 		rndcRsp.Status.Code = agentapi.Status_ERROR
-		rndcRsp.Status.Message = "cannot find BIND 9 app"
+		rndcRsp.Status.Message = "cannot find BIND 9 daemon"
 		response.Status = rndcRsp.Status
 		return response, nil
 	}
 
-	bind9App := app.(*Bind9App)
+	bind9App := daemon.(*Bind9App)
 	if bind9App == nil {
 		rndcRsp.Status.Code = agentapi.Status_ERROR
-		rndcRsp.Status.Message = fmt.Sprintf("incorrect app found: %s instead of BIND 9", app.GetBaseApp().Type)
+		rndcRsp.Status.Message = fmt.Sprintf("incorrect daemon found: %s instead of BIND 9", daemon.GetName())
 		response.Status = rndcRsp.Status
 		return response, nil
 	}
@@ -467,8 +465,8 @@ func (sa *StorkAgent) ForwardToNamedStats(ctx context.Context, in *agentapi.Forw
 // PowerDNS REST API to retrieve this information from the /api/v1/servers/localhost
 // endpoint.
 func (sa *StorkAgent) GetPowerDNSServerInfo(ctx context.Context, req *agentapi.GetPowerDNSServerInfoReq) (*agentapi.GetPowerDNSServerInfoRsp, error) {
-	app := sa.AppMonitor.GetApp(AccessPointControl, req.WebserverAddress, req.WebserverPort)
-	if app == nil {
+	daemon := sa.Monitor.GetDaemonByAccessPoint(AccessPointControl, req.WebserverAddress, req.WebserverPort)
+	if daemon == nil {
 		st := status.Newf(codes.FailedPrecondition, "PowerDNS server %s:%d not found", req.WebserverAddress, req.WebserverPort)
 		ds, err := st.WithDetails(&errdetails.ErrorInfo{
 			Reason: "APP_NOT_FOUND",
@@ -482,7 +480,7 @@ func (sa *StorkAgent) GetPowerDNSServerInfo(ctx context.Context, req *agentapi.G
 	}
 
 	// The API key is required to access the PowerDNS REST API.
-	accessPoint := app.GetBaseApp().GetAccessPoint(AccessPointControl)
+	accessPoint := daemon.GetAccessPoint(AccessPointControl)
 	if accessPoint == nil || accessPoint.Key == "" {
 		st := status.Newf(codes.FailedPrecondition, "API key not configured for PowerDNS server %s:%d", req.WebserverAddress, req.WebserverPort)
 		ds, err := st.WithDetails(&errdetails.ErrorInfo{
@@ -551,16 +549,16 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 	}
 
 	host, port, _ := storkutil.ParseURL(reqURL)
-	app := sa.AppMonitor.GetApp(AccessPointControl, host, port)
-	if app == nil {
+	daemon := sa.Monitor.GetDaemonByAccessPoint(AccessPointControl, host, port)
+	if daemon == nil {
 		response.Status.Code = agentapi.Status_ERROR
-		response.Status.Message = "cannot find Kea app"
+		response.Status.Message = "cannot find Kea daemon"
 		return response, nil
 	}
-	keaApp := app.(*KeaApp)
+	keaApp := daemon.(*KeaApp)
 	if keaApp == nil {
 		response.Status.Code = agentapi.Status_ERROR
-		response.Status.Message = fmt.Sprintf("incorrect app found: %s instead of Kea", app.GetBaseApp().Type)
+		response.Status.Message = fmt.Sprintf("incorrect app found: %s instead of Kea", daemon.GetName())
 		return response, nil
 	}
 
@@ -629,18 +627,22 @@ func (sa *StorkAgent) TailTextFile(ctx context.Context, in *agentapi.TailTextFil
 // agent. The response can be filtered or unfiltered, depending on the
 // request.
 func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.ServerStreamingServer[agentapi.Zone]) error {
-	appI := sa.AppMonitor.GetApp(AccessPointControl, req.ControlAddress, req.ControlPort)
-	var inventory *zoneInventory
-	switch app := appI.(type) {
-	case *Bind9App:
-		inventory = app.zoneInventory
-	case *PDNSApp:
-		inventory = app.zoneInventory
-	default:
+	daemon := sa.Monitor.GetDaemonByAccessPoint(AccessPointControl, req.ControlAddress, req.ControlPort)
+	if daemon == nil {
+		return status.New(codes.NotFound, fmt.Sprintf("DNS daemon not found at %s:%d", req.ControlAddress, req.ControlPort)).Err()
+	}
+
+	dnsDaemon, ok := daemon.(DNSDaemon)
+	if !ok {
 		// This is rather an exceptional case, so we don't necessarily need to
 		// include the detailed error message.
-		return status.New(codes.InvalidArgument, "attempted to receive DNS zones from an unsupported app").Err()
+		return status.New(
+			codes.InvalidArgument,
+			fmt.Sprintf("attempted to receive DNS zones from an unsupported app: %s", daemon.GetName()),
+		).Err()
 	}
+
+	inventory := dnsDaemon.GetZoneInventory()
 	if inventory == nil {
 		// This is also an exceptional case. All DNS servers should have the
 		// zone inventory initialized.
@@ -717,18 +719,22 @@ func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.Se
 
 // Generate a streaming response returning DNS zone RRs from a specified agent.
 func (sa *StorkAgent) ReceiveZoneRRs(req *agentapi.ReceiveZoneRRsReq, server grpc.ServerStreamingServer[agentapi.ReceiveZoneRRsRsp]) error {
-	appI := sa.AppMonitor.GetApp(AccessPointControl, req.ControlAddress, req.ControlPort)
-	var inventory *zoneInventory
-	switch app := appI.(type) {
-	case *Bind9App:
-		inventory = app.zoneInventory
-	case *PDNSApp:
-		inventory = app.zoneInventory
-	default:
+	daemon := sa.Monitor.GetDaemonByAccessPoint(AccessPointControl, req.ControlAddress, req.ControlPort)
+	if daemon == nil {
+		return status.New(codes.NotFound, fmt.Sprintf("DNS daemon not found at %s:%d", req.ControlAddress, req.ControlPort)).Err()
+	}
+
+	dnsDaemon, ok := daemon.(DNSDaemon)
+	if !ok {
 		// This is rather an exceptional case, so we don't necessarily need to
 		// include the detailed error message.
-		return status.Error(codes.InvalidArgument, "attempted to receive DNS zone RRs from an unsupported app")
+		return status.New(
+			codes.InvalidArgument,
+			fmt.Sprintf("attempted to receive DNS zones from an unsupported app: %s", daemon.GetName()),
+		).Err()
 	}
+
+	inventory := dnsDaemon.GetZoneInventory()
 	if inventory == nil {
 		// This is also an exceptional case. All DNS servers should have the
 		// zone inventory initialized.
