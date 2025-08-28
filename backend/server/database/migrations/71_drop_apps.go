@@ -18,7 +18,7 @@ func init() {
 			UPDATE access_point
 			SET daemon_id = daemon.id
 			FROM app, daemon
-			WHERE access_point.app_id = app.id AND app.id = daemon.app_id AND daemon.name = 'control';
+			WHERE access_point.app_id = app.id AND app.id = daemon.app_id;
 			-- Set constraints for the new column.
 			ALTER TABLE access_point ALTER COLUMN daemon_id SET NOT NULL;
 			ALTER TABLE access_point ADD CONSTRAINT access_point_daemon_id_fkey
