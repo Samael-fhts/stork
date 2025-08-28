@@ -201,11 +201,12 @@ type DaemonTag interface {
 
 // Creates an instance of a Kea daemon. If the daemon name is dhcp4 or
 // dhcp6, the instance of the KeaDHCPDaemon is also created.
-func NewKeaDaemon(name DaemonName, active bool) *Daemon {
+func NewKeaDaemon(machineID int64, name DaemonName, active bool) *Daemon {
 	daemon := &Daemon{
 		Name:      name,
 		Active:    active,
 		Monitored: true,
+		MachineID: machineID,
 		KeaDaemon: &KeaDaemon{},
 	}
 	if name == DaemonNameDHCPv4 || name == DaemonNameDHCPv6 {

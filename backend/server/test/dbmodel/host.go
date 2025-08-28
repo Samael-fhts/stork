@@ -1,7 +1,6 @@
 package storktestdbmodel
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/go-pg/pg/v10"
@@ -14,7 +13,7 @@ import (
 
 // This function creates multiple hosts used in tests which fetch and
 // filter hosts.
-func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel.App) {
+func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*dbmodel.Daemon) {
 	// Add two apps.
 	for i := 0; i < 2; i++ {
 		m := &dbmodel.Machine{
@@ -28,20 +27,12 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 		accessPoints := []*dbmodel.AccessPoint{}
 		accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", int64(1234+i), true)
 
-		a := dbmodel.App{
-			ID:           0,
-			MachineID:    m.ID,
-			Type:         dbmodel.AppTypeKea,
-			Name:         fmt.Sprintf("dhcp-server%d", i),
-			Active:       true,
-			AccessPoints: accessPoints,
-			Daemons: []*dbmodel.Daemon{
-				dbmodel.NewKeaDaemon(dbmodel.DaemonNameDHCPv4, true),
-				dbmodel.NewKeaDaemon(dbmodel.DaemonNameDHCPv6, true),
-			},
+		daemons := []*dbmodel.Daemon{
+			dbmodel.NewKeaDaemon(m.ID, dbmodel.DaemonNameDHCPv4, true),
+			dbmodel.NewKeaDaemon(m.ID, dbmodel.DaemonNameDHCPv6, true),
 		}
 
-		err = a.Daemons[0].SetConfigFromJSON(`{
+		err = daemons[0].SetConfigFromJSON(`{
             "Dhcp4": {
 				"client-classes": [
 					{
@@ -66,7 +57,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
         }`)
 		require.NoError(t, err)
 
-		err = a.Daemons[1].SetConfigFromJSON(`{
+		err = daemons[1].SetConfigFromJSON(`{
             "Dhcp6": {
 				"client-classes": [
 					{
@@ -90,7 +81,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
             }
         }`)
 		require.NoError(t, err)
-		apps = append(apps, a)
+		allDaemons = append(allDaemons, daemons...)
 	}
 
 	subnets := []dbmodel.Subnet{
@@ -111,18 +102,14 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 		subnets[i] = subnet
 	}
 
-	// Add apps to the database.
-	for i, a := range apps {
-		app := a
-		_, err := dbmodel.AddApp(db, &app)
+	// Add daemons to the database.
+	for i, d := range allDaemons {
+		err := dbmodel.AddDaemon(db, d)
 		require.NoError(t, err)
-		require.NotZero(t, app.ID)
+		require.NotZero(t, d.ID)
 		// Associate the daemons with the subnets.
-		for j := range apps[i].Daemons {
-			err = dbmodel.AddDaemonToSubnet(db, &subnets[j], apps[i].Daemons[j])
-			require.NoError(t, err)
-		}
-		apps[i] = app
+		err = dbmodel.AddDaemonToSubnet(db, &subnets[i%2], d)
+		require.NoError(t, err)
 	}
 
 	hasher := keaconfig.NewHasher()
@@ -142,7 +129,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 			},
 			LocalHosts: []dbmodel.LocalHost{
 				{
-					DaemonID:       apps[0].Daemons[0].ID,
+					DaemonID:       allDaemons[0].ID,
 					Hostname:       "first.example.org",
 					DataSource:     dbmodel.HostDataSourceAPI,
 					NextServer:     "192.2.2.2",
@@ -158,7 +145,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 					},
 				},
 				{
-					DaemonID:       apps[1].Daemons[0].ID,
+					DaemonID:       allDaemons[2].ID,
 					Hostname:       "first.example.org",
 					DataSource:     dbmodel.HostDataSourceAPI,
 					NextServer:     "192.2.2.2",
@@ -189,7 +176,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 			},
 			LocalHosts: []dbmodel.LocalHost{
 				{
-					DaemonID:   apps[0].Daemons[0].ID,
+					DaemonID:   allDaemons[0].ID,
 					DataSource: dbmodel.HostDataSourceConfig,
 					IPReservations: []dbmodel.IPReservation{
 						{
@@ -201,7 +188,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 					},
 				},
 				{
-					DaemonID:   apps[1].Daemons[0].ID,
+					DaemonID:   allDaemons[2].ID,
 					DataSource: dbmodel.HostDataSourceAPI,
 					IPReservations: []dbmodel.IPReservation{
 						{
@@ -225,7 +212,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 			},
 			LocalHosts: []dbmodel.LocalHost{
 				{
-					DaemonID:   apps[0].Daemons[1].ID,
+					DaemonID:   allDaemons[1].ID,
 					DataSource: dbmodel.HostDataSourceConfig,
 					IPReservations: []dbmodel.IPReservation{
 						{
@@ -234,7 +221,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 					},
 				},
 				{
-					DaemonID:   apps[1].Daemons[1].ID,
+					DaemonID:   allDaemons[3].ID,
 					DataSource: dbmodel.HostDataSourceAPI,
 					IPReservations: []dbmodel.IPReservation{
 						{
@@ -254,7 +241,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 			},
 			LocalHosts: []dbmodel.LocalHost{
 				{
-					DaemonID:   apps[0].Daemons[1].ID,
+					DaemonID:   allDaemons[1].ID,
 					DataSource: dbmodel.HostDataSourceConfig,
 					IPReservations: []dbmodel.IPReservation{
 						{
@@ -266,7 +253,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 					},
 				},
 				{
-					DaemonID:   apps[1].Daemons[1].ID,
+					DaemonID:   allDaemons[3].ID,
 					DataSource: dbmodel.HostDataSourceAPI,
 					IPReservations: []dbmodel.IPReservation{
 						{
@@ -289,7 +276,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 			},
 			LocalHosts: []dbmodel.LocalHost{
 				{
-					DaemonID:   apps[0].Daemons[1].ID,
+					DaemonID:   allDaemons[1].ID,
 					DataSource: dbmodel.HostDataSourceConfig,
 					ClientClasses: []string{
 						"foo",
@@ -320,7 +307,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 					},
 				},
 				{
-					DaemonID:   apps[1].Daemons[1].ID,
+					DaemonID:   allDaemons[3].ID,
 					DataSource: dbmodel.HostDataSourceAPI,
 					ClientClasses: []string{
 						"foo",
@@ -362,5 +349,5 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, apps []dbmodel
 		require.NotZero(t, host.ID)
 		hosts[i] = host
 	}
-	return hosts, apps
+	return hosts, allDaemons
 }
