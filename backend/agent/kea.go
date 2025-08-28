@@ -90,29 +90,12 @@ func (d *KeaDaemon) sendCommandRaw(command []byte) ([]byte, error) {
 }
 
 // Collect the list of log files which can be viewed by the Stork user
-// from the UI. The response variable holds the pointer to the
-// response to the config-get command returned by one of the Kea
-// daemons. If this response contains loggers' configuration the log
-// files are extracted from it and returned. This function is intended
-// to be called by the functions which intercept config-get commands
-// sent periodically by the server to the agents and by the
-// DetectAllowedLogs when the agent is started.
-func collectKeaAllowedLogs(response *keactrl.Response) ([]string, error) {
-	if err := response.GetError(); err != nil {
-		err = errors.WithMessage(err, "skipped refreshing viewable log files because config-get returned unsuccessful result")
-		return nil, err
-	}
-	if response.Arguments == nil {
-		err := errors.New("skipped refreshing viewable log files because config-get response has no arguments")
-		return nil, err
-	}
-	cfg := keaconfig.NewConfigFromMap(response.Arguments)
-	if cfg == nil {
-		err := errors.New("skipped refreshing viewable log files because config-get response contains arguments which could not be parsed")
-		return nil, err
-	}
-
-	loggers := cfg.GetLoggers()
+// from the UI. The config variable holds the Kea config fetched by the
+// config-get command returned by one of the Kea daemons. If the config
+// contains loggers' configuration the log files are extracted from it
+// and returned.
+func collectKeaAllowedLogs(config *keaconfig.Config) ([]string, error) {
+	loggers := config.GetLoggers()
 	if len(loggers) == 0 {
 		log.Info("No loggers found in the returned configuration while trying to refresh the viewable log files")
 		return nil, nil
@@ -133,11 +116,8 @@ func collectKeaAllowedLogs(response *keactrl.Response) ([]string, error) {
 	return paths, nil
 }
 
-// Sends config-get command to the running Kea daemon to fetch logging
-// configuration. The log files locations are stored in the logTailer instance
-// of the agent as allowed for viewing. This function should be called when the
-// agent has been started and the running Kea daemons have been detected.
-func (d *KeaDaemon) detectAllowedLogs() ([]string, error) {
+// Fetches the Kea configuration from the daemon by sending config-get command.
+func (d *KeaDaemon) fetchConfig() (*keaconfig.Config, error) {
 	// Prepare config-get command to be sent to Kea Control Agent.
 	command := keactrl.NewCommandBase(keactrl.ConfigGet, keactrl.DaemonName(d.GetName()))
 	// Send the command to Kea.
@@ -163,13 +143,15 @@ func (d *KeaDaemon) detectAllowedLogs() ([]string, error) {
 		)
 	}
 
-	// Allow the log files used by the CA.
-	paths, err := collectKeaAllowedLogs(&response)
-	if err != nil {
-		return nil, err
+	if response.Arguments == nil {
+		return nil, errors.New("config-get response has no arguments")
+	}
+	config := keaconfig.NewConfigFromMap(response.Arguments)
+	if config == nil {
+		return nil, errors.New("config-get response contains arguments which could not be parsed")
 	}
 
-	return paths, nil
+	return config, nil
 }
 
 // Reads the Kea configuration file, resolves the includes, and parses the content.
@@ -344,63 +326,43 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 	thisDaemon := &KeaDaemon{
 		daemon: daemon{
 			Name:         daemonName,
-			Pid:          p.getPid(),
 			AccessPoints: accessPoints,
 		},
 		HTTPClient: NewHTTPClient(httpClientConfig),
 	}
 
+	detectedDaemons := []Daemon{thisDaemon}
 	if shouldTunnelViaCA {
 		// For Kea prior to 3.0, get the list of configured daemons.
 		managementControlSockets := config.GetManagementControlSockets()
-		managedDaemons := managementControlSockets.GetManagedDaemonNames()
-	}
-
-	return thisDaemon, nil
-}
-
-// Detects the active Kea daemons by sending the version-get command to each daemon.
-// The non-nil list of active daemons is returned.
-// Returns an error if the Kea CA is down but it doesn't throw an error if Kea
-// daemons are down. In the latter case, the error is logged but only if the
-// daemon was not already detected as inactive.
-func detectKeaActiveDaemons(keaApp *KeaApp, previousActiveDaemons []string) (daemons []string, err error) {
-	// Detect active daemons.
-	// Send the version-get command to each daemon to check if it is running.
-	command := keactrl.NewCommandBase(keactrl.VersionGet, keaApp.ConfiguredDaemons...)
-	responses := keactrl.ResponseList{}
-	err = keaApp.sendCommand(command, &responses)
-	if err != nil {
-		// The Kea CA seems to be down, so we cannot detect the active daemons.
-		return nil, errors.WithMessage(err, "failed to send command to Kea Control Agent")
-	}
-
-	// Return non-nil list of active daemons to indicate that the detection was performed.
-	daemons = []string{}
-	for _, r := range responses {
-		if err := r.GetError(); err != nil {
-			// If it is a first detection, the daemon is newly inactive.
-			// Otherwise, it depends on the previous state.
-			isNewlyInactive := previousActiveDaemons == nil
-			for _, ad := range previousActiveDaemons {
-				if ad == r.GetDaemon() {
-					// Daemon was previously active.
-					isNewlyInactive = true
-					break
-				}
+		managedDaemonNames := managementControlSockets.GetManagedDaemonNames()
+		for _, managedDaemonName := range managedDaemonNames {
+			command := keactrl.NewCommandBase(keactrl.VersionGet, managedDaemonName)
+			responses := keactrl.ResponseList{}
+			err = thisDaemon.sendCommand(command, &responses)
+			if err != nil {
+				return nil, errors.WithMessage(err, "cannot send command to Kea Control Agent")
+			} else if len(responses) != 1 {
+				return nil, errors.Errorf("invalid response received from Kea CA to version-get command sent to %s", managedDaemonName)
 			}
-
-			if isNewlyInactive {
-				log.WithError(err).
-					WithField("daemon", r.GetDaemon()).
-					Errorf("Failed to communicate with Kea daemon")
+			response := responses[0]
+			if err := response.GetError(); err != nil {
+				// Daemon is not active.
+				continue
 			}
-		} else {
-			daemons = append(daemons, r.GetDaemon())
+			// Add the detected daemon.
+			managedDaemon := &KeaDaemon{
+				daemon: daemon{
+					Name:         DaemonName(managedDaemonName),
+					AccessPoints: accessPoints,
+				},
+				HTTPClient: thisDaemon.HTTPClient,
+			}
+			detectedDaemons = append(detectedDaemons, managedDaemon)
 		}
 	}
 
-	return daemons, nil
+	return detectedDaemons, nil
 }
 
 type ClientCredentials struct {
@@ -498,4 +460,33 @@ func readClientCredentials(authentication *keaconfig.Authentication) ([]ClientCr
 		allCredentials = append(allCredentials, credentials)
 	}
 	return allCredentials, nil
+}
+
+// Lifecycle of the daemon.
+// Called once when the daemon is newly detected.
+func (d *KeaDaemon) Bootstrap() error {
+	return nil
+}
+
+// Called periodically to update the daemon state.
+// Gathers the configured log files for detected apps and enables them
+// for viewing from the UI.
+func (d *KeaDaemon) Evaluate(agent AgentManager) error {
+	config, err := d.fetchConfig()
+	if err != nil {
+		return errors.WithMessage(err, "cannot fetch Kea configuration")
+	}
+	paths, err := collectKeaAllowedLogs(config)
+	if err != nil {
+		return errors.WithMessage(err, "cannot collect Kea allowed logs")
+	}
+	for _, p := range paths {
+		agent.AllowLog(p)
+	}
+	return nil
+}
+
+// Called once before the daemon is removed.
+func (d *KeaDaemon) Cleanup() error {
+	return nil
 }

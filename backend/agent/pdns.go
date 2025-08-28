@@ -12,7 +12,8 @@ import (
 )
 
 var (
-	_ App              = (*PDNSApp)(nil)
+	_ Daemon           = (*PDNSDaemon)(nil)
+	_ DNSDaemon        = (*PDNSDaemon)(nil)
 	_ pdnsConfigParser = (*pdnsconfig.Parser)(nil)
 
 	// Pattern for detecting PowerDNS process.
@@ -25,42 +26,53 @@ type pdnsConfigParser interface {
 	ParseFile(path string) (*pdnsconfig.Config, error)
 }
 
-// PDNSApp implements the App interface for PowerDNS.
-type PDNSApp struct {
-	BaseApp
+// PDNSDaemon implements the Daemon interface for PowerDNS.
+type PDNSDaemon struct {
+	daemon
 	zoneInventory *zoneInventory
 }
 
-// Returns the base app.
-func (pa *PDNSApp) GetBaseApp() *BaseApp {
-	return &pa.BaseApp
+// Lifecycle method called once when the daemon is added to the monitor.
+// It starts the zone inventory background tasks.
+func (pa *PDNSDaemon) Bootstrap() error {
+	return nil
 }
 
-// Returns the allowed logs. Always returns nil.
-func (pa *PDNSApp) DetectAllowedLogs() ([]string, error) {
-	return nil, nil
-}
-
-// Waits for the zone inventory to complete background tasks.
-func (pa *PDNSApp) AwaitBackgroundTasks() {
-	if pa.zoneInventory != nil {
-		pa.zoneInventory.awaitBackgroundTasks()
+// Lifecycle method called periodically by the monitor.
+// It populates the zone inventory.
+func (ba *PDNSDaemon) Evaluate(AgentManager) error {
+	zoneInventory := ba.GetZoneInventory()
+	if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
+		return nil
 	}
+	var busyError *zoneInventoryBusyError
+	if _, err := zoneInventory.populate(false); err != nil {
+		switch {
+		case errors.As(err, &busyError):
+			// Inventory creation is in progress. This is not an error.
+			return nil
+		default:
+			return errors.WithMessage(err, "Failed to populate DNS zones inventory")
+		}
+	}
+	return nil
 }
 
-// Returns the zone inventory.
-func (pa *PDNSApp) GetZoneInventory() *zoneInventory {
-	return pa.zoneInventory
-}
-
-// Stops the zone inventory.
-func (pa *PDNSApp) StopZoneInventory() {
+// Lifecycle method called once when the daemon is removed from the monitor.
+// Waits for the zone inventory to complete background tasks.
+func (pa *PDNSDaemon) Cleanup() error {
 	if pa.zoneInventory != nil {
 		pa.zoneInventory.stop()
 	}
+	return nil
 }
 
-// Detect the PowerDNS application by parsing the named process command line.
+// Returns the zone inventory.
+func (pa *PDNSDaemon) GetZoneInventory() *zoneInventory {
+	return pa.zoneInventory
+}
+
+// Detect the PowerDNS daemon by parsing the named process command line.
 // If the path to the configuration file is relative and chroot directory is
 // not specified, the path is resolved against the current working directory of
 // the process. If the chroot directory is specified, the path is resolved
@@ -69,16 +81,16 @@ func (pa *PDNSApp) StopZoneInventory() {
 // The function reads the configuration file and extracts webserver address,
 // port, and API key (if configured).
 //
-// It returns the PowerDNS app instance or an error if the PowerDNS is not
+// It returns the PowerDNS daemon instance or an error if the PowerDNS is not
 // recognized or any error occurs.
-func detectPowerDNSApp(p supportedProcess, parser pdnsConfigParser) (App, error) {
+func detectPowerDNSDaemon(p supportedProcess, parser pdnsConfigParser) (Daemon, error) {
 	cmdline, err := p.getCmdline()
 	if err != nil {
 		return nil, err
 	}
 	cwd, err := p.getCwd()
 	if err != nil {
-		log.WithError(err).Warnf("Failed to get %s process current working directory", pdnsProcName)
+		log.WithError(err).Warn("Failed to get PowerDNS process current working directory")
 	}
 	match := pdnsPattern.FindStringSubmatch(cmdline)
 	if match == nil {
@@ -145,9 +157,9 @@ func detectPowerDNSApp(p supportedProcess, parser pdnsConfigParser) (App, error)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), parsedConfig, client, *webserverAddress, *webserverPort)
 
 	// Create the PowerDNS app.
-	pdnsApp := &PDNSApp{
-		BaseApp: BaseApp{
-			Type: AppTypePowerDNS,
+	daemon := &PDNSDaemon{
+		daemon: daemon{
+			Name: DaemonNamePDNS,
 			AccessPoints: []AccessPoint{
 				{
 					Type:    AccessPointControl,
@@ -159,5 +171,5 @@ func detectPowerDNSApp(p supportedProcess, parser pdnsConfigParser) (App, error)
 		},
 		zoneInventory: inventory,
 	}
-	return pdnsApp, nil
+	return daemon, nil
 }

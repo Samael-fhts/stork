@@ -6,7 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	bind9config "isc.org/stork/appcfg/bind9"
 	pdnsconfig "isc.org/stork/appcfg/pdns"
@@ -62,7 +61,6 @@ const (
 )
 
 type Daemon interface {
-	GetPid() int32
 	GetName() DaemonName
 	GetAccessPoint(apType string) *AccessPoint
 	GetAccessPoints() []AccessPoint
@@ -85,14 +83,8 @@ type Daemon interface {
 // Daemon information. This structure is embedded
 // in app specific structures like KeaApp and Bind9App.
 type daemon struct {
-	Pid          int32
 	Name         DaemonName
 	AccessPoints []AccessPoint
-}
-
-// Return the PID of the daemon process.
-func (d *daemon) GetPid() int32 {
-	return d.Pid
 }
 
 // Return the name of the daemon process.
@@ -119,7 +111,7 @@ func (d *daemon) GetAccessPoint(accessPointType string) *AccessPoint {
 // String representation of a daemon.
 func (d *daemon) String() string {
 	var b strings.Builder
-	b.WriteString(fmt.Sprintf("[pid %d] %s: ", d.Pid, d.Name))
+	b.WriteString(fmt.Sprintf("%s: ", d.Name))
 
 	for i := 0; i < len(d.AccessPoints)-1; i++ {
 		b.WriteString(d.AccessPoints[i].String())
@@ -199,7 +191,7 @@ func convertProcessNameToDaemonName(procName string) DaemonName {
 type Monitor interface {
 	GetDaemons() []Daemon
 	GetDaemonByAccessPoint(apType, address string, port int64) Daemon
-	Start(agent *StorkAgent)
+	Start(AgentManager)
 	Shutdown()
 }
 
@@ -291,8 +283,8 @@ func (sm *monitor) run(storkAgent AgentManager) {
 	}
 }
 
-// Splits the daemons into newly started, untouched and stopped ones.
-func splitDaemonsByTransition(previous, next []Daemon) (started, unchanged, stopped []Daemon) {
+// Splits the daemons into newly started, untouched (already existed), untouched (duplicated) and stopped ones.
+func splitDaemonsByTransition(previous, next []Daemon) (started, unchanged, unchangedDuplicated, stopped []Daemon) {
 	// Daemons no longer running.
 	stoppedMap := make(map[int]bool)
 	for i := 0; i < len(previous); i++ {
@@ -307,6 +299,7 @@ func splitDaemonsByTransition(previous, next []Daemon) (started, unchanged, stop
 
 	// Daemons unchanged.
 	unchangedMap := make(map[int]bool)
+	unchangedDuplicatedMap := make(map[int]bool)
 
 	for ip, p := range previous {
 		for in, n := range next {
@@ -314,7 +307,8 @@ func splitDaemonsByTransition(previous, next []Daemon) (started, unchanged, stop
 				// Daemon is still running.
 				stoppedMap[ip] = false
 				startedMap[in] = false
-				unchangedMap[in] = true
+				unchangedMap[ip] = true
+				unchangedDuplicatedMap[in] = true
 				break
 			}
 		}
@@ -337,6 +331,12 @@ func splitDaemonsByTransition(previous, next []Daemon) (started, unchanged, stop
 	for in, isUnchanged := range unchangedMap {
 		if isUnchanged {
 			unchanged = append(unchanged, previous[in])
+		}
+	}
+
+	for in, isUnchangedDuplicated := range unchangedDuplicatedMap {
+		if isUnchangedDuplicated {
+			unchangedDuplicated = append(unchangedDuplicated, next[in])
 		}
 	}
 
@@ -370,20 +370,20 @@ func (sm *monitor) detectDaemons() {
 
 		case DaemonNameBind9:
 			// BIND 9 DNS server.
-			detectedDaemon, err := detectBind9App(
+			detectedDaemon, err := detectBind9Daemon(
 				p,
 				sm.commander,
 				sm.explicitBind9ConfigPath,
 				sm.bind9FileParser,
 			)
 			if err != nil {
-				log.WithError(err).Warnf("Failed to detect BIND 9 DNS server app")
+				log.WithError(err).Warnf("Failed to detect BIND 9 DNS server daemon")
 				continue
 			}
 			daemons = append(daemons, detectedDaemon)
 		case DaemonNamePDNS:
 			// PowerDNS server.
-			detectedDaemon, err := detectPowerDNSApp(p, sm.pdnsConfigParser)
+			detectedDaemon, err := detectPowerDNSDaemon(p, sm.pdnsConfigParser)
 			if err != nil {
 				log.WithError(err).Warn("Failed to detect PowerDNS server app")
 				continue
@@ -405,7 +405,7 @@ func (sm *monitor) detectDaemons() {
 		sm.daemons = []Daemon{}
 	}
 
-	startedDaemons, runningDaemons, stoppedDaemons := splitDaemonsByTransition(sm.daemons, daemons)
+	startedDaemons, runningDaemons, duplicatedDaemons, stoppedDaemons := splitDaemonsByTransition(sm.daemons, daemons)
 	newMonitorDaemons := []Daemon{} // Non-nil slice.
 	newMonitorDaemons = append(newMonitorDaemons, runningDaemons...)
 
@@ -414,6 +414,13 @@ func (sm *monitor) detectDaemons() {
 			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to cleanup daemon")
 		}
 	}
+
+	for _, d := range duplicatedDaemons {
+		if err := d.Cleanup(); err != nil {
+			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to cleanup duplicated daemon")
+		}
+	}
+
 	for _, d := range startedDaemons {
 		if err := d.Bootstrap(); err != nil {
 			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to bootstrap daemon")
@@ -429,54 +436,6 @@ func (sm *monitor) evaluateDaemons(storkAgent AgentManager) {
 	for _, d := range sm.daemons {
 		if err := d.Evaluate(storkAgent); err != nil {
 			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to evaluate daemon")
-		}
-	}
-}
-
-// Gathers the configured log files for detected apps and enables them
-// for viewing from the UI.
-func (sm *appMonitor) detectAllowedLogs(storkAgent *StorkAgent) {
-	// Nothing to do if the agent is not set. It may be nil when running some
-	// tests.
-	if storkAgent == nil {
-		return
-	}
-
-	for _, app := range sm.apps {
-		paths, err := app.DetectAllowedLogs()
-		if err != nil {
-			ap := app.GetBaseApp().AccessPoints[0]
-			err = errors.WithMessagef(err, "Failed to detect log files for Kea")
-			log.WithFields(
-				log.Fields{
-					"address": ap.Address,
-					"port":    ap.Port,
-				},
-			).Warn(err)
-		} else {
-			for _, p := range paths {
-				storkAgent.logTailer.allow(p)
-			}
-		}
-	}
-}
-
-// Iterates over the detected DNS apps and populates their zone inventories.
-func (sm *appMonitor) populateZoneInventories() {
-	for _, app := range sm.apps {
-		zoneInventory := app.GetZoneInventory()
-		if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
-			continue
-		}
-		var busyError *zoneInventoryBusyError
-		if _, err := zoneInventory.populate(false); err != nil {
-			switch {
-			case errors.As(err, &busyError):
-				// Inventory creation is in progress. This is not an error.
-				continue
-			default:
-				log.WithError(err).Error("Failed to populate DNS zones inventory")
-			}
 		}
 	}
 }

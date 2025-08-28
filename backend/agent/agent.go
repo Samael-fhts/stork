@@ -300,8 +300,8 @@ func (sa *StorkAgent) ForwardRndcCommand(ctx context.Context, in *agentapi.Forwa
 		return response, nil
 	}
 
-	bind9App := daemon.(*Bind9App)
-	if bind9App == nil {
+	bind9Daemon := daemon.(*Bind9Daemon)
+	if bind9Daemon == nil {
 		rndcRsp.Status.Code = agentapi.Status_ERROR
 		rndcRsp.Status.Message = fmt.Sprintf("incorrect daemon found: %s instead of BIND 9", daemon.GetName())
 		response.Status = rndcRsp.Status
@@ -311,7 +311,7 @@ func (sa *StorkAgent) ForwardRndcCommand(ctx context.Context, in *agentapi.Forwa
 	request := in.GetRndcRequest()
 
 	// Try to forward the command to rndc.
-	output, err := bind9App.sendCommand(strings.Fields(request.Request))
+	output, err := bind9Daemon.sendRNDCCommand(strings.Fields(request.Request))
 	if err != nil {
 		log.WithError(err).
 			WithFields(log.Fields{
@@ -555,10 +555,10 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 		response.Status.Message = "cannot find Kea daemon"
 		return response, nil
 	}
-	keaApp := daemon.(*KeaApp)
-	if keaApp == nil {
+	keaDaemon := daemon.(*KeaDaemon)
+	if keaDaemon == nil {
 		response.Status.Code = agentapi.Status_ERROR
-		response.Status.Message = fmt.Sprintf("incorrect app found: %s instead of Kea", daemon.GetName())
+		response.Status.Message = fmt.Sprintf("incorrect daemon found: %s instead of Kea", daemon.GetName())
 		return response, nil
 	}
 
@@ -570,7 +570,7 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 			Status: &agentapi.Status{},
 		}
 		// Try to forward the command to Kea Control Agent.
-		body, err := keaApp.sendCommandRaw([]byte(req.Request))
+		body, err := keaDaemon.sendCommandRaw([]byte(req.Request))
 		if err != nil {
 			log.WithFields(log.Fields{
 				"URL": reqURL,
@@ -848,4 +848,9 @@ func (sa *StorkAgent) Shutdown(reload bool) {
 			sa.server.GracefulStop()
 		}
 	})
+}
+
+// Allows access to the specific log file by the log viewer.
+func (sa *StorkAgent) AllowLog(path string) {
+	sa.logTailer.allow(path)
 }

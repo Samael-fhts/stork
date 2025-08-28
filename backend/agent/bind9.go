@@ -17,7 +17,8 @@ import (
 )
 
 var (
-	_ App             = (*Bind9App)(nil)
+	_ Daemon          = (*Bind9Daemon)(nil)
+	_ DNSDaemon       = (*Bind9Daemon)(nil)
 	_ bind9FileParser = (*bind9config.Parser)(nil)
 
 	// Patterns for detecting named process.
@@ -29,21 +30,6 @@ var (
 // It is mocked in the tests.
 type bind9FileParser interface {
 	ParseFile(path string) (*bind9config.Config, error)
-}
-
-// Represents the BIND 9 process metadata.
-type Bind9Daemon struct {
-	Pid     int32
-	Name    string
-	Version string
-	Active  bool
-}
-
-// Represents the state of BIND 9.
-type Bind9State struct {
-	Version string
-	Active  bool
-	Daemon  Bind9Daemon
 }
 
 // Represents the RNDC key entry.
@@ -59,37 +45,54 @@ func (k *Bind9RndcKey) String() string {
 }
 
 // It holds common and BIND 9 specific runtime information.
-type Bind9App struct {
-	BaseApp
-	RndcClient    *RndcClient // to communicate with BIND 9 via rndc
+type Bind9Daemon struct {
+	daemon
+	rndcClient    *RndcClient // to communicate with BIND 9 via rndc
 	zoneInventory *zoneInventory
+	pid           int32 // PID of the named process
 }
 
-// Get base information about BIND 9 app.
-func (ba *Bind9App) GetBaseApp() *BaseApp {
-	return &ba.BaseApp
+// The lifecycle method called once when the daemon is started.
+func (ba *Bind9Daemon) Bootstrap() error {
+	// TODO: We could initialize zone inventory here.
+	return nil
 }
 
-// Detect allowed logs provided by BIND 9.
-// TODO: currently it is not implemented and not used,
-// it returns always empty list and no error.
-func (ba *Bind9App) DetectAllowedLogs() ([]string, error) {
-	return nil, nil
-}
-
+// The lifecycle method called once when the daemon is removed.
 // Stops the zone inventory.
-func (ba *Bind9App) StopZoneInventory() {
+func (ba *Bind9Daemon) Cleanup() error {
 	if ba.zoneInventory != nil {
 		ba.zoneInventory.stop()
 	}
+	return nil
 }
 
-// Returns the zone inventory instance associated with the BIND 9 app.
-func (ba *Bind9App) GetZoneInventory() *zoneInventory {
+// The lifecycle method called periodically to refresh the daemon state.
+// It populates the zone inventory.
+func (ba *Bind9Daemon) Evaluate(AgentManager) error {
+	zoneInventory := ba.GetZoneInventory()
+	if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
+		return nil
+	}
+	var busyError *zoneInventoryBusyError
+	if _, err := zoneInventory.populate(false); err != nil {
+		switch {
+		case errors.As(err, &busyError):
+			// Inventory creation is in progress. This is not an error.
+			return nil
+		default:
+			return errors.WithMessage(err, "Failed to populate DNS zones inventory")
+		}
+	}
+	return nil
+}
+
+// Returns the zone inventory instance associated with the BIND 9 daemon.
+func (ba *Bind9Daemon) GetZoneInventory() *zoneInventory {
 	return ba.zoneInventory
 }
 
-// List of BIND 9 executables used during app detection.
+// List of BIND 9 executables used during daemon detection.
 const (
 	namedCheckconfExec = "named-checkconf"
 	rndcExec           = "rndc"
@@ -496,7 +499,7 @@ func parseNamedDefaultPath(output []byte) string {
 	return namedConfMatch[1]
 }
 
-// Detect the BIND 9 application by parsing the named process command line.
+// Detect the BIND 9 daemon by parsing the named process command line.
 // If the path to the configuration file is relative and chroot directory is
 // not specified, the path is resolved against the current working directory of
 // the process. If the chroot directory is specified, the path is resolved
@@ -518,9 +521,9 @@ func parseNamedDefaultPath(output []byte) string {
 // port, and secret key (if configured). The returned instance lacks information
 // about the active daemons. It must be detected separately.
 //
-// It returns the BIND 9 app instance or an error if the BIND 9 is not
+// It returns the BIND 9 daemon instance or an error if the BIND 9 is not
 // recognized or any error occurs.
-func detectBind9App(p supportedProcess, executor storkutil.CommandExecutor, explicitConfigPath string, parser bind9FileParser) (App, error) {
+func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, explicitConfigPath string, parser bind9FileParser) (Daemon, error) {
 	cmdline, err := p.getCmdline()
 	if err != nil {
 		return nil, err
@@ -711,20 +714,21 @@ func detectBind9App(p supportedProcess, executor storkutil.CommandExecutor, expl
 		return nil, errors.Wrapf(err, "failed to determine BIND 9 rndc details")
 	}
 
-	// prepare final BIND 9 app
-	bind9App := &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
+	// prepare final BIND 9 daemon
+	daemon := &Bind9Daemon{
+		daemon: daemon{
+			Name:         DaemonNameBind9,
 			AccessPoints: accessPoints,
 		},
-		RndcClient:    rndcClient,
+		rndcClient:    rndcClient,
 		zoneInventory: inventory,
+		pid:           p.getPid(),
 	}
 
-	return bind9App, nil
+	return daemon, nil
 }
 
 // Send a command to named using rndc client.
-func (ba *Bind9App) sendCommand(command []string) (output []byte, err error) {
-	return ba.RndcClient.SendCommand(command)
+func (ba *Bind9Daemon) sendRNDCCommand(command []string) (output []byte, err error) {
+	return ba.rndcClient.SendCommand(command)
 }
