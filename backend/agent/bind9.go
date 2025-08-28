@@ -12,7 +12,7 @@ import (
 
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	bind9config "isc.org/stork/appcfg/bind9"
+	bind9config "isc.org/stork/daemoncfg/bind9"
 	storkutil "isc.org/stork/util"
 )
 

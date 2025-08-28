@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
-	pdnsconfig "isc.org/stork/appcfg/pdns"
+	pdnsconfig "isc.org/stork/daemoncfg/pdns"
 )
 
 //go:generate mockgen -package=agent -destination=pdnsmock_test.go -mock_names=pdnsConfigParser=MockPDNSConfigParser isc.org/stork/agent pdnsConfigParser

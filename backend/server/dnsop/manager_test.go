@@ -12,10 +12,10 @@ import (
 
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
-	dnsconfig "isc.org/stork/appcfg/dnsconfig"
-	bind9stats "isc.org/stork/appdata/bind9stats"
+	dnsconfig "isc.org/stork/daemoncfg/dnsconfig"
+	bind9stats "isc.org/stork/daemondata/bind9stats"
 	agentcomm "isc.org/stork/server/agentcomm"
-	appstest "isc.org/stork/server/apps/test"
+	appstest "isc.org/stork/server/daemons/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
 	"isc.org/stork/testutil"

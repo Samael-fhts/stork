@@ -14,7 +14,7 @@ import (
 	authenticationcallouts "isc.org/stork/hooks/server/authenticationcallouts"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	apps "isc.org/stork/server/apps"
-	appstest "isc.org/stork/server/apps/test"
+	appstest "isc.org/stork/server/daemons/test"
 	dbtest "isc.org/stork/server/database/test"
 	"isc.org/stork/server/hookmanager"
 	storktest "isc.org/stork/server/test"

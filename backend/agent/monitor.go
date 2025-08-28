@@ -7,8 +7,8 @@ import (
 	"time"
 
 	log "github.com/sirupsen/logrus"
-	bind9config "isc.org/stork/appcfg/bind9"
-	pdnsconfig "isc.org/stork/appcfg/pdns"
+	bind9config "isc.org/stork/daemoncfg/bind9"
+	pdnsconfig "isc.org/stork/daemoncfg/pdns"
 	storkutil "isc.org/stork/util"
 )
 

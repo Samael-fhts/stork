@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
-	keaconfig "isc.org/stork/appcfg/kea"
-	keactrl "isc.org/stork/appctrl/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
+	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator"

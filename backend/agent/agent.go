@@ -29,7 +29,7 @@ import (
 
 	"isc.org/stork"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/appdata/bind9stats"
+	"isc.org/stork/daemondata/bind9stats"
 	"isc.org/stork/pki"
 	storkutil "isc.org/stork/util"
 )

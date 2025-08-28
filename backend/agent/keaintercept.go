@@ -7,7 +7,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	agentapi "isc.org/stork/api"
-	keactrl "isc.org/stork/appctrl/kea"
+	keactrl "isc.org/stork/daemonctrl/kea"
 )
 
 // Structure containing a pointer to the callback function registered in

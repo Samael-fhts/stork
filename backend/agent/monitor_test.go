@@ -15,8 +15,8 @@ import (
 	gomock "go.uber.org/mock/gomock"
 	"gopkg.in/h2non/gock.v1"
 
-	bind9config "isc.org/stork/appcfg/bind9"
-	pdnsconfig "isc.org/stork/appcfg/pdns"
+	bind9config "isc.org/stork/daemoncfg/bind9"
+	pdnsconfig "isc.org/stork/daemoncfg/pdns"
 	"isc.org/stork/testutil"
 )
 

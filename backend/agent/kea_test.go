@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
-	keaconfig "isc.org/stork/appcfg/kea"
-	keactrl "isc.org/stork/appctrl/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
+	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
 )

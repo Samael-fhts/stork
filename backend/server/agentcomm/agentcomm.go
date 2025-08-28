@@ -17,10 +17,10 @@ import (
 	"google.golang.org/grpc/security/advancedtls"
 
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/appcfg/dnsconfig"
-	keactrl "isc.org/stork/appctrl/kea"
-	"isc.org/stork/appdata/bind9stats"
-	pdnsdata "isc.org/stork/appdata/pdns"
+	"isc.org/stork/daemoncfg/dnsconfig"
+	keactrl "isc.org/stork/daemonctrl/kea"
+	"isc.org/stork/daemondata/bind9stats"
+	pdnsdata "isc.org/stork/daemondata/pdns"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/eventcenter"
 )

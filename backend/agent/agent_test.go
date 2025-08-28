@@ -28,8 +28,8 @@ import (
 
 	"isc.org/stork"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/appdata/bind9stats"
-	pdnsdata "isc.org/stork/appdata/pdns"
+	"isc.org/stork/daemondata/bind9stats"
+	pdnsdata "isc.org/stork/daemondata/pdns"
 	"isc.org/stork/hooks"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"

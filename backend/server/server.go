@@ -9,16 +9,16 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"isc.org/stork"
-	keaconfig "isc.org/stork/appcfg/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/hooks"
 	"isc.org/stork/server/agentcomm"
-	"isc.org/stork/server/apps"
-	"isc.org/stork/server/apps/bind9"
-	"isc.org/stork/server/apps/kea"
 	"isc.org/stork/server/certs"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator"
 	"isc.org/stork/server/configreview"
+	"isc.org/stork/server/daemons"
+	"isc.org/stork/server/daemons/bind9"
+	"isc.org/stork/server/daemons/kea"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/dnsop"
@@ -41,7 +41,7 @@ type StorkServer struct {
 
 	GeneralSettings GeneralSettings
 
-	Pullers *apps.Pullers
+	Pullers *daemons.Pullers
 
 	MetricsCollector metrics.Collector
 
@@ -162,7 +162,7 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 		return err
 	}
 
-	ss.Pullers = &apps.Pullers{}
+	ss.Pullers = &daemons.Pullers{}
 
 	// This instance provides functions to search for option definitions, both in the
 	// database and among the standard options. It is required by the config manager.
@@ -173,7 +173,7 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 	ss.DaemonLocker = config.NewDaemonLocker()
 
 	// setup state puller
-	ss.Pullers.StatePuller, err = apps.NewStatePuller(ss.DB, ss.Agents, ss.EventCenter, ss.ReviewDispatcher, ss.DHCPOptionDefinitionLookup)
+	ss.Pullers.StatePuller, err = daemons.NewStatePuller(ss.DB, ss.Agents, ss.EventCenter, ss.ReviewDispatcher, ss.DHCPOptionDefinitionLookup)
 	if err != nil {
 		return err
 	}
@@ -220,7 +220,7 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 	// important to maintain one instance of the lookup because it applies indexing
 	// on the option definitions it returns. Indexing should be done only once at
 	// server startup.
-	ss.ConfigManager = apps.NewManager(ss)
+	ss.ConfigManager = daemons.NewManager(ss)
 
 	// Check if the machine registration endpoint should be disabled.
 	enableMachineRegistration, err := dbmodel.GetSettingBool(ss.DB, "enable_machine_registration")

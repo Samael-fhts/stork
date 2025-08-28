@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-pg/pg/v10/types"
-	keaconfig "isc.org/stork/appcfg/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
 	storkutil "isc.org/stork/util"
 )
 

@@ -13,7 +13,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"isc.org/stork/appcfg/dnsconfig"
+	"isc.org/stork/daemoncfg/dnsconfig"
 	agentcomm "isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"

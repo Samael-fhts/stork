@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/appcfg/dnsconfig"
+	"isc.org/stork/daemoncfg/dnsconfig"
 	dbtest "isc.org/stork/server/database/test"
 )
 

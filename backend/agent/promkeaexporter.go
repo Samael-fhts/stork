@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"isc.org/stork"
-	keactrl "isc.org/stork/appctrl/kea"
+	keactrl "isc.org/stork/daemonctrl/kea"
 	storkutil "isc.org/stork/util"
 )
 

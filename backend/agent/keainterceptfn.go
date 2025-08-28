@@ -2,8 +2,8 @@ package agent
 
 import (
 	"github.com/pkg/errors"
-	keaconfig "isc.org/stork/appcfg/kea"
-	keactrl "isc.org/stork/appctrl/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
+	keactrl "isc.org/stork/daemonctrl/kea"
 )
 
 // Intercept callback function for config-get. It records log files

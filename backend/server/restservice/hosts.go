@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	keaconfig "isc.org/stork/appcfg/kea"
-	"isc.org/stork/server/apps/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/server/daemons/kea"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator/entitymigrator"
 	dbmodel "isc.org/stork/server/database/model"

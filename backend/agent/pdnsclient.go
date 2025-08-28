@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-resty/resty/v2"
 	pkgerrors "github.com/pkg/errors"
-	"isc.org/stork/appdata/bind9stats"
-	pdnsdata "isc.org/stork/appdata/pdns"
+	"isc.org/stork/daemondata/bind9stats"
+	pdnsdata "isc.org/stork/daemondata/pdns"
 	storkutil "isc.org/stork/util"
 )
 

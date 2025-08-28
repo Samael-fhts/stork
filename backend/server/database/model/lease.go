@@ -1,7 +1,7 @@
 package dbmodel
 
 import (
-	keadata "isc.org/stork/appdata/kea"
+	keadata "isc.org/stork/daemondata/kea"
 )
 
 // Extends basic Lease information with database specific information.

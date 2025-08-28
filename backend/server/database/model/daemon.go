@@ -11,8 +11,8 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
 	pkgerrors "github.com/pkg/errors"
-	keaconfig "isc.org/stork/appcfg/kea"
-	"isc.org/stork/appdata/bind9stats"
+	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemondata/bind9stats"
 	dbops "isc.org/stork/server/database"
 )
 
