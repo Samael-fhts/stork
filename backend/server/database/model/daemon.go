@@ -153,28 +153,28 @@ func (d Daemon) GetAccessPoint(accessPointType string) (ap *AccessPoint, err err
 
 // Returns daemon control access point including control address, port and
 // the flag indicating if the connection is secure.
-func (d Daemon) GetControlAccessPoint() (address string, port int64, key string, secure bool, err error) {
+func (d Daemon) GetControlAccessPoint() (address string, port int64, key string, protocol string, err error) {
 	var ap *AccessPoint
 	ap, err = d.GetAccessPoint(AccessPointControl)
 	if err == nil {
 		address = ap.Address
 		port = ap.Port
 		key = ap.Key
-		secure = ap.UseSecureProtocol
+		protocol = ap.Protocol
 	}
 	return
 }
 
 // Returns daemon statistics access point including statistics address, port and
 // the flag indicating if the connection is secure.
-func (d Daemon) GetStatisticsAccessPoint() (address string, port int64, key string, secure bool, err error) {
+func (d Daemon) GetStatisticsAccessPoint() (address string, port int64, key string, protocol string, err error) {
 	var ap *AccessPoint
 	ap, err = d.GetAccessPoint(AccessPointStatistics)
 	if err == nil {
 		address = ap.Address
 		port = ap.Port
 		key = ap.Key
-		secure = ap.UseSecureProtocol
+		protocol = ap.Protocol
 	}
 	return
 }

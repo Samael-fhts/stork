@@ -25,7 +25,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*
 		require.NoError(t, err)
 
 		accessPoints := []*dbmodel.AccessPoint{}
-		accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", int64(1234+i), true)
+		accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", int64(1234+i), "https")
 
 		daemons := []*dbmodel.Daemon{
 			dbmodel.NewKeaDaemon(m.ID, dbmodel.DaemonNameDHCPv4, true),

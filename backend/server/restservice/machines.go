@@ -1223,7 +1223,7 @@ func accessPointToRestAPI(dbAccessPoint *dbmodel.AccessPoint) *models.AccessPoin
 		Type:              dbAccessPoint.Type,
 		Address:           dbAccessPoint.Address,
 		Port:              dbAccessPoint.Port,
-		UseSecureProtocol: dbAccessPoint.UseSecureProtocol,
+		Protocol: dbAccessPoint.Protocol,
 	}
 }
 

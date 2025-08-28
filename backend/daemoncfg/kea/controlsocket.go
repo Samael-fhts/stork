@@ -82,21 +82,33 @@ type ControlSocket struct {
 	Authentication *Authentication `json:"authentication,omitempty"`
 }
 
-// Indicates whether the secure protocol (HTTPS) is used.
-func (cs ControlSocket) UseSecureProtocol() bool {
-	return cs.SocketType == "https"
+// Indicates the name of the protocol used by the control socket:
+// "unix", "http" or "https".
+func (cs ControlSocket) GetProtocol() string {
+	return cs.SocketType
 }
 
 // Returns a port number or the default port if the port is not set.
 func (cs ControlSocket) GetPort() int64 {
+	if cs.SocketType == "unix" {
+		return 0
+	}
+
 	if cs.SocketPort != nil {
 		return *cs.SocketPort
 	}
 	return 8000
 }
 
-// Return a socket address. It normalizes some special values.
+// Return a socket address or socket path. It normalizes some special values.
 func (cs ControlSocket) GetAddress() string {
+	if cs.SocketType == "unix" {
+		if cs.SocketName == nil {
+			return ""
+		}
+		return *cs.SocketName
+	}
+
 	if cs.SocketAddress == nil {
 		return "127.0.0.1"
 	}

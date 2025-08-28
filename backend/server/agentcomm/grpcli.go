@@ -28,11 +28,11 @@ var _ ConnectedAgents = (*connectedAgentsImpl)(nil)
 // An access point for a daemon to retrieve information such
 // as status or metrics.
 type AccessPoint struct {
-	Type              string
-	Address           string
-	Port              int64
-	Key               string
-	UseSecureProtocol bool
+	Type     string
+	Address  string
+	Port     int64
+	Key      string
+	Protocol string
 }
 
 // Currently supported types are: "control" and "statistics".
@@ -59,8 +59,8 @@ const (
 // An interface to a daemon that can receive commands from Stork.
 // Kea daemon receiving control commands is an example.
 type ControlledDaemon interface {
-	GetControlAccessPoint() (string, int64, string, bool, error)
-	GetStatisticsAccessPoint() (string, int64, string, bool, error)
+	GetControlAccessPoint() (string, int64, string, string, error)
+	GetStatisticsAccessPoint() (string, int64, string, string, error)
 	GetMachineTag() dbmodel.MachineTag
 	GetName() DaemonName
 }
@@ -89,24 +89,24 @@ func (d *Daemon) GetName() DaemonName {
 
 // Returns the control access point of the daemon. It returns an error if
 // no control access point is found.
-func (d *Daemon) GetControlAccessPoint() (string, int64, string, bool, error) {
+func (d *Daemon) GetControlAccessPoint() (string, int64, string, string, error) {
 	for _, ap := range d.AccessPoints {
 		if ap.Type == AccessPointControl {
-			return ap.Address, ap.Port, ap.Key, ap.UseSecureProtocol, nil
+			return ap.Address, ap.Port, ap.Key, ap.Protocol, nil
 		}
 	}
-	return "", 0, "", false, errors.Errorf("no control access point for daemon %s", d.Name)
+	return "", 0, "", "", errors.Errorf("no control access point for daemon %s", d.Name)
 }
 
 // Returns the statistics access point of the daemon. It returns an error if
 // no statistics access point is found.
-func (d *Daemon) GetStatisticsAccessPoint() (string, int64, string, bool, error) {
+func (d *Daemon) GetStatisticsAccessPoint() (string, int64, string, string, error) {
 	for _, ap := range d.AccessPoints {
 		if ap.Type == AccessPointStatistics {
-			return ap.Address, ap.Port, ap.Key, ap.UseSecureProtocol, nil
+			return ap.Address, ap.Port, ap.Key, ap.Protocol, nil
 		}
 	}
-	return "", 0, "", false, errors.Errorf("no statistics access point for daemon %s", d.Name)
+	return "", 0, "", "", errors.Errorf("no statistics access point for daemon %s", d.Name)
 }
 
 // Returns the machine tag of the daemon.
@@ -140,12 +140,13 @@ type State struct {
 }
 
 // MakeAccessPoint is an utility to make an array of one access point.
-func MakeAccessPoint(tp, address, key string, port int64) []AccessPoint {
+func MakeAccessPoint(tp, address, key string, port int64, protocol string) []AccessPoint {
 	return []AccessPoint{{
-		Type:    tp,
-		Address: address,
-		Port:    port,
-		Key:     key,
+		Type:     tp,
+		Address:  address,
+		Port:     port,
+		Key:      key,
+		Protocol: protocol,
 	}}
 }
 
@@ -415,13 +416,28 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 		var accessPoints []AccessPoint
 
 		for _, point := range app.AccessPoints {
-			accessPoints = append(accessPoints, AccessPoint{
-				Type:              point.Type,
-				Address:           point.Address,
-				Port:              point.Port,
-				Key:               point.Key,
-				UseSecureProtocol: point.UseSecureProtocol,
-			})
+			accessPoint := AccessPoint{
+				Type:    point.Type,
+				Address: point.Address,
+				Port:    point.Port,
+				Key:     point.Key,
+			}
+
+			if point.Protocol == "" {
+				// For backward compatibility, if the protocol is not set,
+				// assume HTTP or HTTPS based on the UseSecureProtocol flag.
+				if app.Type == DaemonNameBind9 {
+					accessPoint.Protocol = "rndc"
+				} else if point.UseSecureProtocol {
+					accessPoint.Protocol = "https"
+				} else {
+					accessPoint.Protocol = "http"
+				}
+			} else {
+				accessPoint.Protocol = point.Protocol
+			}
+
+			accessPoints = append(accessPoints, accessPoint)
 		}
 
 		daemons = append(daemons, &Daemon{
@@ -475,6 +491,11 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 
 	addrPort := net.JoinHostPort(agentAddress, strconv.FormatInt(agentPort, 10))
 
+	logFields := log.Fields{
+		"agent": addrPort,
+		"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
+	}
+
 	// Prepare the on-wire representation of the commands.
 	req := &agentapi.ForwardRndcCommandReq{
 		Address: ctrlAddress,
@@ -499,20 +520,14 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 	commState, details := agents.checkAgentCommState(stats, req, err)
 	switch commState {
 	case CommErrorNew:
-		log.WithFields(log.Fields{
-			"agent": addrPort,
-			"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
-		}).Warnf("Failed to send the rndc command: %s", command)
+		log.WithFields(logFields).Warnf("Failed to send the rndc command: %s", command)
 		agents.eventCenter.AddErrorEvent("communication with Stork agent on {machine} to forward rndc command failed", daemon.GetMachineTag(), dbmodel.SSEConnectivity, details)
 
 	case CommErrorReset:
 		agents.eventCenter.AddWarningEvent("communication with Stork agent on {machine} to forward rndc command succeeded", daemon.GetMachineTag(), dbmodel.SSEConnectivity, details)
 
 	case CommErrorContinued:
-		log.WithFields(log.Fields{
-			"agent": addrPort,
-			"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
-		}).Warnf("Failed to send the rndc command to the Stork agent: %s; agent is still not responding", command)
+		log.WithFields(logFields).Warnf("Failed to send the rndc command to the Stork agent: %s; agent is still not responding", command)
 
 	default:
 		// Communication with the agent was ok and is still ok.
@@ -525,20 +540,14 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 	commState, details = agents.checkBind9CommState(bind9Stats, dbmodel.AccessPointControl, resp)
 	switch commState {
 	case CommErrorNew:
-		log.WithFields(log.Fields{
-			"agent": addrPort,
-			"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
-		}).Warnf("Failed to send the rndc command: %s", command)
+		log.WithFields(logFields).Warnf("Failed to send the rndc command: %s", command)
 		agents.eventCenter.AddErrorEvent("communication between the Stork agent on {machine} and {daemon} to forward rndc command failed", daemon.GetMachineTag(), daemon, dbmodel.SSEConnectivity, details)
 
 	case CommErrorReset:
 		agents.eventCenter.AddWarningEvent("communication between the Stork agent on {machine} and {daemon} to forward rndc command succeeded", daemon.GetMachineTag(), daemon, dbmodel.SSEConnectivity, details)
 
 	case CommErrorContinued:
-		log.WithFields(log.Fields{
-			"agent": addrPort,
-			"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
-		}).Warnf("Failed to send the rndc command from Stork agent to named: %s; named is still returning an error", command)
+		log.WithFields(logFields).Warnf("Failed to send the rndc command from Stork agent to named: %s; named is still returning an error", command)
 
 	default:
 		// Communication between the Stork agent and named was ok and is still ok.
@@ -585,10 +594,7 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 		return nil, err
 	}
 	// This is apparently the first error like this. Let's log it.
-	log.WithFields(log.Fields{
-		"agent": addrPort,
-		"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
-	}).Warnf("named returned an error status to the RNDC command: %s", command)
+	log.WithFields(logFields).Warnf("named returned an error status to the RNDC command: %s", command)
 
 	return result, err
 }
@@ -600,11 +606,11 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 // the statistics-channel of the named daemon.
 func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, daemon ControlledDaemon, requestType ForwardToNamedStatsRequestType, statsOutput any) error {
 	addrPort := net.JoinHostPort(daemon.GetMachineTag().GetAddress(), strconv.FormatInt(daemon.GetMachineTag().GetAgentPort(), 10))
-	statsAddress, statsPort, _, isSecure, err_ := daemon.GetStatisticsAccessPoint()
+	statsAddress, statsPort, _, protocol, err_ := daemon.GetStatisticsAccessPoint()
 	if err_ != nil {
 		return errors.WithMessage(err_, "failed to get statistics access point for daemon")
 	}
-	statsURL := storkutil.HostWithPortURL(statsAddress, statsPort, isSecure)
+	statsURL := storkutil.HostWithPortURL(statsAddress, statsPort, protocol)
 
 	// Prepare the on-wire representation of the commands.
 	req := &agentapi.ForwardToNamedStatsReq{
@@ -771,7 +777,7 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 	agentPort := daemon.GetMachineTag().GetAgentPort()
 	agentURL := net.JoinHostPort(agentAddress, strconv.FormatInt(agentPort, 10))
 
-	controlAddress, controlPort, _, controlUseSecureProtocol, err := daemon.GetControlAccessPoint()
+	controlAddress, controlPort, _, controlProtocol, err := daemon.GetControlAccessPoint()
 	if err != nil {
 		log.WithFields(log.Fields{
 			"address": controlAddress,
@@ -779,7 +785,7 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 		}).Warnf("No Kea control access point found for daemon %s on machine %d", daemon.GetName(), daemon.GetMachineTag().GetID())
 		return nil, err
 	}
-	controlAccessPointURL := storkutil.HostWithPortURL(controlAddress, controlPort, controlUseSecureProtocol)
+	controlAccessPointURL := storkutil.HostWithPortURL(controlAddress, controlPort, controlProtocol)
 
 	// Prepare the on-wire representation of the commands.
 	req := &agentapi.ForwardToKeaOverHTTPReq{

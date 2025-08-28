@@ -17,14 +17,24 @@ type AgentManager interface {
 	AllowLog(path string)
 }
 
+// Supported protocol types.
+type ProtocolType string
+
+const (
+	ProtocolTypeHTTP   ProtocolType = "http"
+	ProtocolTypeHTTPS  ProtocolType = "https"
+	ProtocolTypeSocket ProtocolType = "unix"
+	ProtocolTypeRNDC   ProtocolType = "rndc"
+)
+
 // An access point for an application to retrieve information such
 // as status or metrics.
 type AccessPoint struct {
-	Type              string
-	Address           string
-	Port              int64
-	UseSecureProtocol bool
-	Key               string
+	Type     string
+	Address  string
+	Port     int64
+	Protocol string
+	Key      string
 }
 
 // Checks if two access points are equal.
@@ -32,7 +42,7 @@ func (ap *AccessPoint) IsEqual(other AccessPoint) bool {
 	return ap.Type == other.Type &&
 		ap.Address == other.Address &&
 		ap.Port == other.Port &&
-		ap.UseSecureProtocol == other.UseSecureProtocol &&
+		ap.Protocol == other.Protocol &&
 		ap.Key == other.Key
 }
 
@@ -41,7 +51,7 @@ func (ap *AccessPoint) String() string {
 	var b strings.Builder
 	b.WriteString(ap.Type)
 	b.WriteString(": ")
-	b.WriteString(storkutil.HostWithPortURL(ap.Address, ap.Port, ap.UseSecureProtocol))
+	b.WriteString(storkutil.HostWithPortURL(ap.Address, ap.Port, ap.Protocol))
 	if ap.Type == AccessPointControl {
 		b.WriteString(" (auth key: ")
 		if ap.Key != "" {

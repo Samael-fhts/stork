@@ -54,6 +54,16 @@ func init() {
 			UPDATE setting
 			SET name = 'state_puller_interval'
 			WHERE name = 'apps_state_puller_interval';
+
+			-- Change the column indicating whether the secure protocol is used
+			-- to a column storing the protocol name.
+			ALTER TABLE access_point ADD COLUMN protocol TEXT NOT NULL;
+			UPDATE access_point
+			SET protocol = CASE
+				WHEN use_secure_protocol THEN 'https'
+				ELSE 'http'
+			END;
+			ALTER TABLE access_point DROP COLUMN use_secure_protocol;
 		`)
 		return err
 	}, func(db migrations.DB) error {

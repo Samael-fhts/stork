@@ -1204,7 +1204,7 @@ func credentialsOverHTTPS(ctx *ReviewContext) (*Report, error) {
 	// It is always one listening control socket.
 	controlSocket := controlSockets[0]
 
-	if controlSocket.UseSecureProtocol() {
+	if controlSocket.GetProtocol() == "https" {
 		// The TLS is configured. All is OK.
 		return nil, nil
 	}

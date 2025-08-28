@@ -126,7 +126,7 @@ func daemonCompare(dbDaemon dbmodel.Daemon, grpcDaemon *agentcomm.Daemon) bool {
 			return false
 		}
 
-		if dbPt.Port != grpcPt.Port || dbPt.Address != grpcPt.Address || dbPt.Key != grpcPt.Key || dbPt.UseSecureProtocol != grpcPt.UseSecureProtocol {
+		if dbPt.Port != grpcPt.Port || dbPt.Address != grpcPt.Address || dbPt.Key != grpcPt.Key || dbPt.Protocol != grpcPt.Protocol {
 			return false
 		}
 	}
@@ -158,11 +158,11 @@ DISCOVERED_LOOP:
 		accessPoints := make([]*dbmodel.AccessPoint, len(discoveredDaemon.AccessPoints))
 		for i, point := range discoveredDaemon.AccessPoints {
 			accessPoints[i] = &dbmodel.AccessPoint{
-				Type:              point.Type,
-				Address:           point.Address,
-				Port:              point.Port,
-				Key:               point.Key,
-				UseSecureProtocol: point.UseSecureProtocol,
+				Type:     point.Type,
+				Address:  point.Address,
+				Port:     point.Port,
+				Key:      point.Key,
+				Protocol: point.Protocol,
 			}
 		}
 

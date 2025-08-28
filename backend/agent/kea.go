@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -23,7 +24,7 @@ var _ Daemon = (*KeaDaemon)(nil)
 // It holds common and Kea specific runtime information.
 type KeaDaemon struct {
 	daemon
-	HTTPClient *httpClient // to communicate with Kea Control Agent
+	connector keaConnector // to communicate with Kea daemon
 }
 
 // Returns the control access point of the Kea daemon.
@@ -57,36 +58,12 @@ func (d *KeaDaemon) sendCommand(command *keactrl.Command, responses interface{})
 
 // Sends a serialized command to Kea and returns a serialized response.
 func (d *KeaDaemon) sendCommandRaw(command []byte) ([]byte, error) {
-	accessPoint := d.getControlAccessPoint()
-	if accessPoint == nil {
-		return nil, errors.New("no control access point found")
-	}
-
-	caURL := storkutil.HostWithPortURL(
-		accessPoint.Address,
-		accessPoint.Port,
-		accessPoint.UseSecureProtocol,
-	)
-
 	// Send the command to the Kea server.
-	response, err := d.HTTPClient.Call(caURL, bytes.NewBuffer(command))
+	response, err := d.connector.sendPayload(command)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to send command to Kea: %s", caURL)
+		return nil, errors.WithMessagef(err, "failed to send command to Kea")
 	}
-
-	// Kea returned a non-success status code.
-	if response.StatusCode != http.StatusOK {
-		return nil, errors.Errorf("received non-success status code %d from Kea, with status text: %s; url: %s", response.StatusCode, response.Status, caURL)
-	}
-
-	// Read the response.
-	body, err := io.ReadAll(response.Body)
-	response.Body.Close()
-	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to read Kea response body received from %s", caURL)
-	}
-
-	return body, nil
+	return response, nil
 }
 
 // Collect the list of log files which can be viewed by the Stork user
@@ -314,21 +291,21 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 		}
 	}
 
-	accessPoints := []AccessPoint{
-		{
-			Type:              AccessPointControl,
-			Address:           controlSocket.GetAddress(),
-			Port:              controlSocket.GetPort(),
-			UseSecureProtocol: controlSocket.UseSecureProtocol(),
-			Key:               key,
-		},
+	accessPoint := AccessPoint{
+		Type:     AccessPointControl,
+		Address:  controlSocket.GetAddress(),
+		Port:     controlSocket.GetPort(),
+		Protocol: controlSocket.GetProtocol(),
+		Key:      key,
 	}
+	keaConnector, err := newKeaConnector(accessPoint, httpClientConfig)
+
 	thisDaemon := &KeaDaemon{
 		daemon: daemon{
 			Name:         daemonName,
-			AccessPoints: accessPoints,
+			AccessPoints: []AccessPoint{accessPoint},
 		},
-		HTTPClient: NewHTTPClient(httpClientConfig),
+		connector: keaConnector,
 	}
 
 	detectedDaemons := []Daemon{thisDaemon}
@@ -354,9 +331,9 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 			managedDaemon := &KeaDaemon{
 				daemon: daemon{
 					Name:         DaemonName(managedDaemonName),
-					AccessPoints: accessPoints,
+					AccessPoints: []AccessPoint{accessPoint},
 				},
-				HTTPClient: thisDaemon.HTTPClient,
+				connector: thisDaemon.connector,
 			}
 			detectedDaemons = append(detectedDaemons, managedDaemon)
 		}
@@ -489,4 +466,89 @@ func (d *KeaDaemon) Evaluate(agent AgentManager) error {
 // Called once before the daemon is removed.
 func (d *KeaDaemon) Cleanup() error {
 	return nil
+}
+
+// Interface for sending bytes to Kea and receiving bytes back.
+// All kinds of API supported by Kea (HTTP, socket) expect JSON data.
+// This abstraction encapsulates the way how the data is sent and received.
+type keaConnector interface {
+	sendPayload(command []byte) ([]byte, error)
+}
+
+// Factory function to create a keaConnector based on the access point
+// configuration. It returns an error if the access point configuration is
+// invalid.
+func newKeaConnector(accessPoint AccessPoint, httpClientConfig HTTPClientConfig) (keaConnector, error) {
+	if accessPoint.Protocol == "unix" {
+		socketPath := accessPoint.Address
+		if socketPath == "" {
+			return nil, errors.New("missing unix socket path")
+		}
+		return &keaSocketConnector{socketPath: socketPath}, nil
+	}
+
+	// HTTP or HTTPS
+	url := storkutil.HostWithPortURL(
+		accessPoint.Address,
+		accessPoint.Port,
+		accessPoint.Protocol,
+	)
+	return &keaHTTPConnector{
+		url:        url,
+		httpClient: NewHTTPClient(httpClientConfig),
+	}, nil
+}
+
+// Implements keaConnector interface for connecting to Kea via a Unix socket.
+type keaSocketConnector struct {
+	socketPath string
+}
+
+// Sends the command to Kea via a Unix socket and returns the response.
+func (c *keaSocketConnector) sendPayload(command []byte) ([]byte, error) {
+	conn, err := net.Dial("unix", c.socketPath)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to connect to unix socket: %s", c.socketPath)
+	}
+	defer conn.Close()
+
+	_, err = conn.Write(command)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to write command to unix socket")
+	}
+
+	response, err := io.ReadAll(conn)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read response from unix socket")
+	}
+
+	return response, nil
+}
+
+// Implements keaConnector interface for connecting to Kea via HTTP.
+type keaHTTPConnector struct {
+	url        string
+	httpClient *httpClient
+}
+
+// Sends the command to Kea via HTTP and returns the response.
+func (c *keaHTTPConnector) sendPayload(command []byte) ([]byte, error) {
+	response, err := c.httpClient.Call(c.url, bytes.NewBuffer(command))
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to send command to Kea: %s", c.url)
+	}
+
+	// Kea returned a non-success status code.
+	if response.StatusCode != http.StatusOK {
+		return nil, errors.Errorf("received non-success status code %d from Kea, with status text: %s; url: %s", response.StatusCode, response.Status, c.url)
+	}
+
+	// Read the response.
+	body, err := io.ReadAll(response.Body)
+	response.Body.Close()
+	if err != nil {
+		return nil, errors.WithMessagef(err, "failed to read Kea response body received from %s", c.url)
+	}
+
+	return body, nil
 }

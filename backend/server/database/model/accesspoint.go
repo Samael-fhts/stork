@@ -10,12 +10,12 @@ import (
 
 // A structure reflecting the access_point SQL table.
 type AccessPoint struct {
-	DaemonID          int64  `pg:",pk"`
-	Type              string `pg:",pk"`
-	Address           string
-	Port              int64
-	Key               string
-	UseSecureProtocol bool `pg:",use_zero"`
+	DaemonID int64  `pg:",pk"`
+	Type     string `pg:",pk"`
+	Address  string
+	Port     int64
+	Key      string
+	Protocol string `pg:",use_zero"`
 }
 
 // Valid kinds of the access points.
@@ -26,13 +26,13 @@ const (
 
 // AppendAccessPoint is an utility function that appends an access point to a
 // list.
-func AppendAccessPoint(list []*AccessPoint, tp, address, key string, port int64, useSecureProtocol bool) []*AccessPoint {
+func AppendAccessPoint(list []*AccessPoint, tp, address, key string, port int64, protocol string) []*AccessPoint {
 	list = append(list, &AccessPoint{
-		Type:              tp,
-		Address:           address,
-		Port:              port,
-		Key:               key,
-		UseSecureProtocol: useSecureProtocol,
+		Type:     tp,
+		Address:  address,
+		Port:     port,
+		Key:      key,
+		Protocol: protocol,
 	})
 	return list
 }

@@ -28,36 +28,34 @@ func UTCNow() time.Time {
 }
 
 // Returns URL of the host with port.
-func HostWithPortURL(address string, port int64, secure bool) string {
-	protocol := "http"
-	if secure {
-		protocol = "https"
+func HostWithPortURL(address string, port int64, protocol string) string {
+	if port == 0 {
+		return fmt.Sprintf("%s://%s/", protocol, address)
 	}
 	return fmt.Sprintf("%s://%s:%d/", protocol, address, port)
 }
 
 // Parses URL into host and port.
-func ParseURL(url string) (host string, port int64, secure bool) {
-	pattern := regexp.MustCompile(`https{0,1}:\/\/\[{1}(\S+)\]{1}(:([0-9]+)){0,1}`)
+func ParseURL(url string) (host string, port int64, protocol string) {
+	pattern := regexp.MustCompile(`(http|https|unix|rndc):\/\/\[{1}(\S+)\]{1}(:([0-9]+)){0,1}`)
 	m := pattern.FindStringSubmatch(url)
 
 	if len(m) == 0 {
-		pattern := regexp.MustCompile(`https{0,1}:\/\/([^\s\:\/]+)(:([0-9]+)){0,1}`)
+		pattern := regexp.MustCompile(`(http|https|unix|rndc):\/\/([^\s\:\/]+)(:([0-9]+)){0,1}`)
 		m = pattern.FindStringSubmatch(url)
 	}
 
-	if len(m) > 1 {
-		host = m[1]
+	if len(m) > 2 {
+		protocol = m[1]
+		host = m[2]
 	}
 
-	if len(m) > 3 {
-		p, err := strconv.Atoi(m[3])
+	if len(m) > 4 {
+		p, err := strconv.Atoi(m[4])
 		if err == nil {
 			port = int64(p)
 		}
 	}
-
-	secure = strings.HasPrefix(url, "https://")
 
 	// Set default ports
 	if port == 0 {
@@ -69,7 +67,7 @@ func ParseURL(url string) (host string, port int64, secure bool) {
 		}
 	}
 
-	return host, port, secure
+	return host, port, protocol
 }
 
 // Formats provided string of hexadecimal digits to MAC address format

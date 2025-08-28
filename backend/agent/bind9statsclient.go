@@ -48,7 +48,8 @@ type httpResponse interface {
 func newBind9StatsClientRequest(innerClient *resty.Client, host string, port int64) *bind9StatsClientRequest {
 	return &bind9StatsClientRequest{
 		innerClient: innerClient,
-		baseURL:     setBind9StatsClientBasePath(storkutil.HostWithPortURL(host, port, false)),
+		// TODO: Add support for HTTPS.
+		baseURL: setBind9StatsClientBasePath(storkutil.HostWithPortURL(host, port, "http")),
 	}
 }
 

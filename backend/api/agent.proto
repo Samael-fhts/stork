@@ -84,7 +84,7 @@ message GetStateRsp {
   // Parameter is no longer used, but it is kept for backward compatibility.
   // Always false.
   // TODO: Remove it when the API will be changed.
-  bool agentUsesHTTPCredentials = 19;
+  bool agentUsesHTTPCredentials = 19 [deprecated = true];
 }
 
 // Application access point
@@ -93,7 +93,8 @@ message AccessPoint {
   string address = 2;
   int64 port = 3;
   string key = 4;
-  bool useSecureProtocol = 5;
+  bool useSecureProtocol = 5 [deprecated = true];
+  string protocol = 6;
 }
 
 // Basic information about application.

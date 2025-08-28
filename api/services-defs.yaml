@@ -213,8 +213,8 @@
          type: string
        port:
          type: integer
-       useSecureProtocol:
-         type: boolean
+       protocol:
+         type: string
 
   KeaDaemonDatabase:
     type: object
