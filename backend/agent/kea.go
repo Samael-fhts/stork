@@ -298,14 +298,13 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 		Protocol: controlSocket.GetProtocol(),
 		Key:      key,
 	}
-	keaConnector, err := newKeaConnector(accessPoint, httpClientConfig)
 
 	thisDaemon := &KeaDaemon{
 		daemon: daemon{
 			Name:         daemonName,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: keaConnector,
+		connector: newKeaConnector(accessPoint, httpClientConfig),
 	}
 
 	detectedDaemons := []Daemon{thisDaemon}
@@ -476,15 +475,11 @@ type keaConnector interface {
 }
 
 // Factory function to create a keaConnector based on the access point
-// configuration. It returns an error if the access point configuration is
-// invalid.
-func newKeaConnector(accessPoint AccessPoint, httpClientConfig HTTPClientConfig) (keaConnector, error) {
+// configuration.
+func newKeaConnector(accessPoint AccessPoint, httpClientConfig HTTPClientConfig) keaConnector {
 	if accessPoint.Protocol == "unix" {
 		socketPath := accessPoint.Address
-		if socketPath == "" {
-			return nil, errors.New("missing unix socket path")
-		}
-		return &keaSocketConnector{socketPath: socketPath}, nil
+		return &keaSocketConnector{socketPath: socketPath}
 	}
 
 	// HTTP or HTTPS
@@ -496,7 +491,7 @@ func newKeaConnector(accessPoint AccessPoint, httpClientConfig HTTPClientConfig)
 	return &keaHTTPConnector{
 		url:        url,
 		httpClient: NewHTTPClient(httpClientConfig),
-	}, nil
+	}
 }
 
 // Implements keaConnector interface for connecting to Kea via a Unix socket.
