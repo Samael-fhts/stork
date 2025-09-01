@@ -8,6 +8,10 @@ import (
 func init() {
 	migrations.MustRegisterTx(func(db migrations.DB) error {
 		_, err := db.Exec(`
+			-- Drop the obsolete trigger and function.
+			DROP TRIGGER trigger_update_machine_id ON access_point;
+			DROP FUNCTION update_machine_id();
+
 			-- Add a column in the access point table to store a new foreign key
 			-- to the daemon table.
 			ALTER TABLE access_point ADD COLUMN daemon_id bigint;
@@ -64,6 +68,9 @@ func init() {
 				ELSE 'http'
 			END;
 			ALTER TABLE access_point DROP COLUMN use_secure_protocol;
+
+			-- Drop obsolete tables.
+			DROP TABLE app;
 		`)
 		return err
 	}, func(db migrations.DB) error {

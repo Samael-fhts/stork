@@ -93,9 +93,11 @@ func GetConfig(ctx context.Context, agents agentcomm.ConnectedAgents, daemon age
 func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.ConnectedAgents, inDaemon *dbmodel.Daemon) (daemon *dbmodel.Daemon, err error) {
 	// Output daemon.
 	daemon = dbmodel.ShallowCopyKeaDaemon(inDaemon)
+	daemon.Active = true
 
 	defer func() {
 		if err != nil {
+			// In case of error, mark the daemon as inactive.
 			daemon.Active = false
 		}
 	}()

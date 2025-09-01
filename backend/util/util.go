@@ -35,13 +35,18 @@ func HostWithPortURL(address string, port int64, protocol string) string {
 	return fmt.Sprintf("%s://%s:%d/", protocol, address, port)
 }
 
-// Parses URL into host and port.
+// Parses URL into host, port and protocol.
 func ParseURL(url string) (host string, port int64, protocol string) {
-	pattern := regexp.MustCompile(`(http|https|unix|rndc):\/\/\[{1}(\S+)\]{1}(:([0-9]+)){0,1}`)
+	url = strings.TrimRight(url, "/")
+	if strings.HasPrefix(url, "unix://") {
+		return url[len("unix://"):], 0, "unix"
+	}
+
+	pattern := regexp.MustCompile(`(http|https|rndc):\/\/\[(\S+)\](:([0-9]+))?`)
 	m := pattern.FindStringSubmatch(url)
 
 	if len(m) == 0 {
-		pattern := regexp.MustCompile(`(http|https|unix|rndc):\/\/([^\s\:\/]+)(:([0-9]+)){0,1}`)
+		pattern := regexp.MustCompile(`(http|https|rndc):\/\/([^\s\:\/]+)(:([0-9]+))?`)
 		m = pattern.FindStringSubmatch(url)
 	}
 

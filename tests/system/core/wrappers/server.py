@@ -175,12 +175,12 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         return api_instance.get_machines(**params)
 
     def list_subnets(
-        self, app_id=None, family: int = None, limit=10, start=0
+        self, daemon_id=None, family: int = None, limit=10, start=0
     ) -> Subnets:
         """Lists the subnets from a given application and/or family."""
         params = {"start": start, "limit": limit}
-        if app_id is not None:
-            params["app_id"] = app_id
+        if daemon_id is not None:
+            params["daemon_id"] = daemon_id
         if family is not None:
             params["dhcp_version"] = family
 
