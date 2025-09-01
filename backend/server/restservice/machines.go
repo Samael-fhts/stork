@@ -504,7 +504,7 @@ func (r *RestAPI) CreateMachine(ctx context.Context, params services.CreateMachi
 	dbMachine, err := dbmodel.GetMachineByAddressAndAgentPort(r.DB, addr, params.Machine.AgentPort)
 	if err != nil {
 		msg := fmt.Sprintf("Problem finding machine %s:%d in database", addr, params.Machine.AgentPort)
-		log.Warn(msg)
+		log.WithError(err).Warn(msg)
 		rsp := services.NewCreateMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1220,9 +1220,9 @@ func (r *RestAPI) daemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.AnyDaemon {
 // Converts AccessPoint structure to REST API format.
 func accessPointToRestAPI(dbAccessPoint *dbmodel.AccessPoint) *models.AccessPoint {
 	return &models.AccessPoint{
-		Type:              dbAccessPoint.Type,
-		Address:           dbAccessPoint.Address,
-		Port:              dbAccessPoint.Port,
+		Type:     dbAccessPoint.Type,
+		Address:  dbAccessPoint.Address,
+		Port:     dbAccessPoint.Port,
 		Protocol: dbAccessPoint.Protocol,
 	}
 }

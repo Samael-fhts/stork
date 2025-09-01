@@ -84,7 +84,7 @@ func (impl *processListerImpl) listProcesses() ([]supportedProcess, error) {
 
 // An instance listing the supported processes and filtering out their child
 // processes. Some DNS servers (e.g., NSD) spawn many child processes. The
-// agent must not treat child processes as distinct apps. Therefore, the
+// agent must not treat child processes as distinct daemons. Therefore, the
 // manager only selects top-level processes, removing the ones having parent
 // PID matching a PID of another process.
 type ProcessManager struct {

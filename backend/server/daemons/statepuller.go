@@ -19,7 +19,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-// Instance of the puller which periodically checks the status of the Kea apps.
+// Instance of the puller which periodically checks the status of the Kea daemons.
 // Besides basic status information the High Availability status is fetched.
 type StatePuller struct {
 	*agentcomm.PeriodicPuller

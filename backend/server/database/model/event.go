@@ -82,7 +82,7 @@ func AddEvent(db *pg.DB, event *Event) error {
 // sortDir allows selection the order of sorting. If sortField is
 // empty then id is used for sorting. If SortDirAny is used then ASC
 // order is used.
-func GetEventsByPage(db *pg.DB, offset int64, limit int64, level EventLevel, daemonType *string, appType *string, machineID *int64, userID *int64, sortField string, sortDir SortDirEnum) ([]Event, int64, error) {
+func GetEventsByPage(db *pg.DB, offset int64, limit int64, level EventLevel, daemonType *string, machineID *int64, userID *int64, sortField string, sortDir SortDirEnum) ([]Event, int64, error) {
 	if limit == 0 {
 		return nil, 0, pkgerrors.New("limit should be greater than 0")
 	}
@@ -96,10 +96,6 @@ func GetEventsByPage(db *pg.DB, offset int64, limit int64, level EventLevel, dae
 	if daemonType != nil {
 		q = q.Join("JOIN daemon ON daemon.id = CAST (relations->>'DaemonID' AS INTEGER)")
 		q = q.Where("daemon.name = ?", daemonType)
-	}
-	if appType != nil {
-		q = q.Join("JOIN app ON app.id = CAST (relations->>'AppID' AS INTEGER)")
-		q = q.Where("app.type = ?", appType)
 	}
 	if machineID != nil {
 		q = q.Where("CAST (relations->>'MachineID' AS INTEGER) = ?", *machineID)

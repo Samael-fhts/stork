@@ -341,8 +341,8 @@ func GetSharedNetwork(dbi dbops.DBI, networkID int64) (network *SharedNetwork, e
 
 // Fetches a collection of shared networks from the database. The
 // offset and limit specify the beginning of the page and the maximum
-// size of the page. The appID is used to filter shared networks to
-// those handled by the given application.  The family is used to
+// size of the page. The daemonID is used to filter shared networks to
+// those handled by the given daemon.  The family is used to
 // filter by IPv4 (if 4) or IPv6 (if 6). For all other values of the
 // family parameter both IPv4 and IPv6 shared networks are
 // returned. The filterText can be used to match the shared network
@@ -352,7 +352,7 @@ func GetSharedNetwork(dbi dbops.DBI, networkID int64) (network *SharedNetwork, e
 // empty then id is used for sorting.  in SortDirAny is used then ASC
 // order is used. This function returns a collection of shared
 // networks, the total number of shared networks and error.
-func GetSharedNetworksByPage(dbi dbops.DBI, offset, limit, appID, family int64, filterText *string, sortField string, sortDir SortDirEnum) ([]SharedNetwork, int64, error) {
+func GetSharedNetworksByPage(dbi dbops.DBI, offset, limit, daemonID, family int64, filterText *string, sortField string, sortDir SortDirEnum) ([]SharedNetwork, int64, error) {
 	networks := []SharedNetwork{}
 	q := dbi.Model(&networks)
 
@@ -363,25 +363,23 @@ func GetSharedNetworksByPage(dbi dbops.DBI, offset, limit, appID, family int64, 
 	}
 	q = q.DistinctOn(distinctOnFields)
 
-	q = q.Relation("LocalSharedNetworks.Daemon.App.AccessPoints")
+	q = q.Relation("LocalSharedNetworks.Daemon.AccessPoints")
 
 	// If any of the filtering parameters are specified we need to explicitly join
 	// the subnets table so as we can access its columns in the Where clause.
-	if appID != 0 || family != 0 || filterText != nil {
+	if daemonID != 0 || family != 0 || filterText != nil {
 		q = q.Join("JOIN subnet AS s").JoinOn("shared_network.id = s.shared_network_id")
 	}
-	// When filtering by appID we also need the daemon table (via joined local_subnet)
-	// as it holds the app identifier.
-	if appID != 0 {
+	// When filtering by daemonID we also need the local_subnet table.
+	if daemonID != 0 {
 		q = q.Join("JOIN local_subnet AS ls").JoinOn("s.id = ls.subnet_id")
-		q = q.Join("JOIN daemon AS d").JoinOn("d.id = ls.daemon_id")
 	}
 	// Include address pools, prefix pools and the local subnet info in the results.
 	q = q.Relation("Subnets", func(q *orm.Query) (*orm.Query, error) {
 		return q.Order("prefix ASC"), nil
 	}).
-		Relation("Subnets.LocalSubnets.Daemon.App.AccessPoints").
-		Relation("Subnets.LocalSubnets.Daemon.App.Machine")
+		Relation("Subnets.LocalSubnets.Daemon.AccessPoints").
+		Relation("Subnets.LocalSubnets.Daemon.Machine")
 
 	// Let's be liberal and allow other values than 0 too. The only special
 	// ones are 4 and 6.
@@ -389,9 +387,9 @@ func GetSharedNetworksByPage(dbi dbops.DBI, offset, limit, appID, family int64, 
 		q = q.Where("family(s.prefix) = ?", family)
 	}
 
-	// Filter by appID.
-	if appID != 0 {
-		q = q.Where("d.app_id = ?", appID)
+	// Filter by daemonID.
+	if daemonID != 0 {
+		q = q.Where("ls.daemon_id = ?", daemonID)
 	}
 
 	// Quick filtering by shared network name or subnet prefix.

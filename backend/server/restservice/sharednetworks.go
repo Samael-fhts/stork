@@ -10,8 +10,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/server/daemons/kea"
 	"isc.org/stork/server/config"
+	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/gen/models"
 	dhcp "isc.org/stork/server/gen/restapi/operations/d_h_c_p"
@@ -265,9 +265,9 @@ func (r *RestAPI) convertSharedNetworkFromRestAPI(restSharedNetwork *models.Shar
 }
 
 // Get the list of shared networks for the given set of parameters.
-func (r *RestAPI) getSharedNetworks(offset, limit, appID, family int64, filterText *string, sortField string, sortDir dbmodel.SortDirEnum) (*models.SharedNetworks, error) {
+func (r *RestAPI) getSharedNetworks(offset, limit, daemonID, family int64, filterText *string, sortField string, sortDir dbmodel.SortDirEnum) (*models.SharedNetworks, error) {
 	// get shared networks from db
-	dbSharedNetworks, total, err := dbmodel.GetSharedNetworksByPage(r.DB, offset, limit, appID, family, filterText, sortField, sortDir)
+	dbSharedNetworks, total, err := dbmodel.GetSharedNetworksByPage(r.DB, offset, limit, daemonID, family, filterText, sortField, sortDir)
 	if err != nil {
 		return nil, err
 	}
@@ -285,7 +285,7 @@ func (r *RestAPI) getSharedNetworks(offset, limit, appID, family int64, filterTe
 	return sharedNetworks, nil
 }
 
-// Get list of DHCP shared networks. The list can be filtered by app ID, DHCP version and text.
+// Get list of DHCP shared networks. The list can be filtered by daemon ID, DHCP version and text.
 func (r *RestAPI) GetSharedNetworks(ctx context.Context, params dhcp.GetSharedNetworksParams) middleware.Responder {
 	var start int64
 	if params.Start != nil {
@@ -297,9 +297,9 @@ func (r *RestAPI) GetSharedNetworks(ctx context.Context, params dhcp.GetSharedNe
 		limit = *params.Limit
 	}
 
-	var appID int64
-	if params.AppID != nil {
-		appID = *params.AppID
+	var daemonID int64
+	if params.DaemonID != nil {
+		daemonID = *params.DaemonID
 	}
 
 	var dhcpVer int64
@@ -308,7 +308,7 @@ func (r *RestAPI) GetSharedNetworks(ctx context.Context, params dhcp.GetSharedNe
 	}
 
 	// get shared networks from db
-	sharedNetworks, err := r.getSharedNetworks(start, limit, appID, dhcpVer, params.Text, "", dbmodel.SortDirAsc)
+	sharedNetworks, err := r.getSharedNetworks(start, limit, daemonID, dhcpVer, params.Text, "", dbmodel.SortDirAsc)
 	if err != nil {
 		msg := "Cannot get shared network from db"
 		log.Error(err)

@@ -654,7 +654,7 @@ func GetGlobalSubnets(dbi dbops.DBI, family int) ([]Subnet, error) {
 
 // Container for values filtering subnets fetched by page.
 type SubnetsByPageFilters struct {
-	AppID         *int64
+	DaemonID      *int64
 	LocalSubnetID *int64
 	Family        *int64
 	Text          *string
@@ -688,13 +688,8 @@ func GetSubnetsByPage(dbi dbops.DBI, offset, limit int64, filters *SubnetsByPage
 	subnets := []Subnet{}
 	q := dbi.Model(&subnets).Distinct()
 
-	if filters.AppID != nil || filters.LocalSubnetID != nil || filters.Text != nil {
+	if filters.DaemonID != nil || filters.LocalSubnetID != nil || filters.Text != nil {
 		q = q.Join("INNER JOIN local_subnet AS ls ON subnet.id = ls.subnet_id")
-	}
-	// When filtering by appID we also need the local_subnet table as it holds the
-	// application identifier.
-	if filters.AppID != nil {
-		q = q.Join("INNER JOIN daemon AS d ON ls.daemon_id = d.id")
 	}
 	// Pools are also required when trying to filter by text.
 	if filters.Text != nil {
@@ -709,16 +704,16 @@ func GetSubnetsByPage(dbi dbops.DBI, offset, limit int64, filters *SubnetsByPage
 		Relation("LocalSubnets.PrefixPools", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("prefix_pool.id ASC"), nil
 		}).
-		Relation("LocalSubnets.Daemon.App.Machine")
+		Relation("LocalSubnets.Daemon.Machine")
 
 	// Applicable family values are 4 and 6.
 	if filters.Family != nil {
 		q = q.Where("family(subnet.prefix) = ?", *filters.Family)
 	}
 
-	// Filter by appID.
-	if filters.AppID != nil {
-		q = q.Where("d.app_id = ?", *filters.AppID)
+	// Filter by daemonID.
+	if filters.DaemonID != nil {
+		q = q.Where("ls.daemon_id = ?", *filters.DaemonID)
 	}
 
 	// Filter by local subnet ID.
@@ -1046,7 +1041,7 @@ func (s *Subnet) UpdateStatistics(dbi dbops.DBI, statistics utilizationStats) er
 	return err
 }
 
-// Deletes subnets which are not associated with any apps. Returns deleted subnet
+// Deletes subnets which are not associated with any daemons. Returns deleted subnet
 // count and an error.
 func DeleteOrphanedSubnets(dbi dbops.DBI) (int64, error) {
 	subquery := dbi.Model(&[]LocalSubnet{}).

@@ -599,7 +599,7 @@ func (module *ConfigModule) commitChanges(ctx context.Context) (context.Context,
 		return ctx, errors.New("context lacks state")
 	}
 	for _, update := range state.Updates {
-		// Retrieve associations between the commands and apps.
+		// Retrieve associations between the commands and daemons.
 		// Iterate over the associations.
 		for _, acs := range update.Recipe.Commands {
 			// Send the command to Kea.

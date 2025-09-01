@@ -14,7 +14,7 @@ import (
 // This function creates multiple hosts used in tests which fetch and
 // filter hosts.
 func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*dbmodel.Daemon) {
-	// Add two apps.
+	// Add two machines.
 	for i := 0; i < 2; i++ {
 		m := &dbmodel.Machine{
 			ID:        0,

@@ -86,10 +86,10 @@ func (f *GetZonesFilterZoneTypes) GetEnabled() iter.Seq[ZoneType] {
 // Filter used in the GetZones function for complex filtering of
 // the zones returned from the database.
 type GetZonesFilter struct {
-	// Filter by an explicit app ID.
-	AppID *int64
-	// Filter by DNS app type (e.g., "bind9").
-	AppType *string
+	// Filter by an explicit daemon ID.
+	DaemonID *int64
+	// Filter by DNS daemon name (e.g., "bind9").
+	DaemonName *string
 	// Filter by class (typically, IN).
 	Class *string
 	// Filter by lower bound zone.
@@ -217,10 +217,10 @@ func AddZones(dbi pg.DBI, zones ...*Zone) error {
 
 // Retrieves a list of zones from the database with optional relations and filtering.
 // The ORM-based implementation may result in multiple queries when deep relations
-// (with daemon and with app) are used. The only alternative would be raw queries.
+// (with daemon) are used. The only alternative would be raw queries.
 // However, raw queries don't improve performance of getting the zones for one
 // relation (LocalZones). They could possibly improve the performance when cascaded
-// relations (i.e., LocalZones.Daemon.App) are used. Unfortunately, it would significantly
+// relations (i.e., LocalZones.Daemon) are used. Unfortunately, it would significantly
 // complicate the implementation. Note that this function is primarily used for
 // paging zones, so the number of records is typically low, and the performance gain
 // would be negligible.
@@ -259,11 +259,10 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 		q = q.Offset(*filter.Offset)
 	}
 	// Join relations required for filtering.
-	if filter.Serial != nil || filter.Class != nil || filter.Types != nil && filter.Types.IsAnySpecified() || filter.RPZ != nil || filter.AppID != nil || filter.AppType != nil || filter.Text != nil {
+	if filter.Serial != nil || filter.Class != nil || filter.Types != nil && filter.Types.IsAnySpecified() || filter.RPZ != nil || filter.DaemonID != nil || filter.DaemonName != nil || filter.Text != nil {
 		q = q.Join("JOIN local_zone AS lz").JoinOn("lz.zone_id = zone.id")
-		if filter.AppID != nil || filter.AppType != nil || filter.Text != nil {
-			q = q.Join("JOIN daemon AS d").JoinOn("d.id = lz.daemon_id").
-				Join("JOIN app AS a").JoinOn("a.id = d.app_id")
+		if filter.DaemonName != nil || filter.Text != nil {
+			q = q.Join("JOIN daemon AS d").JoinOn("d.id = lz.daemon_id")
 		}
 	}
 	// Filter by serial.
@@ -285,13 +284,13 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 	if filter.RPZ != nil {
 		q = q.Where("lz.rpz = ?", *filter.RPZ)
 	}
-	// Filter by app ID.
-	if filter.AppID != nil {
-		q = q.Where("a.id = ?", *filter.AppID)
+	// Filter by daemon ID.
+	if filter.DaemonID != nil {
+		q = q.Where("lz.daemon_id = ?", *filter.DaemonID)
 	}
-	// Filter by app type.
-	if filter.AppType != nil {
-		q = q.Where("a.type = ?", *filter.AppType)
+	// Filter by daemon name.
+	if filter.DaemonName != nil {
+		q = q.Where("d.name ILIKE ?", "%"+*filter.DaemonName+"%")
 	}
 	// Filter by zone name, app name or local zone view using partial matching.
 	if filter.Text != nil {

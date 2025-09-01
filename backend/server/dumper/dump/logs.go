@@ -10,7 +10,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-// The dump of all fetchable logs of the monitored apps.
+// The dump of all fetchable logs of the monitored daemons.
 // It means that it dumps the log tails from each log target
 // related to the machine except stdin/stdout/syslog targets.
 type LogsDump struct {

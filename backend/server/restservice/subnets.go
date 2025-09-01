@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/server/daemons/kea"
 	"isc.org/stork/server/config"
+	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
 
@@ -486,7 +486,7 @@ func (r *RestAPI) GetSubnets(ctx context.Context, params dhcp.GetSubnetsParams) 
 
 	// get subnets from db
 	filters := &dbmodel.SubnetsByPageFilters{
-		AppID:         params.AppID,
+		DaemonID:      params.DaemonID,
 		Family:        params.DhcpVersion,
 		Text:          params.Text,
 		LocalSubnetID: params.LocalSubnetID,
