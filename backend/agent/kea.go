@@ -231,9 +231,16 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 	// Check the version of the Kea binary. We need to differentiate between
 	// Kea prior to 3.0 and Kea post 3.0.
 	executablePath := match[1] + processName
-	versionRaw, err := commander.Output(executablePath, "--version")
+	if !path.IsAbs(executablePath) {
+		if cwd == "" {
+			return nil, errors.New("cannot resolve Kea executable path because the current working directory is unknown")
+		}
+		executablePath = path.Join(cwd, executablePath)
+	}
+
+	versionRaw, err := commander.Output(executablePath, "-v")
 	if err != nil {
-		return nil, errors.WithMessagef(err, "cannot get Kea version by executing %s --version", executablePath)
+		return nil, errors.WithMessagef(err, "cannot get Kea version by executing %s -v", executablePath)
 	}
 	version, err := storkutil.ParseSemanticVersion(string(versionRaw))
 	if err != nil {
@@ -256,7 +263,7 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 
 	config, err := readKeaConfig(configPath)
 	if err != nil {
-		return nil, errors.WithMessage(err, "invalid Kea Control Agent config")
+		return nil, errors.WithMessagef(err, "invalid Kea %s config: %s", daemonName, configPath)
 	}
 
 	controlSockets := config.GetListeningControlSockets()
