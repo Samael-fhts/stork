@@ -144,14 +144,12 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 		return
 	}
 
-	if daemon.KeaDaemon.Config == nil {
-		// Set the configuration for the daemon and populate selected configuration
-		// information to the respective structures, e.g. logging information.
-		// It does nothing if the configuration has not changed.
-		err = daemon.SetConfigFromJSON(configGetResponse.Arguments)
-		if err != nil {
-			return
-		}
+	// Set the configuration for the daemon and populate selected configuration
+	// information to the respective structures, e.g. logging information.
+	// It does nothing if the configuration has not changed.
+	err = daemon.SetConfigFromJSON(configGetResponse.Arguments)
+	if err != nil {
+		return
 	}
 
 	if isDHCPDaemon {

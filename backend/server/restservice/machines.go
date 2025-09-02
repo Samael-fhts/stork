@@ -1141,7 +1141,7 @@ func (r *RestAPI) daemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.AnyDaemon {
 			apiDaemon.ControlCommErrors = stats.GetErrorCount(dbDaemon.Name)
 		}
 
-		files, backends := getKeaStorages(dbDaemon.KeaDaemon.Config.Config)
+		files, backends := getKeaStorages(dbDaemon.KeaDaemon.Config)
 		var logTargets []*models.LogTarget
 
 		for _, logTarget := range kea.GetDaemonLogTargets(dbDaemon) {

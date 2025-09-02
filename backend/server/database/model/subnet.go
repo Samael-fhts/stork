@@ -522,8 +522,8 @@ func GetSubnet(dbi dbops.DBI, subnetID int64) (*Subnet, error) {
 		Relation("LocalSubnets.PrefixPools", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("prefix_pool.id ASC"), nil
 		}).
-		Relation("LocalSubnets.Daemon.App.AccessPoints").
-		Relation("LocalSubnets.Daemon.App.Machine").
+		Relation("LocalSubnets.Daemon.AccessPoints").
+		Relation("LocalSubnets.Daemon.Machine").
 		Relation("LocalSubnets.Daemon.KeaDaemon").
 		Relation("SharedNetwork.LocalSharedNetworks").
 		Where("subnet.id = ?", subnetID).
@@ -550,7 +550,7 @@ func GetSubnetsByDaemonID(dbi dbops.DBI, daemonID int64) ([]Subnet, error) {
 		Relation("LocalSubnets.PrefixPools", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("prefix_pool.id ASC"), nil
 		}).
-		Relation("LocalSubnets.Daemon.App.AccessPoints").
+		Relation("LocalSubnets.Daemon.AccessPoints").
 		Relation("SharedNetwork").
 		Where("ls.daemon_id = ?", daemonID)
 
@@ -575,7 +575,7 @@ func GetSubnetsByPrefix(dbi dbops.DBI, prefix string) ([]Subnet, error) {
 		Relation("LocalSubnets.PrefixPools", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("prefix_pool.id ASC"), nil
 		}).
-		Relation("LocalSubnets.Daemon.App.AccessPoints").
+		Relation("LocalSubnets.Daemon.AccessPoints").
 		Relation("SharedNetwork").
 		Where("subnet.prefix = ?", prefix).
 		Select()
@@ -600,8 +600,8 @@ func GetAllSubnets(dbi dbops.DBI, family int) ([]Subnet, error) {
 		Relation("LocalSubnets.PrefixPools", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("prefix_pool.id ASC"), nil
 		}).
-		Relation("LocalSubnets.Daemon.App.AccessPoints").
-		Relation("LocalSubnets.Daemon.App.Machine").
+		Relation("LocalSubnets.Daemon.AccessPoints").
+		Relation("LocalSubnets.Daemon.Machine").
 		Relation("SharedNetwork").
 		OrderExpr("id ASC")
 
@@ -632,7 +632,7 @@ func GetGlobalSubnets(dbi dbops.DBI, family int) ([]Subnet, error) {
 		Relation("LocalSubnets.PrefixPools", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("prefix_pool.id ASC"), nil
 		}).
-		Relation("LocalSubnets.Daemon.App.AccessPoints").
+		Relation("LocalSubnets.Daemon.AccessPoints").
 		OrderExpr("id ASC").
 		Where("subnet.shared_network_id IS NULL")
 
@@ -981,7 +981,6 @@ func GetDaemonLocalSubnets(dbi dbops.DBI, daemonID int64) ([]*LocalSubnet, error
 	q = q.Relation("Subnet")
 	q = q.Relation("AddressPools")
 	q = q.Relation("PrefixPools")
-	q = q.Relation("Daemon.App")
 	q = q.Where("d.id = ?", daemonID)
 
 	err := q.Select()

@@ -282,6 +282,9 @@ func GetDaemonsByMachine(dbi pg.DBI, machineID int64) (daemons []Daemon, err err
 	err = dbi.Model(&daemons).
 		Relation(DaemonRelationAccessPoints).
 		Relation(DaemonRelationMachine).
+		Relation(DaemonRelationBind9Daemon).
+		Relation(DaemonRelationKeaDaemon).
+		Relation(DaemonRelationPDNSDaemon).
 		Where("daemon.machine_id = ?", machineID).
 		OrderExpr("daemon.id ASC").
 		Select()
@@ -517,9 +520,9 @@ func GetKeaDaemonsForUpdate(tx *pg.Tx, daemonsToSelect []*Daemon) ([]*Daemon, er
 	err := tx.Model(&daemons).
 		ColumnExpr("daemon.*").
 		ColumnExpr("kea_daemon.id AS kea_daemon__id, kea_daemon.config AS kea_daemon__config, kea_daemon.config_hash AS kea_daemon__config_hash").
-		Join("LEFT JOIN access_point ON access_point.daemon_id = daemon.id").
+		ColumnExpr("machine.id AS daemon__machine__id").
 		Join("INNER JOIN kea_daemon ON kea_daemon.daemon_id = daemon.id").
-		Join("LEFT JOIN machine ON machine.id = daemon.machine_id").
+		Join("INNER JOIN machine ON machine.id = daemon.machine_id").
 		Where("daemon.id IN (?)", pg.In(ids)).
 		For("UPDATE").
 		OrderExpr("daemon.id ASC").

@@ -165,7 +165,7 @@ func (statsPuller *StatsPuller) pullStats() error {
 }
 
 // Processes statistics from the `statistic-get-all` response for the given daemon.
-func (statsPuller *StatsPuller) storeDaemonStats(response keactrl.StatisticGetAllResponseItem, subnetsMap map[int64]*dbmodel.LocalSubnet, daemon *dbmodel.Daemon) error {
+func (statsPuller *StatsPuller) storeDaemonStats(response *keactrl.StatisticGetAllResponse, subnetsMap map[int64]*dbmodel.LocalSubnet, daemon *dbmodel.Daemon) error {
 	var lastErr error
 	err := statsPuller.storeStats(response.Arguments, subnetsMap, daemon)
 	if err != nil {
@@ -393,19 +393,12 @@ func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error
 		return err
 	}
 
-	if len(*response) != 1 {
-		// Each request is sent to a single daemon.
-		return errors.Errorf("too many entries in the response")
-	}
-
-	responseItem := (*response)[0]
-
-	err = responseItem.GetError()
+	err = response.GetError()
 	if err != nil {
 		return errors.WithMessage(err, "the statistic-get-all command returned an error")
 	}
 
-	if responseItem.Arguments == nil {
+	if response.Arguments == nil {
 		return errors.Errorf("arguments missing in the statistic-get-all response")
 	}
 
@@ -416,7 +409,7 @@ func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error
 	// IPv6 statistics to have unique names. So we need to rename the
 	// statistic name in the response.
 	if daemon.Name == dbmodel.DaemonNameDHCPv6 {
-		for _, sample := range responseItem.Arguments {
+		for _, sample := range response.Arguments {
 			if sample.Name == "declined-addresses" {
 				sample.Name = "declined-nas"
 			}
@@ -424,11 +417,11 @@ func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error
 	}
 
 	// Process the response.
-	return statsPuller.processDaemonResponses(daemon, cmd, responseItem)
+	return statsPuller.processDaemonResponses(daemon, cmd, response)
 }
 
 // Processes a single daemon response.
-func (statsPuller *StatsPuller) processDaemonResponses(daemon *dbmodel.Daemon, cmd *keactrl.Command, responseItem keactrl.StatisticGetAllResponseItem) error {
+func (statsPuller *StatsPuller) processDaemonResponses(daemon *dbmodel.Daemon, cmd *keactrl.Command, response *keactrl.StatisticGetAllResponse) error {
 	// Lease statistic processing needs daemon's local subnets
 	subnets, err := dbmodel.GetDaemonLocalSubnets(statsPuller.DB, daemon.ID)
 	if err != nil {
@@ -443,21 +436,21 @@ func (statsPuller *StatsPuller) processDaemonResponses(daemon *dbmodel.Daemon, c
 	}
 
 	var lastErr error
-	err = statsPuller.storeDaemonStats(responseItem, subnetsMap, daemon)
+	err = statsPuller.storeDaemonStats(response, subnetsMap, daemon)
 	if err != nil {
 		log.WithError(err).Error("Error handling subnet statistics  in " +
 			"the statistic-get-all response")
 		lastErr = err
 	}
 
-	err = statsPuller.Response4Handler(daemon, responseItem)
+	err = statsPuller.Response4Handler(daemon, response)
 	if err != nil {
 		log.WithError(err).Error("Error handling RPS DHCPv4 statistics " +
 			" in the statistic-get-all response")
 		lastErr = err
 	}
 
-	err = statsPuller.Response6Handler(daemon, responseItem)
+	err = statsPuller.Response6Handler(daemon, response)
 	if err != nil {
 		log.WithError(err).Error("Error handling RPS DHCPv6 statistics " +
 			" in the statistic-get-all response")

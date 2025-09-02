@@ -860,19 +860,12 @@ func (pke *PromKeaExporter) collectStats() error {
 
 		// Request to kea dhcp daemons for getting all stats.
 		request := keactrl.NewCommandBase(keactrl.StatisticGetAll, keactrl.DaemonName(daemon.GetName()))
-		var responses keactrl.StatisticGetAllResponse
+		var response keactrl.StatisticGetAllResponse
 
 		// Fetching statistics
-		err := keaDaemon.sendCommand(request, responses)
+		err := keaDaemon.sendCommand(request, &response)
 		if err != nil {
 			err = errors.WithMessagef(err, "Problem fetching stats from Kea daemon %s", keaDaemon)
-			errs = append(errs, err)
-			continue
-		}
-
-		// The number of responses should be 1.
-		if len(responses) != 1 {
-			err = errors.Errorf("number of responses (%d) is not 1 for daemon: %s", len(responses), keaDaemon)
 			errs = append(errs, err)
 			continue
 		}
@@ -897,7 +890,6 @@ func (pke *PromKeaExporter) collectStats() error {
 
 		*activeDaemonsCount++
 
-		response := responses[0]
 		if err := response.GetError(); err != nil {
 			if !errors.As(err, &keactrl.NumberOverflowKeaError{}) {
 				*activeDaemonsCount--

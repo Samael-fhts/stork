@@ -312,7 +312,6 @@ func GetDetailedService(dbi dbops.DBI, serviceID int64) (*Service, error) {
 	err := dbi.Model(service).
 		Relation("HAService").
 		Relation("Daemons.KeaDaemon.KeaDHCPDaemon").
-		Relation("Daemons.App").
 		Where("service.id = ?", serviceID).
 		Select()
 	if err != nil {
@@ -334,8 +333,7 @@ func GetDetailedServicesByDaemonID(dbi dbops.DBI, daemonID int64) ([]Service, er
 		Join("INNER JOIN daemon AS d ON d.id = dtos.daemon_id").
 		Relation("HAService").
 		Relation("Daemons.KeaDaemon.KeaDHCPDaemon").
-		Relation("Daemons.App").
-		Relation("Daemons.App.AccessPoints").
+		Relation("Daemons.AccessPoints").
 		Where("d.id = ?", daemonID).
 		OrderExpr("service.id ASC").
 		Select()
@@ -355,7 +353,6 @@ func GetDetailedAllServices(dbi dbops.DBI) ([]Service, error) {
 	err := dbi.Model(&services).
 		Relation("HAService").
 		Relation("Daemons.KeaDaemon.KeaDHCPDaemon").
-		Relation("Daemons.App").
 		OrderExpr("id ASC").
 		Select()
 

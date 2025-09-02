@@ -28,6 +28,8 @@ func init() {
 			ALTER TABLE access_point ADD CONSTRAINT access_point_daemon_id_fkey
 				FOREIGN KEY (daemon_id)
 				REFERENCES daemon(id)
+				MATCH FULL
+				ON UPDATE CASCADE
 				ON DELETE CASCADE;
 			-- Drop the unnecessary reference to the machine table.
 			ALTER TABLE access_point DROP COLUMN machine_id;
@@ -50,6 +52,8 @@ func init() {
 			ALTER TABLE daemon ADD CONSTRAINT daemon_machine_id_fkey
 				FOREIGN KEY (machine_id)
 				REFERENCES machine(id)
+				MATCH FULL
+				ON UPDATE CASCADE
 				ON DELETE CASCADE;
 			-- Drop the unnecessary reference to the app table.
 			ALTER TABLE daemon DROP COLUMN app_id;

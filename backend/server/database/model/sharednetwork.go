@@ -44,17 +44,15 @@ const (
 	SharedNetworkRelationLocalSharedNetworks             SharedNetworkRelation = "LocalSharedNetworks"
 	SharedNetworkRelationLocalSharedNetworksDaemon       SharedNetworkRelation = "LocalSharedNetworks.Daemon"
 	SharedNetworkRelationLocalSharedNetworksKeaDaemon    SharedNetworkRelation = "LocalSharedNetworks.Daemon.KeaDaemon"
-	SharedNetworkRelationLocalSharedNetworksApp          SharedNetworkRelation = "LocalSharedNetworks.Daemon.App"
-	SharedNetworkRelationLocalSharedNetworksAccessPoints SharedNetworkRelation = "LocalSharedNetworks.Daemon.App.AccessPoints"
-	SharedNetworkRelationLocalSharedNetworksMachine      SharedNetworkRelation = "LocalSharedNetworks.Daemon.App.Machine"
+	SharedNetworkRelationLocalSharedNetworksAccessPoints SharedNetworkRelation = "LocalSharedNetworks.Daemon.AccessPoints"
+	SharedNetworkRelationLocalSharedNetworksMachine      SharedNetworkRelation = "LocalSharedNetworks.Daemon.Machine"
 	SharedNetworkRelationLocalSubnets                    SharedNetworkRelation = "Subnets.LocalSubnets"
 	SharedNetworkRelationSubnetsAddressPools             SharedNetworkRelation = "Subnets.LocalSubnets.AddressPools"
 	SharedNetworkRelationSubnetsPrefixPools              SharedNetworkRelation = "Subnets.LocalSubnets.PrefixPools"
 	SharedNetworkRelationSubnetsDaemon                   SharedNetworkRelation = "Subnets.LocalSubnets.Daemon"
 	SharedNetworkRelationSubnetsKeaDaemon                SharedNetworkRelation = "Subnets.LocalSubnets.Daemon.KeaDaemon"
-	SharedNetworkRelationSubnetsApp                      SharedNetworkRelation = "Subnets.LocalSubnets.Daemon.App"
-	SharedNetworkRelationSubnetsAccessPoints             SharedNetworkRelation = "Subnets.LocalSubnets.Daemon.App.AccessPoints"
-	SharedNetworkRelationSubnetsMachine                  SharedNetworkRelation = "Subnets.LocalSubnets.Daemon.App.Machine"
+	SharedNetworkRelationSubnetsAccessPoints             SharedNetworkRelation = "Subnets.LocalSubnets.Daemon.AccessPoints"
+	SharedNetworkRelationSubnetsMachine                  SharedNetworkRelation = "Subnets.LocalSubnets.Daemon.Machine"
 )
 
 // This structure holds shared network information retrieved from an app.
@@ -275,7 +273,7 @@ func DeleteDaemonsFromSharedNetwork(dbi dbops.DBI, sharedNetworkID int64) error 
 func GetAllSharedNetworks(dbi dbops.DBI, family int) ([]SharedNetwork, error) {
 	networks := []SharedNetwork{}
 	q := dbi.Model(&networks).
-		Relation("LocalSharedNetworks.Daemon.App.AccessPoints")
+		Relation("LocalSharedNetworks.Daemon.AccessPoints")
 
 	if family == 4 || family == 6 {
 		q = q.Where("inet_family = ?", family)

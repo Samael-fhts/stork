@@ -127,7 +127,6 @@ func GetConfigReportsByDaemonID(db *pg.DB, offset, limit int64, daemonID int64, 
 		Relation("RefDaemons", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("daemon_to_config_report.order_index ASC"), nil
 		}).
-		Relation("RefDaemons.App").
 		Offset(int(offset))
 
 	if limit != 0 {

@@ -28,12 +28,7 @@ var (
 )
 
 // JSON statistic-get-all response.
-// There is a response entry for each service. The order of entries is the
-// same as the order of services in the request.
-type StatisticGetAllResponse = []StatisticGetAllResponseItem
-
-// JSON statistic-get-all single item response returned.
-type StatisticGetAllResponseItem struct {
+type StatisticGetAllResponse struct {
 	ResponseHeader
 	Arguments StatisticGetAllResponseArguments
 }

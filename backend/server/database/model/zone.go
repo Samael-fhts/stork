@@ -16,11 +16,6 @@ import (
 
 type ZoneRelation string
 
-const (
-	ZoneRelationLocalZones    = "LocalZones"
-	ZoneRelationLocalZonesApp = "LocalZones.Daemon.App"
-)
-
 type ZoneType string
 
 const (

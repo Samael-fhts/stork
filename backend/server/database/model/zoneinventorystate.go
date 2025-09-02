@@ -10,8 +10,6 @@ import (
 
 type ZoneInventoryStateRelation string
 
-const ZoneInventoryStateRelationApp ZoneInventoryStateRelation = "Daemon.App"
-
 // Represents a status returned by a zone inventory on an agent.
 // When server attempts to fetch the zone information from the
 // agents it collects status codes they return. The agents may

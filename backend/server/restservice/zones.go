@@ -43,7 +43,7 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 		filter.EnableZoneType(dbmodel.ZoneType(zoneType))
 	}
 	// Get the zones from the database.
-	zones, total, err := dbmodel.GetZones(r.DB, filter, dbmodel.ZoneRelationLocalZonesApp)
+	zones, total, err := dbmodel.GetZones(r.DB, filter)
 	if err != nil {
 		msg := "Failed to get zones from the database"
 		log.WithError(err).Error(msg)
@@ -95,7 +95,7 @@ func (r *RestAPI) GetZonesFetch(ctx context.Context, params dns.GetZonesFetchPar
 		rsp := dns.NewGetZonesFetchAccepted().WithPayload(&payload)
 		return rsp
 	}
-	states, count, err := dbmodel.GetZoneInventoryStates(r.DB, dbmodel.ZoneInventoryStateRelationApp)
+	states, count, err := dbmodel.GetZoneInventoryStates(r.DB)
 	if err != nil {
 		msg := "Failed to get zones fetch states from the database"
 		log.WithError(err).Error(msg)
