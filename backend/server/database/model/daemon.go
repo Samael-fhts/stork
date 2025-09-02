@@ -199,41 +199,29 @@ type DaemonTag interface {
 	GetMachineID() int64
 }
 
-// Creates an instance of a Kea daemon. If the daemon name is dhcp4 or
-// dhcp6, the instance of the KeaDHCPDaemon is also created.
-func NewKeaDaemon(machineID int64, name DaemonName, active bool) *Daemon {
+// Creates an instance of a daemon with its references initialized to empty
+// structures.
+func NewDaemon(machine *Machine, name DaemonName, active bool, accessPoints []*AccessPoint) *Daemon {
 	daemon := &Daemon{
-		Name:      name,
-		Active:    active,
-		Monitored: true,
-		MachineID: machineID,
-		KeaDaemon: &KeaDaemon{},
+		Name:         name,
+		Active:       active,
+		Monitored:    true,
+		MachineID:    machine.ID,
+		Machine:      machine,
+		AccessPoints: accessPoints,
 	}
-	if name == DaemonNameDHCPv4 || name == DaemonNameDHCPv6 {
-		daemon.KeaDaemon.KeaDHCPDaemon = &KeaDHCPDaemon{}
-	}
-	return daemon
-}
 
-// Creates an instance of the Bind9 daemon.
-func NewBind9Daemon(active bool) *Daemon {
-	daemon := &Daemon{
-		Name:        DaemonNameBind9,
-		Active:      active,
-		Monitored:   true,
-		Bind9Daemon: &Bind9Daemon{},
+	switch name {
+	case DaemonNameCA, DaemonNameD2:
+		daemon.KeaDaemon = &KeaDaemon{}
+	case DaemonNameDHCPv4, DaemonNameDHCPv6:
+		daemon.KeaDaemon = &KeaDaemon{KeaDHCPDaemon: &KeaDHCPDaemon{}}
+	case DaemonNameBind9:
+		daemon.Bind9Daemon = &Bind9Daemon{}
+	case DaemonNamePDNS:
+		daemon.PDNSDaemon = &PDNSDaemon{}
 	}
-	return daemon
-}
 
-// Creates an instance of the PowerDNS daemon.
-func NewPDNSDaemon(active bool) *Daemon {
-	daemon := &Daemon{
-		Name:       DaemonNamePDNS,
-		Active:     active,
-		Monitored:  true,
-		PDNSDaemon: &PDNSDaemon{},
-	}
 	return daemon
 }
 

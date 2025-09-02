@@ -166,25 +166,8 @@ DISCOVERED_LOOP:
 			}
 		}
 
-		newDaemon := dbmodel.Daemon{
-			MachineID:    dbMachine.ID,
-			Machine:      dbMachine,
-			Name:         dbmodel.DaemonName(discoveredDaemon.Name),
-			AccessPoints: accessPoints,
-		}
-
-		switch newDaemon.Name {
-		case dbmodel.DaemonNameDHCPv4, dbmodel.DaemonNameDHCPv6, dbmodel.DaemonNameCA, dbmodel.DaemonNameD2:
-			newDaemon.KeaDaemon = &dbmodel.KeaDaemon{}
-		case dbmodel.DaemonNameBind9:
-			newDaemon.Bind9Daemon = &dbmodel.Bind9Daemon{}
-		case dbmodel.DaemonNamePDNS:
-			newDaemon.PDNSDaemon = &dbmodel.PDNSDaemon{}
-		default:
-			return nil, nil, errors.Errorf("unknown daemon name: %s", newDaemon.Name)
-		}
-
-		matchedDaemons = append(matchedDaemons, newDaemon)
+		newDaemon := dbmodel.NewDaemon(dbMachine, dbmodel.DaemonName(discoveredDaemon.Name), true, accessPoints)
+		matchedDaemons = append(matchedDaemons, *newDaemon)
 	}
 
 	return matchedDaemons, oldDaemons, nil
