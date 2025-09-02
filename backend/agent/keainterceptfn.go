@@ -18,9 +18,9 @@ func interceptConfigGetLoggers(agent *StorkAgent, response *keactrl.Response) er
 		err := errors.New("skipped refreshing viewable log files because config-get response has no arguments")
 		return err
 	}
-	config := keaconfig.NewConfigFromMap(response.Arguments)
-	if config == nil {
-		err := errors.New("skipped refreshing viewable log files because config-get response contains arguments which could not be parsed")
+	config, err := keaconfig.NewConfig(response.Arguments)
+	if err != nil {
+		err := errors.WithMessage(err, "skipped refreshing viewable log files because config-get response contains arguments which could not be parsed")
 		return err
 	}
 

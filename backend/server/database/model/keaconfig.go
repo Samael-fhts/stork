@@ -110,26 +110,13 @@ func (c *KeaConfig) ScanValue(rd types.Reader, n int) error {
 }
 
 // Creates new instance from the pointer to the map of interfaces.
-func NewKeaConfig(rawCfg *map[string]interface{}) *KeaConfig {
-	if rawCfg == nil {
-		return nil
-	}
-	config := keaconfig.NewConfigFromMap(rawCfg)
+func newKeaConfig(config *keaconfig.Config) *KeaConfig {
 	if config == nil {
 		return nil
 	}
 	return &KeaConfig{
 		Config: config,
 	}
-}
-
-// Create new instance from the configuration provided as JSON text.
-func NewKeaConfigFromJSON(rawCfg string) (*KeaConfig, error) {
-	config, err := keaconfig.NewConfig(rawCfg)
-	if err != nil {
-		return nil, err
-	}
-	return &KeaConfig{Config: config}, nil
 }
 
 // Converts a structure holding subnet in Kea format to Stork representation

@@ -603,7 +603,7 @@ func (module *ConfigModule) commitChanges(ctx context.Context) (context.Context,
 		// Iterate over the associations.
 		for _, acs := range update.Recipe.Commands {
 			// Send the command to Kea.
-			var response keactrl.ResponseList
+			var response keactrl.Response
 			result, err := module.manager.GetConnectedAgents().ForwardToKeaOverHTTP(context.Background(), acs.Daemon, []keactrl.SerializableCommand{acs.Command}, &response)
 			// There was no error in communication between the server and the agent but
 			// the agent could have issues with the Kea response.
@@ -612,12 +612,10 @@ func (module *ConfigModule) commitChanges(ctx context.Context) (context.Context,
 				// If not, the individual Kea instances could return error codes as
 				// a result of processing the commands.
 				if err = result.GetFirstError(); err == nil {
-					for _, r := range response {
-						// Let's check if the individual Kea servers returned error
-						// codes for the processed commands.
-						if err = keactrl.GetResponseError(r); err != nil {
-							break
-						}
+					// Let's check if the individual Kea servers returned error
+					// codes for the processed commands.
+					if err = keactrl.GetResponseError(response); err != nil {
+						break
 					}
 				}
 			}

@@ -60,32 +60,29 @@ type DaemonStateMeta struct {
 
 // Get configuration from Kea daemon using ForwardToKeaOverHTTP function.
 // Return a config, its hash and an error if any.
-func GetConfig(ctx context.Context, agents agentcomm.ConnectedAgents, daemon agentcomm.ControlledDaemon) (*dbmodel.KeaConfig, string, error) {
+func GetConfig(ctx context.Context, agents agentcomm.ConnectedAgents, daemon agentcomm.ControlledDaemon) (*keaconfig.Config, error) {
 	// prepare the command to get config and version from CA
-	cmds := []keactrl.SerializableCommand{
+	commands := []keactrl.SerializableCommand{
 		keactrl.NewCommandBase(keactrl.ConfigGet, daemon.GetName()),
 	}
 
-	caConfigGetResp := []keactrl.HashedResponse{}
+	var configGetResponse keactrl.Response
 
-	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, cmds, &caConfigGetResp)
+	result, err := agents.ForwardToKeaOverHTTP(ctx, daemon, commands, &configGetResponse)
 	if err != nil {
-		return nil, "", errors.WithMessage(err, "problem communicating with Stork agent")
+		return nil, errors.WithMessage(err, "problem communicating with Stork agent")
 	}
-	if err := cmdsResult.GetFirstError(); err != nil {
-		return nil, "", errors.WithMessage(err, "problem with config-get response from CA")
+	if err := result.GetFirstError(); err != nil {
+		return nil, errors.WithMessage(err, "problem with config-get response from CA")
 	}
-
-	// if no error in the config-get response then copy retrieved info about available daemons
-	if len(caConfigGetResp) == 0 {
-		return nil, "", errors.Errorf("empty config-get response")
-	} else if err = caConfigGetResp[0].GetError(); err != nil {
-		return nil, "", err
-	} else if caConfigGetResp[0].Arguments == nil {
-		return nil, "", errors.Errorf("empty arguments")
+	if err = configGetResponse.GetError(); err != nil {
+		return nil, err
+	}
+	if configGetResponse.Arguments == nil {
+		return nil, errors.Errorf("empty arguments")
 	}
 
-	return dbmodel.NewKeaConfig(caConfigGetResp[0].Arguments), caConfigGetResp[0].ArgumentsHash, nil
+	return keaconfig.NewConfig(configGetResponse.Arguments)
 }
 
 // Returns a new instance of Kea daemon with a refreshed state fetched from Kea.
@@ -107,20 +104,19 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 	daemonName := daemon.Name
 	isDHCPDaemon := daemonName == dbmodel.DaemonNameDHCPv4 || daemonName == dbmodel.DaemonNameDHCPv6
 
-	versionGetResponseItems := []VersionGetResponse{}
-	configGetResponseItems := []keactrl.HashedResponse{}
-	var statusGetResponseItems []StatusGetResponse
+	var versionGetResponse VersionGetResponse
+	var configGetResponse keactrl.Response
+	var statusGetResponse StatusGetResponse
 
 	cmds := []keactrl.SerializableCommand{
 		keactrl.NewCommandBase(keactrl.VersionGet, daemonName),
 		keactrl.NewCommandBase(keactrl.ConfigGet, daemonName),
 	}
-	responses := []any{&versionGetResponseItems, &configGetResponseItems}
+	responses := []any{&versionGetResponse, &configGetResponse}
 
 	if isDHCPDaemon {
 		cmds = append(cmds, keactrl.NewCommandBase(keactrl.StatusGet, daemonName))
-		statusGetResponseItems = []StatusGetResponse{}
-		responses = append(responses, &statusGetResponseItems)
+		responses = append(responses, &statusGetResponse)
 	}
 
 	var cmdsResult *agentcomm.KeaCmdsResult
@@ -133,11 +129,6 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 	}
 
 	// process version-get responses
-	if len(versionGetResponseItems) != 0 {
-		err = errors.Errorf("unexpected number of version-get response items: %d", len(versionGetResponseItems))
-		return
-	}
-	versionGetResponse := versionGetResponseItems[0]
 	if err = versionGetResponse.GetError(); err != nil {
 		err = errors.WithMessage(err, "problem with version-get response")
 		return
@@ -148,33 +139,22 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 	}
 
 	// process config-get responses
-	if len(configGetResponseItems) != 1 {
-		err = errors.Errorf("unexpected number of config-get response items: %d", len(configGetResponseItems))
-		return
-	}
-	configGetResponse := configGetResponseItems[0]
-
 	if err = configGetResponse.GetError(); err != nil {
 		err = errors.WithMessage(err, "problem with config-get and kea daemon")
 		return
 	}
 
-	if (daemon.KeaDaemon.Config == nil) || (daemon.KeaDaemon.ConfigHash != configGetResponse.ArgumentsHash) {
+	if daemon.KeaDaemon.Config == nil {
 		// Set the configuration for the daemon and populate selected configuration
 		// information to the respective structures, e.g. logging information.
-		err = daemon.SetConfigWithHash(dbmodel.NewKeaConfig(configGetResponse.Arguments), configGetResponse.ArgumentsHash)
+		// It does nothing if the configuration has not changed.
+		err = daemon.SetConfigFromJSON(configGetResponse.Arguments)
 		if err != nil {
 			return
 		}
 	}
 
 	if isDHCPDaemon {
-		if len(statusGetResponseItems) != 1 {
-			err = errors.Errorf("unexpected number of status-get response items: %d", len(statusGetResponseItems))
-			return
-		}
-		statusGetResponse := statusGetResponseItems[0]
-
 		if err = statusGetResponse.GetError(); err != nil {
 			err = errors.WithMessage(err, "problem with status-get and kea daemon")
 			return

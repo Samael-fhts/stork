@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"encoding/json"
 	"sync"
 
 	"github.com/pkg/errors"
@@ -145,39 +146,40 @@ func (i *keaInterceptor) handle(targets map[keactrl.CommandName]*keaInterceptorT
 
 	// Parse the response. It will be passed to the callback so as the callback
 	// can "do something" with it.
-	var parsedResponse keactrl.ResponseList
-	err = keactrl.UnmarshalResponseList(command, response, &parsedResponse)
+	var parsedResponse keactrl.Response
+	err = json.Unmarshal(response, &parsedResponse)
 	if err != nil {
 		err = errors.WithMessagef(err, "Failed to parse Kea responses for command %s", command.Command)
 		return nil, err
 	}
 
 	// Check what daemons the callbacks need to be invoked for.
-	var daemons []keactrl.DaemonName
-	if len(command.Daemons) == 0 {
-		daemons = append(daemons, "ca")
-	} else {
-		daemons = command.Daemons
+	switch len(command.Daemons) {
+	case 0:
+		// No daemon specified, this field is required by Stork agent.
+		return nil, errors.Errorf("no daemon specified in the command %s", command.Command)
+	case 1:
+		// Only one daemon specified, so we can proceed.
+	default:
+		// More than one daemon specified. This is not supported.
+		return nil, errors.Errorf("multiple daemons specified in the command %s", command.Command)
 	}
+
 	// Invoke callbacks for each handler registered for this command.
 	for i := range target.handlers {
-		// Invoke the handler for each daemon.
-		for j := range daemons {
-			if j < len(parsedResponse) {
-				callback := target.handlers[i].callback
-				if callback != nil {
-					err = callback(agent, &parsedResponse[j])
-					if err != nil {
-						err = errors.WithMessagef(err, "Callback returned an error for command %s", command.Command)
-						return nil, err
-					}
-				}
+		// Invoke the handler.
+		callback := target.handlers[i].callback
+		if callback != nil {
+			err = callback(agent, &parsedResponse)
+			if err != nil {
+				err = errors.WithMessagef(err, "Callback returned an error for command %s", command.Command)
+				return nil, err
 			}
 		}
 	}
 
 	// Serialize response after modifications.
-	response, err = keactrl.MarshalResponseList(parsedResponse)
+	response, err = json.Marshal(parsedResponse)
 	if err != nil {
 		err = errors.WithMessagef(err, "Failed to marshal changed responses for command %s", command.Command)
 		return nil, err

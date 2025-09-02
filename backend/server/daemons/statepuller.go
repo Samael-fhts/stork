@@ -172,6 +172,18 @@ DISCOVERED_LOOP:
 			Name:         dbmodel.DaemonName(discoveredDaemon.Name),
 			AccessPoints: accessPoints,
 		}
+
+		switch newDaemon.Name {
+		case dbmodel.DaemonNameDHCPv4, dbmodel.DaemonNameDHCPv6, dbmodel.DaemonNameCA, dbmodel.DaemonNameD2:
+			newDaemon.KeaDaemon = &dbmodel.KeaDaemon{}
+		case dbmodel.DaemonNameBind9:
+			newDaemon.Bind9Daemon = &dbmodel.Bind9Daemon{}
+		case dbmodel.DaemonNamePDNS:
+			newDaemon.PDNSDaemon = &dbmodel.PDNSDaemon{}
+		default:
+			return nil, nil, errors.Errorf("unknown daemon name: %s", newDaemon.Name)
+		}
+
 		matchedDaemons = append(matchedDaemons, newDaemon)
 	}
 
@@ -219,7 +231,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 
 			// Fetch the Kea CA configuration to retrieve a list of running
 			// daemons.
-			config, _, err := kea.GetConfig(ctx, agents, daemon)
+			config, err := kea.GetConfig(ctx, agents, daemon)
 			if err != nil {
 				return "Cannot get Kea CA configuration: " + err.Error()
 			}

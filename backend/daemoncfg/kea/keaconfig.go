@@ -125,32 +125,13 @@ func (c Config) MarshalJSON() ([]byte, error) {
 
 // Creates a new configuration instance from a JSON string. It uses a custom
 // unmarshaller supporting comments in JSON.
-func NewConfig(raw string) (*Config, error) {
+func NewConfig(raw []byte) (*Config, error) {
 	var config Config
-	err := jsonc.Unmarshal([]byte(raw), &config)
+	err := jsonc.Unmarshal(raw, &config)
 	if err != nil {
 		return nil, errors.Wrapf(err, "problem parsing Kea configuration: %s", err)
 	}
 	return &config, nil
-}
-
-// Creates a new configuration instance from a map. This function is here for
-// historical reasons. Part of the Stork code parses the received configuration
-// structures into the maps (e.g., the code that receives Kea responses over the
-// command channel). No new code should use this function, and the existing code
-// should be eventually refactored to not use this function.
-func NewConfigFromMap(rawCfg *map[string]any) *Config {
-	// Turn the JSON back into the string, so it can be unmarshalled into the
-	// proper structure. Yes, it is inefficient, but it is temporary.
-	marshalled, err := json.Marshal(rawCfg)
-	if err != nil {
-		return nil
-	}
-	newCfg, err := NewConfig(string(marshalled))
-	if err != nil {
-		return nil
-	}
-	return newCfg
 }
 
 // Returns raw configuration.

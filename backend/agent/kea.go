@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net"
@@ -38,7 +39,7 @@ func (d *KeaDaemon) getControlAccessPoint() *AccessPoint {
 }
 
 // Sends a command to Kea and returns a response.
-func (d *KeaDaemon) sendCommand(command *keactrl.Command, responses interface{}) error {
+func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
 	// Get the textual representation of the command.
 	request := command.Marshal()
 
@@ -48,8 +49,10 @@ func (d *KeaDaemon) sendCommand(command *keactrl.Command, responses interface{})
 		return err
 	}
 
+	// Unmarshal the response into the provided structure.
+	err = json.Unmarshal(body, response)
+
 	// Parse the response.
-	err = keactrl.UnmarshalResponseList(command, body, responses)
 	if err != nil {
 		return errors.WithMessage(err, "failed to parse Kea response body received")
 	}
@@ -63,6 +66,18 @@ func (d *KeaDaemon) sendCommandRaw(command []byte) ([]byte, error) {
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to send command to Kea")
 	}
+
+	// The responses from the Kea CA are wrapped in a JSON array.
+	// Responses from other daemons are always single JSON objects.
+	var arrayResponse []json.RawMessage
+	err = json.Unmarshal(response, &arrayResponse)
+	if err == nil {
+		if len(arrayResponse) != 1 {
+			return nil, errors.Errorf("invalid number of responses received, got: %d, expected: 1", len(arrayResponse))
+		}
+		return arrayResponse[0], nil
+	}
+
 	return response, nil
 }
 
@@ -98,18 +113,11 @@ func (d *KeaDaemon) fetchConfig() (*keaconfig.Config, error) {
 	// Prepare config-get command to be sent to Kea Control Agent.
 	command := keactrl.NewCommandBase(keactrl.ConfigGet, keactrl.DaemonName(d.GetName()))
 	// Send the command to Kea.
-	responses := keactrl.ResponseList{}
-	err := d.sendCommand(command, &responses)
+	response := keactrl.Response{}
+	err := d.sendCommand(command, &response)
 	if err != nil {
 		return nil, err
 	}
-
-	// There should be exactly one response received because we sent the command
-	// to only one daemon.
-	if len(responses) != 1 {
-		return nil, errors.Errorf("invalid response received from Kea CA to config-get command sent to %s", d)
-	}
-	response := responses[0]
 
 	// It does not make sense to proceed if the CA returned non-success status
 	// because this response neither contains logging configuration nor
@@ -123,9 +131,9 @@ func (d *KeaDaemon) fetchConfig() (*keaconfig.Config, error) {
 	if response.Arguments == nil {
 		return nil, errors.New("config-get response has no arguments")
 	}
-	config := keaconfig.NewConfigFromMap(response.Arguments)
-	if config == nil {
-		return nil, errors.New("config-get response contains arguments which could not be parsed")
+	config, err := keaconfig.NewConfig(response.Arguments)
+	if err != nil {
+		return nil, errors.WithMessage(err, "config-get response contains arguments which could not be parsed")
 	}
 
 	return config, nil
@@ -321,18 +329,15 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 		managedDaemonNames := managementControlSockets.GetManagedDaemonNames()
 		for _, managedDaemonName := range managedDaemonNames {
 			command := keactrl.NewCommandBase(keactrl.VersionGet, managedDaemonName)
-			responses := keactrl.ResponseList{}
-			err = thisDaemon.sendCommand(command, &responses)
+			response := keactrl.Response{}
+			err = thisDaemon.sendCommand(command, &response)
 			if err != nil {
 				return nil, errors.WithMessage(err, "cannot send command to Kea Control Agent")
-			} else if len(responses) != 1 {
-				return nil, errors.Errorf("invalid response received from Kea CA to version-get command sent to %s", managedDaemonName)
-			}
-			response := responses[0]
-			if err := response.GetError(); err != nil {
+			} else if response.GetError() != nil {
 				// Daemon is not active.
 				continue
 			}
+
 			// Add the detected daemon.
 			managedDaemon := &KeaDaemon{
 				daemon: daemon{

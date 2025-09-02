@@ -3,7 +3,6 @@ package agent
 import (
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/v4/process"
-	log "github.com/sirupsen/logrus"
 )
 
 var (
@@ -123,13 +122,13 @@ func (pm *ProcessManager) ListProcesses() ([]supportedProcess, error) {
 
 		parentName, err := parentProcesses.getName()
 		if err != nil {
-			log.WithError(err).Warnf("Failed to get parent process name, PID: %d", parentProcesses.getPid())
+			// No permission to get the parent process name.
 			continue
 		}
 
 		processName, err := process.getName()
 		if err != nil {
-			log.WithError(err).Warnf("Failed to get process name, PID: %d", process.getPid())
+			// No permission to get the process name.
 			continue
 		}
 

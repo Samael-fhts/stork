@@ -809,9 +809,9 @@ func (d *Daemon) GetHAOverview() (overviews []DaemonServiceOverview) {
 // Sets new configuration of the daemon. This function should be used to set
 // new daemon configuration instead of simple configuration assignment because
 // it extracts some configuration information and populates to the daemon structures,
-// e.g. logging configuration. The config should be a pointer to the KeaConfig
+// e.g. logging configuration. The config should be a pointer to the keaconfig.Config
 // structure. The config_hash is a hash created from the specified configuration.
-func (d *Daemon) SetConfigWithHash(config *KeaConfig, configHash string) error {
+func (d *Daemon) setConfigWithHash(config *keaconfig.Config, configHash string) error {
 	if d.KeaDaemon != nil {
 		existingLogTargets := d.LogTargets
 		d.LogTargets = []*LogTarget{}
@@ -833,29 +833,32 @@ func (d *Daemon) SetConfigWithHash(config *KeaConfig, configHash string) error {
 				d.LogTargets = append(d.LogTargets, targets[i])
 			}
 		}
-		d.KeaDaemon.Config = config
+		d.KeaDaemon.Config = newKeaConfig(config)
 		d.KeaDaemon.ConfigHash = configHash
 	}
 	return nil
 }
 
-// Sets new configuration of the daemon with empty hash.
-func (d *Daemon) SetConfig(config *KeaConfig) error {
-	return d.SetConfigWithHash(config, "")
-}
-
-// Sets new configuration specified as JSON string. Internally, it calls
-// SetConfig after parsing the JSON configuration.
-func (d *Daemon) SetConfigFromJSON(config string) error {
-	if d.KeaDaemon != nil {
-		parsedConfig, err := NewKeaConfigFromJSON(config)
-		if err != nil {
-			return err
-		}
-
-		return d.SetConfigWithHash(parsedConfig, keaconfig.NewHasher().Hash(config))
+// Sets new configuration specified as JSON string. The config is set only if
+// its hash is different from the existing configuration hash.
+func (d *Daemon) SetConfigFromJSON(config []byte) error {
+	if d.KeaDaemon == nil {
+		// Not a Kea daemon.
+		return errors.New("not a Kea daemon")
 	}
-	return nil
+
+	hash := keaconfig.NewHasher().Hash(config)
+	if d.KeaDaemon.ConfigHash == hash {
+		// Configuration is unchanged, nothing to do.
+		return nil
+	}
+
+	parsedConfig, err := keaconfig.NewConfig([]byte(config))
+	if err != nil {
+		return err
+	}
+
+	return d.setConfigWithHash(parsedConfig, hash)
 }
 
 // Returns local subnet ID for a given subnet prefix. If subnets have been indexed,

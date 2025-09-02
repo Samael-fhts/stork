@@ -2,6 +2,7 @@ package agentcomm
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"iter"
 	"net"
@@ -280,7 +281,7 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 	uniqueDaemons := make(map[dbmodel.DaemonName]struct{})
 
 	// Get all responses from the Kea server.
-	for idx, daemonResp := range resp.GetKeaResponses() {
+	for idx, daemonResponse := range resp.GetKeaResponses() {
 		command := commands[idx]
 		daemons := command.GetDaemonsList()
 		// It is expected that a single command is sent to a single daemon.
@@ -291,10 +292,10 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 		daemon := daemons[0]
 		uniqueDaemons[daemon] = struct{}{}
 
-		if daemonResp.Status.Code != agentapi.Status_OK {
+		if daemonResponse.Status.Code != agentapi.Status_OK {
 			message := "unknown error"
-			if daemonResp.Status.Message != "" {
-				message = daemonResp.Status.Message
+			if daemonResponse.Status.Message != "" {
+				message = daemonResponse.Status.Message
 			}
 
 			err := errors.Errorf("received error while sending the command %s over GRPC: %s", command.GetCommand(), message)
@@ -302,19 +303,17 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 			continue
 		}
 
-		var parsedResp []keactrl.ResponseHeader
-		err := keactrl.UnmarshalResponseList(commands[idx], daemonResp.Response, &parsedResp)
+		var parsedResponse keactrl.ResponseHeader
+		err := json.Unmarshal(daemonResponse.Response, &parsedResponse)
 		if err != nil {
 			err := errors.WithMessage(err, "failed to parse Kea response")
 			state.appendError(daemon, err)
 			continue
 		}
 
-		for _, daemonResp := range parsedResp {
-			if err := daemonResp.GetError(); err != nil {
-				err := errors.Wrapf(err, "command %s failed", command.GetCommand())
-				state.appendError(daemon, err)
-			}
+		if err := parsedResponse.GetError(); err != nil {
+			err := errors.Wrapf(err, "command %s failed", command.GetCommand())
+			state.appendError(daemon, err)
 		}
 	}
 
@@ -883,12 +882,12 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 	}
 
 	// Get all responses from the Kea server.
-	for idx, rsp := range response.GetKeaResponses() {
-		cmdResp := cmdResponses[idx]
+	for idx, response := range response.GetKeaResponses() {
+		commandResponse := cmdResponses[idx]
 		// Try to parse the json response from the on-wire format.
-		err = keactrl.UnmarshalResponseList(commands[idx], rsp.Response, cmdResp)
+		err = json.Unmarshal(response.Response, commandResponse)
 		if err != nil {
-			err = errors.Wrapf(err, "failed to parse Kea response from %s, response was: %s", controlAccessPointURL, rsp)
+			err = errors.Wrapf(err, "failed to parse Kea response from %s, response was: %s", controlAccessPointURL, response)
 			// The sufficient number of elements should have been already allocated but
 			// let's make sure.
 			if len(result.CmdsErrors) > idx {
