@@ -87,6 +87,63 @@ def _wait_http_ok(url: str, timeout: float = 90.0) -> None:
     raise RuntimeError(f"Timeout waiting for {url}")
 
 
+def _reset_db_and_server(base_url: str) -> None:
+    """Drop & recreate DB schema, restart server, wait until healthy."""
+    pg = f"{PROJECT_NAME}-postgres-1"
+    srv = f"{PROJECT_NAME}-server-1"
+
+    sql = "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+    try:
+        subprocess.run(
+            [
+                "docker",
+                "exec",
+                "-i",
+                pg,
+                "psql",
+                "-U",
+                "stork",
+                "-d",
+                "stork",
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                sql,
+            ],
+            check=True,
+            text=True,
+        )
+    except subprocess.CalledProcessError:
+        subprocess.run(
+            [
+                "docker",
+                "exec",
+                "-i",
+                pg,
+                "psql",
+                "-U",
+                "postgres",
+                "-d",
+                "stork",
+                "-v",
+                "ON_ERROR_STOP=1",
+                "-c",
+                sql,
+            ],
+            check=True,
+            text=True,
+        )
+
+    subprocess.run(["docker", "restart", srv], check=True, text=True)
+
+    _wait_http_ok(f"{base_url}/api/version", timeout=120)
+
+    try:
+        _dc_cmd("run", "--no-deps", "register", "register", "--non-interactive")
+    except Exception:
+        pass
+
+
 # --- pytest fixtures ---------------------------------------------------------
 
 
@@ -99,7 +156,7 @@ def stork_base_url() -> str:
       - If STORK_REUSE=1: just wait for health (reuse an already-running stack).
       - Else: build and start postgres, server, agent-kea; then try registering.
     """
-    # env used by system compose & for Apple Silicon
+
     os.environ.setdefault("IPWD", str(ROOT))
     os.environ.setdefault("DOCKER_DEFAULT_PLATFORM", "linux/amd64")
 
@@ -107,10 +164,8 @@ def stork_base_url() -> str:
         _wait_http_ok(f"{BASE_URL}/api/version", timeout=120)
         return BASE_URL
 
-    # Fresh stack
     _hard_cleanup()
 
-    # Build only what we need, then bring them up
     _dc_cmd("build", "--", "postgres", "server", "agent-kea")
     _dc_cmd("up", "-d", "--", "postgres")
     _dc_cmd(
@@ -118,10 +173,8 @@ def stork_base_url() -> str:
     )  # NOTE: service name is 'server' (overridden to target server-ui)
     _dc_cmd("up", "-d", "--", "agent-kea")
 
-    # Wait until API responds (verifies port mapping + UI-enabled image)
     _wait_http_ok(f"{BASE_URL}/api/version", timeout=120)
 
-    # Register the agent (non-fatal for UI flows)
     try:
         _dc_cmd("run", "--no-deps", "register", "register", "--non-interactive")
     except subprocess.CalledProcessError as e:
@@ -139,3 +192,9 @@ def logged_in_page(page: Page, stork_base_url: str):
     lp.open(stork_base_url)
     lp.login("admin", "admin")
     return page
+
+
+@pytest.fixture(autouse=True, scope="function")
+def _clean_before_each_test(stork_base_url: str):
+    """Ensure a clean environment before every test."""
+    _reset_db_and_server(stork_base_url)
