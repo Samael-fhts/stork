@@ -8,9 +8,9 @@ def test_bind9(server_service: Server, bind9_service: Bind9):
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(state.apps) == 1
-    app = state.apps[0]
-    assert app.type == "bind9"
+    assert len(state.daemons) == 1
+    app = state.daemons[0]
+    assert app.name == "named"
     assert len(app.access_points) == 2
     assert app.access_points[0].address == "127.0.0.1"
 
@@ -32,9 +32,9 @@ def test_bind9_rndc(server_service: Server, bind9_service: Bind9):
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(state.apps) == 1
-    app = state.apps[0]
-    assert app.type == "bind9"
+    assert len(state.daemons) == 1
+    app = state.daemons[0]
+    assert app.name == "named"
     assert len(app.access_points) == 2
     assert app.access_points[0].address == "127.0.0.1"
 
@@ -51,9 +51,9 @@ def test_bind9_package(server_service: Server, bind9_service: Bind9):
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(state.apps) == 1
-    app = state.apps[0]
-    assert app.type == "bind9"
+    assert len(state.daemons) == 1
+    app = state.daemons[0]
+    assert app.name == "named"
     assert len(app.access_points) == 1  # Missing statistics
     assert app.access_points[0].address == "127.0.0.1"
 
@@ -67,9 +67,9 @@ def test_bind9_rndc_custom(server_service: Server, bind9_service: Bind9):
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(state.apps) == 1
-    app = state.apps[0]
-    assert app.type == "bind9"
+    assert len(state.daemons) == 1
+    app = state.daemons[0]
+    assert app.name == "named"
     assert len(app.access_points) == 2
     assert app.access_points[0].address == "127.0.0.1"
 
@@ -81,9 +81,9 @@ def test_bind9_chroot(server_service: Server, bind9_service: Bind9):
     server_service.log_in_as_admin()
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
-    assert len(state.apps) == 1
-    app = state.apps[0]
-    assert app.type == "bind9"
+    assert len(state.daemons) == 1
+    app = state.daemons[0]
+    assert app.name == "named"
 
 
 @bind9_parametrize("agent-bind9-chroot-rndc-custom")
@@ -95,9 +95,9 @@ def test_bind9_chroot_rndc_custom(server_service: Server, bind9_service: Bind9):
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(state.apps) == 1
-    app = state.apps[0]
-    assert app.type == "bind9"
+    assert len(state.daemons) == 1
+    app = state.daemons[0]
+    assert app.name == "named"
     assert len(app.access_points) == 2
     assert app.access_points[0].address == "127.0.0.1"
 
@@ -108,9 +108,9 @@ def test_bind9_fetch_zones(server_service: Server, bind9_service: Bind9):
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(state.apps) == 1
-    app = state.apps[0]
-    assert app.type == "bind9"
+    assert len(state.daemons) == 1
+    app = state.daemons[0]
+    assert app.name == "named"
     assert len(app.access_points) == 2
     assert app.access_points[0].address == "127.0.0.1"
 
