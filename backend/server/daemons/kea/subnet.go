@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/constant"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 )
@@ -189,9 +190,9 @@ func detectDaemonNetworks(dbi dbops.DBI, daemon *dbmodel.Daemon, lookup keaconfi
 
 	var family int
 	switch daemon.Name {
-	case dbmodel.DaemonNameDHCPv4:
+	case constant.DaemonNameDHCPv4:
 		family = 4
-	case dbmodel.DaemonNameDHCPv6:
+	case constant.DaemonNameDHCPv6:
 		family = 6
 	default:
 		return networks, subnets, err

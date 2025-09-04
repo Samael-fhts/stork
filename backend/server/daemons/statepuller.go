@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/constant"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/configreview"
 	"isc.org/stork/server/daemons/bind9"
@@ -109,7 +110,7 @@ func updateMachineFields(db *dbops.PgDB, dbMachine *dbmodel.Machine, m *agentcom
 // equal if their type matches and if they have the same control port. Return
 // true if equal, false otherwise.
 func daemonCompare(dbDaemon dbmodel.Daemon, grpcDaemon *agentcomm.Daemon) bool {
-	if dbDaemon.Name != dbmodel.DaemonName(grpcDaemon.Name) {
+	if dbDaemon.Name != constant.DaemonName(grpcDaemon.Name) {
 		return false
 	}
 	if len(dbDaemon.AccessPoints) != len(grpcDaemon.AccessPoints) {
@@ -173,7 +174,7 @@ DISCOVERED_LOOP:
 			}
 		}
 
-		newDaemon := dbmodel.NewDaemon(dbMachine, dbmodel.DaemonName(discoveredDaemon.Name), true, accessPoints)
+		newDaemon := dbmodel.NewDaemon(dbMachine, constant.DaemonName(discoveredDaemon.Name), true, accessPoints)
 		matchedDaemons = append(matchedDaemons, *newDaemon)
 	}
 
@@ -217,14 +218,9 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 		var additionalDaemons []*agentcomm.Daemon
 
 		for _, daemon := range state.Daemons {
-			// The old agent used app type instead of daemon name. The app type
-			// for Kea was "kea" that means that the Kea CA daemon has been
-			// detected.
-			if daemon.Name != agentcomm.DaemonNameKea {
+			if daemon.Name != constant.DaemonNameCA {
 				continue
 			}
-			// Convert the daemon name to the proper one.
-			daemon.Name = agentcomm.DaemonNameCA
 
 			// Fetch the Kea CA configuration to retrieve a list of running
 			// daemons.
@@ -235,12 +231,12 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 
 			daemonNames := config.GetManagementControlSockets().GetManagedDaemonNames()
 			for _, name := range daemonNames {
-				if name == string(agentcomm.DaemonNameCA) {
+				if name == constant.KeaDaemonNameCA {
 					continue
 				}
 
 				additionalDaemons = append(additionalDaemons, &agentcomm.Daemon{
-					Name: agentcomm.DaemonName(name),
+					Name: name.ToDaemonName(),
 					// Communication with this daemon is done through the Kea CA.
 					AccessPoints: daemon.AccessPoints,
 					Machine:      daemon.Machine,
@@ -297,11 +293,11 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 	existingDaemonsByType := make(map[string][]*dbmodel.Daemon)
 	for _, daemon := range existingDaemons {
 		switch daemon.Name {
-		case dbmodel.DaemonNameDHCPv4, dbmodel.DaemonNameDHCPv6, dbmodel.DaemonNameCA, dbmodel.DaemonNameD2:
+		case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameCA, constant.DaemonNameD2:
 			existingDaemonsByType["kea"] = append(existingDaemonsByType["kea"], &daemon)
-		case dbmodel.DaemonNameBind9:
+		case constant.DaemonNameBind9:
 			existingDaemonsByType["bind9"] = append(existingDaemonsByType["bind9"], &daemon)
-		case dbmodel.DaemonNamePDNS:
+		case constant.DaemonNamePDNS:
 			existingDaemonsByType["pdns"] = append(existingDaemonsByType["pdns"], &daemon)
 		default:
 			log.Warnf("Unknown daemon type %s", daemon.Name)
@@ -334,7 +330,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 					allDaemons = append(allDaemons, daemon)
 				}
 			}
-		case dbmodel.DaemonNameBind9:
+		case "bind9":
 			for _, daemon := range existingDaemons {
 				bind9.GetDaemonState(ctx2, agents, daemon, eventCenter)
 				err = bind9.CommitDaemonIntoDB(db, daemon, eventCenter)
@@ -343,7 +339,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 				}
 				allDaemons = append(allDaemons, daemon)
 			}
-		case dbmodel.DaemonNamePDNS:
+		case "pdns":
 			for _, daemon := range existingDaemons {
 				pdns.GetDaemonState(ctx2, agents, daemon, eventCenter)
 				err = pdns.CommitDaemonIntoDB(db, daemon, eventCenter)

@@ -8,6 +8,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
 	pkgerrors "github.com/pkg/errors"
+	"isc.org/stork/daemonctrl/constant"
 	dbops "isc.org/stork/server/database"
 )
 
@@ -325,16 +326,16 @@ func DeleteMachine(db *pg.DB, machine *Machine) error {
 		}
 		// Deleting the machine may leave some orphaned objects behind.
 		// Let's make sure they are deleted.
-		daemonNames := make(map[DaemonName]bool)
+		daemonNames := make(map[constant.DaemonName]bool)
 		fns := []func(tx dbops.DBI) (int64, error){}
 		for _, daemon := range machine.Daemons {
 			daemonNames[daemon.Name] = true
 		}
 		for daemonName := range daemonNames {
 			switch daemonName {
-			case DaemonNameBind9:
+			case constant.DaemonNameBind9, constant.DaemonNamePDNS:
 				fns = append(fns, DeleteOrphanedZones)
-			case DaemonNameDHCPv4, DaemonNameDHCPv6:
+			case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6:
 				fns = append(fns, DeleteOrphanedSubnets, DeleteOrphanedHosts, DeleteOrphanedSharedNetworks)
 			}
 		}
@@ -370,7 +371,7 @@ func (machine *Machine) GetHostname() string {
 }
 
 // Returns a daemon by its name. If the daemon does not exist, it returns nil.
-func (machine *Machine) GetDaemonByName(name DaemonName) *Daemon {
+func (machine *Machine) GetDaemonByName(name constant.DaemonName) *Daemon {
 	for _, daemon := range machine.Daemons {
 		if daemon.Name == name {
 			return daemon

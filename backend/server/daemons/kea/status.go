@@ -342,7 +342,8 @@ func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (bool, b
 
 // Sends the status-get command to Kea DHCP servers and returns this status to the caller.
 func getDHCPStatus(ctx context.Context, agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon) (*daemonStatus, error) {
-	cmd := keactrl.NewCommandBase(keactrl.StatusGet, daemon.Name)
+	daemonName, _ := daemon.Name.ToKeaDaemonName()
+	cmd := keactrl.NewCommandBase(keactrl.StatusGet, daemonName)
 
 	// TODO: hardcoding 2s timeout is a temporary solution. We need better
 	// control over the timeouts.

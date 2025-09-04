@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-pg/pg/v10/types"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/constant"
 	storkutil "isc.org/stork/util"
 )
 
@@ -303,7 +304,7 @@ func NewHostFromKeaConfigReservation(reservation keaconfig.Reservation, daemon *
 		Hostname:       hostname,
 	}
 	universe := storkutil.IPv4
-	if daemon.Name == DaemonNameDHCPv6 {
+	if daemon.Name == constant.DaemonNameDHCPv6 {
 		universe = storkutil.IPv6
 	}
 	optionSet := []DHCPOption{}

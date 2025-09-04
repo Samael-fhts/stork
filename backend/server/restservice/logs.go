@@ -73,7 +73,7 @@ func (r *RestAPI) GetLogTail(ctx context.Context, params services.GetLogTailPara
 			AgentPort: dbLogTarget.Daemon.Machine.AgentPort,
 		},
 		DaemonID:        &dbLogTarget.DaemonID,
-		DaemonName:      &dbLogTarget.Daemon.Name,
+		DaemonName:      storkutil.Ptr(string(dbLogTarget.Daemon.Name)),
 		LogTargetOutput: storkutil.Ptr(dbLogTarget.Output),
 		Contents:        contents,
 		Error:           errStr,

@@ -6,6 +6,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/constant"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
@@ -28,8 +29,8 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*
 		accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", int64(1234+i), "https")
 
 		daemons := []*dbmodel.Daemon{
-			dbmodel.NewDaemon(m, dbmodel.DaemonNameDHCPv4, true, accessPoints),
-			dbmodel.NewDaemon(m, dbmodel.DaemonNameDHCPv6, true, accessPoints),
+			dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints),
+			dbmodel.NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints),
 		}
 
 		err = daemons[0].SetConfigFromJSON([]byte(`{

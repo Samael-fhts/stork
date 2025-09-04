@@ -12,9 +12,10 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/server/daemons/kea"
+	"isc.org/stork/daemonctrl/constant"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configreview"
+	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/gen/models"
 	dhcp "isc.org/stork/server/gen/restapi/operations/d_h_c_p"
@@ -88,7 +89,7 @@ func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemon
 	rsp := services.NewGetDaemonConfigOK().WithPayload(&models.KeaDaemonConfig{
 		DaemonID:      dbDaemon.GetID(),
 		DaemonVersion: dbDaemon.Version,
-		DaemonName:    dbDaemon.GetName(),
+		DaemonName:    string(dbDaemon.GetName()),
 		Editable:      dbDaemon.Monitored && dbDaemon.Active,
 		Config:        dbDaemon.KeaDaemon.Config,
 		Options:       options,
@@ -600,7 +601,7 @@ func (r *RestAPI) UpdateKeaGlobalParametersBegin(ctx context.Context, params dhc
 
 		configs = append(configs, &models.KeaDaemonConfig{
 			DaemonID:      daemon.ID,
-			DaemonName:    daemon.Name,
+			DaemonName:    string(daemon.Name),
 			DaemonVersion: daemon.Version,
 			Config:        daemon.KeaDaemon.Config,
 			Options:       options,
@@ -645,15 +646,31 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 	for i := range params.Request.Configs {
 		receivedConfig := params.Request.Configs[i]
 		var settableConfig *keaconfig.SettableConfig
-		switch receivedConfig.DaemonName {
-		case dbmodel.DaemonNameDHCPv4:
+		daemonName, err := constant.ParseDaemonName(receivedConfig.DaemonName)
+		if err != nil {
+			msg := fmt.Sprintf("Unknown daemon name %s", receivedConfig.DaemonName)
+			log.Error(msg)
+			rsp := dhcp.NewUpdateKeaGlobalParametersSubmitDefault(http.StatusBadRequest).WithPayload(&models.APIError{
+				Message: &msg,
+			})
+			return rsp
+		}
+		switch daemonName {
+		case constant.DaemonNameDHCPv4:
 			settableConfig = keaconfig.NewSettableDHCPv4Config()
-		case dbmodel.DaemonNameDHCPv6:
+		case constant.DaemonNameDHCPv6:
 			settableConfig = keaconfig.NewSettableDHCPv6Config()
-		case dbmodel.DaemonNameD2:
+		case constant.DaemonNameD2:
 			settableConfig = keaconfig.NewSettableD2Config()
-		default:
+		case constant.DaemonNameCA:
 			settableConfig = keaconfig.NewSettableCtrlAgentConfig()
+		default:
+			msg := fmt.Sprintf("Unsupported daemon name %s", receivedConfig.DaemonName)
+			log.Error(msg)
+			rsp := dhcp.NewUpdateKeaGlobalParametersSubmitDefault(http.StatusBadRequest).WithPayload(&models.APIError{
+				Message: &msg,
+			})
+			return rsp
 		}
 
 		partialConfig := receivedConfig.PartialConfig

@@ -170,6 +170,7 @@ func (m *hostMigrator) Migrate() []configmigrator.MigrationError {
 // Migrates the hosts related to the given daemon.
 func (m *hostMigrator) migrateDaemonHosts(daemon *dbmodel.Daemon) {
 	daemonID := daemon.ID
+	daemonName, _ := daemon.GetName().ToKeaDaemonName()
 
 	// Lock the daemon for modification. Do it only if the daemon has not
 	// been locked yet.
@@ -213,7 +214,7 @@ func (m *hostMigrator) migrateDaemonHosts(daemon *dbmodel.Daemon) {
 			return nil, err
 		}
 
-		commandAdd := keactrl.NewCommandReservationAdd(reservationAdd, daemon.Name)
+		commandAdd := keactrl.NewCommandReservationAdd(reservationAdd, daemonName)
 
 		return commandAdd, nil
 	})
@@ -240,7 +241,7 @@ func (m *hostMigrator) migrateDaemonHosts(daemon *dbmodel.Daemon) {
 			return nil, err
 		}
 
-		commandDel := keactrl.NewCommandReservationDel(reservationDel, daemon.Name)
+		commandDel := keactrl.NewCommandReservationDel(reservationDel, daemonName)
 		return commandDel, nil
 	})
 
@@ -411,7 +412,8 @@ func (m *hostMigrator) prepareAndSendHostCommands(daemon *dbmodel.Daemon, f func
 // sending the config-write command. Handles the error if the command fails.
 func (m *hostMigrator) saveConfigChanges(daemon *dbmodel.Daemon) {
 	// Send the config-write command.
-	commandWrite := keactrl.NewCommandBase(keactrl.ConfigWrite, daemon.Name)
+	daemonName, _ := daemon.GetName().ToKeaDaemonName()
+	commandWrite := keactrl.NewCommandBase(keactrl.ConfigWrite, daemonName)
 
 	var response keactrl.Response
 	result, err := m.connectedAgents.ForwardToKeaOverHTTP(
@@ -468,5 +470,5 @@ func getHostLabel(host dbmodel.Host) string {
 
 // Creates a label for the daemon.
 func getDaemonLabel(daemon *dbmodel.Daemon) string {
-	return daemon.Name
+	return string(daemon.Name)
 }

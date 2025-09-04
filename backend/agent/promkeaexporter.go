@@ -18,6 +18,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"isc.org/stork"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	storkutil "isc.org/stork/util"
 )
@@ -46,9 +47,6 @@ type subnetListJSON struct {
 	keactrl.ResponseHeader
 	Arguments *subnetListJSONArguments
 }
-
-
-
 
 // Stats descriptor that holds reference to prometheus stats
 // and its 'operation' label.
@@ -99,9 +97,9 @@ func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
 	// Request to subnet prefixes.
 	var request *keactrl.Command
 	if l.family == 4 {
-		request = keactrl.NewCommandBase(keactrl.Subnet4List, keactrl.DHCPv4)
+		request = keactrl.NewCommandBase(keactrl.Subnet4List, constant.KeaDaemonNameDHCPv4)
 	} else {
-		request = keactrl.NewCommandBase(keactrl.Subnet6List, keactrl.DHCPv6)
+		request = keactrl.NewCommandBase(keactrl.Subnet6List, constant.KeaDaemonNameDHCPv6)
 	}
 
 	var response subnetListJSON
@@ -782,18 +780,13 @@ func (pke *PromKeaExporter) collectStats() error {
 	activeDHCP4DaemonsCount := 0
 	activeDHCP6DaemonsCount := 0
 
-	const (
-		dhcp4 = "dhcp4"
-		dhcp6 = "dhcp6"
-	)
-
 	for _, daemon := range daemons {
 		switch daemon.GetName() {
-		case DaemonNameCA, DaemonNameD2:
+		case constant.DaemonNameCA, constant.DaemonNameD2:
 			keaDaemonsCount++
 			// These daemons doesn't support statistic-get-all command.
 			continue
-		case DaemonNameDHCPv4, DaemonNameDHCPv6:
+		case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6:
 			keaDaemonsCount++
 			// Proceed.
 		default:
@@ -802,13 +795,17 @@ func (pke *PromKeaExporter) collectStats() error {
 		}
 
 		keaDaemon := daemon.(*KeaDaemon)
+		daemonName, err := keaDaemon.GetName().ToKeaDaemonName()
+		if err != nil {
+			return err
+		}
 
 		// Request to kea dhcp daemons for getting all stats.
-		request := keactrl.NewCommandBase(keactrl.StatisticGetAll, keactrl.DaemonName(daemon.GetName()))
+		request := keactrl.NewCommandBase(keactrl.StatisticGetAll, daemonName)
 		var response keactrl.StatisticGetAllResponse
 
 		// Fetching statistics
-		err := keaDaemon.sendCommand(request, &response)
+		err = keaDaemon.sendCommand(request, &response)
 		if err != nil {
 			err = errors.WithMessagef(err, "Problem fetching stats from Kea daemon %s", keaDaemon)
 			errs = append(errs, err)
@@ -826,7 +823,7 @@ func (pke *PromKeaExporter) collectStats() error {
 		globalStatMap := pke.Global4StatMap
 		activeDaemonsCount := &activeDHCP4DaemonsCount
 		family := int8(4)
-		if daemon.GetName() == DaemonNameDHCPv6 {
+		if daemon.GetName() == constant.DaemonNameDHCPv6 {
 			addrStatsMap = pke.Addr6StatsMap
 			globalStatMap = pke.Global6StatMap
 			activeDaemonsCount = &activeDHCP6DaemonsCount

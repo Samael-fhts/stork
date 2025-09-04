@@ -12,20 +12,9 @@ import (
 	"github.com/go-pg/pg/v10/orm"
 	pkgerrors "github.com/pkg/errors"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/constant"
 	"isc.org/stork/daemondata/bind9stats"
 	dbops "isc.org/stork/server/database"
-)
-
-// Valid daemon names.
-type DaemonName = string
-
-const (
-	DaemonNameBind9  DaemonName = "named"
-	DaemonNameDHCPv4 DaemonName = "dhcp4"
-	DaemonNameDHCPv6 DaemonName = "dhcp6"
-	DaemonNameD2     DaemonName = "d2"
-	DaemonNameCA     DaemonName = "ca"
-	DaemonNamePDNS   DaemonName = "pdns"
 )
 
 // Available daemon relations to other tables.
@@ -117,7 +106,7 @@ type PDNSDaemon struct {
 type Daemon struct {
 	ID              int64
 	Pid             int32
-	Name            DaemonName
+	Name            constant.DaemonName
 	Active          bool `pg:",use_zero"`
 	Monitored       bool `pg:",use_zero"`
 	Version         string
@@ -195,13 +184,13 @@ type DaemonServiceOverview struct {
 // to create events referencing machines.
 type DaemonTag interface {
 	GetID() int64
-	GetName() DaemonName
+	GetName() constant.DaemonName
 	GetMachineID() int64
 }
 
 // Creates an instance of a daemon with its references initialized to empty
 // structures.
-func NewDaemon(machine *Machine, name DaemonName, active bool, accessPoints []*AccessPoint) *Daemon {
+func NewDaemon(machine *Machine, name constant.DaemonName, active bool, accessPoints []*AccessPoint) *Daemon {
 	daemon := &Daemon{
 		Name:         name,
 		Active:       active,
@@ -212,13 +201,13 @@ func NewDaemon(machine *Machine, name DaemonName, active bool, accessPoints []*A
 	}
 
 	switch name {
-	case DaemonNameCA, DaemonNameD2:
+	case constant.DaemonNameCA, constant.DaemonNameD2:
 		daemon.KeaDaemon = &KeaDaemon{}
-	case DaemonNameDHCPv4, DaemonNameDHCPv6:
+	case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6:
 		daemon.KeaDaemon = &KeaDaemon{KeaDHCPDaemon: &KeaDHCPDaemon{}}
-	case DaemonNameBind9:
+	case constant.DaemonNameBind9:
 		daemon.Bind9Daemon = &Bind9Daemon{}
-	case DaemonNamePDNS:
+	case constant.DaemonNamePDNS:
 		daemon.PDNSDaemon = &PDNSDaemon{}
 	}
 
@@ -319,7 +308,7 @@ func GetAllDaemonsWithRelations(dbi dbops.DBI, relations ...DaemonRelation) ([]D
 // sortDir allows selection the order of sorting. If sortField is
 // empty then id is used for sorting. If SortDirAny is used then ASC
 // order is used.
-func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *string, sortField string, sortDir SortDirEnum, daemonNames ...DaemonName) ([]Daemon, int64, error) {
+func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *string, sortField string, sortDir SortDirEnum, daemonNames ...constant.DaemonName) ([]Daemon, int64, error) {
 	if limit == 0 {
 		return nil, 0, pkgerrors.New("limit should be greater than 0")
 	}
@@ -334,12 +323,12 @@ func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *stri
 	for _, daemonName := range daemonNames {
 		q = q.WhereOr("name = ?", daemonName)
 		switch daemonName {
-		case DaemonNameDHCPv4, DaemonNameDHCPv6:
+		case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6:
 			q = q.Relation(DaemonRelationHAService)
 			q = q.Relation(DaemonRelationKeaDHCPDaemon)
-		case DaemonNameBind9:
+		case constant.DaemonNameBind9:
 			q = q.Relation(DaemonRelationBind9Daemon)
-		case DaemonNamePDNS:
+		case constant.DaemonNamePDNS:
 			q = q.Relation(DaemonRelationPDNSDaemon)
 		}
 	}
@@ -379,7 +368,7 @@ func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *stri
 }
 
 // Get daemons by their name.
-func GetDaemonsByName(dbi pg.DBI, names ...DaemonName) (daemons []Daemon, err error) {
+func GetDaemonsByName(dbi pg.DBI, names ...constant.DaemonName) (daemons []Daemon, err error) {
 	err = dbi.Model(&daemons).
 		Relation(DaemonRelationAccessPoints).
 		Relation(DaemonRelationMachine).
@@ -398,12 +387,12 @@ func GetDaemonsByName(dbi pg.DBI, names ...DaemonName) (daemons []Daemon, err er
 
 // Get DHCP daemons (DHCPv4 and DHCPv6).
 func GetDHCPDaemons(dbi pg.DBI) (daemons []Daemon, err error) {
-	return GetDaemonsByName(dbi, DaemonNameDHCPv4, DaemonNameDHCPv6)
+	return GetDaemonsByName(dbi, constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6)
 }
 
 // Get DNS daemons (BIND9 and PowerDNS).
 func GetDNSDaemons(dbi pg.DBI) (daemons []Daemon, err error) {
-	return GetDaemonsByName(dbi, DaemonNameBind9, DaemonNamePDNS)
+	return GetDaemonsByName(dbi, constant.DaemonNameBind9, constant.DaemonNamePDNS)
 }
 
 // Get all Kea DHCP daemons.
@@ -893,7 +882,7 @@ func (d Daemon) GetID() int64 {
 }
 
 // Returns daemon name.
-func (d Daemon) GetName() DaemonName {
+func (d Daemon) GetName() constant.DaemonName {
 	return d.Name
 }
 

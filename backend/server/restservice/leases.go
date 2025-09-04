@@ -13,6 +13,7 @@ import (
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/gen/models"
 	dhcp "isc.org/stork/server/gen/restapi/operations/d_h_c_p"
+	storkutil "isc.org/stork/util"
 )
 
 // This call searches for leases allocated by monitored DHCP servers.
@@ -80,7 +81,7 @@ func (r *RestAPI) GetLeases(ctx context.Context, params dhcp.GetLeasesParams) mi
 		l := keaLeases[i]
 		var daemonName string
 		if l.Daemon != nil {
-			daemonName = l.Daemon.Name
+			daemonName = string(l.Daemon.Name)
 		}
 		cltt := int64(l.CLTT)
 		state := int64(l.State)
@@ -125,7 +126,7 @@ func (r *RestAPI) GetLeases(ctx context.Context, params dhcp.GetLeasesParams) mi
 	for i := range erredDaemons {
 		leases.ErredDaemons = append(leases.ErredDaemons, &models.LeasesSearchErredDaemon{
 			ID:   &erredDaemons[i].ID,
-			Name: &erredDaemons[i].Name,
+			Name: storkutil.Ptr(string(erredDaemons[i].Name)),
 		})
 	}
 

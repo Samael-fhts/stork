@@ -67,7 +67,7 @@ func (d *LogsDump) Execute() error {
 					Hostname:  d.machine.State.Hostname,
 				},
 				DaemonID:        storkutil.Ptr(daemon.ID),
-				DaemonName:      storkutil.Ptr(daemon.Name),
+				DaemonName:      storkutil.Ptr(string(daemon.Name)),
 				LogTargetOutput: storkutil.Ptr(logTarget.Output),
 				Contents:        contents,
 				Error:           errStr,

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	log "github.com/sirupsen/logrus"
+	"isc.org/stork/daemonctrl/constant"
 	"isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/eventcenter"
@@ -41,7 +42,7 @@ func (statsPuller *StatsPuller) Shutdown() {
 // The function returns last encountered error.
 func (statsPuller *StatsPuller) pullStats() error {
 	// get list of all bind9 daemons from database
-	daemons, err := dbmodel.GetDaemonsByName(statsPuller.DB, dbmodel.DaemonNameBind9)
+	daemons, err := dbmodel.GetDaemonsByName(statsPuller.DB, constant.DaemonNameBind9)
 	if err != nil {
 		return err
 	}

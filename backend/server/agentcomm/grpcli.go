@@ -17,6 +17,7 @@ import (
 
 	agentapi "isc.org/stork/api"
 	"isc.org/stork/daemoncfg/dnsconfig"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
@@ -42,28 +43,13 @@ const (
 	AccessPointStatistics = "statistics"
 )
 
-// Daemon names returned by the Stork Agent.
-type DaemonName = string
-
-const (
-	// It is a deprecated name that Stork agents prior 2.3 use for the Kea
-	// Control Agent.
-	DaemonNameKea    DaemonName = "kea"
-	DaemonNameDHCPv4 DaemonName = "dhcp4"
-	DaemonNameDHCPv6 DaemonName = "dhcp6"
-	DaemonNameD2     DaemonName = "d2"
-	DaemonNameCA     DaemonName = "ca"
-	DaemonNamePDNS   DaemonName = "pdns"
-	DaemonNameBind9  DaemonName = "bind9"
-)
-
 // An interface to a daemon that can receive commands from Stork.
 // Kea daemon receiving control commands is an example.
 type ControlledDaemon interface {
 	GetControlAccessPoint() (string, int64, string, string, error)
 	GetStatisticsAccessPoint() (string, int64, string, string, error)
 	GetMachineTag() dbmodel.MachineTag
-	GetName() DaemonName
+	GetName() constant.DaemonName
 }
 
 // An interface to a machine that can receive commands from Stork.
@@ -75,7 +61,7 @@ type ControlledMachine interface {
 // The daemon entry detected by an agent. It unambiguously indicates the
 // daemon location.
 type Daemon struct {
-	Name         DaemonName
+	Name         constant.DaemonName
 	AccessPoints []AccessPoint
 	Machine      dbmodel.MachineTag
 }
@@ -84,7 +70,7 @@ type Daemon struct {
 var _ ControlledDaemon = (*Daemon)(nil)
 
 // Return the name of the daemon.
-func (d *Daemon) GetName() DaemonName {
+func (d *Daemon) GetName() constant.DaemonName {
 	return d.Name
 }
 
@@ -216,16 +202,16 @@ func (agents *connectedAgentsImpl) checkBind9CommState(stats *CommStatsBind9, ac
 // Holds the communication states of the Kea daemons returned
 // by the checkKeaCommState function.
 type keaCommState struct {
-	states map[dbmodel.DaemonName]CommErrorTransition
+	states map[constant.KeaDaemonName]CommErrorTransition
 	// Contains an item for each command. If the command was successful, the
 	// item is nil.
-	errors map[dbmodel.DaemonName][]error
+	errors map[constant.KeaDaemonName][]error
 }
 
 // Appends a new error.
-func (s *keaCommState) appendError(daemon dbmodel.DaemonName, err error) {
+func (s *keaCommState) appendError(daemon constant.KeaDaemonName, err error) {
 	if s.errors == nil {
-		s.errors = make(map[dbmodel.DaemonName][]error)
+		s.errors = make(map[constant.KeaDaemonName][]error)
 	}
 	if s.errors[daemon] == nil {
 		s.errors[daemon] = make([]error, 0)
@@ -234,7 +220,7 @@ func (s *keaCommState) appendError(daemon dbmodel.DaemonName, err error) {
 }
 
 // Returns number of errors recorded for a daemon.
-func (s *keaCommState) getErrorCount(daemon dbmodel.DaemonName) int {
+func (s *keaCommState) getErrorCount(daemon constant.KeaDaemonName) int {
 	if s.errors == nil {
 		return 0
 	}
@@ -245,7 +231,7 @@ func (s *keaCommState) getErrorCount(daemon dbmodel.DaemonName) int {
 }
 
 // Returns errors recorded for a daemon.
-func (s *keaCommState) getErrors(daemon dbmodel.DaemonName) []error {
+func (s *keaCommState) getErrors(daemon constant.KeaDaemonName) []error {
 	if s.errors == nil {
 		return nil
 	}
@@ -253,15 +239,15 @@ func (s *keaCommState) getErrors(daemon dbmodel.DaemonName) []error {
 }
 
 // Sets state for a daemon.
-func (s *keaCommState) setState(daemon dbmodel.DaemonName, state CommErrorTransition) {
+func (s *keaCommState) setState(daemon constant.KeaDaemonName, state CommErrorTransition) {
 	if s.states == nil {
-		s.states = make(map[dbmodel.DaemonName]CommErrorTransition)
+		s.states = make(map[constant.KeaDaemonName]CommErrorTransition)
 	}
 	s.states[daemon] = state
 }
 
 // Gets state for a daemon.
-func (s *keaCommState) getState(daemon dbmodel.DaemonName) CommErrorTransition {
+func (s *keaCommState) getState(daemon constant.KeaDaemonName) CommErrorTransition {
 	if s.states == nil {
 		return CommErrorNone
 	}
@@ -278,7 +264,7 @@ func (s *keaCommState) getState(daemon dbmodel.DaemonName) CommErrorTransition {
 // communication states for each of the daemons.
 func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, commands []keactrl.SerializableCommand, resp *agentapi.ForwardToKeaOverHTTPRsp) keaCommState {
 	var state keaCommState
-	uniqueDaemons := make(map[dbmodel.DaemonName]struct{})
+	uniqueDaemons := make(map[constant.KeaDaemonName]struct{})
 
 	// Get all responses from the Kea server.
 	for idx, daemonResponse := range resp.GetKeaResponses() {
@@ -414,6 +400,20 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 	for _, app := range grpcState.Apps {
 		var accessPoints []AccessPoint
 
+		var daemonName constant.DaemonName
+		switch app.Type {
+		case "kea":
+			// For backward compatibility, if the daemon name is "kea", assume
+			// it is CA. This value was used in Stork agents prior 2.3.1.
+			daemonName = constant.DaemonNameCA
+		case "bind9":
+			// For backward compatibility, if the daemon name is "bind9", assume
+			// it is BIND9. This value was used in Stork agents prior 2.3.
+			daemonName = constant.DaemonNameBind9
+		default:
+			daemonName = constant.DaemonName(app.Type)
+		}
+
 		for _, point := range app.AccessPoints {
 			accessPoint := AccessPoint{
 				Type:    point.Type,
@@ -425,7 +425,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 			if point.Protocol == "" {
 				// For backward compatibility, if the protocol is not set,
 				// assume HTTP or HTTPS based on the UseSecureProtocol flag.
-				if app.Type == DaemonNameBind9 {
+				if daemonName == constant.DaemonNameBind9 {
 					accessPoint.Protocol = "rndc"
 				} else if point.UseSecureProtocol {
 					accessPoint.Protocol = "https"
@@ -440,7 +440,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 		}
 
 		daemons = append(daemons, &Daemon{
-			Name:         DaemonName(app.Type),
+			Name:         daemonName,
 			AccessPoints: accessPoints,
 			Machine:      machine,
 		})
@@ -795,7 +795,7 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 		daemons := cmd.GetDaemonsList()
 		if len(daemons) != 1 {
 			return nil, errors.Errorf("expected a single daemon in the command %s, got %d", cmd.GetCommand(), len(daemons))
-		} else if daemons[0] != daemon.GetName() {
+		} else if daemons[0].ToDaemonName() != daemon.GetName() {
 			return nil, errors.Errorf("expected daemon %s in the command %s, got %s", daemon.GetName(), cmd.GetCommand(), daemons[0])
 		}
 
@@ -866,8 +866,12 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 	keaCommState := agents.checkKeaCommState(stats.GetKeaStats(), commands, response)
 
 	// Save Control Agent Errors.
-	result.CmdsErrors = keaCommState.getErrors(daemon.GetName())
-	state := keaCommState.getState(daemon.GetName())
+	daemonName, err := daemon.GetName().ToKeaDaemonName()
+	if err != nil {
+		return nil, err
+	}
+	result.CmdsErrors = keaCommState.getErrors(daemonName)
+	state := keaCommState.getState(daemonName)
 
 	// Generate events for the Kea Control Agent.
 	switch state {
@@ -875,9 +879,9 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 		// The connection was ok but now it is broken.
 		log.WithFields(log.Fields{
 			"agent":  agentURL,
-			"daemon": daemon.GetName(),
+			"daemon": daemonName,
 		}).Warnf("Failed to forward Kea command to Kea daemon")
-		agents.eventCenter.AddErrorEvent("forwarding Kea command to {daemon} on {machine} failed", daemon, daemon.GetMachineTag(), dbmodel.SSEConnectivity, keaCommState.getErrors(daemon.GetName()))
+		agents.eventCenter.AddErrorEvent("forwarding Kea command to {daemon} on {machine} failed", daemonName, daemon.GetMachineTag(), dbmodel.SSEConnectivity, keaCommState.getErrors(daemonName))
 	case CommErrorReset:
 		// The connection was broken but now is ok.
 		agents.eventCenter.AddWarningEvent("forwarding Kea command to {daemon} on {machine} succeeded", daemon, daemon.GetMachineTag(), dbmodel.SSEConnectivity)
@@ -902,7 +906,7 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 			}
 			// Failure to parse the response.
 			if state != CommErrorNew && state != CommErrorContinued {
-				stats.GetKeaStats().IncreaseErrorCount(daemon.GetName())
+				stats.GetKeaStats().IncreaseErrorCount(daemonName)
 			}
 		}
 	}

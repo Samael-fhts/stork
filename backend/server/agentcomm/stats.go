@@ -5,6 +5,7 @@ import (
 	"reflect"
 	"sync"
 
+	"isc.org/stork/daemonctrl/constant"
 	dbmodel "isc.org/stork/server/database/model"
 )
 
@@ -44,7 +45,7 @@ type CommStats struct {
 	agentCommErrors map[string]int64
 	// Number of the communication errors with a specific access point of a
 	// particular kind of daemon.
-	daemonCommErrors map[string]map[string]int64
+	daemonCommErrors map[constant.DaemonName]map[string]int64
 	// A mutex to be used when the data is accessed or updated. This
 	// mutex is returned to the caller and the caller is responsible
 	// for locking and unlocking the mutex.
@@ -55,7 +56,7 @@ type CommStats struct {
 func NewAgentStats() *CommStats {
 	return &CommStats{
 		agentCommErrors:  make(map[string]int64),
-		daemonCommErrors: make(map[string]map[string]int64),
+		daemonCommErrors: make(map[constant.DaemonName]map[string]int64),
 		mutex:            &sync.RWMutex{},
 	}
 }
@@ -74,13 +75,13 @@ func encodeAsCommStatsRequestName(request any) string {
 
 // Increases an error count for a selected daemon type by 1.
 // Returns an updated count.
-func (stats *CommStats) increaseDaemonErrorCount(daemonName string, accessPointType string) int64 {
+func (stats *CommStats) increaseDaemonErrorCount(daemonName constant.DaemonName, accessPointType string) int64 {
 	return stats.increaseDaemonErrorCountBy(daemonName, accessPointType, 1)
 }
 
 // Increases an error count for a selected daemon type by
 // an arbitrary number. Returns an updated count.
-func (stats *CommStats) increaseDaemonErrorCountBy(daemonName string, accessPointType string, increment int64) int64 {
+func (stats *CommStats) increaseDaemonErrorCountBy(daemonName constant.DaemonName, accessPointType string, increment int64) int64 {
 	if _, ok := stats.daemonCommErrors[daemonName]; !ok {
 		stats.daemonCommErrors[daemonName] = make(map[string]int64)
 	}
@@ -100,7 +101,7 @@ func (stats *CommStats) increaseDaemonErrorCountBy(daemonName string, accessPoin
 // caller for determining if there is a new communication problem or
 // the previous no gone. Based on that, the caller can issue
 // appropriate events.
-func (stats *CommStats) updateDaemonErrorCount(daemonName string, accessPointType string, newCount int64) CommErrorTransition {
+func (stats *CommStats) updateDaemonErrorCount(daemonName constant.DaemonName, accessPointType string, newCount int64) CommErrorTransition {
 	currentCount := stats.getDaemonErrorCount(daemonName, accessPointType)
 	switch {
 	case newCount == 0 && currentCount == 0:
@@ -128,7 +129,7 @@ func (stats *CommStats) IncreaseAgentErrorCount(request any) int64 {
 }
 
 // Resets the communication error count with a daemon to 0.
-func (stats *CommStats) resetDaemonErrorCount(daemonName string, accessPointType string) {
+func (stats *CommStats) resetDaemonErrorCount(daemonName constant.DaemonName, accessPointType string) {
 	if _, ok := stats.daemonCommErrors[daemonName]; !ok {
 		return
 	}
@@ -144,7 +145,7 @@ func (stats *CommStats) ResetAgentErrorCount(request any) {
 }
 
 // Returns a current communication error count with a daemon.
-func (stats *CommStats) getDaemonErrorCount(daemonName string, accessPointType string) int64 {
+func (stats *CommStats) getDaemonErrorCount(daemonName constant.DaemonName, accessPointType string) int64 {
 	if daemonCommErrors, ok := stats.daemonCommErrors[daemonName]; ok {
 		return daemonCommErrors[accessPointType]
 	}
@@ -196,20 +197,20 @@ type CommStatsKea struct {
 // caller for determining if there is a new communication problem or
 // the previous no gone. Based on that, the caller can issue
 // appropriate events.
-func (ks *CommStatsKea) UpdateErrorCount(daemonName string, count int64) CommErrorTransition {
-	return ks.comm.updateDaemonErrorCount(daemonName, dbmodel.AccessPointControl, count)
+func (ks *CommStatsKea) UpdateErrorCount(daemonName constant.KeaDaemonName, count int64) CommErrorTransition {
+	return ks.comm.updateDaemonErrorCount(daemonName.ToDaemonName(), dbmodel.AccessPointControl, count)
 }
 
 // Returns a number of communication errors with a Kea daemon for a
 // particular channel.
-func (ks *CommStatsKea) GetErrorCount(daemonName dbmodel.DaemonName) int64 {
-	return ks.comm.getDaemonErrorCount(daemonName, dbmodel.AccessPointControl)
+func (ks *CommStatsKea) GetErrorCount(daemonName constant.KeaDaemonName) int64 {
+	return ks.comm.getDaemonErrorCount(daemonName.ToDaemonName(), dbmodel.AccessPointControl)
 }
 
 // Increases communication error count with a Kea daemon by 1. Returns
 // an updated count.
-func (ks *CommStatsKea) IncreaseErrorCount(daemonName dbmodel.DaemonName) int64 {
-	return ks.comm.increaseDaemonErrorCount(daemonName, dbmodel.AccessPointControl)
+func (ks *CommStatsKea) IncreaseErrorCount(daemonName constant.KeaDaemonName) int64 {
+	return ks.comm.increaseDaemonErrorCount(daemonName.ToDaemonName(), dbmodel.AccessPointControl)
 }
 
 // Provides a BIND 9-specific way of updating the error count for given daemons.
@@ -220,18 +221,18 @@ type CommStatsBind9 struct {
 // Returns a number of communication errors with a BIND 9 daemon for a
 // particular channel.
 func (bs *CommStatsBind9) GetErrorCount(accessPointType string) int64 {
-	return bs.comm.getDaemonErrorCount(dbmodel.DaemonNameBind9, accessPointType)
+	return bs.comm.getDaemonErrorCount(constant.DaemonNameBind9, accessPointType)
 }
 
 // Increases communication error count with a BIND 9 daemon by 1. Returns
 // an updated count.
 func (bs *CommStatsBind9) IncreaseErrorCount(accessPointType string) int64 {
-	return bs.comm.increaseDaemonErrorCount(dbmodel.DaemonNameBind9, accessPointType)
+	return bs.comm.increaseDaemonErrorCount(constant.DaemonNameBind9, accessPointType)
 }
 
 // Resets the communication error count with a BIND 9 daemon to 0.
 func (bs *CommStatsBind9) ResetErrorCount(accessPointType string) {
-	bs.comm.resetDaemonErrorCount(dbmodel.DaemonNameBind9, accessPointType)
+	bs.comm.resetDaemonErrorCount(constant.DaemonNameBind9, accessPointType)
 }
 
 // A wrapper for AgentCommStats which locks the stats for reading and

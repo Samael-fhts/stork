@@ -9,6 +9,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	bind9config "isc.org/stork/daemoncfg/bind9"
 	pdnsconfig "isc.org/stork/daemoncfg/pdns"
+	"isc.org/stork/daemonctrl/constant"
 	storkutil "isc.org/stork/util"
 )
 
@@ -71,7 +72,7 @@ const (
 )
 
 type Daemon interface {
-	GetName() DaemonName
+	GetName() constant.DaemonName
 	GetAccessPoint(apType string) *AccessPoint
 	GetAccessPoints() []AccessPoint
 	// Checks if data of two daemons are equal.
@@ -93,12 +94,12 @@ type Daemon interface {
 // Daemon information. This structure is embedded
 // in app specific structures like KeaApp and Bind9App.
 type daemon struct {
-	Name         DaemonName
+	Name         constant.DaemonName
 	AccessPoints []AccessPoint
 }
 
 // Return the name of the daemon process.
-func (d *daemon) GetName() DaemonName {
+func (d *daemon) GetName() constant.DaemonName {
 	return d.Name
 }
 
@@ -162,34 +163,22 @@ type DNSDaemon interface {
 	GetZoneInventory() *zoneInventory
 }
 
-// Monitored daemon names.
-type DaemonName string
-
-const (
-	DaemonNameDHCPv4 DaemonName = "dhcp4"
-	DaemonNameDHCPv6 DaemonName = "dhcp6"
-	DaemonNameD2     DaemonName = "d2"
-	DaemonNameCA     DaemonName = "ca"
-	DaemonNameBind9  DaemonName = "bind9"
-	DaemonNamePDNS   DaemonName = "pdns"
-)
-
 // Converts a process name to a daemon name. If the process name
 // is not recognized, it returns an empty string.
-func convertProcessNameToDaemonName(procName string) DaemonName {
+func convertProcessNameToDaemonName(procName string) constant.DaemonName {
 	switch procName {
 	case "kea-dhcp4":
-		return DaemonNameDHCPv4
+		return constant.DaemonNameDHCPv4
 	case "kea-dhcp6":
-		return DaemonNameDHCPv6
+		return constant.DaemonNameDHCPv6
 	case "kea-d2":
-		return DaemonNameD2
+		return constant.DaemonNameD2
 	case "kea-ctrl-agent":
-		return DaemonNameCA
+		return constant.DaemonNameCA
 	case "named":
-		return DaemonNameBind9
+		return constant.DaemonNameBind9
 	case "pdns_server":
-		return DaemonNamePDNS
+		return constant.DaemonNamePDNS
 	default:
 		return ""
 	}
@@ -369,7 +358,7 @@ func (sm *monitor) detectDaemons() {
 		}
 
 		switch daemonName {
-		case DaemonNameDHCPv4, DaemonNameDHCPv6, DaemonNameD2, DaemonNameCA:
+		case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameD2, constant.DaemonNameCA:
 			// Kea DHCP server.
 			detectedDaemons, err := detectKeaDaemons(p, sm.keaHTTPClientConfig, sm.commander)
 			if err != nil {
@@ -378,7 +367,7 @@ func (sm *monitor) detectDaemons() {
 			}
 			daemons = append(daemons, detectedDaemons...)
 
-		case DaemonNameBind9:
+		case constant.DaemonNameBind9:
 			// BIND 9 DNS server.
 			detectedDaemon, err := detectBind9Daemon(
 				p,
@@ -391,7 +380,7 @@ func (sm *monitor) detectDaemons() {
 				continue
 			}
 			daemons = append(daemons, detectedDaemon)
-		case DaemonNamePDNS:
+		case constant.DaemonNamePDNS:
 			// PowerDNS server.
 			detectedDaemon, err := detectPowerDNSDaemon(p, sm.pdnsConfigParser)
 			if err != nil {

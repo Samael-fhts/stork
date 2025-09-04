@@ -10,6 +10,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+	"isc.org/stork/daemonctrl/constant"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
@@ -204,17 +205,17 @@ const (
 // KeaDaemon, KeaDHCPDaemon and KeaDHCPv4Daemon selector for the "dhcp4"
 // daemon. The corresponding checkers will be used to review the
 // daemon configuration.
-func getDispatchGroupSelectors(daemonName dbmodel.DaemonName) DispatchGroupSelectors {
+func getDispatchGroupSelectors(daemonName constant.DaemonName) DispatchGroupSelectors {
 	switch daemonName {
-	case dbmodel.DaemonNameDHCPv4:
+	case constant.DaemonNameDHCPv4:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaDHCPDaemon, KeaDHCPv4Daemon}
-	case dbmodel.DaemonNameDHCPv6:
+	case constant.DaemonNameDHCPv6:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaDHCPDaemon, KeaDHCPv6Daemon}
-	case dbmodel.DaemonNameCA:
+	case constant.DaemonNameCA:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaCADaemon}
-	case dbmodel.DaemonNameD2:
+	case constant.DaemonNameD2:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaD2Daemon}
-	case dbmodel.DaemonNameBind9:
+	case constant.DaemonNameBind9:
 		return DispatchGroupSelectors{EachDaemon, Bind9Daemon}
 	}
 	log.WithFields(log.Fields{

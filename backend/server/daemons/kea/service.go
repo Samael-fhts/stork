@@ -38,6 +38,7 @@ func DetectHAServices(dbi dbops.DBI, daemon *dbmodel.Daemon) ([]dbmodel.Service,
 		return []dbmodel.Service{}, nil
 	}
 	var (
+		haType     dbmodel.HAType = dbmodel.HAType(daemon.Name)
 		dbServices []dbmodel.Service
 		services   []dbmodel.Service
 	)
@@ -73,7 +74,7 @@ func DetectHAServices(dbi dbops.DBI, daemon *dbmodel.Daemon) ([]dbmodel.Service,
 			if len(dbServices[i].Daemons) == 0 {
 				continue
 			}
-			if dbServices[i].HAService != nil && dbServices[i].HAService.HAType == daemon.Name {
+			if dbServices[i].HAService != nil && dbServices[i].HAService.HAType == haType {
 				for _, peer := range relationship.Peers {
 					if *peer.Name == dbServices[i].HAService.Relationship {
 						service = &dbServices[i]
@@ -89,7 +90,7 @@ func DetectHAServices(dbi dbops.DBI, daemon *dbmodel.Daemon) ([]dbmodel.Service,
 					Daemons: []*dbmodel.Daemon{daemon},
 				},
 				HAService: &dbmodel.BaseHAService{
-					HAType:       daemon.Name,
+					HAType:       haType,
 					Relationship: *thisPeer.Name,
 				},
 			}

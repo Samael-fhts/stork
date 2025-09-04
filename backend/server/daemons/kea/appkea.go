@@ -9,6 +9,7 @@ import (
 	errors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	dbops "isc.org/stork/server/database"
@@ -62,8 +63,12 @@ type DaemonStateMeta struct {
 // Return a config, its hash and an error if any.
 func GetConfig(ctx context.Context, agents agentcomm.ConnectedAgents, daemon agentcomm.ControlledDaemon) (*keaconfig.Config, error) {
 	// prepare the command to get config and version from CA
+	daemonName, err := daemon.GetName().ToKeaDaemonName()
+	if err != nil {
+		return nil, err
+	}
 	commands := []keactrl.SerializableCommand{
-		keactrl.NewCommandBase(keactrl.ConfigGet, daemon.GetName()),
+		keactrl.NewCommandBase(keactrl.ConfigGet, daemonName),
 	}
 
 	var configGetResponse keactrl.Response
@@ -101,8 +106,12 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 
 	now := storkutil.UTCNow()
 
-	daemonName := daemon.Name
-	isDHCPDaemon := daemonName == dbmodel.DaemonNameDHCPv4 || daemonName == dbmodel.DaemonNameDHCPv6
+	daemonName, err := daemon.Name.ToKeaDaemonName()
+	if err != nil {
+		return
+	}
+
+	isDHCPDaemon := daemonName == constant.KeaDaemonNameDHCPv4 || daemonName == constant.KeaDaemonNameDHCPv6
 
 	var versionGetResponse VersionGetResponse
 	var configGetResponse keactrl.Response
@@ -368,9 +377,9 @@ func CommitDaemonsIntoDB(db *dbops.PgDB, daemons []*dbmodel.Daemon, eventCenter 
 		}
 
 		// Detect and commit changes in the associated entities.
-		networks := make(map[string][]dbmodel.SharedNetwork)
-		subnets := make(map[string][]dbmodel.Subnet)
-		globalHosts := make(map[string][]dbmodel.Host)
+		networks := make(map[constant.DaemonName][]dbmodel.SharedNetwork)
+		subnets := make(map[constant.DaemonName][]dbmodel.Subnet)
+		globalHosts := make(map[constant.DaemonName][]dbmodel.Host)
 
 		for i, daemon := range daemons {
 			if !states[i].IsConfigChanged {

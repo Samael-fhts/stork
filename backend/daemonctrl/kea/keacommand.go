@@ -4,24 +4,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"sort"
 	"strings"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
+	"isc.org/stork/daemonctrl/constant"
 )
 
 // Kea command name type.
 type CommandName string
-
-// Kea daemon name.
-type DaemonName = string
-
-const (
-	DHCPv4 DaemonName = "dhcp4"
-	DHCPv6 DaemonName = "dhcp6"
-	D2     DaemonName = "d2"
-	CA     DaemonName = "ca"
-)
 
 // Kea response result codes.
 type ResponseResult int
@@ -47,7 +38,7 @@ const (
 
 // Interface to a Kea command that can be marshalled and sent.
 type SerializableCommand interface {
-	GetDaemonsList() []DaemonName
+	GetDaemonsList() []constant.KeaDaemonName
 	GetCommand() CommandName
 	Marshal() ([]byte, error)
 }
@@ -55,9 +46,9 @@ type SerializableCommand interface {
 // Represents a command sent to Kea including command name, daemons list
 // (service list in Kea terms) and arguments.
 type Command struct {
-	Command   CommandName  `json:"command"`
-	Daemons   []DaemonName `json:"service,omitempty"`
-	Arguments interface{}  `json:"arguments,omitempty"`
+	Command   CommandName              `json:"command"`
+	Daemons   []constant.KeaDaemonName `json:"service,omitempty"`
+	Arguments interface{}              `json:"arguments,omitempty"`
 }
 
 // Common fields in each received Kea response.
@@ -156,7 +147,7 @@ func createOrGetArguments(command *Command) (mapArgs map[string]any) {
 
 // Creates new Kea command from specified command name, daemons list and arguments.
 // The arguments are required to be a map or struct.
-func newCommand(command CommandName, daemons []DaemonName, arguments any) *Command {
+func newCommand(command CommandName, daemons []constant.KeaDaemonName, arguments any) *Command {
 	if len(command) == 0 {
 		return nil
 	}
@@ -173,7 +164,15 @@ func newCommand(command CommandName, daemons []DaemonName, arguments any) *Comma
 			return nil
 		}
 	}
-	sort.Strings(daemons)
+
+	if len(daemons) > 1 {
+		log.Errorf("Multiple daemons specified for command %s: %v. Only one daemon is supported.", command, daemons)
+		daemons = daemons[:1]
+	} else if len(daemons) == 0 {
+		log.Warnf("No daemon specified for command %s. At least one daemon is required.", command)
+		daemons = []constant.KeaDaemonName{constant.KeaDaemonNameCA}
+	}
+
 	cmd := &Command{
 		Command:   command,
 		Daemons:   daemons,
@@ -194,8 +193,8 @@ func NewCommandFromJSON(jsonCommand string) (*Command, error) {
 }
 
 // Constructs new command with no arguments.
-func NewCommandBase(command CommandName, daemon DaemonName) *Command {
-	return newCommand(command, []DaemonName{daemon}, nil)
+func NewCommandBase(command CommandName, daemon constant.KeaDaemonName) *Command {
+	return newCommand(command, []constant.KeaDaemonName{daemon}, nil)
 }
 
 // Appends argument to the command. If the arguments are nil, the
@@ -233,7 +232,7 @@ func (c Command) GetCommand() CommandName {
 }
 
 // Returns daemon names specified within the command.
-func (c Command) GetDaemonsList() []DaemonName {
+func (c Command) GetDaemonsList() []constant.KeaDaemonName {
 	return c.Daemons
 }
 
