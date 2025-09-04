@@ -29,6 +29,7 @@ import (
 
 	"isc.org/stork"
 	agentapi "isc.org/stork/api"
+	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	"isc.org/stork/pki"
 	storkutil "isc.org/stork/util"
@@ -549,6 +550,10 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 		return response, nil
 	}
 
+	logFields := log.Fields{
+		"url": reqURL,
+	}
+
 	host, port, _ := storkutil.ParseURL(reqURL)
 	daemon := sa.Monitor.GetDaemonByAccessPoint(AccessPointControl, host, port)
 	if daemon == nil {
@@ -556,6 +561,8 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 		response.Status.Message = "cannot find Kea daemon"
 		return response, nil
 	}
+	logFields["daemon"] = daemon.String()
+
 	keaDaemon := daemon.(*KeaDaemon)
 	if keaDaemon == nil {
 		response.Status.Code = agentapi.Status_ERROR
@@ -563,43 +570,52 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 		return response, nil
 	}
 
-	requests := in.GetKeaRequests()
-
 	// forward requests to kea one by one
-	for _, req := range requests {
-		rsp := &agentapi.KeaResponse{
+	for _, keaRequest := range in.GetKeaRequests() {
+		grpcResponse := &agentapi.KeaResponse{
 			Status: &agentapi.Status{},
 		}
+		var keaCommand keactrl.Command
+		if err := json.Unmarshal([]byte(keaRequest.Request), &keaCommand); err != nil {
+			log.WithFields(logFields).WithError(err).Error("Failed to parse Kea request")
+			grpcResponse.Status.Code = agentapi.Status_ERROR
+			grpcResponse.Status.Message = fmt.Sprintf("failed to parse Kea request: %s", err.Error())
+			continue
+		}
+		var keaResponse keactrl.Response
+
 		// Try to forward the command to Kea Control Agent.
-		body, err := keaDaemon.sendCommandRaw([]byte(req.Request))
+		err := keaDaemon.sendCommand(&keaCommand, &keaResponse)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"URL": reqURL,
-			}).Errorf("Failed to forward commands to Kea CA: %+v", err)
-			rsp.Status.Code = agentapi.Status_ERROR
-			rsp.Status.Message = fmt.Sprintf("failed to forward commands to Kea: %s", err.Error())
-			response.KeaResponses = append(response.KeaResponses, rsp)
+			log.WithError(err).WithFields(logFields).Errorf("Failed to forward commands to Kea")
+			grpcResponse.Status.Code = agentapi.Status_ERROR
+			grpcResponse.Status.Message = fmt.Sprintf("failed to forward commands to Kea: %s", err.Error())
+			response.KeaResponses = append(response.KeaResponses, grpcResponse)
 			continue
 		}
 
 		// Push Kea response for synchronous processing. It may modify the
 		// response body.
-		body, err = sa.keaInterceptor.syncHandle(sa, req, body)
+		keaResponse, err = sa.keaInterceptor.syncHandle(sa, keaCommand, keaResponse)
 		if err != nil {
-			log.WithFields(log.Fields{
-				"URL": reqURL,
-			}).Errorf("Failed to apply synchronous interceptors on Kea response: %+v", err)
+			log.WithFields(logFields).Errorf("Failed to apply synchronous interceptors on Kea response: %+v", err)
 			continue
 		}
 
 		// Push Kea response for async processing. It is done in background.
 		// One of the use cases is to extract log files used by Kea and to
 		// allow the log viewer to access them.
-		go sa.keaInterceptor.asyncHandle(sa, req, body)
+		go sa.keaInterceptor.asyncHandle(sa, keaCommand, keaResponse)
 
-		rsp.Response = body
-		rsp.Status.Code = agentapi.Status_OK
-		response.KeaResponses = append(response.KeaResponses, rsp)
+		body, err := json.Marshal(keaResponse)
+		if err != nil {
+			log.WithFields(logFields).Errorf("Failed to marshal Kea response: %+v", err)
+			continue
+		}
+
+		grpcResponse.Response = body
+		grpcResponse.Status.Code = agentapi.Status_OK
+		response.KeaResponses = append(response.KeaResponses, grpcResponse)
 	}
 
 	return response, nil

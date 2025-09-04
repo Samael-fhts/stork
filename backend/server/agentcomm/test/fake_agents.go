@@ -19,7 +19,7 @@ var _ agentcomm.ConnectedAgents = (*FakeAgents)(nil)
 type FakeAgents struct {
 	RecordedURLs     []string
 	RecordedCommands []keactrl.SerializableCommand
-	mockKeaFunc      []func(int, []interface{})
+	mockKeaFunc      []func(int, []any)
 	CallNo           int
 
 	RecordedAddress string
@@ -58,7 +58,7 @@ server is up and running`
 
 // Creates new instance of the FakeAgents structure with the function returning
 // a custom response set.
-func NewFakeAgents(fnKea func(int, []interface{}), fnNamed func(int, interface{})) *FakeAgents {
+func NewFakeAgents(fnKea func(int, []any), fnNamed func(int, interface{})) *FakeAgents {
 	fa := &FakeAgents{
 		mockNamedFunc:  fnNamed,
 		mockRndcOutput: mockRndcOutput(),
@@ -73,7 +73,7 @@ func NewFakeAgents(fnKea func(int, []interface{}), fnNamed func(int, interface{}
 // Create new instance of the FakeAgents structure with multiple mock functions
 // returning Kea responses. The subsequent mock functions are invoked for each
 // new call.
-func NewKeaFakeAgents(fnsKea ...func(int, []interface{})) *FakeAgents {
+func NewKeaFakeAgents(fnsKea ...func(int, []any)) *FakeAgents {
 	fa := &FakeAgents{
 		mockKeaFunc: fnsKea,
 	}
@@ -122,7 +122,7 @@ func (fa *FakeAgents) GetLastCommand() *keactrl.Command {
 // function so as they can be later validated. It also returns a custom
 // response to the command by calling the function specified in the
 // call to NewFakeAgents or NewKeaFakeAgents.
-func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm.ControlledDaemon, commands []keactrl.SerializableCommand, cmdResponses ...interface{}) (*agentcomm.KeaCmdsResult, error) {
+func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm.ControlledDaemon, commands []keactrl.SerializableCommand, cmdResponses ...any) (*agentcomm.KeaCmdsResult, error) {
 	caAddress, caPort, _, caUseSecureProtocol, _ := daemon.GetControlAccessPoint()
 	caURL := storkutil.HostWithPortURL(caAddress, caPort, caUseSecureProtocol)
 
@@ -133,7 +133,7 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm
 		result.CmdsErrors = append(result.CmdsErrors, nil)
 	}
 	// Generate response.
-	var mock func(int, []interface{})
+	var mock func(int, []any)
 	if len(fa.mockKeaFunc) > 0 {
 		if fa.CallNo >= len(fa.mockKeaFunc) {
 			mock = fa.mockKeaFunc[len(fa.mockKeaFunc)-1]

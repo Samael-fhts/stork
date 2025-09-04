@@ -349,8 +349,8 @@ func getDHCPStatus(ctx context.Context, agents agentcomm.ConnectedAgents, daemon
 	ctx, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
-	// The Kea response will be stored in this slice of structures.
-	response := []StatusGetResponse{}
+	// The Kea response.
+	var response StatusGetResponse
 
 	// Send the command and receive the response.
 	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{cmd}, &response)
@@ -362,17 +362,13 @@ func getDHCPStatus(ctx context.Context, agents agentcomm.ConnectedAgents, daemon
 	}
 
 	// Extract the status value.
-	if len(response) != 1 {
-		return nil, fmt.Errorf("expected one response to status-get command, got %d", len(response))
-	}
-	responseItem := response[0]
-	if err := responseItem.GetError(); err != nil {
+	if err := response.GetError(); err != nil {
 		return nil, errors.WithMessage(err, "status-get command failed")
 	}
 
 	daemonStatus := &daemonStatus{
-		StatusGetRespArgs: *responseItem.Arguments,
-		Daemon:            responseItem.Daemon,
+		StatusGetRespArgs: *response.Arguments,
+		Daemon:            response.Daemon,
 	}
 
 	return daemonStatus, nil

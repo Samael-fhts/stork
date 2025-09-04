@@ -799,8 +799,13 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 			return nil, errors.Errorf("expected daemon %s in the command %s, got %s", daemon.GetName(), cmd.GetCommand(), daemons[0])
 		}
 
+		marshalledCommand, err := cmd.Marshal()
+		if err != nil {
+			return nil, errors.WithMessagef(err, "failed to marshal Kea command %s", cmd.GetCommand())
+		}
+
 		req.KeaRequests = append(req.KeaRequests, &agentapi.KeaRequest{
-			Request: cmd.Marshal(),
+			Request: string(marshalledCommand),
 		})
 	}
 	// Send the commands to the Stork Agent and get the response.

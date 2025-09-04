@@ -347,7 +347,7 @@ func (iterator *hostIterator) sendReservationGetPage() ([]keaconfig.Reservation,
 	// Prepare the command.
 	command := keactrl.NewCommandReservationGetPage(subnetID, iterator.sourceIndex, iterator.from, iterator.limit, iterator.daemon.Name)
 	commands := []keactrl.SerializableCommand{command}
-	response := make([]ReservationGetPageResponse, 1)
+	var response ReservationGetPageResponse
 	ctx := context.Background()
 	respResult, err := iterator.agents.ForwardToKeaOverHTTP(ctx, iterator.daemon, commands, &response)
 	if err != nil {
@@ -358,34 +358,30 @@ func (iterator *hostIterator) sendReservationGetPage() ([]keaconfig.Reservation,
 		return []keaconfig.Reservation{}, keactrl.ResponseError, err
 	}
 
-	if len(response) == 0 {
-		return []keaconfig.Reservation{}, keactrl.ResponseError, errors.Errorf("invalid response to reservation-get-page command received")
-	}
-
 	// An error is likely to be a communication problem between Kea Control
 	// Agent and some other daemon.
-	if err := response[0].GetError(); err != nil {
+	if err := response.GetError(); err != nil {
 		// If the command is not supported by this Kea server, simply stop.
 		if errors.As(err, &keactrl.UnsupportedOperationKeaError{}) {
 			return []keaconfig.Reservation{}, keactrl.ResponseCommandUnsupported, nil
 		}
 
-		return []keaconfig.Reservation{}, response[0].Result,
+		return []keaconfig.Reservation{}, response.Result,
 			errors.WithMessage(err,
 				"error returned by Kea in response to reservation-get-page command",
 			)
 	}
 
-	if response[0].Arguments == nil {
-		return []keaconfig.Reservation{}, response[0].Result, errors.Errorf("response to reservation-get-page command lacks arguments")
+	if response.Arguments == nil {
+		return []keaconfig.Reservation{}, response.Result, errors.Errorf("response to reservation-get-page command lacks arguments")
 	}
 
 	// Response received, update the iterator's state.
-	iterator.from = response[0].Arguments.Next.From
-	iterator.sourceIndex = response[0].Arguments.Next.SourceIndex
+	iterator.from = response.Arguments.Next.From
+	iterator.sourceIndex = response.Arguments.Next.SourceIndex
 
 	// Return hosts to the caller.
-	return response[0].Arguments.Hosts, response[0].Result, nil
+	return response.Arguments.Hosts, response.Result, nil
 }
 
 // Returns a pointer to the subnet at the specified position index in the iterator.

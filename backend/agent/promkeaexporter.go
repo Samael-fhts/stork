@@ -2,7 +2,6 @@ package agent
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net"
 	"net/http"
@@ -31,14 +30,6 @@ type subnetListItem struct {
 	sharedNetwork string
 }
 
-// Parsed subnet list from Kea `subnet4-list` and `subnet6-list` response.
-type subnetList map[int]subnetListItem
-
-// Constructor of the subnetList type.
-func newSubnetList() subnetList {
-	return make(subnetList)
-}
-
 // JSON structures of Kea `subnet4-list` and `subnet6-list` response.
 type subnetListJSONArgumentsSubnet struct {
 	ID     int
@@ -56,53 +47,8 @@ type subnetListJSON struct {
 	Arguments *subnetListJSONArguments
 }
 
-// UnmarshalJSON implements json.Unmarshaler. It unpacks the Kea response
-// to map.
-func (l *subnetList) UnmarshalJSON(b []byte) error {
-	// Unmarshal must be called with existing instance.
-	if *l == nil {
-		*l = newSubnetList()
-	}
 
-	// Standard unmarshal
-	var dhcpLabelsJSONs []subnetListJSON
-	err := json.Unmarshal(b, &dhcpLabelsJSONs)
-	// Parse JSON content
-	if err != nil {
-		return errors.Wrap(err, "problem parsing DHCP4 labels from Kea")
-	}
 
-	if len(dhcpLabelsJSONs) == 0 {
-		return errors.New("empty JSON list")
-	}
-
-	dhcpLabelsJSON := dhcpLabelsJSONs[0]
-
-	// Check the response error.
-	if err := dhcpLabelsJSON.GetError(); err != nil {
-		if errors.As(err, &keactrl.UnsupportedOperationKeaError{}) {
-			// Hook not installed. Return empty mapping
-			return nil
-		}
-		return errors.WithMessage(err, "problem with content of DHCP labels response from Kea")
-	}
-
-	// Result is OK, parse the mapping content
-
-	// No entries
-	if dhcpLabelsJSON.Arguments == nil {
-		return nil
-	}
-
-	for _, subnet := range dhcpLabelsJSON.Arguments.Subnets {
-		(*l)[subnet.ID] = subnetListItem{
-			prefix:        subnet.Subnet,
-			sharedNetwork: subnet.SharedNetworkName,
-		}
-	}
-
-	return nil
-}
 
 // Stats descriptor that holds reference to prometheus stats
 // and its 'operation' label.
@@ -122,7 +68,7 @@ type subnetLookup interface {
 
 // An object that implements this interface can send requests to the Kea CA.
 type keaCommandSender interface {
-	sendCommandRaw(command []byte) ([]byte, error)
+	sendCommand(command *keactrl.Command, response any) error
 }
 
 // Subnet lookup that fetches the subnet data only if necessary.
@@ -133,7 +79,7 @@ type keaCommandSender interface {
 type lazySubnetLookup struct {
 	sender keaCommandSender
 	// Cached subnet list from current family.
-	cachedList subnetList
+	cachedSubnets map[int]subnetListItem
 	// Indicates that the subnet data was fetched for current family.
 	cached bool
 	// Family to use during lookups.
@@ -149,53 +95,52 @@ func newLazySubnetLookup(sender keaCommandSender) subnetLookup {
 // If any error occurs or list is unavailable then the cache for specific
 // family is set to nil. Returns fetched subnet list.
 // Family should be 4 or 6.
-func (l *lazySubnetLookup) fetchAndCacheList() subnetList {
+func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
 	// Request to subnet prefixes.
-	var request string
+	var request *keactrl.Command
 	if l.family == 4 {
-		request = `{
-			"command":"subnet4-list",
-			"service":["dhcp4"],
-			"arguments": {}
-		}`
+		request = keactrl.NewCommandBase(keactrl.Subnet4List, keactrl.DHCPv4)
 	} else {
-		request = `{
-			"command":"subnet6-list",
-			"service":["dhcp6"],
-			"arguments": {}
-		}`
+		request = keactrl.NewCommandBase(keactrl.Subnet6List, keactrl.DHCPv6)
 	}
 
-	response, err := l.sender.sendCommandRaw([]byte(request))
-	var list subnetList
-	if err == nil {
-		err = json.Unmarshal(response, &list)
-		if err != nil {
-			log.WithError(err).Errorf(
-				"Problem parsing DHCPv%d prefixes from Kea",
-				l.family,
-			)
+	var response subnetListJSON
+	err := l.sender.sendCommand(request, &response)
+	if err != nil {
+		if errors.As(err, &keactrl.UnsupportedOperationKeaError{}) {
+			// Hook not installed. Return empty mapping
+			return nil
 		}
+		log.WithError(err).Errorf("Failed to fetch subnet list from Kea")
+		return nil
 	}
 
 	// Cache results
-	l.cachedList = list
+	subnets := make(map[int]subnetListItem)
+	for _, subnet := range response.Arguments.Subnets {
+		subnets[subnet.ID] = subnetListItem{
+			prefix:        subnet.Subnet,
+			sharedNetwork: subnet.SharedNetworkName,
+		}
+	}
+
+	l.cachedSubnets = subnets
 	l.cached = true
-	return list
+	return subnets
 }
 
 // Returns the subnet details for specific subnet ID and IP family (4 or 6).
 // If the info is unavailable then it returns empty struct and false.
 func (l *lazySubnetLookup) getSubnetInfo(subnetID int) (subnetListItem, bool) {
-	list := l.cachedList
+	subnets := l.cachedSubnets
 	if !l.cached {
-		list = l.fetchAndCacheList()
+		subnets = l.fetchAndCacheList()
 	}
-	if list == nil {
+	if subnets == nil {
 		return subnetListItem{}, false
 	}
 
-	item, ok := list[subnetID]
+	item, ok := subnets[subnetID]
 	return item, ok
 }
 

@@ -143,13 +143,20 @@ func mergeNewAndOldDaemons(db *dbops.PgDB, dbMachine *dbmodel.Machine, discovere
 	}
 
 	matchedDaemons := make([]dbmodel.Daemon, 0, len(discoveredDaemons))
+	oldMatchedIndices := make(map[int]bool)
 
 DISCOVERED_LOOP:
 	for _, discoveredDaemon := range discoveredDaemons {
-		for _, oldDaemon := range oldDaemons {
+		for i, oldDaemon := range oldDaemons {
+			if _, ok := oldMatchedIndices[i]; ok {
+				// This old daemon has already been matched with some
+				// discovered daemon.
+				continue
+			}
+
 			if daemonCompare(oldDaemon, discoveredDaemon) {
 				matchedDaemons = append(matchedDaemons, oldDaemon)
-				oldDaemons = append(oldDaemons[:0], oldDaemons[1:]...) // remove matched daemon
+				oldMatchedIndices[i] = true
 				continue DISCOVERED_LOOP
 			}
 		}
@@ -170,7 +177,14 @@ DISCOVERED_LOOP:
 		matchedDaemons = append(matchedDaemons, *newDaemon)
 	}
 
-	return matchedDaemons, oldDaemons, nil
+	var deletedDaemons []dbmodel.Daemon
+	for i, oldDaemon := range oldDaemons {
+		if _, ok := oldMatchedIndices[i]; !ok {
+			deletedDaemons = append(deletedDaemons, oldDaemon)
+		}
+	}
+
+	return matchedDaemons, deletedDaemons, nil
 }
 
 // Retrieve remotely machine and its daemons state, and store it in the database.
@@ -262,7 +276,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 	}
 
 	// Delete the daemons that are no longer exist.
-	db.RunInTransaction(ctx2, func(tx *pg.Tx) error {
+	err = db.RunInTransaction(ctx2, func(tx *pg.Tx) error {
 		for _, daemon := range deletedDaemons {
 			err := dbmodel.DeleteDaemon(tx, &daemon)
 			if err != nil {
@@ -273,6 +287,11 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 		}
 		return nil
 	})
+	if err != nil {
+		msg := "Cannot delete old daemons"
+		log.WithError(err).Error(msg)
+		// Continue processing.
+	}
 
 	// Group daemons by Kea, BIND 9, PowerDNS, etc.
 	existingDaemonsByType := make(map[string][]*dbmodel.Daemon)

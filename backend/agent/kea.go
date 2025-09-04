@@ -40,45 +40,48 @@ func (d *KeaDaemon) getControlAccessPoint() *AccessPoint {
 
 // Sends a command to Kea and returns a response.
 func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
-	// Get the textual representation of the command.
-	request := command.Marshal()
-
-	// Send the command to Kea CA.
-	body, err := d.sendCommandRaw([]byte(request))
-	if err != nil {
-		return err
+	// Stork requires that command has exactly one target daemon.
+	// However, Kea CA expects that if the command is targeted to itself,
+	// the Daemons field must be empty.
+	isCATarget := len(command.Daemons) == 1 && command.Daemons[0] == keactrl.CA
+	if isCATarget {
+		command.Daemons = nil
 	}
 
-	// Unmarshal the response into the provided structure.
-	err = json.Unmarshal(body, response)
-
-	// Parse the response.
+	commandBytes, err := command.Marshal()
 	if err != nil {
-		return errors.WithMessage(err, "failed to parse Kea response body received")
+		return errors.WithMessagef(err, "failed to marshal command to JSON")
 	}
-	return nil
-}
 
-// Sends a serialized command to Kea and returns a serialized response.
-func (d *KeaDaemon) sendCommandRaw(command []byte) ([]byte, error) {
+	if isCATarget {
+		command.Daemons = []string{keactrl.CA}
+	}
+
 	// Send the command to the Kea server.
-	response, err := d.connector.sendPayload(command)
+	responseBytes, err := d.connector.sendPayload(commandBytes)
 	if err != nil {
-		return nil, errors.WithMessagef(err, "failed to send command to Kea")
+		return errors.WithMessagef(err, "failed to send command to Kea")
 	}
 
 	// The responses from the Kea CA are wrapped in a JSON array.
 	// Responses from other daemons are always single JSON objects.
-	var arrayResponse []json.RawMessage
-	err = json.Unmarshal(response, &arrayResponse)
-	if err == nil {
-		if len(arrayResponse) != 1 {
-			return nil, errors.Errorf("invalid number of responses received, got: %d, expected: 1", len(arrayResponse))
+	if isCATarget {
+		var arrayResponse []json.RawMessage
+		err = json.Unmarshal(responseBytes, &arrayResponse)
+		if err == nil {
+			if len(arrayResponse) != 1 {
+				return errors.Errorf("invalid number of responses received, got: %d, expected: 1", len(arrayResponse))
+			}
+			responseBytes = arrayResponse[0]
 		}
-		return arrayResponse[0], nil
 	}
 
-	return response, nil
+	err = json.Unmarshal(responseBytes, response)
+	if err != nil {
+		return errors.WithMessagef(err, "failed to parse Kea response")
+	}
+
+	return nil
 }
 
 // Collect the list of log files which can be viewed by the Stork user

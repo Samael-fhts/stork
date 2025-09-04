@@ -67,25 +67,22 @@ func validateGetLeasesResponse(commandName keactrl.CommandName, result keactrl.R
 // exist, a nil pointer and nil error are returned.
 func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, ipAddress string) (lease *dbmodel.Lease, err error) {
 	command := keactrl.NewCommandLease4Get(ipAddress, keactrl.DHCPv4)
-	response := make([]Lease4GetResponse, 1)
+	var response Lease4GetResponse
 	ctx := context.Background()
 	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{command}, &response)
 	if err != nil {
 		return lease, err
 	}
-	if respResult.Error != nil {
-		return lease, respResult.Error
-	}
-	if len(response) == 0 {
-		return lease, errors.Errorf("invalid response to lease4-get command received")
-	}
-	if response[0].Result == keactrl.ResponseEmpty {
-		return lease, nil
-	}
-	if err = validateGetLeasesResponse("lease4-get", response[0].Result, response[0].Arguments); err != nil {
+	if err := respResult.GetFirstError(); err != nil {
 		return lease, err
 	}
-	lease = response[0].Arguments
+	if response.Result == keactrl.ResponseEmpty {
+		return lease, nil
+	}
+	if err = validateGetLeasesResponse("lease4-get", response.Result, response.Arguments); err != nil {
+		return lease, err
+	}
+	lease = response.Arguments
 	lease.DaemonId = daemon.ID
 	lease.Daemon = daemon
 	return lease, nil
@@ -97,7 +94,7 @@ func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daem
 // are returned.
 func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, leaseType keactrl.LeaseType, ipAddress string) (lease *dbmodel.Lease, err error) {
 	command := keactrl.NewCommandLease6Get(leaseType, ipAddress, "dhcp6")
-	response := make([]Lease6GetResponse, 1)
+	var response Lease6GetResponse
 	ctx := context.Background()
 	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{command}, &response)
 	if err != nil {
@@ -106,16 +103,13 @@ func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daem
 	if respResult.Error != nil {
 		return lease, respResult.Error
 	}
-	if len(response) == 0 {
-		return lease, errors.Errorf("invalid response to lease6-get command received")
-	}
-	if response[0].Result == keactrl.ResponseEmpty {
+	if response.Result == keactrl.ResponseEmpty {
 		return lease, nil
 	}
-	if err = validateGetLeasesResponse(keactrl.Lease6Get, response[0].Result, response[0].Arguments); err != nil {
+	if err = validateGetLeasesResponse(keactrl.Lease6Get, response.Result, response.Arguments); err != nil {
 		return lease, err
 	}
-	lease = response[0].Arguments
+	lease = response.Arguments
 	lease.DaemonId = daemon.ID
 	lease.Daemon = daemon
 	return lease, nil
@@ -183,9 +177,9 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, daemon *dbmodel.Dae
 	}
 
 	// Create container for responses to each command sent.
-	var responses []interface{}
+	var responses []any
 	for range commands {
-		response := make([]LeaseGetMultipleResponse, 1)
+		var response LeaseGetMultipleResponse
 		responses = append(responses, &response)
 	}
 
@@ -203,23 +197,18 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, daemon *dbmodel.Dae
 
 	// Validate responses to all commands.
 	for i, r := range responses {
-		response := r.(*[]LeaseGetMultipleResponse)
+		response := r.(*LeaseGetMultipleResponse)
 
-		// This is rather an impossible condition, so if it occurs something is
-		// heavily broken, so let's bail.
-		if len(*response) == 0 {
-			return []dbmodel.Lease{}, false, errors.Errorf("invalid response received from Kea to the %s command", commands[i].GetCommand())
-		}
 		// Ignore empty response. It is valid but there are no leases,
 		// so there is nothing more to do.
-		if (*response)[0].Result != keactrl.ResponseEmpty {
-			if err = validateGetLeasesResponse(commands[i].GetCommand(), (*response)[0].Result, (*response)[0].Arguments); err != nil {
+		if response.Result != keactrl.ResponseEmpty {
+			if err = validateGetLeasesResponse(commands[i].GetCommand(), response.Result, response.Arguments); err != nil {
 				// Log an error and continue. Maybe there is a communication problem
 				// with one daemon, but the other one is still operational.
 				log.Warn(err)
 				warns = true
 			} else {
-				leases = append(leases, (*response)[0].Arguments.Leases...)
+				leases = append(leases, response.Arguments.Leases...)
 			}
 		}
 	}
@@ -304,7 +293,7 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 			lease, err := GetLease4ByIPAddress(agents, daemon, text)
 			if err != nil {
 				daemonError = true
-				log.WithError(err).Warn("Failed to fetch lease by IPv4 address from Kea")
+				log.WithError(err).Error("Failed to fetch lease by IPv4 address from Kea")
 			} else if lease != nil {
 				leases = append(leases, *lease)
 			}
@@ -319,7 +308,7 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 				lease, err := GetLease6ByIPAddress(agents, daemon, leaseType, text)
 				if err != nil {
 					daemonError = true
-					log.WithError(err).Warn("Failed to fetch lease by IPv6 address from Kea")
+					log.WithError(err).Error("Failed to fetch lease by IPv6 address from Kea")
 				} else if lease != nil {
 					leases = append(leases, *lease)
 					// If we found a lease by IP address there is no reason to
@@ -364,7 +353,7 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 			daemonError = warns
 			if err != nil {
 				daemonError = true
-				log.WithError(err).Warnf("Failed to fetch leases from Kea [%d] %s daemon", daemon.ID, daemon.Name)
+				log.WithError(err).Errorf("Failed to fetch leases from Kea [%d] %s daemon", daemon.ID, daemon.Name)
 			} else {
 				leases = append(leases, leasesByProperties...)
 			}

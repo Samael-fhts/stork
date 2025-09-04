@@ -20,6 +20,8 @@ const (
 	Subnet6Del        CommandName = "subnet6-del"
 	Subnet4Get        CommandName = "subnet4-get"
 	Subnet6Get        CommandName = "subnet6-get"
+	Subnet4List       CommandName = "subnet4-list"
+	Subnet6List       CommandName = "subnet6-list"
 	Subnet4Update     CommandName = "subnet4-update"
 	Subnet6Update     CommandName = "subnet6-update"
 )

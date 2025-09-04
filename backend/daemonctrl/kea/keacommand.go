@@ -45,16 +45,11 @@ const (
 	ResponseConflict ResponseResult = 4
 )
 
-// Interface returning a list of daemons in the command.
-type DaemonsLister interface {
-	GetDaemonsList() []DaemonName
-}
-
 // Interface to a Kea command that can be marshalled and sent.
 type SerializableCommand interface {
-	DaemonsLister
+	GetDaemonsList() []DaemonName
 	GetCommand() CommandName
-	Marshal() string
+	Marshal() ([]byte, error)
 }
 
 // Represents a command sent to Kea including command name, daemons list
@@ -232,13 +227,6 @@ func (c Command) WithArguments(arguments any) *Command {
 	return &command
 }
 
-// Returns JSON representation of the Kea command, which can be sent to
-// the Kea servers over GRPC.
-func (c Command) Marshal() string {
-	bytes, _ := json.Marshal(c)
-	return string(bytes)
-}
-
 // Returns command name.
 func (c Command) GetCommand() CommandName {
 	return c.Command
@@ -247,6 +235,15 @@ func (c Command) GetCommand() CommandName {
 // Returns daemon names specified within the command.
 func (c Command) GetDaemonsList() []DaemonName {
 	return c.Daemons
+}
+
+// Marshals the command to JSON.
+func (c Command) Marshal() ([]byte, error) {
+	data, err := json.Marshal(c)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshal Kea command: %s", c.Command)
+	}
+	return data, nil
 }
 
 // Returns status code.
@@ -287,6 +284,15 @@ func (r Response) GetArguments() json.RawMessage {
 // Error returns the error returned by Kea.
 func (r ResponseHeader) GetError() error {
 	return newKeaError(r.Result, r.Text)
+}
+
+// Deserializes the response from JSON.
+func (r *ResponseHeader) Unmarshal(data []byte) error {
+	err := json.Unmarshal(data, r)
+	if err != nil {
+		return errors.Wrapf(err, "failed to unmarshal Kea response: %s", string(data))
+	}
+	return nil
 }
 
 // Check response status code and returns appropriate error or nil if the
