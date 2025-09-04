@@ -93,46 +93,25 @@ def _reset_db_and_server(base_url: str) -> None:
     srv = f"{PROJECT_NAME}-server-1"
 
     sql = "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
-    try:
-        subprocess.run(
-            [
-                "docker",
-                "exec",
-                "-i",
-                pg,
-                "psql",
-                "-U",
-                "stork",
-                "-d",
-                "stork",
-                "-v",
-                "ON_ERROR_STOP=1",
-                "-c",
-                sql,
-            ],
-            check=True,
-            text=True,
-        )
-    except subprocess.CalledProcessError:
-        subprocess.run(
-            [
-                "docker",
-                "exec",
-                "-i",
-                pg,
-                "psql",
-                "-U",
-                "postgres",
-                "-d",
-                "stork",
-                "-v",
-                "ON_ERROR_STOP=1",
-                "-c",
-                sql,
-            ],
-            check=True,
-            text=True,
-        )
+    subprocess.run(
+        [
+            "docker",
+            "exec",
+            "-i",
+            pg,
+            "psql",
+            "-U",
+            "stork",
+            "-d",
+            "stork",
+            "-v",
+            "ON_ERROR_STOP=1",
+            "-c",
+            sql,
+        ],
+        check=True,
+        text=True,
+    )
 
     subprocess.run(["docker", "restart", srv], check=True, text=True)
 
@@ -148,13 +127,16 @@ def _reset_db_and_server(base_url: str) -> None:
 
 
 @pytest.fixture(scope="session")
-def stork_base_url() -> str:
+def setup() -> None:
     """
     SAME environment as system tests, with UI assets enabled via override file.
 
     Workflow:
       - If STORK_REUSE=1: just wait for health (reuse an already-running stack).
       - Else: build and start postgres, server, agent-kea; then try registering.
+
+    Note: This fixture performs environment setup once per test session.
+    Tests should use BASE_URL directly for the URL; this fixture returns nothing.
     """
 
     os.environ.setdefault("IPWD", str(ROOT))
@@ -162,15 +144,13 @@ def stork_base_url() -> str:
 
     if os.getenv("STORK_REUSE") == "1":
         _wait_http_ok(f"{BASE_URL}/api/version", timeout=120)
-        return BASE_URL
+        return
 
     _hard_cleanup()
 
     _dc_cmd("build", "--", "postgres", "server", "agent-kea")
     _dc_cmd("up", "-d", "--", "postgres")
-    _dc_cmd(
-        "up", "-d", "--", "server"
-    )  # NOTE: service name is 'server' (overridden to target server-ui)
+    _dc_cmd("up", "-d", "--", "server")
     _dc_cmd("up", "-d", "--", "agent-kea")
 
     _wait_http_ok(f"{BASE_URL}/api/version", timeout=120)
@@ -180,21 +160,19 @@ def stork_base_url() -> str:
     except subprocess.CalledProcessError as e:
         print("WARN: 'register' helper failed; continuing for UI tests.\n", e)
 
-    return BASE_URL
-
 
 @pytest.fixture(scope="function")
-def logged_in_page(page: Page, stork_base_url: str):
+def logged_in_page(page: Page, setup):
     """Open login and authenticate with seeded admin credentials."""
-    from tests.ui.playwright.pages.login_page import LoginPage  # lazy import
+    from tests.ui.playwright.pages.login_page import LoginPage
 
     lp = LoginPage(page)
-    lp.open(stork_base_url)
+    lp.open(BASE_URL)
     lp.login("admin", "admin")
     return page
 
 
 @pytest.fixture(autouse=True, scope="function")
-def _clean_before_each_test(stork_base_url: str):
+def clean_before_each_test(setup):
     """Ensure a clean environment before every test."""
-    _reset_db_and_server(stork_base_url)
+    _reset_db_and_server(BASE_URL)
