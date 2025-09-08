@@ -470,14 +470,13 @@ end
 ### UI (Playwright) test tasks #
 ################################
 
-# Extend the system tests with a UI layer using the extra compose file.
+
 namespace :systemtestui do
     system_tests_dir = "tests/system"
     docker_compose_file_abs     = File.expand_path(File.join(system_tests_dir, "docker-compose.yaml"))
     docker_compose_ui_file_abs  = File.expand_path(File.join(system_tests_dir, "docker-compose.ui.yaml"))
 
-    # Own shell runner that mirrors systemtest:sh but layers the UI compose.
-    # It keeps the same profiles/env behavior, so CI doesn't surprise you.
+    
     desc 'Run docker-compose command for the UI stack'
     task :sh => volume_files + [DOCKER_COMPOSE, "systemtest:setup_version_envvars"] do |t, args|
         if ENV["USE_BUILD_KIT"] != "false"
@@ -485,7 +484,7 @@ namespace :systemtestui do
             ENV["DOCKER_BUILDKIT"]          = "1"
         end
 
-        # Keep path-dependent templates happy, just like system tests do
+        
         ENV["PWD"]  = Dir.pwd
         ENV["IPWD"] = Dir.pwd
 
@@ -495,8 +494,7 @@ namespace :systemtestui do
             profiles.append "--profile", "premium"
         end
 
-        # Compose with the base file first, then the UI extension file.
-        # Arguments following are the subcommand and its flags, e.g. "up", "-d", ...
+        
         sh *DOCKER_COMPOSE,
            "-f", docker_compose_file_abs,
            "-f", docker_compose_ui_file_abs,
@@ -511,7 +509,7 @@ namespace :systemtestui do
 
     desc 'Bring up UI stack (postgres, server, agent-kea) without rebuilding'
     task :up do
-        # Mirrors: docker compose ... up -d --no-build postgres server agent-kea
+        
         Rake::Task["systemtestui:sh"].invoke("up", "-d", "--no-build", "postgres", "server", "agent-kea")
     end
 
@@ -523,13 +521,13 @@ namespace :systemtestui do
     desc 'Reset UI stack (alias)'
     task :reset => :down
 
-    # Minimal env that UI tests expect; idempotent.
+    
     def ui_env
         ENV["STORK_REUSE"]    = ENV["STORK_REUSE"]    || "1"
         ENV["STORK_BASE_URL"] = ENV["STORK_BASE_URL"] || "http://localhost:42080"
     end
 
-    # Ensure Playwright browsers are present in the venv (idempotent).
+    
     task :prepare do
         ui_env
         vpy = File.join(".venv","bin","python")
@@ -538,10 +536,7 @@ namespace :systemtestui do
         end
     end
 
-    # Run all tests headless by default.
-    # Examples:
-    #   rake systemtestui:test
-    #   rake systemtestui:test['tests/ui/playwright/tests_poc/test_example.py','--headed --slowmo=200 -q -s']
+   
     desc 'Run Playwright UI tests. Args: pattern, pytest_args'
     task :test, [:pattern, :pytest_args] => [:prepare] do |_, args|
         ui_env
@@ -551,9 +546,7 @@ namespace :systemtestui do
         sh python, "-m", "pytest", pattern, *pytest_args
     end
 
-    # Debug helper: headed + slowmo + inspector enabled
-    # Example:
-    #   rake systemtestui:test_debug['tests/ui/.../test_example.py','-s']
+    
     desc 'Debug mode for Playwright tests (headed, slowmo, inspector)'
     task :test_debug, [:pattern, :pytest_args] => [:prepare] do |_, args|
         ui_env
@@ -564,7 +557,7 @@ namespace :systemtestui do
         sh python, "-m", "pytest", pattern, "--headed", "--slowmo=200", *pytest_args
     end
 
-    # Combined /etc/hosts check for base+UI compose
+    
     desc 'Check /etc/hosts for the UI stack'
     task :check_etchosts do
         unless check_hosts_and_print_hint([docker_compose_file_abs, docker_compose_ui_file_abs])
