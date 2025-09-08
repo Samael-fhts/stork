@@ -374,6 +374,8 @@ func GetDaemonsByName(dbi pg.DBI, names ...constant.DaemonName) (daemons []Daemo
 		Relation(DaemonRelationMachine).
 		Relation(DaemonRelationKeaDHCPDaemon).
 		Relation(DaemonRelationHAService).
+		Relation(DaemonRelationBind9Daemon).
+		Relation(DaemonRelationPDNSDaemon).
 		Where("daemon.name IN (?)", pg.In(names)).
 		OrderExpr("daemon.id ASC").
 		Select()

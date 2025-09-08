@@ -105,10 +105,6 @@ func GetDaemonState(ctx context.Context, agents agentcomm.ConnectedAgents, daemo
 		return
 	}
 
-	if daemon.Bind9Daemon == nil {
-		daemon.Bind9Daemon = &dbmodel.Bind9Daemon{}
-	}
-
 	// Get version
 	pattern := regexp.MustCompile(`version:\s+(.+)\n`)
 	match := pattern.FindStringSubmatch(out.Output)
