@@ -98,6 +98,16 @@ func runAgent(settings *generalSettings, reload bool) error {
 		SkipTLSVerification: settings.SkipTLSCertVerification,
 	}
 
+	ok, err := keaHTTPClientConfig.LoadGRPCCertificates()
+	switch {
+	case err != nil:
+		log.WithError(err).Error("Could not load the GRPC credentials")
+	case !ok:
+		log.Warn("The GRPC credentials file is missing - the requests to Kea will not contain the client TLS certificate")
+	default:
+		log.Info("The GRPC credentials will be used as the client TLS certificate when connecting to Kea")
+	}
+
 	// Start app monitor.
 	appMonitor := agent.NewMonitor(settings.Bind9Path, keaHTTPClientConfig)
 

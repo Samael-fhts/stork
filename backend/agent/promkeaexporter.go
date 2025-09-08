@@ -105,11 +105,15 @@ func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
 	var response subnetListJSON
 	err := l.sender.sendCommand(request, &response)
 	if err != nil {
+		log.WithError(err).Errorf("Failed to fetch subnet list from Kea")
+		return nil
+	}
+	if err := response.GetError(); err != nil {
 		if errors.As(err, &keactrl.UnsupportedOperationKeaError{}) {
 			// Hook not installed. Return empty mapping
 			return nil
 		}
-		log.WithError(err).Errorf("Failed to fetch subnet list from Kea")
+		log.WithError(err).Errorf("Error returned by Kea when fetching subnet list")
 		return nil
 	}
 

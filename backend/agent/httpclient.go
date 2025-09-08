@@ -41,6 +41,42 @@ type HTTPClientConfig struct {
 	Timeout   time.Duration
 }
 
+// Loads the TLS certificates from a file. The certificates will be attached
+// to all sent requests.
+// The GRPC certificates are self-signed by default. It means the requests
+// will be rejected if the server verifies the client credentials.
+// Returns true if the certificates have been loaded successfully. Returns
+// false if the certificates file does not exist.
+func (c *HTTPClientConfig) LoadGRPCCertificates() (bool, error) {
+	tlsCertStore := NewCertStoreDefault()
+	isEmpty, err := tlsCertStore.IsEmpty()
+	if err != nil {
+		return false, errors.WithMessage(err, "cannot stat the TLS files")
+	}
+	if isEmpty {
+		return false, nil
+	}
+
+	err = tlsCertStore.IsValid()
+	if err != nil {
+		return false, errors.WithMessage(err, "GRPC certificates are not valid")
+	}
+
+	tlsCert, err := tlsCertStore.ReadTLSCert()
+	if err != nil {
+		return false, errors.WithMessage(err, "cannot read the TLS certificate")
+	}
+
+	tlsRootCA, err := tlsCertStore.ReadRootCA()
+	if err != nil {
+		return false, errors.WithMessage(err, "cannot read the TLS root CA")
+	}
+
+	c.TLSCert = tlsCert
+	c.TLSRootCA = tlsRootCA
+	return true, nil
+}
+
 // httpClient is a normal http client.
 type httpClient struct {
 	client    *http.Client

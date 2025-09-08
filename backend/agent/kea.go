@@ -64,22 +64,9 @@ func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
 		return errors.WithMessagef(err, "failed to send command to Kea")
 	}
 
-	// The responses from the Kea CA are wrapped in a JSON array.
-	// Responses from other daemons are always single JSON objects.
-	if isCATarget {
-		var arrayResponse []json.RawMessage
-		err = json.Unmarshal(responseBytes, &arrayResponse)
-		if err == nil {
-			if len(arrayResponse) != 1 {
-				return errors.Errorf("invalid number of responses received, got: %d, expected: 1", len(arrayResponse))
-			}
-			responseBytes = arrayResponse[0]
-		}
-	}
-
 	err = json.Unmarshal(responseBytes, response)
 	if err != nil {
-		return errors.WithMessagef(err, "failed to parse Kea response")
+		return errors.Wrap(err, "failed to parse Kea response")
 	}
 
 	return nil
@@ -563,6 +550,17 @@ func (c *keaHTTPConnector) sendPayload(command []byte) ([]byte, error) {
 	response.Body.Close()
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to read Kea response body received from %s", c.url)
+	}
+
+	// The responses from the Kea send over HTTP are wrapped in a JSON array.
+	// Responses from the socket channel are always single JSON objects.
+	var arrayBody []json.RawMessage
+	err = json.Unmarshal(body, &arrayBody)
+	if err == nil {
+		if len(arrayBody) != 1 {
+			return nil, errors.Errorf("invalid number of responses received, got: %d, expected: 1", len(arrayBody))
+		}
+		body = arrayBody[0]
 	}
 
 	return body, nil
