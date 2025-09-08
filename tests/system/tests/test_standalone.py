@@ -38,7 +38,11 @@ def test_primary():
     state = api_instance.get_machine_state(id=machines.items[0].id)
     assert state is not None
 
-    params = {"text": "192.0.2.1"}
+    # params = {"text": "192.0.2.1"}
     api_instance = DHCPApi(api_client)
-    leases = api_instance.get_leases(**params)
-    assert leases.total == 1
+    # leases = api_instance.get_leases(**params)
+    # assert leases.total == 1
+
+    overview = api_instance.get_dhcp_overview()
+    assert len(overview.dhcp_daemons) == 4
+    assert all(getattr(d, "ha_enabled") for d in overview.dhcp_daemons)

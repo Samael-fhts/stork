@@ -33,6 +33,18 @@ func (dn DaemonName) ToKeaDaemonName() (KeaDaemonName, error) {
 	}
 }
 
+// Converts a DaemonName to the corresponding KeaDHCPDaemonName.
+func (dn DaemonName) ToKeaDHCPDaemonName() (KeaDHCPDaemonName, error) {
+	switch dn {
+	case DaemonNameDHCPv4:
+		return KeaDHCPDaemonNameDHCPv4, nil
+	case DaemonNameDHCPv6:
+		return KeaDHCPDaemonNameDHCPv6, nil
+	default:
+		return KeaDHCPDaemonName(dn), errors.Errorf("cannot convert daemon name %s to Kea DHCP daemon name", dn)
+	}
+}
+
 // Parses the daemon name from string. It returns an error if the
 // daemon name is not recognized.
 func ParseDaemonName(name string) (DaemonName, error) {
@@ -72,3 +84,12 @@ const (
 func (kdn KeaDaemonName) ToDaemonName() DaemonName {
 	return DaemonName(kdn)
 }
+
+// The names of the Kea DHCP daemons. They are intended to be used throughout
+// the codebase.
+type KeaDHCPDaemonName string
+
+const (
+	KeaDHCPDaemonNameDHCPv4 KeaDHCPDaemonName = KeaDHCPDaemonName(KeaDaemonNameDHCPv4)
+	KeaDHCPDaemonNameDHCPv6 KeaDHCPDaemonName = KeaDHCPDaemonName(KeaDaemonNameDHCPv6)
+)

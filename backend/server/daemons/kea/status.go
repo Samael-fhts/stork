@@ -77,12 +77,6 @@ type StatusGetResponse struct {
 	Arguments *StatusGetRespArgs `json:"arguments,omitempty"`
 }
 
-// Holds the status of the Kea daemon.
-type daemonStatus struct {
-	StatusGetRespArgs
-	Daemon string
-}
-
 // Instance of the puller which periodically checks the status of the Kea daemons.
 // Besides basic status information the High Availability status is fetched.
 type HAStatusPuller struct {
@@ -265,7 +259,7 @@ func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (bool, b
 	// the daemon belongs to.
 	dbServices, err := dbmodel.GetDetailedServicesByDaemonID(puller.DB, daemon.ID)
 	if err != nil {
-		log.Errorf("Error while getting services for Kea daemon %d: %+v", daemon.ID, err)
+		log.WithError(err).Errorf("Error while getting services for Kea daemon %d", daemon.ID)
 		return false, false
 	}
 	// No services for this daemon, so nothing to do.
@@ -299,17 +293,22 @@ func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (bool, b
 	// Send the status-get command to both DHCPv4 and DHCPv6 servers.
 	status, err := getDHCPStatus(ctx, puller.Agents, daemon)
 	if err != nil {
-		log.Errorf("Error occurred while getting Kea daemon %d status: %+v", daemon.ID, err)
-
+		log.WithError(err).Errorf("Error occurred while getting Kea daemon %d status", daemon.ID)
 		return true, false
 	}
 	// If no HA status, there is nothing to do.
 	if status.HAServers == nil && len(status.HA) == 0 {
 		return true, true
 	}
+	haType, err := daemon.Name.ToKeaDHCPDaemonName()
+	if err != nil {
+		log.WithError(err).Errorf("Error occurred while converting daemon name %s to Kea DHCP daemon name", daemon.Name)
+		return true, false
+	}
+
 	// Find the matching service for the returned status.
 	for i := range haServices {
-		if haServices[i].HAService.HAType == status.Daemon {
+		if haServices[i].HAService.HAType == haType {
 			service := haServices[i].HAService
 			// Update the HA service status only if the given server is primary
 			// or secondary.
@@ -341,7 +340,7 @@ func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (bool, b
 }
 
 // Sends the status-get command to Kea DHCP servers and returns this status to the caller.
-func getDHCPStatus(ctx context.Context, agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon) (*daemonStatus, error) {
+func getDHCPStatus(ctx context.Context, agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon) (*StatusGetRespArgs, error) {
 	daemonName, _ := daemon.Name.ToKeaDaemonName()
 	cmd := keactrl.NewCommandBase(keactrl.StatusGet, daemonName)
 
@@ -367,10 +366,5 @@ func getDHCPStatus(ctx context.Context, agents agentcomm.ConnectedAgents, daemon
 		return nil, errors.WithMessage(err, "status-get command failed")
 	}
 
-	daemonStatus := &daemonStatus{
-		StatusGetRespArgs: *response.Arguments,
-		Daemon:            response.Daemon,
-	}
-
-	return daemonStatus, nil
+	return response.Arguments, nil
 }

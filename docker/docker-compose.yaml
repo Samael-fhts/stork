@@ -240,6 +240,8 @@ services:
       - ./docker/config/supervisor/prometheus.conf:/etc/supervisor/conf.d/prometheus.conf
       - ./docker/config/supervisor/supervisor_monitor.conf:/etc/supervisor/conf.d/supervisor_monitor.conf
       - ./docker/tools/supervisor_monitor.py:/usr/lib/supervisor_monitor.py
+    depends_on:
+      - mariadb
 
   agent-kea-ha2:
     restart: always
@@ -278,6 +280,8 @@ services:
       - ./docker/config/supervisor/prometheus.conf:/etc/supervisor/conf.d/prometheus.conf
       - ./docker/config/supervisor/supervisor_monitor.conf:/etc/supervisor/conf.d/supervisor_monitor.conf
       - ./docker/tools/supervisor_monitor.py:/usr/lib/supervisor_monitor.py
+    depends_on:
+      - mariadb
 
   agent-kea-ha3:
     restart: always
@@ -317,7 +321,9 @@ services:
       - ./docker/config/supervisor/prometheus.conf:/etc/supervisor/conf.d/prometheus.conf
       - ./docker/config/supervisor/supervisor_monitor.conf:/etc/supervisor/conf.d/supervisor_monitor.conf
       - ./docker/tools/supervisor_monitor.py:/usr/lib/supervisor_monitor.py
-
+    depends_on:
+      - mariadb
+  
   agent-kea-large:
     restart: always
     build:

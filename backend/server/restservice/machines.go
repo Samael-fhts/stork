@@ -1403,7 +1403,7 @@ func getKeaServicesStatus(db *dbops.PgDB, daemon *dbmodel.Daemon) *models.Servic
 		}
 		ha := s.HAService
 		keaStatus := models.KeaStatus{
-			Daemon: ha.HAType,
+			Daemon: string(ha.HAType),
 		}
 		secondaryRole := "secondary"
 		if ha.HAMode == dbmodel.HAModeHotStandby {

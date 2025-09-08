@@ -55,7 +55,6 @@ type Command struct {
 type ResponseHeader struct {
 	Result ResponseResult `json:"result"`
 	Text   string         `json:"text"`
-	Daemon string         `json:"-"`
 }
 
 // Represents unmarshaled response from Kea daemon.
@@ -124,7 +123,6 @@ func newKeaError(result ResponseResult, text string) error {
 type ExaminableResponse interface {
 	GetResult() ResponseResult
 	GetText() string
-	GetDaemon() string
 	GetArguments() json.RawMessage
 }
 
@@ -255,11 +253,6 @@ func (r ResponseHeader) GetText() string {
 	return r.Text
 }
 
-// Returns name of the daemon that returned the response.
-func (r ResponseHeader) GetDaemon() string {
-	return r.Daemon
-}
-
 // Returns status code.
 func (r Response) GetResult() ResponseResult {
 	return r.ResponseHeader.GetResult()
@@ -268,11 +261,6 @@ func (r Response) GetResult() ResponseResult {
 // Returns status text.
 func (r Response) GetText() string {
 	return r.ResponseHeader.GetText()
-}
-
-// Returns name of the daemon that returned the response.
-func (r Response) GetDaemon() string {
-	return r.ResponseHeader.GetDaemon()
 }
 
 // Returns response arguments.
@@ -302,14 +290,8 @@ func GetResponseError(response ExaminableResponse) (err error) {
 		if response.GetResult() == ResponseCommandUnsupported {
 			statusName = "unsupported command"
 		}
-		var daemon string
-		if len(response.GetDaemon()) > 0 {
-			daemon = "Kea " + response.GetDaemon() + " daemon"
-		} else {
-			daemon = "Kea"
-		}
-		err = errors.Errorf("%s status (%d) returned by %s with text: '%s'",
-			statusName, response.GetResult(), daemon, response.GetText())
+		err = errors.Errorf("%s status (%d) returned by Kea with text: '%s'",
+			statusName, response.GetResult(), response.GetText())
 	}
 	return
 }
