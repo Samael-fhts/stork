@@ -26,8 +26,4 @@ pytest tests/ui/playwright/tests_poc/test_example.py --headed --slowmo=200 -q -s
 ## debug failing tests
 2.PWDEBUG=1 pytest tests/ui/playwright/tests_poc/test_example.py -s
 
-## lint run 
-rake lint:black
-rake lint:flake8
-
 
