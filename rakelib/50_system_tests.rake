@@ -487,6 +487,7 @@ namespace :systemtestui do
         
         ENV["PWD"]  = Dir.pwd
         ENV["IPWD"] = Dir.pwd
+        ENV["HOME"] = Dir.pwd
 
         profiles = []
         if ENV["CS_REPO_ACCESS_TOKEN"] || ENV["KEA_PRIOR_2_7_7"] == "false"
@@ -495,16 +496,19 @@ namespace :systemtestui do
         end
 
         
+        project_dir = File.realpath(Dir.pwd)  
+
         sh *DOCKER_COMPOSE,
+           "--project-directory", project_dir,
            "-f", docker_compose_file_abs,
            "-f", docker_compose_ui_file_abs,
            *profiles,
-           *args
+           *args        
     end
 
     desc 'Build images needed for UI tests (server only, like your manual flow)'
     task :build do
-        Rake::Task["systemtestui:sh"].invoke("build", "server", "postgres", "agent-kea")
+        Rake::Task["systemtestui:sh"].invoke("build", "server", "agent-kea")
     end
 
     desc 'Bring up UI stack (postgres, server, agent-kea) without rebuilding'
