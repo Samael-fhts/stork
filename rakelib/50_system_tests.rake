@@ -569,3 +569,23 @@ namespace :systemtestui do
         end
     end
 end
+
+namespace :lint do
+    VENV_PY = File.exist?(File.join(".venv","bin","python")) ? File.join(".venv","bin","python") : "python3"
+  
+    desc "Check Python formatting with Black"
+    task :python do
+      sh VENV_PY, "-m", "black", "--check", "tests/ui/playwright"
+    end
+  
+    desc "Auto-format Python with Black"
+    task :black do
+      sh VENV_PY, "-m", "black", "tests/ui/playwright"
+    end
+  
+    desc "Run Flake8"
+    task :flake8 do
+      sh VENV_PY, "-m", "flake8", "tests/ui/playwright"
+    end
+  end
+  

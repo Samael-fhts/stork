@@ -177,7 +177,7 @@ def clean_before_each_test(setup):
     """Ensure a clean environment before every test."""
     _reset_db_and_server(BASE_URL)
 
-    
+
 @pytest.fixture(scope="session")
 def stork_base_url():
     return BASE_URL
