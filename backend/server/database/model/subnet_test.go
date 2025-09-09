@@ -1180,7 +1180,7 @@ func TestDeleteOrphanedSharedNetworkSubnets(t *testing.T) {
 
 	// Add daemons used in the test.
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	// Add a shared network with three subnets.
 	network := &SharedNetwork{

@@ -308,7 +308,6 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 				q = q.Where("zone.name = ?", ".")
 			}
 			q = q.WhereOr("zone.name ILIKE ?", "%"+filterText+"%").
-				WhereOr("a.name ILIKE ?", "%"+*filter.Text+"%").
 				WhereOr("lz.view ILIKE ?", "%"+*filter.Text+"%")
 			return q, nil
 		})

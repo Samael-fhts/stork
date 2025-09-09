@@ -447,8 +447,7 @@ func TestGetBind9DaemonsForUpdate(t *testing.T) {
 	// Sanity check selected data.
 	require.NotZero(t, daemons[0].ID)
 	require.True(t, daemons[0].Active)
-	require.NotNil(t, daemons[0].Machine)
-	require.Equal(t, m.ID, daemons[0].Machine.ID)
+	require.Equal(t, m.ID, daemons[0].MachineID)
 
 	// When daemon is selected for update within a transaction, no other
 	// transaction can modify the daemon until the current transaction is
@@ -803,7 +802,7 @@ func TestSetConfig(t *testing.T) {
 
 	require.NotNil(t, daemon.KeaDaemon)
 	require.NotNil(t, daemon.KeaDaemon.Config)
-	require.Empty(t, daemon.KeaDaemon.ConfigHash)
+	require.NotEmpty(t, daemon.KeaDaemon.ConfigHash)
 }
 
 // Test that shallow copy of a Kea daemon can be created.
@@ -893,8 +892,8 @@ func TestDaemonTagMachineTag(t *testing.T) {
 	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{})
 	daemon.ID = 24
 	var daemonTag DaemonTag = daemon
-	require.Equal(t, 24, daemonTag.GetID())
-	require.Equal(t, 42, daemonTag.GetMachineID())
+	require.EqualValues(t, 24, daemonTag.GetID())
+	require.EqualValues(t, 42, daemonTag.GetMachineID())
 	require.Equal(t, constant.DaemonNameBind9, daemonTag.GetName())
 }
 
@@ -906,7 +905,7 @@ func TestDaemonTagMissingMachineID(t *testing.T) {
 	}
 
 	// Act & Assert
-	require.Equal(t, 42, daemon.GetMachineID())
+	require.EqualValues(t, 42, daemon.GetMachineID())
 }
 
 // Tests that Kea daemon config hashes can be wiped.

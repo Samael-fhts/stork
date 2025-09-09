@@ -220,7 +220,9 @@ func GetDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
 	q := dbi.Model(&daemon)
 	q = q.Relation(DaemonRelationAccessPoints)
 	q = q.Relation(DaemonRelationMachine)
-	q = q.Relation(DaemonRelationKeaDaemon)
+	q = q.Relation(DaemonRelationKeaDHCPDaemon)
+	q = q.Relation(DaemonRelationBind9Daemon)
+	q = q.Relation(DaemonRelationPDNSDaemon)
 	q = q.Where("daemon.id = ?", id)
 	err := q.Select()
 	if errors.Is(err, pg.ErrNoRows) {
@@ -237,6 +239,8 @@ func GetDaemonsByIDs(dbi pg.DBI, ids []int64) (daemons []Daemon, err error) {
 		Relation(DaemonRelationAccessPoints).
 		Relation(DaemonRelationMachine).
 		Relation(DaemonRelationKeaDHCPDaemon).
+		Relation(DaemonRelationBind9Daemon).
+		Relation(DaemonRelationPDNSDaemon).
 		Where("daemon.id IN (?)", pg.In(ids)).
 		OrderExpr("daemon.id ASC").
 		Select()
@@ -259,8 +263,8 @@ func GetDaemonsByMachine(dbi pg.DBI, machineID int64) (daemons []Daemon, err err
 	err = dbi.Model(&daemons).
 		Relation(DaemonRelationAccessPoints).
 		Relation(DaemonRelationMachine).
-		Relation(DaemonRelationBind9Daemon).
 		Relation(DaemonRelationKeaDaemon).
+		Relation(DaemonRelationBind9Daemon).
 		Relation(DaemonRelationPDNSDaemon).
 		Where("daemon.machine_id = ?", machineID).
 		OrderExpr("daemon.id ASC").
@@ -401,6 +405,7 @@ func GetDNSDaemons(dbi pg.DBI) (daemons []Daemon, err error) {
 // Get all Kea DHCP daemons.
 func GetKeaDHCPDaemons(dbi pg.DBI) (daemons []Daemon, err error) {
 	err = dbi.Model(&daemons).
+		Relation(DaemonRelationMachine).
 		Relation(DaemonRelationKeaDHCPDaemon).
 		Where("daemon.name ILIKE 'dhcp%'").
 		OrderExpr("daemon.id ASC").
