@@ -7,37 +7,52 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	require "github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constant"
 	dbtest "isc.org/stork/server/database/test"
 )
 
 // Test that new instance of the generic Kea daemon can be created.
 func TestNewKeaDaemon(t *testing.T) {
+	// Create machine first
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+
 	// Create the daemon with active flag set to true.
-	daemon := NewKeaDaemon(DaemonNameDHCPv4, true)
+	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
 	require.NotNil(t, daemon)
 	require.NotNil(t, daemon.KeaDaemon)
 	require.NotNil(t, daemon.KeaDaemon.KeaDHCPDaemon)
 	require.Nil(t, daemon.Bind9Daemon)
-	require.Equal(t, DaemonNameDHCPv4, daemon.Name)
+	require.Equal(t, constant.DaemonNameDHCPv4, daemon.Name)
 	require.True(t, daemon.Active)
 
 	// Create the non DHCP daemon.
-	daemon = NewKeaDaemon("ca", false)
+	daemon = NewDaemon(machine, constant.DaemonNameCA, false, []*AccessPoint{})
 	require.NotNil(t, daemon)
 	require.NotNil(t, daemon.KeaDaemon)
 	require.Nil(t, daemon.KeaDaemon.KeaDHCPDaemon)
 	require.Nil(t, daemon.Bind9Daemon)
-	require.Equal(t, "ca", daemon.Name)
+	require.Equal(t, constant.DaemonNameCA, daemon.Name)
 	require.False(t, daemon.Active)
 }
 
 // Test that new instance of the Bind9 daemon can be created.
 func TestNewBind9Daemon(t *testing.T) {
-	daemon := NewBind9Daemon(true)
+	// Create machine first
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+
+	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{})
 	require.NotNil(t, daemon)
 	require.NotNil(t, daemon.Bind9Daemon)
 	require.Nil(t, daemon.KeaDaemon)
-	require.Equal(t, DaemonNameBind9, daemon.Name)
+	require.Equal(t, constant.DaemonNameBind9, daemon.Name)
 	require.True(t, daemon.Active)
 }
 
@@ -55,20 +70,10 @@ func TestUpdateKeaDHCPDaemon(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, m.ID)
 
-	// add app but without machine, error should be raised
-	app := &App{
-		ID:        0,
-		MachineID: m.ID,
-		Type:      AppTypeKea,
-		Daemons: []*Daemon{
-			NewKeaDaemon(DaemonNameDHCPv4, true),
-		},
-	}
-	_, err = AddApp(db, app)
+	// Create and add daemon
+	daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 1)
-	daemon := app.Daemons[0]
 	require.NotZero(t, daemon.ID)
 
 	// Remember the creation time so it can be compared after the update.
@@ -78,14 +83,14 @@ func TestUpdateKeaDHCPDaemon(t *testing.T) {
 	// Reset the creation time to ensure it is not modified during the update.
 	daemon.CreatedAt = time.Time{}
 	daemon.Pid = 123
-	daemon.Name = DaemonNameDHCPv6
+	daemon.Name = constant.DaemonNameDHCPv6
 	daemon.Active = false
 	daemon.Version = "2.0.0"
-	daemon.KeaDaemon.Config, err = NewKeaConfigFromJSON(`{
+	err = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
             "valid-lifetime": 1234
         }
-    }`)
+    }`))
 	require.NoError(t, err)
 
 	daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS1 = 1000
@@ -94,22 +99,20 @@ func TestUpdateKeaDHCPDaemon(t *testing.T) {
 	err = UpdateDaemon(db, daemon)
 	require.NoError(t, err)
 
-	app, err = GetAppByID(db, app.ID)
+	updatedDaemon, err := GetDaemonByID(db, daemon.ID)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 1)
-	daemon = app.Daemons[0]
+	require.NotNil(t, updatedDaemon)
 
-	require.Equal(t, createdAt, daemon.CreatedAt)
-	require.EqualValues(t, 123, daemon.Pid)
-	require.Equal(t, DaemonNameDHCPv6, daemon.Name)
-	require.False(t, daemon.Active)
-	require.Equal(t, "2.0.0", daemon.Version)
-	require.NotNil(t, daemon.KeaDaemon)
-	require.NotNil(t, daemon.KeaDaemon.Config)
-	require.NotNil(t, daemon.KeaDaemon.KeaDHCPDaemon)
-	require.EqualValues(t, 1000, daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS1)
-	require.EqualValues(t, 2000, daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS2)
+	require.Equal(t, createdAt, updatedDaemon.CreatedAt)
+	require.EqualValues(t, 123, updatedDaemon.Pid)
+	require.Equal(t, constant.DaemonNameDHCPv6, updatedDaemon.Name)
+	require.False(t, updatedDaemon.Active)
+	require.Equal(t, "2.0.0", updatedDaemon.Version)
+	require.NotNil(t, updatedDaemon.KeaDaemon)
+	require.NotNil(t, updatedDaemon.KeaDaemon.Config)
+	require.NotNil(t, updatedDaemon.KeaDaemon.KeaDHCPDaemon)
+	require.EqualValues(t, 1000, updatedDaemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS1)
+	require.EqualValues(t, 2000, updatedDaemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS2)
 }
 
 // Test that Bind9 daemon is properly updated.
@@ -126,20 +129,10 @@ func TestUpdateBind9Daemon(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, m.ID)
 
-	// add app but without machine, error should be raised
-	app := &App{
-		ID:        0,
-		MachineID: m.ID,
-		Type:      AppTypeBind9,
-		Daemons: []*Daemon{
-			NewBind9Daemon(true),
-		},
-	}
-	_, err = AddApp(db, app)
+	// Create and add daemon
+	daemon := NewDaemon(m, constant.DaemonNameBind9, true, []*AccessPoint{})
+	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 1)
-	daemon := app.Daemons[0]
 	require.NotZero(t, daemon.ID)
 
 	daemon.Pid = 123
@@ -151,25 +144,28 @@ func TestUpdateBind9Daemon(t *testing.T) {
 	err = UpdateDaemon(db, daemon)
 	require.NoError(t, err)
 
-	app, err = GetAppByID(db, app.ID)
+	updatedDaemon, err := GetDaemonByID(db, daemon.ID)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 1)
-	daemon = app.Daemons[0]
+	require.NotNil(t, updatedDaemon)
 
-	require.EqualValues(t, 123, daemon.Pid)
-	require.Equal(t, "named", daemon.Name)
-	require.False(t, daemon.Active)
-	require.Equal(t, "9.20", daemon.Version)
-	require.NotNil(t, daemon.Bind9Daemon)
-	require.EqualValues(t, 123, daemon.Bind9Daemon.Stats.ZoneCount)
+	require.EqualValues(t, 123, updatedDaemon.Pid)
+	require.Equal(t, constant.DaemonNameBind9, updatedDaemon.Name)
+	require.False(t, updatedDaemon.Active)
+	require.Equal(t, "9.20", updatedDaemon.Version)
+	require.NotNil(t, updatedDaemon.Bind9Daemon)
+	require.EqualValues(t, 123, updatedDaemon.Bind9Daemon.Stats.ZoneCount)
 }
 
 // Returns all HA state names to which the daemon belongs and the
 // failure times.
 func TestGetHAOverview(t *testing.T) {
 	failoverAt := time.Date(2020, 6, 4, 11, 32, 0, 0, time.UTC)
-	daemon := NewKeaDaemon("dhcp4", true)
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
 	daemon.ID = 1
 	daemon.Services = []*Service{
 		{
@@ -225,7 +221,7 @@ func TestGetDaemonByID(t *testing.T) {
 	require.NoError(t, err)
 	require.Nil(t, dmn)
 
-	// create machine and then app with daemon
+	// create machine and then daemon
 	m := &Machine{
 		ID:        0,
 		Address:   "localhost",
@@ -235,11 +231,19 @@ func TestGetDaemonByID(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, m.ID)
 
-	// add app but without machine, error should be raised
-	daemonEntry := NewKeaDaemon("kea-dhcp4", true)
+	// create daemon with initial configuration
+	accessPoints := []*AccessPoint{
+		{
+			Type:    AccessPointControl,
+			Address: "",
+			Port:    1234,
+			Key:     "",
+		},
+	}
+	daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
 
 	// Set initial configuration with one logger.
-	err = daemonEntry.SetConfigFromJSON(`{
+	err = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -253,25 +257,11 @@ func TestGetDaemonByID(t *testing.T) {
                 }
             ]
         }
-    }`)
+    }`))
 	require.NoError(t, err)
 
-	accessPoints := []*AccessPoint{}
-	accessPoints = AppendAccessPoint(accessPoints, AccessPointControl, "", "", 1234, false)
-	app := &App{
-		ID:        0,
-		MachineID: m.ID,
-		Type:      AppTypeKea,
-		Daemons: []*Daemon{
-			daemonEntry,
-		},
-		AccessPoints: accessPoints,
-	}
-	_, err = AddApp(db, app)
+	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 1)
-	daemon := app.Daemons[0]
 	require.NotZero(t, daemon.ID)
 
 	// get daemon, now it should be there
@@ -282,8 +272,8 @@ func TestGetDaemonByID(t *testing.T) {
 	require.EqualValues(t, daemon.Active, dmn.Active)
 	require.NotNil(t, dmn.KeaDaemon)
 	require.NotNil(t, dmn.KeaDaemon.Config)
-	require.NotNil(t, dmn.App)
-	require.Len(t, dmn.App.AccessPoints, 1)
+	require.NotNil(t, dmn.Machine)
+	require.Len(t, dmn.AccessPoints, 1)
 }
 
 // Test getting multiple daemons by IDs.
@@ -296,7 +286,7 @@ func TestGetDaemonsByIDs(t *testing.T) {
 	require.NoError(t, err)
 	require.Empty(t, returnedDaemons)
 
-	// Create machine and then app with daemon.
+	// Create machine and then daemons.
 	m := &Machine{
 		ID:        0,
 		Address:   "localhost",
@@ -306,25 +296,23 @@ func TestGetDaemonsByIDs(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, m.ID)
 
-	// add app but without machine, error should be raised
-	var daemons []*Daemon
-	for _, daemonName := range []string{DaemonNameDHCPv4, DaemonNameDHCPv6, DaemonNameD2, DaemonNameCA} {
-		daemons = append(daemons, NewKeaDaemon(daemonName, true))
+	// create daemons
+	accessPoints := []*AccessPoint{
+		{
+			Type:    AccessPointControl,
+			Address: "",
+			Port:    1234,
+			Key:     "",
+		},
 	}
 
-	accessPoints := []*AccessPoint{}
-	accessPoints = AppendAccessPoint(accessPoints, AccessPointControl, "", "", 1234, false)
-	app := &App{
-		ID:           0,
-		MachineID:    m.ID,
-		Type:         AppTypeKea,
-		Daemons:      daemons,
-		AccessPoints: accessPoints,
+	var daemons []*Daemon
+	for _, daemonName := range []constant.DaemonName{constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameD2, constant.DaemonNameCA} {
+		daemon := NewDaemon(m, daemonName, true, accessPoints)
+		err = AddDaemon(db, daemon)
+		require.NoError(t, err)
+		daemons = append(daemons, daemon)
 	}
-	_, err = AddApp(db, app)
-	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 4)
 
 	// Get selected daemons.
 	selectedDaemons := []int64{daemons[0].ID, daemons[1].ID}
@@ -335,13 +323,8 @@ func TestGetDaemonsByIDs(t *testing.T) {
 	var ids []int64
 	for _, rd := range returnedDaemons {
 		ids = append(ids, rd.ID)
-		require.NotNil(t, rd.App)
-		require.EqualValues(t, app.ID, rd.App.ID)
-		require.NotNil(t, rd.App.AccessPoints)
-		require.Len(t, rd.App.AccessPoints, 1)
-		require.Equal(t, accessPoints[0].Port, rd.App.AccessPoints[0].Port)
-		require.NotNil(t, rd.App.Machine)
-		require.EqualValues(t, m.ID, rd.App.Machine.ID)
+		require.NotNil(t, rd.Machine)
+		require.EqualValues(t, m.ID, rd.Machine.ID)
 		require.NotNil(t, rd.KeaDaemon)
 		require.NotNil(t, rd.KeaDaemon.KeaDHCPDaemon)
 	}
@@ -369,32 +352,24 @@ func TestGetKeaDHCPDaemons(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, m.ID)
 
-	// Add an app with several Kea daemons of different type.
-	daemonNames := []string{DaemonNameDHCPv4, DaemonNameDHCPv6, DaemonNameCA, DaemonNameD2}
-	accessPoints := []*AccessPoint{}
-	accessPoints = AppendAccessPoint(accessPoints, AccessPointControl, "", "", 1234, false)
-	app := &App{
-		MachineID:    m.ID,
-		Type:         AppTypeKea,
-		AccessPoints: accessPoints,
-	}
-	for _, dn := range daemonNames {
-		app.Daemons = append(app.Daemons, NewKeaDaemon(dn, true))
-	}
-	_, err = AddApp(db, app)
-	require.NoError(t, err)
+	// Add several Kea daemons of different type.
+	accessPoints := []*AccessPoint{{
+		Type:    AccessPointControl,
+		Address: "",
+		Port:    1234,
+		Key:     "",
+	}}
 
-	// Add named app and daemon.
-	accessPoints[0].Port++
-	app = &App{
-		MachineID:    m.ID,
-		Type:         AppTypeBind9,
-		AccessPoints: accessPoints,
-		Daemons: []*Daemon{
-			NewBind9Daemon(true),
-		},
+	daemonNames := []constant.DaemonName{constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameCA, constant.DaemonNameD2}
+	for _, dn := range daemonNames {
+		daemon := NewDaemon(m, dn, true, accessPoints)
+		err = AddDaemon(db, daemon)
+		require.NoError(t, err)
 	}
-	_, err = AddApp(db, app)
+
+	// Add named daemon.
+	daemon := NewDaemon(m, constant.DaemonNameBind9, true, accessPoints)
+	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
 	// Try to get Kea DHCP daemons only. There should be two.
@@ -403,16 +378,16 @@ func TestGetKeaDHCPDaemons(t *testing.T) {
 	require.Len(t, daemons, 2)
 
 	// Validate returned daemons.
-	names := []string{}
+	names := []constant.DaemonName{}
 	for _, d := range daemons {
 		names = append(names, d.Name)
-		require.NotNil(t, d.App)
+		require.NotNil(t, d.Machine)
 		require.NotNil(t, d.KeaDaemon)
 		require.Equal(t, d.ID, d.KeaDaemon.DaemonID)
 		require.NotNil(t, d.KeaDaemon.KeaDHCPDaemon)
 	}
-	require.Contains(t, names, DaemonNameDHCPv4)
-	require.Contains(t, names, DaemonNameDHCPv6)
+	require.Contains(t, names, constant.DaemonNameDHCPv4)
+	require.Contains(t, names, constant.DaemonNameDHCPv6)
 }
 
 // Test selecting BIND9 daemon by ID for update which should result in locking
@@ -448,23 +423,11 @@ func TestGetBind9DaemonsForUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, m.ID)
 
-	// Create an app.
-	app := &App{
-		ID:        0,
-		MachineID: m.ID,
-		Type:      AppTypeBind9,
-		Daemons: []*Daemon{
-			{
-				Name:   "named",
-				Active: true,
-			},
-		},
-	}
-	_, err = AddApp(db, app)
+	// Create a daemon.
+	daemon := NewDaemon(m, constant.DaemonNameBind9, true, []*AccessPoint{})
+	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 1)
-	require.NotZero(t, app.Daemons[0].ID)
+	require.NotZero(t, daemon.ID)
 
 	// Start new transaction.
 	tx, err = db.Begin()
@@ -477,17 +440,15 @@ func TestGetBind9DaemonsForUpdate(t *testing.T) {
 	require.Empty(t, daemons)
 
 	// Select daemon for update.
-	daemons, err = GetDaemonsForUpdate(tx, app.Daemons)
+	daemons, err = GetDaemonsForUpdate(tx, []*Daemon{daemon})
 	require.NoError(t, err)
 	require.Len(t, daemons, 1)
 
 	// Sanity check selected data.
 	require.NotZero(t, daemons[0].ID)
 	require.True(t, daemons[0].Active)
-	require.NotNil(t, daemons[0].App)
-	require.Equal(t, app.ID, daemons[0].App.ID)
-	require.NotNil(t, daemons[0].App.Machine)
-	require.Equal(t, m.ID, daemons[0].App.Machine.ID)
+	require.NotNil(t, daemons[0].Machine)
+	require.Equal(t, m.ID, daemons[0].Machine.ID)
 
 	// When daemon is selected for update within a transaction, no other
 	// transaction can modify the daemon until the current transaction is
@@ -506,10 +467,10 @@ func TestGetBind9DaemonsForUpdate(t *testing.T) {
 		// The main thread is waiting for this conditional to ensure that the
 		// goroutine is started before the test continues.
 		cond.Signal()
-		// Attempt to delete the app while the main transaction is in progress
+		// Attempt to delete the daemon while the main transaction is in progress
 		// and the daemons are locked for update. This should block until the
 		// main transaction is committed or rolled back.
-		result, _ = db.Model(app).WherePK().Delete()
+		result, _ = db.Model(daemon).WherePK().Delete()
 	}()
 
 	// Wait for the goroutine to begin.
@@ -523,7 +484,7 @@ func TestGetBind9DaemonsForUpdate(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	// It should take precedence over the db.Delete() invoked from the goroutine.
 	// Thus, there should be no error.
-	_, err = tx.Model(app).WherePK().Delete()
+	_, err = tx.Model(daemon).WherePK().Delete()
 	require.NoError(t, err)
 
 	// Commit the transaction which should cause the goroutine to complete.
@@ -572,42 +533,18 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, m.ID)
 
-	// Create the configs for daemons.
-	config1, err := NewKeaConfigFromJSON(`{"Dhcp4": { }}`)
-	require.NoError(t, err)
-	config2, err := NewKeaConfigFromJSON(`{"Dhcp6": { }}`)
+	// Create daemons.
+	daemon1 := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon1.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
+	err = AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	// Create an app.
-	app := &App{
-		ID:        0,
-		MachineID: m.ID,
-		Type:      AppTypeKea,
-		Daemons: []*Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &KeaDaemon{
-					Config:     config1,
-					ConfigHash: "1234",
-				},
-			},
-			{
-				Name:   "dhcp6",
-				Active: true,
-				KeaDaemon: &KeaDaemon{
-					Config:     config2,
-					ConfigHash: "2345",
-				},
-			},
-		},
-	}
-	_, err = AddApp(db, app)
+	daemon2 := NewDaemon(m, constant.DaemonNameDHCPv6, true, []*AccessPoint{})
+	daemon2.SetConfigFromJSON([]byte(`{"Dhcp6": { }}`))
+	err = AddDaemon(db, daemon2)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 2)
-	require.NotZero(t, app.Daemons[0].ID)
-	require.NotZero(t, app.Daemons[1].ID)
+
+	testDaemons := []*Daemon{daemon1, daemon2}
 
 	// Start new transaction.
 	tx, err = db.Begin()
@@ -615,27 +552,25 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 
 	// An attempt to select no particular daemon for update should result
 	// in an error.
-	daemons, err = GetKeaDaemonsForUpdate(tx, []*Daemon{})
+	selectedDaemons, err := GetKeaDaemonsForUpdate(tx, []*Daemon{})
 	require.Error(t, err)
-	require.Empty(t, daemons)
+	require.Empty(t, selectedDaemons)
 
 	// Select both daemons for update.
-	daemons, err = GetKeaDaemonsForUpdate(tx, app.Daemons)
+	selectedDaemons, err = GetKeaDaemonsForUpdate(tx, testDaemons)
 	require.NoError(t, err)
-	require.Len(t, daemons, 2)
+	require.Len(t, selectedDaemons, 2)
 
 	// Sanity check selected data.
-	for i, daemon := range daemons {
+	for i, daemon := range selectedDaemons {
 		require.NotZero(t, daemon.ID)
 		require.True(t, daemon.Active)
 		require.NotNil(t, daemon.KeaDaemon)
 		require.NotZero(t, daemon.KeaDaemon.ID)
 		require.NotNil(t, daemon.KeaDaemon.Config)
-		require.Equal(t, app.Daemons[i].KeaDaemon.ConfigHash, daemon.KeaDaemon.ConfigHash)
-		require.NotNil(t, daemon.App)
-		require.Equal(t, app.ID, daemon.App.ID)
-		require.NotNil(t, daemon.App.Machine)
-		require.Equal(t, m.ID, daemon.App.Machine.ID)
+		require.Equal(t, testDaemons[i].KeaDaemon.ConfigHash, daemon.KeaDaemon.ConfigHash)
+		require.NotNil(t, daemon.Machine)
+		require.Equal(t, m.ID, daemon.Machine.ID)
 	}
 
 	// When daemons are selected for update within a transaction, no other
@@ -655,10 +590,10 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 		// The main thread is waiting for this conditional to ensure that the
 		// goroutine is started before the test continues.
 		cond.Signal()
-		// Attempt to delete the app while the main transaction is in progress
+		// Attempt to delete the daemon while the main transaction is in progress
 		// and the daemons are locked for update. This should block until the
 		// main transaction is committed or rolled back.
-		result, _ = db.Model(app).WherePK().Delete()
+		result, _ = db.Model(daemon1).WherePK().Delete()
 	}()
 
 	// Wait for the goroutine to begin.
@@ -672,7 +607,7 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 	// It should take precedence over the db.Delete() invoked from the goroutine.
 	// Thus, there should be no error.
-	_, err = tx.Model(app).WherePK().Delete()
+	_, err = tx.Model(daemon1).WherePK().Delete()
 	require.NoError(t, err)
 
 	// Commit the transaction which should cause the goroutine to complete.
@@ -691,10 +626,15 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 // Tests that Kea logging configuration information is correctly populated within
 // the daemon structures.
 func TestSetKeaLoggingConfig(t *testing.T) {
-	daemon := NewKeaDaemon("kea-dhcp4", true)
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
 
 	// Set initial configuration with one logger.
-	err := daemon.SetConfigFromJSON(`{
+	err := daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -708,7 +648,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
                 }
             ]
         }
-    }`)
+    }`))
 	require.NoError(t, err)
 
 	require.Len(t, daemon.LogTargets, 1)
@@ -723,7 +663,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 
 	// Set new configuration with one new logger and one logger with modified
 	// data.
-	err = daemon.SetConfigFromJSON(`{
+	err = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -746,7 +686,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
                 }
             ]
         }
-    }`)
+    }`))
 	require.NoError(t, err)
 
 	require.Len(t, daemon.LogTargets, 2)
@@ -768,8 +708,8 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 	daemon.LogTargets[1].ID = 3
 	daemon.LogTargets[1].DaemonID = 1
 
-	// CHeck that the same data can be refreshed.
-	err = daemon.SetConfigFromJSON(`{
+	// Check that the same data can be refreshed.
+	err = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -792,13 +732,13 @@ func TestSetKeaLoggingConfig(t *testing.T) {
                 }
             ]
         }
-    }`)
+    }`))
 	require.NoError(t, err)
 
 	require.Len(t, daemon.LogTargets, 2)
 
 	// Check that the number of loggers can be reduced.
-	err = daemon.SetConfigFromJSON(`{
+	err = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -812,7 +752,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
                 }
             ]
         }
-    }`)
+    }`))
 	require.NoError(t, err)
 
 	require.Len(t, daemon.LogTargets, 1)
@@ -820,10 +760,15 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 
 // This test verifies that the config hash is setting configuration as string.
 func TestSetConfigFromJSONWithHash(t *testing.T) {
-	daemon := NewKeaDaemon("kea-dhcp4", true)
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
 
 	// Set initial configuration with one logger.
-	err := daemon.SetConfigFromJSON(`{
+	err := daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -837,7 +782,7 @@ func TestSetConfigFromJSONWithHash(t *testing.T) {
                 }
             ]
         }
-    }`)
+    }`))
 	require.NoError(t, err)
 	require.NotNil(t, daemon.KeaDaemon)
 	require.NotNil(t, daemon.KeaDaemon.Config)
@@ -846,15 +791,14 @@ func TestSetConfigFromJSONWithHash(t *testing.T) {
 
 // Test that SetConfig does not set hash for the config.
 func TestSetConfig(t *testing.T) {
-	daemon := NewKeaDaemon("kea-dhcp4", true)
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
 
-	config := `{
-        "Dhcp4": {}
-    }`
-	parsedConfig, err := NewKeaConfigFromJSON(config)
-	require.NoError(t, err)
-
-	err = daemon.SetConfig(parsedConfig)
+	err := daemon.SetConfigFromJSON([]byte(`{"Dhcp4": {}}`))
 	require.NoError(t, err)
 
 	require.NotNil(t, daemon.KeaDaemon)
@@ -864,8 +808,13 @@ func TestSetConfig(t *testing.T) {
 
 // Test that shallow copy of a Kea daemon can be created.
 func TestShallowCopyKeaDaemon(t *testing.T) {
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
 	// Create Daemon instance with not nil KeaDaemon.
-	daemon := NewKeaDaemon("kea-dhcp4", true)
+	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
 	copy := ShallowCopyKeaDaemon(daemon)
 	require.NotNil(t, copy)
 	require.NotNil(t, copy.KeaDaemon)
@@ -883,7 +832,22 @@ func TestShallowCopyKeaDaemon(t *testing.T) {
 
 // Test that local subnet id of the Kea subnet can be extracted.
 func TestGetLocalSubnetID(t *testing.T) {
-	config, err := NewKeaConfigFromJSON(`{
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+
+	// Create daemon with the given configuration.
+	accessPoints := []*AccessPoint{{
+		Type:     AccessPointControl,
+		Address:  "",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
+	}}
+	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	err := daemon.SetConfigFromJSON([]byte(`{
 		"Dhcp4": {
             "subnet4": [
 				{
@@ -892,86 +856,57 @@ func TestGetLocalSubnetID(t *testing.T) {
 				}
             ]
         }
-    }`)
-	require.NotNil(t, config)
+    }`))
 	require.NoError(t, err)
 
-	// Create an app with the given configuration.
-	accessPoints := []*AccessPoint{}
-	accessPoints = AppendAccessPoint(accessPoints, AccessPointControl, "", "", 1234, false)
-	app := &App{
-		ID:           0,
-		MachineID:    0,
-		Type:         AppTypeKea,
-		Active:       true,
-		AccessPoints: accessPoints,
-		Daemons: []*Daemon{
-			{
-				KeaDaemon: &KeaDaemon{
-					Config: config,
-				},
-			},
-		},
-	}
-
 	// Try to find a non-existing subnet.
-	require.Zero(t, app.Daemons[0].GetLocalSubnetID("192.0.3.0/24"))
+	require.Zero(t, daemon.GetLocalSubnetID("192.0.3.0/24"))
 	// Next, try to find the existing subnet.
-	require.EqualValues(t, 1, app.Daemons[0].GetLocalSubnetID("192.0.2.0/24"))
+	require.EqualValues(t, 1, daemon.GetLocalSubnetID("192.0.2.0/24"))
 }
 
 // Test DaemonTag interface implementation.
 func TestDaemonTag(t *testing.T) {
+	machine := &Machine{
+		ID:        2,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
 	daemon := Daemon{
-		ID:    1,
-		Name:  "dhcp4",
-		AppID: 2,
-		App: &App{
-			Type: AppTypeKea,
-		},
+		ID:        1,
+		Name:      constant.DaemonNameDHCPv4,
+		MachineID: 2,
+		Machine:   machine,
 	}
 	require.EqualValues(t, 1, daemon.GetID())
-	require.Equal(t, "dhcp4", daemon.GetName())
-	require.EqualValues(t, 2, daemon.GetAppID())
-	require.Equal(t, AppTypeKea, daemon.GetAppType())
+	require.Equal(t, constant.DaemonNameDHCPv4, daemon.GetName())
+	require.EqualValues(t, 2, daemon.GetMachineID())
 }
 
-// Test that GetAppType() returns "kea" when KeaDaemon present.
-func TestDaemonTagKeaAppType(t *testing.T) {
-	daemon := Daemon{
-		KeaDaemon: &KeaDaemon{},
+// Test that GetMachineTag() returns the machine reference.
+func TestDaemonTagMachineTag(t *testing.T) {
+	machine := &Machine{
+		ID:        42,
+		Address:   "localhost",
+		AgentPort: 8080,
 	}
-	require.Equal(t, AppTypeKea, daemon.GetAppType())
+	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{})
+	daemon.ID = 24
+	var daemonTag DaemonTag = daemon
+	require.Equal(t, 24, daemonTag.GetID())
+	require.Equal(t, 42, daemonTag.GetMachineID())
+	require.Equal(t, constant.DaemonNameBind9, daemonTag.GetName())
 }
 
-// Test that GetAppType() returns "bind9" when Bind9Daemon present.
-func TestDaemonTagBind9AppType(t *testing.T) {
-	daemon := Daemon{
-		Bind9Daemon: &Bind9Daemon{},
-	}
-	require.Equal(t, AppTypeBind9, daemon.GetAppType())
-}
-
-// Test that the machine ID is returned if the app reference is set.
-func TestDaemonTagMachineID(t *testing.T) {
-	// Arrange
-	daemon := Daemon{
-		App: &App{
-			MachineID: 42,
-		},
-	}
-
-	// Assert & Assert
-	require.EqualValues(t, 42, *daemon.GetMachineID())
-}
-
-// Test that the machine ID is nil if the app reference is not set.
+// Test that the machine ID is not nil if the machine reference is not set.
 func TestDaemonTagMissingMachineID(t *testing.T) {
 	// Arrange
-	daemon := Daemon{}
+	daemon := Daemon{
+		MachineID: 42,
+	}
 
 	// Act & Assert
-	require.Nil(t, daemon.GetMachineID())
+	require.Equal(t, 42, daemon.GetMachineID())
 }
 
 // Tests that Kea daemon config hashes can be wiped.
@@ -988,31 +923,15 @@ func TestDeleteKeaDaemonConfigHashes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
 
-	app := &App{
-		ID:        0,
-		MachineID: machine.ID,
-		Type:      AppTypeKea,
-		Daemons: []*Daemon{
-			{
-				Name: DaemonNameDHCPv4,
-				KeaDaemon: &KeaDaemon{
-					ConfigHash: "1234",
-				},
-			},
-			{
-				Name: DaemonNameDHCPv6,
-				KeaDaemon: &KeaDaemon{
-					ConfigHash: "2345",
-				},
-			},
-		},
-	}
-	_, err = AddApp(db, app)
+	daemon1 := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon1.KeaDaemon.ConfigHash = "1234"
+	err = AddDaemon(db, daemon1)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 2)
-	require.NotZero(t, app.Daemons[0].ID)
-	require.NotZero(t, app.Daemons[1].ID)
+
+	daemon2 := NewDaemon(machine, constant.DaemonNameDHCPv6, true, []*AccessPoint{})
+	daemon2.KeaDaemon.ConfigHash = "2345"
+	err = AddDaemon(db, daemon2)
+	require.NoError(t, err)
 
 	err = DeleteKeaDaemonConfigHashes(db)
 	require.NoError(t, err)
@@ -1041,20 +960,10 @@ func TestGetRpsStatsAsFloats(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, m.ID)
 
-	// add app but without machine, error should be raised
-	app := &App{
-		ID:        0,
-		MachineID: m.ID,
-		Type:      AppTypeKea,
-		Daemons: []*Daemon{
-			NewKeaDaemon(DaemonNameDHCPv4, true),
-		},
-	}
-	_, err = AddApp(db, app)
+	// Create and add daemon
+	daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Len(t, app.Daemons, 1)
-	daemon := app.Daemons[0]
 	require.NotZero(t, daemon.ID)
 
 	// This is the statistics structure we used to have for the
@@ -1074,8 +983,8 @@ func TestGetRpsStatsAsFloats(t *testing.T) {
 
 	// Update the Kea daemon with RPS values stored as int.
 	keaDaemon := testKeaDHCPDaemon{
-		ID:          app.Daemons[0].KeaDaemon.KeaDHCPDaemon.ID,
-		KeaDaemonID: app.Daemons[0].KeaDaemon.KeaDHCPDaemon.KeaDaemonID,
+		ID:          daemon.KeaDaemon.KeaDHCPDaemon.ID,
+		KeaDaemonID: daemon.KeaDaemon.KeaDHCPDaemon.KeaDaemonID,
 		Stats: testKeaDHCPDaemonStats{
 			RPS1: 1000,
 			RPS2: 2000,

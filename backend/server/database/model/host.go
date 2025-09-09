@@ -401,6 +401,7 @@ func GetHostsByDaemonID(dbi dbops.DBI, daemonID int64, dataSource HostDataSource
 type HostsByPageFilters struct {
 	MachineID         *int64
 	SubnetID          *int64
+	DaemonID          *int64
 	LocalSubnetID     *int64
 	FilterText        *string
 	Global            *bool
@@ -433,7 +434,7 @@ func GetHostsByPage(dbi dbops.DBI, offset, limit int64, filters HostsByPageFilte
 	q = q.DistinctOn(distinctOnFields)
 
 	// Join to the local host table.
-	if (filters.MachineID != nil && *filters.MachineID != 0) || (filters.FilterText != nil && len(*filters.FilterText) > 0) {
+	if (filters.MachineID != nil && *filters.MachineID != 0) || (filters.DaemonID != nil && *filters.DaemonID != 0) || (filters.FilterText != nil && len(*filters.FilterText) > 0) {
 		q = q.Join("JOIN local_host").JoinOn("host.id = local_host.host_id")
 	}
 
@@ -443,6 +444,11 @@ func GetHostsByPage(dbi dbops.DBI, offset, limit int64, filters HostsByPageFilte
 	if filters.MachineID != nil && *filters.MachineID != 0 {
 		q = q.Join("JOIN daemon").JoinOn("local_host.daemon_id = daemon.id")
 		q = q.Where("daemon.machine_id = ?", *filters.MachineID)
+	}
+
+	// Filter by daemon ID.
+	if filters.DaemonID != nil && *filters.DaemonID != 0 {
+		q = q.Where("local_host.daemon_id = ?", *filters.DaemonID)
 	}
 
 	// Filter by conflict or duplicate.

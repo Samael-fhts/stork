@@ -25,8 +25,13 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*
 		err := dbmodel.AddMachine(db, m)
 		require.NoError(t, err)
 
-		accessPoints := []*dbmodel.AccessPoint{}
-		accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", int64(1234+i), "https")
+		accessPoints := []*dbmodel.AccessPoint{{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     int64(8080 + i),
+			Key:      "",
+			Protocol: "https",
+		}}
 
 		daemons := []*dbmodel.Daemon{
 			dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints),

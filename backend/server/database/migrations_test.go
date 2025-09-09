@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constant"
 	"isc.org/stork/server/daemons/kea"
 	dbops "isc.org/stork/server/database"
 	"isc.org/stork/server/database/maintenance"
@@ -393,24 +394,18 @@ func TestMigrationFrom57To58DifferentHostData(t *testing.T) {
 	}
 	_ = dbmodel.AddSubnet(db, subnet)
 
-	var apps []*dbmodel.App
+	var daemons []*dbmodel.Daemon
 	for i := 0; i < 2; i++ {
-		accessPoints := []*dbmodel.AccessPoint{}
-		accessPoints = dbmodel.AppendAccessPoint(accessPoints,
-			dbmodel.AccessPointControl, "localhost", "", int64(1234+i), true)
+		accessPoints := []*dbmodel.AccessPoint{{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     int64(8080 + i),
+			Key:      "",
+			Protocol: "https",
+		}}
 
-		app := &dbmodel.App{
-			MachineID:    m.ID,
-			Type:         dbmodel.AppTypeKea,
-			Name:         fmt.Sprintf("kea-%d", i),
-			Active:       true,
-			AccessPoints: accessPoints,
-			Daemons: []*dbmodel.Daemon{
-				dbmodel.NewKeaDaemon(dbmodel.DaemonNameDHCPv4, true),
-			},
-		}
-
-		_ = app.Daemons[0].SetConfigFromJSON(`{
+		daemon := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+		_ = daemon.SetConfigFromJSON([]byte(`{
 			"Dhcp4": {
 				"client-classes": [
 					{
@@ -432,14 +427,15 @@ func TestMigrationFrom57To58DifferentHostData(t *testing.T) {
 					}
 				]
 			}
-		}`)
-
-		_, _ = dbmodel.AddApp(db, app)
-		apps = append(apps, app)
+		}`))
+		err := dbmodel.AddDaemon(db, daemon)
+		require.NoError(t, err)
+		daemons = append(daemons, daemon)
 	}
 
 	// Associate the daemons with the subnets.
-	_ = dbmodel.AddDaemonToSubnet(db, subnet, apps[0].Daemons[0])
+	_ = dbmodel.AddDaemonToSubnet(db, subnet, daemons[0])
+	_ = dbmodel.AddDaemonToSubnet(db, subnet, daemons[1])
 
 	host := &dbmodel.Host{
 		SubnetID: 1,
@@ -451,7 +447,7 @@ func TestMigrationFrom57To58DifferentHostData(t *testing.T) {
 		},
 		LocalHosts: []dbmodel.LocalHost{
 			{
-				DaemonID:       apps[0].Daemons[0].ID,
+				DaemonID:       daemons[0].ID,
 				Hostname:       "foo.example.org",
 				DataSource:     dbmodel.HostDataSourceAPI,
 				NextServer:     "192.2.2.1",
@@ -467,7 +463,7 @@ func TestMigrationFrom57To58DifferentHostData(t *testing.T) {
 				},
 			},
 			{
-				DaemonID:       apps[1].Daemons[0].ID,
+				DaemonID:       daemons[1].ID,
 				Hostname:       "bar.example.org",
 				DataSource:     dbmodel.HostDataSourceAPI,
 				NextServer:     "192.2.2.4",
@@ -579,8 +575,7 @@ func TestMigration55LocalHostInDatabaseAndConfig(t *testing.T) {
 	dbmodel.InitializeSettings(db, 0)
 
 	// Prepare a configuration.
-	environment, _ := dbmodeltest.NewKea(db)
-	server, _ := environment.NewKeaDHCPv4Server()
+	server, _ := dbmodeltest.NewKeaDHCPv4Server(db)
 	err := server.Configure(`{
 		"Dhcp4": {
 			"reservations": [
@@ -593,11 +588,14 @@ func TestMigration55LocalHostInDatabaseAndConfig(t *testing.T) {
 	}`)
 	require.NoError(t, err)
 
+	machine, err := server.GetMachine()
+	require.NoError(t, err)
 	fec := &storktestdbmodel.FakeEventCenter{}
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	app, _ := server.GetKea()
 
-	err = kea.CommitAppIntoDB(db, app, fec, nil, lookup)
+	err = kea.CommitDaemonsIntoDB(db, machine.Daemons, fec, []kea.DaemonStateMeta{{
+		IsConfigChanged: true,
+	}}, lookup)
 	require.NoError(t, err)
 
 	// Add a database host reservations.

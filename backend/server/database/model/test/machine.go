@@ -43,8 +43,13 @@ func NewMachine(db *pg.DB) (*Machine, error) {
 
 // Creates new Kea app instance in the machine.
 func (machine *Machine) newKeaDaemon(name constant.DaemonName) (*KeaServer, error) {
-	ap := []*dbmodel.AccessPoint{}
-	ap = dbmodel.AppendAccessPoint(ap, dbmodel.AccessPointControl, "localhost", "", int64(getRandInt31()), "https")
+	ap := []*dbmodel.AccessPoint{{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     int64(getRandInt31()),
+		Key:      "",
+		Protocol: "https",
+	}}
 
 	daemon := &dbmodel.Daemon{
 		MachineID:    machine.ID,

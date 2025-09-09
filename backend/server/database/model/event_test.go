@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constant"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -27,31 +28,25 @@ func TestEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, mEv.ID)
 
-	// add app error event
+	// add daemon error event
 	machine := &Machine{
 		Address:   "1.2.3.4",
 		AgentPort: 321,
 	}
 	err = AddMachine(db, machine)
 	require.NoError(t, err)
-	app := &App{
-		MachineID: machine.ID,
-		Type:      "kea",
-		Daemons: []*Daemon{{
-			Name: "dhcp4",
-		}},
-	}
-	_, err = AddApp(db, app)
+
+	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
-	require.NotZero(t, app.ID)
-	require.NotZero(t, app.Daemons[0].ID)
+	require.NotZero(t, daemon.ID)
 
 	aEv := &Event{
 		Text:    "some error event",
 		Details: "more details about error event",
 		Level:   EvError,
 		Relations: &Relations{
-			AppID: app.ID,
+			DaemonID: daemon.ID,
 		},
 	}
 
@@ -65,7 +60,7 @@ func TestEvent(t *testing.T) {
 		Details: "more details about warning event",
 		Level:   EvWarning,
 		Relations: &Relations{
-			DaemonID: app.Daemons[0].ID,
+			DaemonID: daemon.ID,
 		},
 	}
 
@@ -88,14 +83,14 @@ func TestEvent(t *testing.T) {
 	require.NotZero(t, uEv.ID)
 
 	// get all events
-	events, total, err := GetEventsByPage(db, 0, 10, EvInfo, nil, nil, nil, nil, "", SortDirAny)
+	events, total, err := GetEventsByPage(db, 0, 10, EvInfo, nil, nil, nil, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 4, total)
 	require.Len(t, events, 4)
 	for _, ev := range events {
 		switch ev.Level {
 		case EvError:
-			require.EqualValues(t, aEv.Relations.AppID, ev.Relations.AppID)
+			require.EqualValues(t, aEv.Relations.DaemonID, ev.Relations.DaemonID)
 			require.EqualValues(t, "some error event", ev.Text)
 		case EvInfo:
 			require.EqualValues(t, mEv.Relations.MachineID, ev.Relations.MachineID)
@@ -114,7 +109,7 @@ func TestEvent(t *testing.T) {
 	}
 
 	// get warning and error events
-	events, total, err = GetEventsByPage(db, 0, 10, EvWarning, nil, nil, nil, nil, "", SortDirAny)
+	events, total, err = GetEventsByPage(db, 0, 10, EvWarning, nil, nil, nil, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 3, total)
 	require.Len(t, events, 3)
@@ -123,18 +118,18 @@ func TestEvent(t *testing.T) {
 	}
 
 	// get only error events
-	events, total, err = GetEventsByPage(db, 0, 10, EvError, nil, nil, nil, nil, "", SortDirAny)
+	events, total, err = GetEventsByPage(db, 0, 10, EvError, nil, nil, nil, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
 	require.Len(t, events, 1)
 	require.EqualValues(t, EvError, events[0].Level)
-	require.EqualValues(t, aEv.Relations.AppID, events[0].Relations.AppID)
+	require.EqualValues(t, aEv.Relations.DaemonID, events[0].Relations.DaemonID)
 	require.EqualValues(t, "some error event", events[0].Text)
 	require.Nil(t, events[0].SSEStreams)
 
 	// get daemon events
 	d := "dhcp4"
-	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, &d, nil, nil, nil, "", SortDirAny)
+	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, &d, nil, nil, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
 	require.Len(t, events, 1)
@@ -143,20 +138,9 @@ func TestEvent(t *testing.T) {
 	require.EqualValues(t, "some warning event", events[0].Text)
 	require.Nil(t, events[0].SSEStreams)
 
-	// get app events
-	a := "kea"
-	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, nil, &a, nil, nil, "", SortDirAny)
-	require.NoError(t, err)
-	require.EqualValues(t, 1, total)
-	require.Len(t, events, 1)
-	require.EqualValues(t, EvError, events[0].Level)
-	require.EqualValues(t, aEv.Relations.AppID, events[0].Relations.AppID)
-	require.EqualValues(t, "some error event", events[0].Text)
-	require.Nil(t, events[0].SSEStreams)
-
 	// get machine events
 	m := mEv.Relations.MachineID
-	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, nil, nil, &m, nil, "", SortDirAny)
+	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, nil, &m, nil, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
 	require.Len(t, events, 1)
@@ -169,7 +153,7 @@ func TestEvent(t *testing.T) {
 
 	// get user events
 	u := uEv.Relations.UserID
-	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, nil, nil, nil, &u, "", SortDirAny)
+	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, nil, nil, &u, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
 	require.Len(t, events, 1)
@@ -180,7 +164,7 @@ func TestEvent(t *testing.T) {
 
 	// no events
 	unknownDaemonType := "unknownDaemonType"
-	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, &unknownDaemonType, nil, nil, &u, "", SortDirAny)
+	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, &unknownDaemonType, nil, &u, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 0, total)
 	require.NotNil(t, events)
@@ -219,7 +203,7 @@ func TestDeleteAllEvents(t *testing.T) {
 	require.NoError(t, err)
 	require.EqualValues(t, 1, delCount)
 
-	events, total, err := GetEventsByPage(db, 0, 10, EvInfo, nil, nil, nil, nil, "", SortDirAny)
+	events, total, err := GetEventsByPage(db, 0, 10, EvInfo, nil, nil, nil, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 0, total)
 	require.Len(t, events, 0)

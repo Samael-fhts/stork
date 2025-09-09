@@ -24,19 +24,6 @@ const (
 	AccessPointStatistics = "statistics"
 )
 
-// AppendAccessPoint is an utility function that appends an access point to a
-// list.
-func AppendAccessPoint(list []*AccessPoint, tp, address, key string, port int64, protocol string) []*AccessPoint {
-	list = append(list, &AccessPoint{
-		Type:     tp,
-		Address:  address,
-		Port:     port,
-		Key:      key,
-		Protocol: protocol,
-	})
-	return list
-}
-
 // Get an access point by daemon id and access point type.
 func GetAccessPointByID(db dbops.DBI, daemonID int64, accessPointType string) (*AccessPoint, error) {
 	accessPoint := &AccessPoint{DaemonID: daemonID, Type: accessPointType}

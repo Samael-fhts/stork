@@ -45,6 +45,18 @@ func (dn DaemonName) ToKeaDHCPDaemonName() (KeaDHCPDaemonName, error) {
 	}
 }
 
+// Converts a DaemonName to the corresponding DNSDaemonName.
+func (dn DaemonName) ToDNSDaemonName() (DNSDaemonName, error) {
+	switch dn {
+	case DaemonNameBind9:
+		return DNSDaemonNameBind9, nil
+	case DaemonNamePDNS:
+		return DNSDaemonNamePDNS, nil
+	default:
+		return DNSDaemonName(dn), errors.Errorf("cannot convert daemon name %s to DNS daemon name", dn)
+	}
+}
+
 // Parses the daemon name from string. It returns an error if the
 // daemon name is not recognized.
 func ParseDaemonName(name string) (DaemonName, error) {
@@ -92,4 +104,13 @@ type KeaDHCPDaemonName string
 const (
 	KeaDHCPDaemonNameDHCPv4 KeaDHCPDaemonName = KeaDHCPDaemonName(KeaDaemonNameDHCPv4)
 	KeaDHCPDaemonNameDHCPv6 KeaDHCPDaemonName = KeaDHCPDaemonName(KeaDaemonNameDHCPv6)
+)
+
+// The names of the DNS daemons. They are intended to be used throughout
+// the codebase.
+type DNSDaemonName string
+
+const (
+	DNSDaemonNameBind9 DNSDaemonName = DNSDaemonName(DaemonNameBind9)
+	DNSDaemonNamePDNS  DNSDaemonName = DNSDaemonName(DaemonNamePDNS)
 )
