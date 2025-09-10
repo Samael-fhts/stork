@@ -307,8 +307,8 @@ func TestGetMachineByIDWithRelations(t *testing.T) {
 	require.Len(t, machineDaemonLogTargets.Daemons, 2)
 	sortMachineDaemonsByName(machineDaemonLogTargets)
 	require.Nil(t, machineDaemonLogTargets.Daemons[0].KeaDaemon)
-	require.Len(t, machineDaemonLogTargets.Daemons[1].LogTargets, 2)
-	require.Nil(t, machineDaemonLogTargets.Daemons[1].Bind9Daemon)
+	require.Len(t, machineDaemonLogTargets.Daemons[0].LogTargets, 2)
+	require.Nil(t, machineDaemonLogTargets.Daemons[0].Bind9Daemon)
 	// Machine with the access points
 	require.Len(t, machineDaemonAccessPoints.Daemons, 2)
 	sortMachineDaemonsByName(machineDaemonAccessPoints)

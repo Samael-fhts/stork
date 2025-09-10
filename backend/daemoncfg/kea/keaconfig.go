@@ -34,7 +34,7 @@ type commonConfigAccessor interface {
 // CtrlAgentConfig field is set and the parsed data are returned from this
 // structure. All other structures are nil.
 type Config struct {
-	Raw              RawConfig `json:"-"`
+	raw              RawConfig `json:"-"`
 	*CtrlAgentConfig `json:"Control-agent,omitempty"`
 	*D2Config        `json:"DhcpDdns,omitempty"`
 	*DHCPv4Config    `json:"Dhcp4,omitempty"`
@@ -114,29 +114,38 @@ func (c *Config) UnmarshalJSON(data []byte) error {
 	}
 	// Second pass.
 	type rt map[string]any
-	err := jsonc.Unmarshal(data, (*rt)(&c.Raw))
+	err := jsonc.Unmarshal(data, (*rt)(&c.raw))
 	return errors.Wrapf(err, "cannot unmarshal the data into a raw config")
 }
 
 // Converts the configuration to the JSON form.
 func (c Config) MarshalJSON() ([]byte, error) {
-	return json.Marshal(c.Raw)
+	return json.Marshal(c.raw)
 }
 
 // Creates a new configuration instance from a JSON string. It uses a custom
 // unmarshaller supporting comments in JSON.
 func NewConfig(raw []byte) (*Config, error) {
 	var config Config
-	err := jsonc.Unmarshal(raw, &config)
+	err := config.UnmarshalJSON(raw)
 	if err != nil {
-		return nil, errors.Wrapf(err, "problem parsing Kea configuration: %s", err)
+		return nil, err
 	}
 	return &config, nil
 }
 
+// Creates a new configuration instance from a map.
+func NewConfigFromMap(raw RawConfig) (*Config, error) {
+	bytes, err := json.Marshal(raw)
+	if err != nil {
+		return nil, err
+	}
+	return NewConfig(bytes)
+}
+
 // Returns raw configuration.
 func (c *Config) GetRawConfig() (RawConfig, error) {
-	return c.Raw, nil
+	return c.raw, nil
 }
 
 // Returns true if the Config holds the control agent's configuration.
@@ -452,7 +461,7 @@ func (c *Config) GetDHCPOptions() (options []SingleOptionData) {
 // configuration and nullifies the values for the following keys: password,
 // secret, token. It doesn't modify the parsed configuration.
 func (c *Config) HideSensitiveData() {
-	hideSensitiveData(&c.Raw)
+	hideSensitiveData(&c.raw)
 }
 
 // Hides the sensitive data in the configuration map. It traverses the raw
@@ -499,13 +508,13 @@ func (c *Config) Merge(source RawConfigAccessor) error {
 	// configuration is stored in the Config.Raw field. However, the
 	// server-specific configurations (e.g., Config.DHCPv4Config) have
 	// not been updated at this point.
-	c.Raw = merge(destConfig, sourceConfig).(RawConfig)
+	c.raw = merge(destConfig, sourceConfig).(RawConfig)
 	// After the merge, the hash is no longer valid, so let's delete it.
-	delete(c.Raw, "hash")
+	delete(c.raw, "hash")
 	// In order to update the server-specific configuration structures
 	// we need to serialize the raw configuration and then unmarshal this
 	// configuration.
-	data, err := json.Marshal(c.Raw)
+	data, err := json.Marshal(c.raw)
 	if err != nil {
 		return errors.Wrap(err, "problem serializing merged Kea configuration")
 	}

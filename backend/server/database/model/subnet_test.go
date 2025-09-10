@@ -401,7 +401,7 @@ func TestAddDeleteDaemonToSubnet(t *testing.T) {
 	// Add daemons to the database. They must exist to make any association between
 	// them and the subnet.
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	// Same story for subnet. It must exist.
 	subnet := &Subnet{
@@ -428,7 +428,7 @@ func TestAddDeleteDaemonToSubnet(t *testing.T) {
 	require.NotZero(t, returnedSubnet.LocalSubnets[0].Daemon.MachineID)
 
 	// Add another daemon to the same subnet.
-	err = AddDaemonToSubnet(db, subnet, daemons[1])
+	err = AddDaemonToSubnet(db, subnet, daemons[2])
 	require.NoError(t, err)
 	require.NotZero(t, subnet.ID)
 
@@ -462,7 +462,7 @@ func TestDeleteDaemonFromSubnets(t *testing.T) {
 	// Add daemons to the database. They must exist to make any association between
 	// them and the subnet.
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	subnets := []Subnet{
 		{
@@ -516,7 +516,7 @@ func TestGetSubnetsByDaemonID(t *testing.T) {
 	// Add daemons to the database. They must exist to make any association between
 	// them and the subnet.
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	// Add several subnets matching configuration of the daemons we have added.
 	subnets := []Subnet{
@@ -541,7 +541,7 @@ func TestGetSubnetsByDaemonID(t *testing.T) {
 			err = AddDaemonToSubnet(db, &subnets[i], daemons[0])
 		} else {
 			// Last subnet is only associated with the second daemon.
-			err = AddDaemonToSubnet(db, &subnets[i], daemons[1])
+			err = AddDaemonToSubnet(db, &subnets[i], daemons[2])
 		}
 		require.NoError(t, err)
 		require.NotZero(t, subnets[i].ID)
@@ -561,13 +561,13 @@ func TestGetSubnetsByDaemonID(t *testing.T) {
 	require.EqualValues(t, daemons[0].ID, returnedSubnets[1].LocalSubnets[0].DaemonID)
 
 	// Get all IPv4 subnets for the second daemon.
-	returnedSubnets, err = GetSubnetsByDaemonID(db, daemons[1].ID)
+	returnedSubnets, err = GetSubnetsByDaemonID(db, daemons[2].ID)
 	require.NoError(t, err)
 	require.Len(t, returnedSubnets, 1)
 
 	require.Len(t, returnedSubnets[0].LocalSubnets, 1)
 	require.EqualValues(t, 345, returnedSubnets[0].LocalSubnets[0].LocalSubnetID)
-	require.EqualValues(t, daemons[1].ID, returnedSubnets[0].LocalSubnets[0].DaemonID)
+	require.EqualValues(t, daemons[2].ID, returnedSubnets[0].LocalSubnets[0].DaemonID)
 }
 
 // This test verifies that subnets can be filtered by search text.
@@ -760,7 +760,7 @@ func TestGetDaemonLocalSubnets(t *testing.T) {
 
 	// prepare daemons
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	// prepare a subnet
 	subnet := &Subnet{
@@ -792,7 +792,7 @@ func TestGetSubnetPrefixes(t *testing.T) {
 	// Add daemons to the database. They must exist to make any association between
 	// them and the subnet.
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	// Add several subnets matching configuration of the daemons we have added.
 	subnets := []Subnet{
@@ -839,7 +839,7 @@ func TestUpdateStats(t *testing.T) {
 
 	// prepare daemons
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	// prepare a subnet
 	subnet := &Subnet{
@@ -858,7 +858,7 @@ func TestUpdateStats(t *testing.T) {
 	returnedSubnet, err := GetSubnet(db, subnet.ID)
 	require.NoError(t, err)
 	require.Len(t, returnedSubnet.LocalSubnets, 1)
-	
+
 	lsn := returnedSubnet.LocalSubnets[0]
 	stats := Stats{}
 	stats.SetBigCounter("hakuna-matata", storkutil.NewBigCounterFromInt64(123))
@@ -1047,7 +1047,7 @@ func TestGetSubnetsWithLocalSubnets(t *testing.T) {
 
 	// prepare daemons
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	// prepare a subnet
 	subnet := &Subnet{
@@ -1123,7 +1123,7 @@ func TestDeleteOrphanedSubnets(t *testing.T) {
 
 	// Add daemons used in the test.
 	daemons := addTestSubnetDaemons(t, db)
-	require.Len(t, daemons, 2)
+	require.Len(t, daemons, 4)
 
 	// Add three subnets.
 	subnets := []Subnet{

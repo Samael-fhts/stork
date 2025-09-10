@@ -318,6 +318,9 @@ func GetHostsBySubnetID(dbi dbops.DBI, subnetID int64) ([]Host, error) {
 		Relation("HostIdentifiers", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("host_identifier.id ASC"), nil
 		}).
+		Relation("LocalHosts", func(q *orm.Query) (*orm.Query, error) {
+			return q.Order("local_host.id ASC"), nil
+		}).
 		Relation("LocalHosts.IPReservations", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("ip_reservation.id ASC"), nil
 		}).
@@ -359,7 +362,8 @@ func GetHostsByDaemonID(dbi dbops.DBI, daemonID int64, dataSource HostDataSource
 		}).
 		Relation("Subnet.LocalSubnets").
 		OrderExpr("id ASC").
-		Where("lh.daemon_id = ?", daemonID)
+		Where("lh.daemon_id = ?", daemonID).
+		DistinctOn("host.id")
 
 	// Optionally filter by a data source.
 	if dataSource.IsSpecified() {

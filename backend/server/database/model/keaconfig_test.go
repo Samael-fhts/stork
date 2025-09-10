@@ -30,7 +30,6 @@ func TestNewKeaConfigFromEmptyMap(t *testing.T) {
 
 	// Assert
 	require.NotNil(t, configEmpty)
-	require.NotNil(t, configEmpty.Raw)
 	require.Nil(t, configEmpty.DHCPv4Config)
 	require.Nil(t, configEmpty.DHCPv6Config)
 	require.Nil(t, configEmpty.D2Config)
@@ -39,13 +38,16 @@ func TestNewKeaConfigFromEmptyMap(t *testing.T) {
 
 // Test that KeaConfig is constructed from a filled map.
 func TestNewKeaConfigFromFilledMap(t *testing.T) {
+	// Arrange
+	config, _ := keaconfig.NewConfigFromMap(
+		map[string]any{"Dhcp4": map[string]any{"foo": "bar"}},
+	)
+
 	// Act
-	configFilled := newKeaConfig(&keaconfig.Config{
-		Raw: map[string]any{"Dhcp4": map[string]any{"foo": "bar"}},
-	})
+	configWrapped := newKeaConfig(config)
 
 	// Assert
-	require.NotNil(t, configFilled.DHCPv4Config)
+	require.NotNil(t, configWrapped.DHCPv4Config)
 }
 
 // Verifies that the shared network instance can be created by parsing
@@ -358,9 +360,8 @@ func TestKeaConfigAppendAndScanValue(t *testing.T) {
 	for _, item := range testCases {
 		testCase := item
 		t.Run(testCase.label, func(t *testing.T) {
-			inputConfig := newKeaConfig(&keaconfig.Config{
-				Raw: testCase.value,
-			})
+			internalConfig, _ := keaconfig.NewConfigFromMap(testCase.value)
+			inputConfig := newKeaConfig(internalConfig)
 			var outputConfig KeaConfig
 			// Act
 			bytes, appendErr := inputConfig.AppendValue([]byte{}, 0)
@@ -488,7 +489,8 @@ func TestKeaConfigIsAsKeaConfigMapForJSONWithSingleQuoteFromDatabase(t *testing.
 	require.NoError(t, errMap)
 	require.NoError(t, errConfig)
 	require.EqualValues(t, resMap.Config, resConfig.Config.Config)
-	rawConfig := resMap.Config.Raw
+	rawConfig, err := resMap.Config.GetRawConfig()
+	require.NoError(t, err)
 	require.EqualValues(t, "b'r", rawConfig["foo"])
 }
 
@@ -500,9 +502,8 @@ func TestStoreHugeKeaConfigInDatabase(t *testing.T) {
 	// 50MB
 	hugeValue := strings.Repeat("a", 50*1024*1024)
 	rawConfig := map[string]any{"Dhcp4": map[string]any{"b": hugeValue}}
-	keaConfig := newKeaConfig(&keaconfig.Config{
-		Raw: rawConfig,
-	})
+	config, _ := keaconfig.NewConfigFromMap(rawConfig)
+	keaConfig := newKeaConfig(config)
 
 	machine := &Machine{
 		Address:   "localhost",

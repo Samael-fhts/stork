@@ -123,9 +123,9 @@ func daemonArraysMatch(daemonArray1, daemonArray2 []*Daemon) bool {
 	return true
 }
 
-// Adds 10 test daemons.
+// Adds 20 test daemons.
 func addTestDaemonsForServices(t *testing.T, db dbops.DBI) (daemons []*Daemon) {
-	// Add 10 machines, each including a single Kea daemon.
+	// Add 10 machines, each including two Kea daemons.
 	for i := 0; i < 10; i++ {
 		m := &Machine{
 			ID:        0,
@@ -189,10 +189,11 @@ func addTestServices(t *testing.T, db *dbops.PgDB) []*Service {
 	daemons := addTestDaemonsForServices(t, db)
 	for i := range daemons {
 		// 5 daemons added to service 1 and 3. 5 added to service 2 and 4.
-		if i%2 == 0 {
+		switch i % 4 {
+		case 0:
 			service1.Daemons = append(service1.Daemons, daemons[i])
 			service3.Daemons = append(service3.Daemons, daemons[i])
-		} else {
+		case 2:
 			service2.Daemons = append(service2.Daemons, daemons[i])
 			service4.Daemons = append(service4.Daemons, daemons[i])
 		}
@@ -327,7 +328,7 @@ func TestUpdateService(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, service)
 	require.NotNil(t, service.HAService)
-	require.Equal(t, "dhcp4", service.HAService.HAType)
+	require.Equal(t, constant.KeaDHCPDaemonNameDHCPv4, service.HAService.HAType)
 	require.Equal(t, "server1", service.HAService.Relationship)
 	require.Equal(t, "load-balancing", service.HAService.PrimaryLastState)
 	require.Equal(t, "syncing", service.HAService.SecondaryLastState)
@@ -368,7 +369,7 @@ func TestGetServiceById(t *testing.T) {
 	require.NotNil(t, service)
 	require.Len(t, service.Daemons, 5)
 	require.NotNil(t, service.HAService)
-	require.Equal(t, "dhcp4", service.HAService.HAType)
+	require.Equal(t, constant.KeaDHCPDaemonNameDHCPv4, service.HAService.HAType)
 	require.Equal(t, service.Daemons[0].ID, service.HAService.PrimaryID)
 	require.Equal(t, service.Daemons[1].ID, service.HAService.SecondaryID)
 	require.Len(t, service.HAService.BackupID, 2)
@@ -466,12 +467,11 @@ func TestGetDaemonWithServices(t *testing.T) {
 
 	daemons, err := GetDaemonsByName(db, constant.DaemonNameDHCPv4)
 	require.NoError(t, err)
-	require.Len(t, daemons, 5)
+	require.Len(t, daemons, 10)
 
 	// Make sure that all returned daemons contain references to the services.
 	for _, daemon := range daemons {
 		require.Len(t, daemon.Services, 2)
-		require.Len(t, daemon.Services[0].Daemons, 2, "Failed for daemon id %d", daemon.ID)
 	}
 }
 
@@ -503,7 +503,7 @@ func TestGetAllServices(t *testing.T) {
 	// Make sure that the HA specific information was returned for the
 	// second service.
 	require.NotNil(t, service.HAService)
-	require.Equal(t, "dhcp4", service.HAService.HAType)
+	require.Equal(t, constant.KeaDHCPDaemonNameDHCPv4, service.HAService.HAType)
 
 	service = allServices[2]
 	require.Len(t, service.Daemons, 5)

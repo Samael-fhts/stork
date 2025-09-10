@@ -114,7 +114,8 @@ func GetMachineByAddressAndAccessPointPort(db *pg.DB, machineAddress string, acc
 	machine := Machine{}
 	q := db.Model(&machine).
 		Relation(string(MachineRelationDaemonAccessPoints)).
-		Join("JOIN access_point").JoinOn("machine.id = access_point.machine_id").
+		Join("JOIN daemon").JoinOn("machine.id = daemon.machine_id").
+		Join("JOIN access_point").JoinOn("daemon.id = access_point.daemon_id").
 		Where("machine.address = ?", machineAddress).
 		Where("access_point.port = ?", accessPointPort)
 

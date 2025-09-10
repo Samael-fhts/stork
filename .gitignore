@@ -61,6 +61,7 @@ tests/system/config/kea-many-host-reservations/kea-dhcp4-*.conf
 /dist
 **/.bundle/config
 backend/**/tools/golang/gopath/pkg/sumdb/sum.golang.org/latest
+.DS_Store
 
 # Protoc generated files
 /backend/api/stork/backend/api/agent/protocol/agent.pb.go

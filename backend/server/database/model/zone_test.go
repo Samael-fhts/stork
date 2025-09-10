@@ -665,13 +665,13 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	t.Run("filter by daemon name", func(t *testing.T) {
 		filter := &GetZonesFilter{
 			DaemonName: storkutil.Ptr(constant.DNSDaemonNameBind9),
-			Text:       storkutil.Ptr("pp1"),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
 		require.NoError(t, err)
-		require.Equal(t, 1, total)
-		require.Len(t, zones, 1)
-		require.Equal(t, "example1.org", zones[0].Name)
+		require.Equal(t, 3, total)
+		require.Len(t, zones, 3)
+		require.Equal(t, "example0.org", zones[0].Name)
+		require.Equal(t, "example1.org", zones[1].Name)
 	})
 
 	t.Run("filter by view", func(t *testing.T) {
@@ -695,15 +695,6 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 		require.Equal(t, 3, total)
 	})
 
-	t.Run("match all app names", func(t *testing.T) {
-		filter := &GetZonesFilter{
-			Text: storkutil.Ptr("app"),
-		}
-		_, total, err := GetZones(db, filter, ZoneRelationLocalZones)
-		require.NoError(t, err)
-		require.Equal(t, 3, total)
-	})
-
 	t.Run("match all views", func(t *testing.T) {
 		filter := &GetZonesFilter{
 			Text: storkutil.Ptr("vi"),
@@ -720,7 +711,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 		}
 		_, total, err := GetZones(db, filter, ZoneRelationLocalZones)
 		require.NoError(t, err)
-		require.Zero(t, total)
+		require.Equal(t, 1, total)
 	})
 }
 

@@ -41,7 +41,7 @@ func TestEvent(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, daemon.ID)
 
-	aEv := &Event{
+	d1Ev := &Event{
 		Text:    "some error event",
 		Details: "more details about error event",
 		Level:   EvError,
@@ -50,12 +50,12 @@ func TestEvent(t *testing.T) {
 		},
 	}
 
-	err = AddEvent(db, aEv)
+	err = AddEvent(db, d1Ev)
 	require.NoError(t, err)
-	require.NotZero(t, aEv.ID)
+	require.NotZero(t, d1Ev.ID)
 
 	// add daemon warning event
-	dEv := &Event{
+	d2Ev := &Event{
 		Text:    "some warning event",
 		Details: "more details about warning event",
 		Level:   EvWarning,
@@ -64,9 +64,9 @@ func TestEvent(t *testing.T) {
 		},
 	}
 
-	err = AddEvent(db, dEv)
+	err = AddEvent(db, d2Ev)
 	require.NoError(t, err)
-	require.NotZero(t, dEv.ID)
+	require.NotZero(t, d2Ev.ID)
 
 	// add user warning event
 	uEv := &Event{
@@ -90,7 +90,7 @@ func TestEvent(t *testing.T) {
 	for _, ev := range events {
 		switch ev.Level {
 		case EvError:
-			require.EqualValues(t, aEv.Relations.DaemonID, ev.Relations.DaemonID)
+			require.EqualValues(t, d1Ev.Relations.DaemonID, ev.Relations.DaemonID)
 			require.EqualValues(t, "some error event", ev.Text)
 		case EvInfo:
 			require.EqualValues(t, mEv.Relations.MachineID, ev.Relations.MachineID)
@@ -102,7 +102,7 @@ func TestEvent(t *testing.T) {
 			if ev.Relations.UserID != 0 {
 				require.EqualValues(t, uEv.Relations.UserID, ev.Relations.UserID)
 			} else {
-				require.EqualValues(t, dEv.Relations.DaemonID, ev.Relations.DaemonID)
+				require.EqualValues(t, d2Ev.Relations.DaemonID, ev.Relations.DaemonID)
 			}
 			require.EqualValues(t, "some warning event", ev.Text)
 		}
@@ -123,7 +123,7 @@ func TestEvent(t *testing.T) {
 	require.EqualValues(t, 1, total)
 	require.Len(t, events, 1)
 	require.EqualValues(t, EvError, events[0].Level)
-	require.EqualValues(t, aEv.Relations.DaemonID, events[0].Relations.DaemonID)
+	require.EqualValues(t, d1Ev.Relations.DaemonID, events[0].Relations.DaemonID)
 	require.EqualValues(t, "some error event", events[0].Text)
 	require.Nil(t, events[0].SSEStreams)
 
@@ -131,12 +131,18 @@ func TestEvent(t *testing.T) {
 	d := "dhcp4"
 	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, &d, nil, nil, "", SortDirAny)
 	require.NoError(t, err)
-	require.EqualValues(t, 1, total)
-	require.Len(t, events, 1)
-	require.EqualValues(t, EvWarning, events[0].Level)
-	require.EqualValues(t, dEv.Relations.DaemonID, events[0].Relations.DaemonID)
-	require.EqualValues(t, "some warning event", events[0].Text)
+	require.EqualValues(t, 2, total)
+	require.Len(t, events, 2)
+
+	require.EqualValues(t, EvError, events[0].Level)
+	require.EqualValues(t, d1Ev.Relations.DaemonID, events[0].Relations.DaemonID)
+	require.EqualValues(t, "some error event", events[0].Text)
 	require.Nil(t, events[0].SSEStreams)
+
+	require.EqualValues(t, EvWarning, events[1].Level)
+	require.EqualValues(t, d2Ev.Relations.DaemonID, events[1].Relations.DaemonID)
+	require.EqualValues(t, "some warning event", events[1].Text)
+	require.Nil(t, events[1].SSEStreams)
 
 	// get machine events
 	m := mEv.Relations.MachineID

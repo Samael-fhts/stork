@@ -76,7 +76,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 	require.NoError(t, err)
 	// Specify the shared networks to be committed as global shared networks
 	// and associated with this daemon.
-	appNetworks := []SharedNetwork{
+	daemonNetworks := []SharedNetwork{
 		{
 			Name:   "frog",
 			Family: 4,
@@ -139,7 +139,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 
-	appSubnets := []Subnet{
+	daemonSubnets := []Subnet{
 		{
 			Prefix: "192.168.0.0/24",
 			LocalSubnets: []*LocalSubnet{
@@ -161,7 +161,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 
-	_, err = CommitNetworksIntoDB(db, appNetworks, appSubnets)
+	_, err = CommitNetworksIntoDB(db, daemonNetworks, daemonSubnets)
 	require.NoError(t, err)
 
 	// Add Kea daemon with DHCPv6 subnets, one global and one within a shared network.
@@ -195,7 +195,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 	err = AddDaemon(db, d6)
 	require.NoError(t, err)
 
-	appNetworks = []SharedNetwork{
+	daemonNetworks = []SharedNetwork{
 		{
 			Name:   "fox",
 			Family: 6,
@@ -218,7 +218,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 
-	appSubnets = []Subnet{
+	daemonSubnets = []Subnet{
 		{
 			Prefix: "2001:db8:1::/64",
 			LocalSubnets: []*LocalSubnet{
@@ -229,7 +229,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			},
 		},
 	}
-	_, err = CommitNetworksIntoDB(db, appNetworks, appSubnets)
+	_, err = CommitNetworksIntoDB(db, daemonNetworks, daemonSubnets)
 	require.NoError(t, err)
 
 	// Kea daemon with DHCPv4 and DHCPv6 subnets.
@@ -299,7 +299,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 	err = AddDaemon(db, d46v6)
 	require.NoError(t, err)
 
-	appSubnets = []Subnet{
+	daemonSubnets = []Subnet{
 		{
 			Prefix: "192.118.0.0/24",
 			LocalSubnets: []*LocalSubnet{
@@ -343,9 +343,9 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 
-	_, err = CommitNetworksIntoDB(db, []SharedNetwork{}, []Subnet{appSubnets[0]})
+	_, err = CommitNetworksIntoDB(db, []SharedNetwork{}, []Subnet{daemonSubnets[0]})
 	require.NoError(t, err)
-	_, err = CommitNetworksIntoDB(db, []SharedNetwork{}, []Subnet{appSubnets[1]})
+	_, err = CommitNetworksIntoDB(db, []SharedNetwork{}, []Subnet{daemonSubnets[1]})
 	require.NoError(t, err)
 
 	// Get all subnets.
@@ -387,28 +387,28 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 	require.Len(t, subnets, 7)
 
 	// Verify daemon associations are correct
-	daemonSubnets := make(map[int64][]Subnet)
+	subnetsByDaemon := make(map[int64][]Subnet)
 	for _, s := range subnets {
 		require.Len(t, s.LocalSubnets, 1)
 		daemonID := s.LocalSubnets[0].DaemonID
-		daemonSubnets[daemonID] = append(daemonSubnets[daemonID], s)
+		subnetsByDaemon[daemonID] = append(subnetsByDaemon[daemonID], s)
 	}
 
 	// d4 should have 3 subnets
-	require.Len(t, daemonSubnets[d4.ID], 3)
+	require.Len(t, subnetsByDaemon[d4.ID], 3)
 	// Verify local subnet IDs for d4
 	d4LocalIDs := []int64{}
-	for _, s := range daemonSubnets[d4.ID] {
+	for _, s := range subnetsByDaemon[d4.ID] {
 		d4LocalIDs = append(d4LocalIDs, s.LocalSubnets[0].LocalSubnetID)
 	}
 	require.ElementsMatch(t, []int64{1, 11, 12}, d4LocalIDs)
 
 	// Get subnets from the combined daemons (d46v4 and d46v6)
 	// Verify d46v4 and d46v6 each have their subnets
-	require.Len(t, daemonSubnets[d46v4.ID], 1)
-	require.Len(t, daemonSubnets[d46v6.ID], 1)
-	require.EqualValues(t, 3, daemonSubnets[d46v4.ID][0].LocalSubnets[0].LocalSubnetID)
-	require.EqualValues(t, 4, daemonSubnets[d46v6.ID][0].LocalSubnets[0].LocalSubnetID)
+	require.Len(t, subnetsByDaemon[d46v4.ID], 1)
+	require.Len(t, subnetsByDaemon[d46v6.ID], 1)
+	require.EqualValues(t, 3, subnetsByDaemon[d46v4.ID][0].LocalSubnets[0].LocalSubnetID)
+	require.EqualValues(t, 4, subnetsByDaemon[d46v6.ID][0].LocalSubnets[0].LocalSubnetID)
 
 	// Get IPv4 subnets
 	filters := &SubnetsByPageFilters{
@@ -460,8 +460,8 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 	require.EqualValues(t, d4.ID, subnets[0].LocalSubnets[0].DaemonID)
 	require.EqualValues(t, 1, subnets[0].LocalSubnets[0].LocalSubnetID)
 
-	// get subnets by text '200' - should find the d46v4 daemon subnet
-	filters.Text = newPtr("200")
+	// get subnets by text '118' - should find the d46v4 daemon subnet
+	filters.Text = newPtr("118")
 	subnets, total, err = GetSubnetsByPage(db, 0, 10, filters, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)

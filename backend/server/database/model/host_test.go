@@ -205,7 +205,19 @@ func addTestHosts(t *testing.T, db *pg.DB) ([]*Daemon, []Host) {
 			},
 			LocalHosts: []LocalHost{
 				{
-					DaemonID:   daemons[2].ID,
+					DaemonID:   daemons[0].ID,
+					DataSource: HostDataSourceConfig,
+					IPReservations: []IPReservation{
+						{
+							Address: "192.0.2.6/32",
+						},
+						{
+							Address: "192.0.2.7/32",
+						},
+					},
+				},
+				{
+					DaemonID:   daemons[1].ID,
 					DataSource: HostDataSourceAPI,
 					IPReservations: []IPReservation{
 						{
@@ -229,7 +241,7 @@ func addTestHosts(t *testing.T, db *pg.DB) ([]*Daemon, []Host) {
 			},
 			LocalHosts: []LocalHost{
 				{
-					DaemonID:   daemons[1].ID,
+					DaemonID:   daemons[2].ID,
 					DataSource: HostDataSourceConfig,
 					IPReservations: []IPReservation{
 						{
@@ -239,7 +251,7 @@ func addTestHosts(t *testing.T, db *pg.DB) ([]*Daemon, []Host) {
 					Hostname: "second.example.org",
 				},
 				{
-					DaemonID:   daemons[1].ID,
+					DaemonID:   daemons[2].ID,
 					DataSource: HostDataSourceAPI,
 					IPReservations: []IPReservation{
 						{
@@ -868,14 +880,14 @@ func TestGetHostsByPageDaemon(t *testing.T) {
 
 	// Get global hosts only.
 	filters := HostsByPageFilters{
-		DaemonID: &daemons[0].ID,
+		DaemonID: &daemons[1].ID,
 	}
 	returned, total, err := GetHostsByPage(db, 0, 10, filters, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 1, total)
 	require.Len(t, returned, 1)
 
-	require.Equal(t, hosts[0].ID, returned[0].ID)
+	require.Equal(t, hosts[1].ID, returned[0].ID)
 }
 
 // Test that page of the hosts can be filtered by IP reservations and
@@ -1378,12 +1390,7 @@ func TestGetHostsByPageConflictAndDuplicate(t *testing.T) {
 
 	_, hosts := addTestHosts(t, db)
 	hostDuplicate := hosts[2]
-
-	// Conflicts
 	hostConflict := hosts[3]
-	hostConflict.LocalHosts[0].BootFileName = "foo"
-	hostConflict.LocalHosts[1].BootFileName = "bar"
-	_ = UpdateHost(db, &hostConflict)
 
 	// Act
 	returned, total, err := GetHostsByPage(db, 0, 10, filters, "", SortDirAny)
@@ -1848,18 +1855,7 @@ func TestDeleteDaemonFromHosts(t *testing.T) {
 	defer teardown()
 
 	// Insert daemons and hosts into the database.
-	daemons, hosts := addTestHosts(t, db)
-	hosts[0].LocalHosts = append(hosts[0].LocalHosts, LocalHost{
-		DaemonID:   daemons[0].ID,
-		DataSource: HostDataSourceAPI,
-	})
-	_ = UpdateHost(db, &hosts[0])
-
-	hosts[1].LocalHosts = append(hosts[1].LocalHosts, LocalHost{
-		DaemonID:   daemons[0].ID,
-		DataSource: HostDataSourceAPI,
-	})
-	_ = UpdateHost(db, &hosts[1])
+	daemons, _ := addTestHosts(t, db)
 
 	// Removing associations with non-matching data source should
 	// affect no hosts.
@@ -1870,9 +1866,9 @@ func TestDeleteDaemonFromHosts(t *testing.T) {
 	// Remove associations of the first daemon.
 	count, err = DeleteDaemonFromHosts(db, daemons[0].ID, HostDataSourceUnspecified)
 	require.NoError(t, err)
-	require.EqualValues(t, 3, count)
+	require.EqualValues(t, 2, count)
 
-	count, err = DeleteDaemonFromHosts(db, daemons[1].ID, HostDataSourceUnspecified)
+	count, err = DeleteDaemonFromHosts(db, daemons[2].ID, HostDataSourceUnspecified)
 	require.NoError(t, err)
 	require.EqualValues(t, 2, count)
 
@@ -1883,7 +1879,7 @@ func TestDeleteDaemonFromHosts(t *testing.T) {
 	require.Zero(t, total)
 	require.Empty(t, returned)
 
-	returned, total, err = GetHostsByDaemonID(db, daemons[1].ID, HostDataSourceUnspecified)
+	returned, total, err = GetHostsByDaemonID(db, daemons[2].ID, HostDataSourceUnspecified)
 	require.NoError(t, err)
 	require.Zero(t, total)
 	require.Empty(t, returned)
