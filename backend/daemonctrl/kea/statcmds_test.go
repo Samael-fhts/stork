@@ -16,7 +16,6 @@ import (
 func TestUnmarshalKeaDHCPv4StatisticGetAllResponse(t *testing.T) {
 	// Arrange
 	rawResponse := `
-	[
 		{
 			"arguments": {
 				"cumulative-assigned-addresses": [ [0, "2021-10-14 10:44:18.687247"] ],
@@ -54,12 +53,8 @@ func TestUnmarshalKeaDHCPv4StatisticGetAllResponse(t *testing.T) {
 				"subnet[1].pool[0].total-addresses": [ [42, "2025-04-22 17:59:15.328653" ] ]
 			},
 			"result": 0
-		},
-		{
-			"result": 1,
-			"text": "Unable to forward command to the dhcp6 service: No such file or directory. The server is likely to be offline"
 		}
-	]`
+	`
 
 	// Act
 	var response StatisticGetAllResponse
@@ -67,55 +62,71 @@ func TestUnmarshalKeaDHCPv4StatisticGetAllResponse(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
-	require.Len(t, response, 2)
-	require.Len(t, response[0].Arguments, 33)
-	require.Nil(t, response[1].Arguments)
-	require.NoError(t, response[0].GetError())
-	require.Error(t, response[1].GetError())
+	require.Len(t, response.Arguments, 33)
+	require.NoError(t, response.GetError())
 
-	index := slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index := slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "total-addresses" && item.IsSubnetSample() && item.SubnetID == 1
 	})
 	require.NotEqual(t, -1, index)
-	item := response[0].Arguments[index]
+	item := response.Arguments[index]
 	require.EqualValues(t, 200, item.Value.Int64())
 
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "reclaimed-leases"
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.Zero(t, item.Value.Int64())
 
 	// Check the assigned lease statistics. They should count the assigned and
 	// declined leases together.
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "assigned-addresses" && item.IsAddressPoolSample() && item.SubnetID == 1 && *item.AddressPoolID == 0
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.EqualValues(t, 7, item.Value.Int64())
 
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "assigned-addresses" && item.IsSubnetSample() && item.SubnetID == 1
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.EqualValues(t, 10, item.Value.Int64())
 
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "assigned-addresses" && !item.IsSubnetSample() && !item.IsPoolSample()
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.EqualValues(t, 150, item.Value.Int64())
+}
+
+// Test unmarshalling an error response.
+func TestUnmarshalKeaStatisticGetAllErrorResponse(t *testing.T) {
+	// Arrange
+	rawResponse := `
+		{
+			"result": 1,
+			"text": "Unable to forward command to the dhcp6 service: No such file or directory. The server is likely to be offline"
+		}
+	`
+
+	// Act
+	var response StatisticGetAllResponse
+	err := json.Unmarshal([]byte(rawResponse), &response)
+
+	// Assert
+	require.NoError(t, err)
+	require.Nil(t, response.Arguments)
+	require.Error(t, response.GetError())
 }
 
 // Test if the Kea DHCPv6 JSON statistic-get-all response is unmarshalled correctly.
 func TestUnmarshalKeaDHCPv6StatisticGetAllResponse(t *testing.T) {
 	// Arrange
 	rawResponse := `
-	[
 		{
 			"arguments": {
 				"declined-addresses": [ [150, "2021-10-14 10:44:18.687235"] ],
@@ -126,12 +137,8 @@ func TestUnmarshalKeaDHCPv6StatisticGetAllResponse(t *testing.T) {
 				"subnet[2].pool[1].declined-addresses": [ [6, "2025-04-22 17:59:15.339184" ] ]
 			},
 			"result": 0
-		},
-		{
-			"result": 1,
-			"text": "Unable to forward command to the dhcp6 service: No such file or directory. The server is likely to be offline"
 		}
-	]`
+	`
 
 	// Act
 	var response StatisticGetAllResponse
@@ -140,25 +147,25 @@ func TestUnmarshalKeaDHCPv6StatisticGetAllResponse(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 
-	index := slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index := slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "assigned-nas" && item.IsAddressPoolSample() && item.SubnetID == 2 && *item.AddressPoolID == 1
 	})
 	require.NotEqual(t, -1, index)
-	item := response[0].Arguments[index]
+	item := response.Arguments[index]
 	require.EqualValues(t, 36, item.Value.Int64())
 
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "assigned-nas" && item.IsSubnetSample() && item.SubnetID == 2
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.EqualValues(t, 230, item.Value.Int64())
 
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "assigned-nas" && !item.IsSubnetSample() && !item.IsPoolSample()
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.EqualValues(t, 450, item.Value.Int64())
 }
 
@@ -167,7 +174,7 @@ func TestUnmarshalKeaDHCPv6StatisticGetAllResponse(t *testing.T) {
 func TestUnmarshalStatisticGetAllResponseBigNumbers(t *testing.T) {
 	// Arrange
 	jsonString := `
-		[{
+		{
 			"result": 0,
 			"arguments": {
 				"subnet[1].total-nas": [
@@ -183,7 +190,7 @@ func TestUnmarshalStatisticGetAllResponseBigNumbers(t *testing.T) {
 					[-1, "2021-10-14 10:44:18.687221"]
 				]
 			}
-		}]
+		}
 	`
 
 	var response StatisticGetAllResponse
@@ -197,34 +204,33 @@ func TestUnmarshalStatisticGetAllResponseBigNumbers(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
-	require.Len(t, response, 1)
 
-	index := slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index := slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "total-nas" && item.SubnetID == 1
 	})
 	require.NotEqual(t, -1, index)
-	item := response[0].Arguments[index]
+	item := response.Arguments[index]
 	require.EqualValues(t, expected0, item.Value)
 
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "total-nas" && item.SubnetID == 2
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.EqualValues(t, expected1, item.Value)
 
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "total-nas" && item.SubnetID == 4
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.EqualValues(t, expected2, item.Value)
 
-	index = slices.IndexFunc(response[0].Arguments, func(item *StatisticGetAllResponseSample) bool {
+	index = slices.IndexFunc(response.Arguments, func(item *StatisticGetAllResponseSample) bool {
 		return item.Name == "total-nas" && item.SubnetID == 5
 	})
 	require.NotEqual(t, -1, index)
-	item = response[0].Arguments[index]
+	item = response.Arguments[index]
 	require.EqualValues(t, expected3, item.Value)
 }
 

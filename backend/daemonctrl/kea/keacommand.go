@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	log "github.com/sirupsen/logrus"
 	"isc.org/stork/daemonctrl/constant"
 )
 
@@ -145,7 +144,7 @@ func createOrGetArguments(command *Command) (mapArgs map[string]any) {
 
 // Creates new Kea command from specified command name, daemons list and arguments.
 // The arguments are required to be a map or struct.
-func newCommand(command CommandName, daemons []constant.KeaDaemonName, arguments any) *Command {
+func newCommand(command CommandName, daemon constant.KeaDaemonName, arguments any) *Command {
 	if len(command) == 0 {
 		return nil
 	}
@@ -163,17 +162,9 @@ func newCommand(command CommandName, daemons []constant.KeaDaemonName, arguments
 		}
 	}
 
-	if len(daemons) > 1 {
-		log.Errorf("Multiple daemons specified for command %s: %v. Only one daemon is supported.", command, daemons)
-		daemons = daemons[:1]
-	} else if len(daemons) == 0 {
-		log.Warnf("No daemon specified for command %s. At least one daemon is required.", command)
-		daemons = []constant.KeaDaemonName{constant.KeaDaemonNameCA}
-	}
-
 	cmd := &Command{
 		Command:   command,
-		Daemons:   daemons,
+		Daemons:   []constant.KeaDaemonName{daemon},
 		Arguments: arguments,
 	}
 	return cmd
@@ -192,7 +183,7 @@ func NewCommandFromJSON(jsonCommand string) (*Command, error) {
 
 // Constructs new command with no arguments.
 func NewCommandBase(command CommandName, daemon constant.KeaDaemonName) *Command {
-	return newCommand(command, []constant.KeaDaemonName{daemon}, nil)
+	return newCommand(command, daemon, nil)
 }
 
 // Appends argument to the command. If the arguments are nil, the
