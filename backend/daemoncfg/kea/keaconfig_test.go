@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constant"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
@@ -21,7 +22,7 @@ func getTestConfigEmptyHooks(t *testing.T) *Config {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -85,7 +86,7 @@ func getTestConfigWithIPv4Subnets(t *testing.T) *Config {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -108,7 +109,7 @@ func getTestConfigWithGlobalReservations(t *testing.T, rootName string) *Config 
 			]
 		}
 	}`
-	cfg, err := NewConfig(fmt.Sprintf(configStr, rootName))
+	cfg, err := NewConfig([]byte(fmt.Sprintf(configStr, rootName)))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -144,7 +145,7 @@ func getTestConfigWithLoggers(t *testing.T, rootName string) *Config {
     }`
 
 	configStr = fmt.Sprintf(configStr, rootName)
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	return cfg
@@ -214,7 +215,7 @@ func getTestConfigWithIPv6Subnets(t *testing.T) *Config {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -256,14 +257,14 @@ func TestNewConfigWithComments(t *testing.T) {
 			// A comment.
 		}
 	}`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 }
 
 // Test instantiating a new config from a map.
 func TestNewConfigFromMap(t *testing.T) {
-	cfgMap := &map[string]any{
+	cfgMap := map[string]any{
 		"Dhcp4": map[string]any{
 			"subnet4": []any{
 				map[string]any{
@@ -273,9 +274,10 @@ func TestNewConfigFromMap(t *testing.T) {
 			},
 		},
 	}
-	cfg := NewConfigFromMap(cfgMap)
+	cfg, err := NewConfigFromMap(cfgMap)
+	require.NoError(t, err)
 	require.NotNil(t, cfg)
-	require.NotNil(t, cfg.Raw)
+	require.NotNil(t, cfg.raw)
 	require.NotNil(t, cfg.DHCPv4Config)
 	subnets := cfg.GetSubnets()
 	require.Len(t, subnets, 1)
@@ -294,7 +296,7 @@ func TestGetRawConfig(t *testing.T) {
 	rawConfig, err := config.GetRawConfig()
 	require.NoError(t, err)
 	require.NotNil(t, rawConfig)
-	require.Equal(t, config.Raw, rawConfig)
+	require.Equal(t, config.raw, rawConfig)
 
 	// Make sure it contains the top-level key.
 	require.Contains(t, rawConfig, "Dhcp4")
@@ -393,26 +395,29 @@ func TestGetControlSockets(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	require.NotNil(t, cfg.CtrlAgentConfig)
 
-	sockets := cfg.GetControlSockets()
+	sockets := cfg.GetManagementControlSockets()
 	require.NotNil(t, sockets)
-	require.True(t, sockets.HasAnyConfiguredDaemon())
+	require.True(t, sockets.HasAnyManagedDaemon())
 
 	require.NotNil(t, sockets.D2)
 	require.Equal(t, "unix", sockets.D2.SocketType)
-	require.Equal(t, "/path/to/the/unix/socket-d2", sockets.D2.SocketName)
+	require.NotNil(t, sockets.D2.SocketName)
+	require.Equal(t, "/path/to/the/unix/socket-d2", *sockets.D2.SocketName)
 
 	require.NotNil(t, sockets.Dhcp4)
 	require.Equal(t, "unix", sockets.Dhcp4.SocketType)
-	require.Equal(t, "/path/to/the/unix/socket-v4", sockets.Dhcp4.SocketName)
+	require.NotNil(t, sockets.Dhcp4.SocketName)
+	require.Equal(t, "/path/to/the/unix/socket-v4", *sockets.Dhcp4.SocketName)
 
 	require.NotNil(t, sockets.Dhcp6)
 	require.Equal(t, "unix", sockets.Dhcp6.SocketType)
-	require.Equal(t, "/path/to/the/unix/socket-v6", sockets.Dhcp6.SocketName)
+	require.NotNil(t, sockets.Dhcp6.SocketName)
+	require.Equal(t, "/path/to/the/unix/socket-v6", *sockets.Dhcp6.SocketName)
 
 	require.Nil(t, sockets.NetConf)
 }
@@ -421,14 +426,14 @@ func TestGetControlSockets(t *testing.T) {
 func TestGetControlSocketsForMissingEntry(t *testing.T) {
 	configStr := `{ "Control-agent": { } }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 	require.NotNil(t, cfg.CtrlAgentConfig)
 
-	sockets := cfg.GetControlSockets()
+	sockets := cfg.GetManagementControlSockets()
 	require.Nil(t, sockets)
-	require.False(t, sockets.HasAnyConfiguredDaemon())
+	require.False(t, sockets.HasAnyManagedDaemon())
 }
 
 // Verifies that the list of daemons for which control sockets are specified
@@ -458,21 +463,21 @@ func TestConfiguredDaemonNames(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
-	sockets := cfg.GetControlSockets()
+	sockets := cfg.GetManagementControlSockets()
 	require.NotNil(t, sockets)
-	require.True(t, sockets.HasAnyConfiguredDaemon())
+	require.True(t, sockets.HasAnyManagedDaemon())
 
-	names := sockets.GetConfiguredDaemonNames()
+	names := sockets.GetManagedDaemonNames()
 	require.Len(t, names, 4)
 
-	require.Contains(t, names, "dhcp4")
-	require.Contains(t, names, "dhcp6")
-	require.Contains(t, names, "d2")
-	require.Contains(t, names, "netconf")
+	require.Contains(t, names, constant.KeaDaemonNameDHCPv4)
+	require.Contains(t, names, constant.KeaDaemonNameDHCPv6)
+	require.Contains(t, names, constant.KeaDaemonNameD2)
+	require.Contains(t, names, constant.KeaDaemonNameNetConf)
 
 	// Reduce the number of configured sockets.
 	configStr = `{
@@ -490,20 +495,20 @@ func TestConfiguredDaemonNames(t *testing.T) {
         }
     }`
 
-	cfg, err = NewConfig(configStr)
+	cfg, err = NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
-	sockets = cfg.GetControlSockets()
+	sockets = cfg.GetManagementControlSockets()
 	require.NotNil(t, sockets)
-	require.True(t, sockets.HasAnyConfiguredDaemon())
+	require.True(t, sockets.HasAnyManagedDaemon())
 
 	// This time only two sockets have been configured.
-	names = sockets.GetConfiguredDaemonNames()
+	names = sockets.GetManagedDaemonNames()
 	require.Len(t, names, 2)
 
-	require.Contains(t, names, "dhcp4")
-	require.Contains(t, names, "d2")
+	require.Contains(t, names, constant.KeaDaemonNameDHCPv4)
+	require.Contains(t, names, constant.KeaDaemonNameD2)
 }
 
 // Test that all database connections configurations are parsed and returned
@@ -566,7 +571,7 @@ func TestGetAllDatabases(t *testing.T) {
 	// All configurations used together.
 	t.Run("all configs present", func(t *testing.T) {
 		configStr := fmt.Sprintf(configTemplate, leaseDatabase, hostsDatabase, hostsDatabases, configDatabases, legalConfig)
-		cfg, err := NewConfig(configStr)
+		cfg, err := NewConfig([]byte(configStr))
 		require.NoError(t, err)
 		require.NotNil(t, cfg)
 
@@ -580,7 +585,7 @@ func TestGetAllDatabases(t *testing.T) {
 	// No database configuration.
 	t.Run("no configs present", func(t *testing.T) {
 		configStr := fmt.Sprintf(configTemplate, "", "", "", "", "")
-		cfg, err := NewConfig(configStr)
+		cfg, err := NewConfig([]byte(configStr))
 		require.NoError(t, err)
 		require.NotNil(t, cfg)
 
@@ -594,7 +599,7 @@ func TestGetAllDatabases(t *testing.T) {
 	// lease-database
 	t.Run("lease-database only", func(t *testing.T) {
 		configStr := fmt.Sprintf(configTemplate, leaseDatabase, "", "", "", "")
-		cfg, err := NewConfig(configStr)
+		cfg, err := NewConfig([]byte(configStr))
 		require.NoError(t, err)
 		require.NotNil(t, cfg)
 
@@ -613,7 +618,7 @@ func TestGetAllDatabases(t *testing.T) {
 	// hosts-database
 	t.Run("hosts-database only", func(t *testing.T) {
 		configStr := fmt.Sprintf(configTemplate, "", hostsDatabase, "", "", "")
-		cfg, err := NewConfig(configStr)
+		cfg, err := NewConfig([]byte(configStr))
 		require.NoError(t, err)
 		require.NotNil(t, cfg)
 
@@ -632,7 +637,7 @@ func TestGetAllDatabases(t *testing.T) {
 	// hosts-databases
 	t.Run("hosts-databases only", func(t *testing.T) {
 		configStr := fmt.Sprintf(configTemplate, "", "", hostsDatabases, "", "")
-		cfg, err := NewConfig(configStr)
+		cfg, err := NewConfig([]byte(configStr))
 		require.NoError(t, err)
 		require.NotNil(t, cfg)
 
@@ -656,7 +661,7 @@ func TestGetAllDatabases(t *testing.T) {
 	// config-databases
 	t.Run("config-databases only", func(t *testing.T) {
 		configStr := fmt.Sprintf(configTemplate, "", "", "", configDatabases, "")
-		cfg, err := NewConfig(configStr)
+		cfg, err := NewConfig([]byte(configStr))
 		require.NoError(t, err)
 		require.NotNil(t, cfg)
 
@@ -680,7 +685,7 @@ func TestGetAllDatabases(t *testing.T) {
 	// legal logging hook
 	t.Run("legal logging only", func(t *testing.T) {
 		configStr := fmt.Sprintf(configTemplate, "", "", "", "", legalConfig)
-		cfg, err := NewConfig(configStr)
+		cfg, err := NewConfig([]byte(configStr))
 		require.NoError(t, err)
 		require.NotNil(t, cfg)
 
@@ -705,7 +710,7 @@ func TestGetCacheParameters(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -730,7 +735,7 @@ func TestGetDDNSParameters(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -772,7 +777,7 @@ func TestGetDHCPDDNSParameters(t *testing.T) {
 		}
 	}`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -810,7 +815,7 @@ func TestGetExpiredLeasesProcessingParameters(t *testing.T) {
 		}
 	}`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -838,7 +843,7 @@ func TestGetHostnameCharParameters(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -858,7 +863,7 @@ func TestGetTimerParameters(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -881,7 +886,7 @@ func TestGetPreferredLifetimeParameters(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -901,7 +906,7 @@ func TestGetPreferredLifetimeParametersUnsupported(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -919,7 +924,7 @@ func TestGetValidLifetimeParameters(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -938,7 +943,7 @@ func TestGetAllocator(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -954,7 +959,7 @@ func TestGetPDAllocator(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -970,7 +975,7 @@ func TestGetPDAllocatorUnsupported(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -985,7 +990,7 @@ func TestGetAuthoritative(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1001,7 +1006,7 @@ func TestGetAuthoritativeUnsupported(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1016,7 +1021,7 @@ func TestGetBootFileName(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1032,7 +1037,7 @@ func TestGetBootFileNameUnsupported(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1047,7 +1052,7 @@ func TestGetMatchClientID(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1063,7 +1068,7 @@ func TestGetMatchClientIDUnsupported(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1078,7 +1083,7 @@ func TestGetNextServer(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1094,7 +1099,7 @@ func TestGetNextServerUnsupported(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1109,7 +1114,7 @@ func TestGetServerHostname(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1125,7 +1130,7 @@ func TestGetServerHostnameUnsupported(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1140,7 +1145,7 @@ func TestGetRapidCommit(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1156,7 +1161,7 @@ func TestGetRapidCommitUnsupported(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1174,7 +1179,7 @@ func TestGetGlobalReservationModesEnableAll(t *testing.T) {
             "reservation-mode": "disabled"
         }
     }`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1204,7 +1209,7 @@ func TestGetGlobalReservationModesDisableAll(t *testing.T) {
             "reservation-mode": "out-of-pool"
         }
     }`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1230,7 +1235,7 @@ func TestGetGlobalReservationModesDeprecatedDisabled(t *testing.T) {
             "reservation-mode": "disabled"
         }
     }`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1254,7 +1259,7 @@ func TestGetGlobalReservationModesDeprecatedGlobal(t *testing.T) {
             "reservation-mode": "global"
         }
     }`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1278,7 +1283,7 @@ func TestGetGlobalReservationModesDeprecatedOutOfPool(t *testing.T) {
             "reservation-mode": "out-of-pool"
         }
     }`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1302,7 +1307,7 @@ func TestGetGlobalReservationModesDeprecatedAll(t *testing.T) {
             "reservation-mode": "all"
         }
     }`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1325,7 +1330,7 @@ func TestGetGlobalReservationModesDefaults(t *testing.T) {
 	configStr := `{
         "Dhcp4": { }
     }`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1383,7 +1388,7 @@ func TestStoreExtendedInfo(t *testing.T) {
         }
     }`
 
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1394,7 +1399,7 @@ func TestStoreExtendedInfo(t *testing.T) {
 // Test that the sensitive data are hidden.
 func TestHideSensitiveData(t *testing.T) {
 	// Arrange
-	config, err := NewConfig(`{
+	config, err := NewConfig([]byte(`{
 		"foo": "bar",
 		"password": "xxx",
 		"token": "",
@@ -1411,12 +1416,12 @@ func TestHideSensitiveData(t *testing.T) {
 				"secreT": "ccc"
 			}
 		}
-	}`)
+	}`))
 	require.NoError(t, err)
 
 	// Act
 	config.HideSensitiveData()
-	data := config.Raw
+	data := config.raw
 
 	// Assert
 	// Top level
@@ -1453,7 +1458,7 @@ func TestGetClientClasses(t *testing.T) {
 			]
         }
     }`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1468,7 +1473,7 @@ func TestGetClientClassesNonExisting(t *testing.T) {
 		"Dhcp4": {
 		}
 	}`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1515,7 +1520,7 @@ func TestGetMultiThreadingEntry(t *testing.T) {
 		}
 	}`
 
-	config, err := NewConfig(configStr)
+	config, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 
 	// Act
@@ -1536,7 +1541,7 @@ func TestGetMultiThreadingEntry(t *testing.T) {
 func TestGetMultiThreadingEntryMissingParameters(t *testing.T) {
 	// Arrange
 	configStr := `{ "Dhcp4": { "multi-threading": { } } }`
-	config, _ := NewConfig(configStr)
+	config, _ := NewConfig([]byte(configStr))
 
 	// Act
 	multiThreading := config.GetMultiThreading()
@@ -1553,7 +1558,7 @@ func TestGetMultiThreadingEntryMissingParameters(t *testing.T) {
 func TestGetMultiThreadingEntryNotExists(t *testing.T) {
 	// Arrange
 	configStr := `{ "Dhcp4": { } }`
-	config, _ := NewConfig(configStr)
+	config, _ := NewConfig([]byte(configStr))
 
 	// Act
 	multiThreading := config.GetMultiThreading()
@@ -1565,7 +1570,7 @@ func TestGetMultiThreadingEntryNotExists(t *testing.T) {
 // Test that MT is by default disabled in Kea version earlier than 2.3.5.
 func TestIsGlobalMultiThreadingEnabledDefault230(t *testing.T) {
 	configStr := `{ "Dhcp4": { } }`
-	config, _ := NewConfig(configStr)
+	config, _ := NewConfig([]byte(configStr))
 	require.False(t, config.IsMultiThreadingEnabled(storkutil.NewSemanticVersion(2, 3, 0)))
 }
 
@@ -1578,7 +1583,7 @@ func TestIsGlobalMultiThreadingEnabledEnabled230(t *testing.T) {
 			}
 		}
 	}`
-	config, _ := NewConfig(configStr)
+	config, _ := NewConfig([]byte(configStr))
 	require.True(t, config.IsMultiThreadingEnabled(storkutil.NewSemanticVersion(2, 3, 0)))
 }
 
@@ -1586,7 +1591,7 @@ func TestIsGlobalMultiThreadingEnabledEnabled230(t *testing.T) {
 // 2.3.5.
 func TestIsGlobalMultiThreadingEnabledDefault235(t *testing.T) {
 	configStr := `{ "Dhcp4": { } }`
-	config, _ := NewConfig(configStr)
+	config, _ := NewConfig([]byte(configStr))
 	require.True(t, config.IsMultiThreadingEnabled(storkutil.NewSemanticVersion(2, 3, 5)))
 }
 
@@ -1599,7 +1604,7 @@ func TestIsGlobalMultiThreadingEnabledDisabled235(t *testing.T) {
 			}
 		}
 	}`
-	config, _ := NewConfig(configStr)
+	config, _ := NewConfig([]byte(configStr))
 	require.False(t, config.IsMultiThreadingEnabled(storkutil.NewSemanticVersion(2, 3, 0)))
 }
 
@@ -1731,7 +1736,7 @@ func TestGetDHCPOptions4(t *testing.T) {
 			]
 		}
 	}`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1777,7 +1782,7 @@ func TestGetDHCPOptions6(t *testing.T) {
 			]
 		}
 	}`
-	cfg, err := NewConfig(configStr)
+	cfg, err := NewConfig([]byte(configStr))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1829,11 +1834,11 @@ func TestMergeConfig(t *testing.T) {
 		},
 		"hash": "02030405"
 	}`
-	config1, err := NewConfig(source1)
+	config1, err := NewConfig([]byte(source1))
 	require.NoError(t, err)
 	require.NotNil(t, config1)
 
-	config2, err := NewConfig(source2)
+	config2, err := NewConfig([]byte(source2))
 	require.NoError(t, err)
 	require.NotNil(t, config2)
 
@@ -1890,7 +1895,7 @@ func TestMergeSettableConfig(t *testing.T) {
 		},
 		"hash": "01020304"
 	}`
-	config1, err := NewConfig(source1)
+	config1, err := NewConfig([]byte(source1))
 	require.NoError(t, err)
 	require.NotNil(t, config1)
 

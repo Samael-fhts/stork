@@ -10,7 +10,7 @@ import (
 // Test that the Kea Control Agent configuration without comments is parsed.
 func TestKeaControlAgentConfigurationFromJSON(t *testing.T) {
 	// Arrange
-	data := `{
+	data := []byte(`{
 		"Control-agent": {
 			"http-host": "192.168.100.1",
 			"http-port": 8001,
@@ -19,7 +19,7 @@ func TestKeaControlAgentConfigurationFromJSON(t *testing.T) {
 			"key-file": "/home/user/stork-certs/kea.key",
 			"cert-required": false
 		}
-	}`
+	}`)
 
 	// Act
 	config, err := NewConfig(data)
@@ -27,29 +27,30 @@ func TestKeaControlAgentConfigurationFromJSON(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	require.True(t, config.IsCtrlAgent())
-	host, ok := config.GetHTTPHost()
-	require.True(t, ok)
+	controlSockets := config.GetListeningControlSockets()
+	require.Len(t, controlSockets, 1)
+	controlSocket := controlSockets[0]
+	host := controlSocket.GetAddress()
 	require.EqualValues(t, "192.168.100.1", host)
-	port, ok := config.GetHTTPPort()
-	require.True(t, ok)
+	port := controlSocket.GetPort()
 	require.EqualValues(t, 8001, port)
-	certFile, ok := config.GetCertFile()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/kea.crt", certFile)
-	keyFile, ok := config.GetKeyFile()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/kea.key", keyFile)
-	trustAnchor, ok := config.GetTrustAnchor()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/CA", trustAnchor)
-	certRequired, ok := config.GetCertRequired()
-	require.True(t, ok)
-	require.False(t, certRequired)
+	certFile := controlSocket.CertFile
+	require.NotNil(t, certFile)
+	require.EqualValues(t, "/home/user/stork-certs/kea.crt", *certFile)
+	keyFile := controlSocket.KeyFile
+	require.NotNil(t, keyFile)
+	require.EqualValues(t, "/home/user/stork-certs/kea.key", *keyFile)
+	trustAnchor := controlSocket.TrustAnchor
+	require.NotNil(t, trustAnchor)
+	require.EqualValues(t, "/home/user/stork-certs/CA", *trustAnchor)
+	certRequired := controlSocket.CertRequired
+	require.NotNil(t, certRequired)
+	require.False(t, *certRequired)
 }
 
 // Test that the Kea Control Agent configuration with C style comments is parsed.
 func TestKeaControlAgentConfigurationFromJSONWithCStyleComments(t *testing.T) {
-	data := `{
+	data := []byte(`{
 		"Control-agent": { /*
 			"http-host": "192.168.200.1",
 			"http-port": 8002,
@@ -67,7 +68,7 @@ func TestKeaControlAgentConfigurationFromJSONWithCStyleComments(t *testing.T) {
 			"key-file": "/home/user/stork-certs/kea.key",
 			"cert-required": false
 		}
-	}`
+	}`)
 
 	// Act
 	config, err := NewConfig(data)
@@ -75,30 +76,25 @@ func TestKeaControlAgentConfigurationFromJSONWithCStyleComments(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	require.True(t, config.IsCtrlAgent())
-	host, ok := config.GetHTTPHost()
-	require.True(t, ok)
-	require.EqualValues(t, "192.168.100.1", host)
-	port, ok := config.GetHTTPPort()
-	require.True(t, ok)
-	require.EqualValues(t, 8001, port)
-	certFile, ok := config.GetCertFile()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/kea.crt", certFile)
-	keyFile, ok := config.GetKeyFile()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/kea.key", keyFile)
-	trustAnchor, ok := config.GetTrustAnchor()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/CA", trustAnchor)
-	certRequired, ok := config.GetCertRequired()
-	require.True(t, ok)
-	require.False(t, certRequired)
+	controlSockets := config.GetListeningControlSockets()
+	require.Len(t, controlSockets, 1)
+	controlSocket := controlSockets[0]
+	require.EqualValues(t, "192.168.100.1", controlSocket.GetAddress())
+	require.EqualValues(t, 8001, controlSocket.GetPort())
+	require.NotNil(t, controlSocket.CertFile)
+	require.EqualValues(t, "/home/user/stork-certs/kea.crt", *controlSocket.CertFile)
+	require.NotNil(t, controlSocket.KeyFile)
+	require.EqualValues(t, "/home/user/stork-certs/kea.key", *controlSocket.KeyFile)
+	require.NotNil(t, controlSocket.TrustAnchor)
+	require.EqualValues(t, "/home/user/stork-certs/CA", *controlSocket.TrustAnchor)
+	require.NotNil(t, controlSocket.CertRequired)
+	require.False(t, *controlSocket.CertRequired)
 }
 
 // Test that the Kea Control Agent configuration with hash comments is parsed.
 func TestKeaControlAgentConfigurationFromJSONWithHashComments(t *testing.T) {
 	// Arrange
-	data := `{
+	data := []byte(`{
 		"Control-agent": {
 			#"http-host": "192.168.100.2",
 			#"http-port": 8001,
@@ -112,7 +108,7 @@ func TestKeaControlAgentConfigurationFromJSONWithHashComments(t *testing.T) {
 			"key-file": "/home/user/stork-certs/kea.key",
 			"cert-required": false
 		}
-	}`
+	}`)
 
 	// Act
 	config, err := NewConfig(data)
@@ -120,32 +116,27 @@ func TestKeaControlAgentConfigurationFromJSONWithHashComments(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	require.True(t, config.IsCtrlAgent())
-	host, ok := config.GetHTTPHost()
-	require.True(t, ok)
-	require.EqualValues(t, "192.168.100.1", host)
-	port, ok := config.GetHTTPPort()
-	require.True(t, ok)
-	require.EqualValues(t, 8001, port)
-	certFile, ok := config.GetCertFile()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/kea.crt", certFile)
-	keyFile, ok := config.GetKeyFile()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/kea.key", keyFile)
-	trustAnchor, ok := config.GetTrustAnchor()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/CA", trustAnchor)
-	certRequired, ok := config.GetCertRequired()
-	require.True(t, ok)
-	require.False(t, certRequired)
+	controlSockets := config.GetListeningControlSockets()
+	require.Len(t, controlSockets, 1)
+	controlSocket := controlSockets[0]
+	require.EqualValues(t, "192.168.100.1", controlSocket.GetAddress())
+	require.EqualValues(t, 8001, controlSocket.GetPort())
+	require.NotNil(t, controlSocket.CertFile)
+	require.EqualValues(t, "/home/user/stork-certs/kea.crt", *controlSocket.CertFile)
+	require.NotNil(t, controlSocket.KeyFile)
+	require.EqualValues(t, "/home/user/stork-certs/kea.key", *controlSocket.KeyFile)
+	require.NotNil(t, controlSocket.TrustAnchor)
+	require.EqualValues(t, "/home/user/stork-certs/CA", *controlSocket.TrustAnchor)
+	require.NotNil(t, controlSocket.CertRequired)
+	require.False(t, *controlSocket.CertRequired)
 }
 
 // Test that the Kea Control Agent configuration with minimal number of fields is parsed.
 func TestKeaControlAgentConfigurationFromMinimalJSON(t *testing.T) {
 	// Arrange
-	data := `{
+	data := []byte(`{
 		"Control-agent": { }
-	}`
+	}`)
 
 	// Act
 	config, err := NewConfig(data)
@@ -153,29 +144,21 @@ func TestKeaControlAgentConfigurationFromMinimalJSON(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	require.True(t, config.IsCtrlAgent())
-	host, ok := config.GetHTTPHost()
-	require.False(t, ok)
-	require.EqualValues(t, "127.0.0.1", host)
-	port, ok := config.GetHTTPPort()
-	require.False(t, ok)
-	require.Zero(t, port)
-	certFile, ok := config.GetCertFile()
-	require.False(t, ok)
-	require.Empty(t, certFile)
-	keyFile, ok := config.GetKeyFile()
-	require.False(t, ok)
-	require.Empty(t, keyFile)
-	trustAnchor, ok := config.GetTrustAnchor()
-	require.False(t, ok)
-	require.Empty(t, trustAnchor)
-	_, ok = config.GetCertRequired()
-	require.False(t, ok)
+	controlSockets := config.GetListeningControlSockets()
+	require.Len(t, controlSockets, 1)
+	controlSocket := controlSockets[0]
+	require.EqualValues(t, "127.0.0.1", controlSocket.GetAddress())
+	require.EqualValues(t, 8000, controlSocket.GetPort())
+	require.Nil(t, controlSocket.CertFile)
+	require.Nil(t, controlSocket.KeyFile)
+	require.Nil(t, controlSocket.TrustAnchor)
+	require.Nil(t, controlSocket.CertRequired)
 }
 
 // Test that the empty string parsing returns an error.
 func TestKeaControlAgentConfigurationFromEmptyString(t *testing.T) {
 	// Arrange
-	data := ""
+	data := []byte("")
 
 	// Act
 	config, err := NewConfig(data)
@@ -188,11 +171,11 @@ func TestKeaControlAgentConfigurationFromEmptyString(t *testing.T) {
 // Test parsing unsupported daemon configuration.
 func TestKeaControlAgentConfigurationFromInvalidJSON(t *testing.T) {
 	// Arrange
-	data := `{
+	data := []byte(`{
 		"Foo-Bar": {
 			"http-port": 8001
 		}
-	}`
+	}`)
 
 	// Act
 	cfg, err := NewConfig(data)
@@ -208,7 +191,7 @@ func TestKeaControlAgentConfigurationFromInvalidJSON(t *testing.T) {
 // Test that the real Kea Control Agent configuration is parsed.
 func TestKeaControlAgentConfigurationFromFullJSON(t *testing.T) {
 	// Arrange
-	data := `
+	data := []byte(`
 		// This is a basic configuration for the Kea Control Agent.
 		//
 		// Kea comes with a large suite of more than 30 configuration examples
@@ -326,7 +309,7 @@ func TestKeaControlAgentConfigurationFromFullJSON(t *testing.T) {
 		]
 		}
 		}
-	`
+	`)
 
 	// Act
 	config, err := NewConfig(data)
@@ -334,33 +317,28 @@ func TestKeaControlAgentConfigurationFromFullJSON(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	require.True(t, config.IsCtrlAgent())
-	host, ok := config.GetHTTPHost()
-	require.True(t, ok)
-	require.EqualValues(t, "192.168.100.1", host)
-	port, ok := config.GetHTTPPort()
-	require.True(t, ok)
-	require.EqualValues(t, 8001, port)
-	certFile, ok := config.GetCertFile()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/kea.crt", certFile)
-	keyFile, ok := config.GetKeyFile()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/kea.key", keyFile)
-	trustAnchor, ok := config.GetTrustAnchor()
-	require.True(t, ok)
-	require.EqualValues(t, "/home/user/stork-certs/CA", trustAnchor)
-	certRequired, ok := config.GetCertRequired()
-	require.True(t, ok)
-	require.False(t, certRequired)
+	controlSockets := config.GetListeningControlSockets()
+	require.Len(t, controlSockets, 1)
+	controlSocket := controlSockets[0]
+	require.EqualValues(t, "192.168.100.1", controlSocket.GetAddress())
+	require.EqualValues(t, 8001, controlSocket.GetPort())
+	require.NotNil(t, controlSocket.CertFile)
+	require.EqualValues(t, "/home/user/stork-certs/kea.crt", *controlSocket.CertFile)
+	require.NotNil(t, controlSocket.KeyFile)
+	require.EqualValues(t, "/home/user/stork-certs/kea.key", *controlSocket.KeyFile)
+	require.NotNil(t, controlSocket.TrustAnchor)
+	require.EqualValues(t, "/home/user/stork-certs/CA", *controlSocket.TrustAnchor)
+	require.NotNil(t, controlSocket.CertRequired)
+	require.False(t, *controlSocket.CertRequired)
 }
 
 // Test that the HTTP host is resolved to IP address.
 func TestKeaControlAgentConfigurationResolveHost(t *testing.T) {
 	// Arrange
-	jsonNoHost := `{ "Control-agent": { } }`
-	jsonEmptyHost := `{ "Control-agent": { "http-host": "" } }`
-	jsonZeroHost := `{ "Control-agent": { "http-host": "0.0.0.0" } }`
-	jsonColonHost := `{ "Control-agent": { "http-host": "::" } }`
+	jsonNoHost := []byte(`{ "Control-agent": { } }`)
+	jsonEmptyHost := []byte(`{ "Control-agent": { "http-host": "" } }`)
+	jsonZeroHost := []byte(`{ "Control-agent": { "http-host": "0.0.0.0" } }`)
+	jsonColonHost := []byte(`{ "Control-agent": { "http-host": "::" } }`)
 
 	configNoHost, _ := NewConfig(jsonNoHost)
 	configEmptyHost, _ := NewConfig(jsonEmptyHost)
@@ -368,20 +346,20 @@ func TestKeaControlAgentConfigurationResolveHost(t *testing.T) {
 	configColonHost, _ := NewConfig(jsonColonHost)
 
 	// Act
-	hostNoHost, okNoHost := configNoHost.GetHTTPHost()
-	hostEmptyHost, okEmptyHost := configEmptyHost.GetHTTPHost()
-	hostZeroHost, okZeroHost := configZeroHost.GetHTTPHost()
-	hostColonHost, okColonHost := configColonHost.GetHTTPHost()
+	controlSocketsNoHost := configNoHost.GetListeningControlSockets()
+	controlSocketsEmptyHost := configEmptyHost.GetListeningControlSockets()
+	controlSocketsZeroHost := configZeroHost.GetListeningControlSockets()
+	controlSocketsColonHost := configColonHost.GetListeningControlSockets()
 
 	// Assert
-	require.False(t, okNoHost)
-	require.EqualValues(t, "127.0.0.1", hostNoHost)
-	require.True(t, okEmptyHost)
-	require.EqualValues(t, "127.0.0.1", hostEmptyHost)
-	require.True(t, okZeroHost)
-	require.EqualValues(t, "127.0.0.1", hostZeroHost)
-	require.True(t, okColonHost)
-	require.EqualValues(t, "::1", hostColonHost)
+	require.Len(t, controlSocketsNoHost, 1)
+	require.EqualValues(t, "127.0.0.1", controlSocketsNoHost[0].GetAddress())
+	require.Len(t, controlSocketsEmptyHost, 1)
+	require.EqualValues(t, "127.0.0.1", controlSocketsEmptyHost[0].GetAddress())
+	require.Len(t, controlSocketsZeroHost, 1)
+	require.EqualValues(t, "127.0.0.1", controlSocketsZeroHost[0].GetAddress())
+	require.Len(t, controlSocketsColonHost, 1)
+	require.EqualValues(t, "::1", controlSocketsColonHost[0].GetAddress())
 }
 
 // Test that the secure protocol isn't detected when HTTPS configuration
@@ -406,14 +384,15 @@ func TestKeaControlAgentConfigurationDoNotUseSecureProtocol(t *testing.T) {
 
 	for i, data := range noSecure {
 		name := fmt.Sprintf("case-%d", i)
-		testData := data
 		t.Run(name, func(t *testing.T) {
-			config, _ := NewConfig(testData)
+			config, _ := NewConfig([]byte(data))
 			// Act
-			useSecure := config.UseSecureProtocol()
+			controlSockets := config.GetListeningControlSockets()
 
 			// Assert
-			require.False(t, useSecure)
+			require.Len(t, controlSockets, 1)
+			controlSocket := controlSockets[0]
+			require.Equal(t, "http", controlSocket.GetProtocol())
 		})
 	}
 }
@@ -421,21 +400,28 @@ func TestKeaControlAgentConfigurationDoNotUseSecureProtocol(t *testing.T) {
 // Test that the secure protocol is detected.
 func TestKeaControlAgentConfigurationUseSecureProtocol(t *testing.T) {
 	// Arrange
-	data := `{
+	data := []byte(`{
 		"Control-agent": {
 			"trust-anchor": "/foo",
 			"cert-file": "/bar",
 			"key-file": "/baz"
 		}
-	}`
+	}`)
 
 	config, _ := NewConfig(data)
 
 	// Act
-	useSecure := config.UseSecureProtocol()
+	controlSockets := config.GetListeningControlSockets()
 
 	// Assert
-	require.True(t, useSecure)
+	require.Len(t, controlSockets, 1)
+	controlSocket := controlSockets[0]
+	require.NotNil(t, controlSocket.CertFile)
+	require.NotNil(t, controlSocket.KeyFile)
+	require.NotNil(t, controlSocket.TrustAnchor)
+	require.EqualValues(t, "/foo", *controlSocket.TrustAnchor)
+	require.EqualValues(t, "/bar", *controlSocket.CertFile)
+	require.EqualValues(t, "/baz", *controlSocket.KeyFile)
 }
 
 // Test getting hook libraries for a Kea Control Agent.
@@ -484,28 +470,14 @@ func TestAuthenticationIsBasicAuth(t *testing.T) {
 
 // Test that the authentication details are returned properly.
 func TestAuthenticationGetBasicAuthenticationDetails(t *testing.T) {
-	t.Run("non-CA", func(t *testing.T) {
-		// Arrange
-		config, err := NewConfig(`{
-			"Dhcp4": {}
-		}`)
-
-		// Act
-		details := config.GetBasicAuthenticationDetails()
-
-		// Assert
-		require.NoError(t, err)
-		require.Nil(t, details)
-	})
-
 	t.Run("missing authentication", func(t *testing.T) {
 		// Arrange
-		config, err := NewConfig(`{
+		config, err := NewConfig([]byte(`{
 			"Control-agent": {}
-		}`)
+		}`))
 
 		// Act
-		details := config.GetBasicAuthenticationDetails()
+		details := config.Authentication
 
 		// Assert
 		require.NoError(t, err)
@@ -514,7 +486,7 @@ func TestAuthenticationGetBasicAuthenticationDetails(t *testing.T) {
 
 	t.Run("complete authentication", func(t *testing.T) {
 		// Arrange
-		config, err := NewConfig(`{
+		config, err := NewConfig([]byte(`{
 			"Control-agent": {
 				"authentication": {
 					"type": "basic",
@@ -535,10 +507,10 @@ func TestAuthenticationGetBasicAuthenticationDetails(t *testing.T) {
 					]
 				}
 			}
-		}`)
+		}`))
 
 		// Act
-		details := config.GetBasicAuthenticationDetails()
+		details := config.Authentication
 
 		// Assert
 		require.NoError(t, err)
@@ -560,7 +532,7 @@ func TestAuthenticationGetBasicAuthenticationDetails(t *testing.T) {
 
 	t.Run("another type of authentication", func(t *testing.T) {
 		// Arrange
-		config, err := NewConfig(`{
+		config, err := NewConfig([]byte(`{
 			"Control-agent": {
 				"authentication": {
 					"type": "digest",
@@ -568,13 +540,14 @@ func TestAuthenticationGetBasicAuthenticationDetails(t *testing.T) {
 					"clients": []
 				}
 			}
-		}`)
+		}`))
 
 		// Act
-		details := config.GetBasicAuthenticationDetails()
+		details := config.Authentication
 
 		// Assert
 		require.NoError(t, err)
-		require.Nil(t, details)
+		require.NotNil(t, details)
+		require.Equal(t, "digest", details.Type)
 	})
 }
