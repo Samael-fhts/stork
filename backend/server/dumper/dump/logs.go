@@ -74,7 +74,7 @@ func (d *LogsDump) Execute() error {
 			}
 
 			name := fmt.Sprintf("m-%d-%s_d-%d-%s_t-%d-%s",
-				daemon.MachineID, daemon.Machine.Address,
+				d.machine.ID, d.machine.Address,
 				daemon.ID, daemon.Name,
 				logTargetID, logTarget.Name)
 
