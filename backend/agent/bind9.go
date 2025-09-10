@@ -674,10 +674,11 @@ func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, e
 
 	accessPoints := []AccessPoint{
 		{
-			Type:    AccessPointControl,
-			Address: ctrlAddress,
-			Port:    ctrlPort,
-			Key:     rndcKey,
+			Type:     AccessPointControl,
+			Address:  ctrlAddress,
+			Port:     ctrlPort,
+			Key:      rndcKey,
+			Protocol: "rndc",
 		},
 	}
 
@@ -686,9 +687,10 @@ func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, e
 	address, port := getStatisticsChannelFromBind9Config(cfgText)
 	if port > 0 && len(address) != 0 {
 		accessPoints = append(accessPoints, AccessPoint{
-			Type:    AccessPointStatistics,
-			Address: address,
-			Port:    port,
+			Type:     AccessPointStatistics,
+			Address:  address,
+			Port:     port,
+			Protocol: "http",
 		})
 		client := NewBind9StatsClient()
 		// For larger deployments, it may take several minutes to retrieve the

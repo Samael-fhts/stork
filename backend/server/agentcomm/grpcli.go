@@ -227,7 +227,13 @@ func (s *keaCommState) getErrorCount(daemon constant.KeaDaemonName) int {
 	if s.errors[daemon] == nil {
 		return 0
 	}
-	return len(s.errors[daemon])
+	errorCount := 0
+	for _, err := range s.errors[daemon] {
+		if err != nil {
+			errorCount++
+		}
+	}
+	return errorCount
 }
 
 // Returns errors recorded for a daemon.
@@ -300,7 +306,10 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 		if err := parsedResponse.GetError(); err != nil {
 			err := errors.Wrapf(err, "command %s failed", command.GetCommand())
 			state.appendError(daemon, err)
+			continue
 		}
+
+		state.appendError(daemon, nil)
 	}
 
 	for daemon := range uniqueDaemons {
@@ -425,7 +434,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 			if point.Protocol == "" {
 				// For backward compatibility, if the protocol is not set,
 				// assume HTTP or HTTPS based on the UseSecureProtocol flag.
-				if daemonName == constant.DaemonNameBind9 {
+				if daemonName == constant.DaemonNameBind9 && point.Type == AccessPointControl {
 					accessPoint.Protocol = "rndc"
 				} else if point.UseSecureProtocol {
 					accessPoint.Protocol = "https"
@@ -870,7 +879,8 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 	if err != nil {
 		return nil, err
 	}
-	result.CmdsErrors = keaCommState.getErrors(daemonName)
+	cmdsErrors := keaCommState.getErrors(daemonName)
+	result.CmdsErrors = cmdsErrors
 	state := keaCommState.getState(daemonName)
 
 	// Generate events for the Kea Control Agent.
@@ -881,7 +891,7 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 			"agent":  agentURL,
 			"daemon": daemonName,
 		}).Warnf("Failed to forward Kea command to Kea daemon")
-		agents.eventCenter.AddErrorEvent("forwarding Kea command to {daemon} on {machine} failed", daemonName, daemon.GetMachineTag(), dbmodel.SSEConnectivity, keaCommState.getErrors(daemonName))
+		agents.eventCenter.AddErrorEvent("forwarding Kea command to {daemon} on {machine} failed", daemon, daemon.GetMachineTag(), dbmodel.SSEConnectivity, keaCommState.getErrors(daemonName))
 	case CommErrorReset:
 		// The connection was broken but now is ok.
 		agents.eventCenter.AddWarningEvent("forwarding Kea command to {daemon} on {machine} succeeded", daemon, daemon.GetMachineTag(), dbmodel.SSEConnectivity)
@@ -897,13 +907,10 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 		err = json.Unmarshal(response.Response, commandResponse)
 		if err != nil {
 			err = errors.Wrapf(err, "failed to parse Kea response from %s, response was: %s", controlAccessPointURL, response)
-			// The sufficient number of elements should have been already allocated but
-			// let's make sure.
-			if len(result.CmdsErrors) > idx {
-				result.CmdsErrors[idx] = err
-			} else {
-				result.CmdsErrors = append(result.CmdsErrors, err)
+			if originalErr := result.CmdsErrors[idx]; originalErr != nil {
+				err = errors.WithMessagef(originalErr, "cannot parse the response due to: %v", err)
 			}
+			result.CmdsErrors[idx] = err
 			// Failure to parse the response.
 			if state != CommErrorNew && state != CommErrorContinued {
 				stats.GetKeaStats().IncreaseErrorCount(daemonName)

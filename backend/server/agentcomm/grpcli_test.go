@@ -18,6 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 	agentapi "isc.org/stork/api"
 	"isc.org/stork/daemoncfg/dnsconfig"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	dbmodel "isc.org/stork/server/database/model"
@@ -149,7 +150,7 @@ func TestPingError(t *testing.T) {
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.EqualValues(t, 1, agent.stats.GetTotalErrorCount())
+	require.EqualValues(t, 1, agent.stats.GetTotalAgentErrorCount())
 }
 
 // Check if GetState works.
@@ -164,7 +165,7 @@ func TestGetState(t *testing.T) {
 		AgentVersion: expVer,
 		Apps: []*agentapi.App{
 			{
-				Type:         AppTypeKea,
+				Type:         string(constant.DaemonNameDHCPv4),
 				AccessPoints: makeAccessPoint(AccessPointControl, "1.2.3.4", "", 1234),
 			},
 		},
@@ -181,7 +182,7 @@ func TestGetState(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, expVer, state.AgentVersion)
-	require.Equal(t, AppTypeKea, state.Apps[0].Type)
+	require.Equal(t, constant.DaemonNameDHCPv4, state.Daemons[0].Name)
 }
 
 // Test error case for GetState.
@@ -206,7 +207,7 @@ func TestGetStateError(t *testing.T) {
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.EqualValues(t, 1, agent.stats.GetTotalErrorCount())
+	require.EqualValues(t, 1, agent.stats.GetTotalAgentErrorCount())
 }
 
 // Test that a command can be successfully forwarded to Kea and the response
@@ -216,40 +217,65 @@ func TestForwardToKeaOverHTTP(t *testing.T) {
 	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
 	defer ctrl.Finish()
 
-	data := []byte(`[
+	rawResponseV4 := []byte(`
 		{
 			"result": 1,
 			"text": "operation failed"
-		},
-		{
+		}
+	`)
+
+	rawResponseV6 := []byte(`{
 			"result": 0,
 			"text": "operation succeeded",
 			"arguments": {
 				"success": true
 			}
 		}
-	]`)
+	`)
 
-	rsp := agentapi.ForwardToKeaOverHTTPRsp{
+	rspV4 := agentapi.ForwardToKeaOverHTTPRsp{
 		Status: &agentapi.Status{
 			Code: 0,
 		},
-		KeaResponses: []*agentapi.KeaResponse{{
-			Status: &agentapi.Status{
-				Code: 0,
+		KeaResponses: []*agentapi.KeaResponse{
+			{
+				Status: &agentapi.Status{
+					Code: 0,
+				},
+				Response: rawResponseV4,
 			},
-			Response: data,
-		}},
+		},
+	}
+
+	rspV6 := agentapi.ForwardToKeaOverHTTPRsp{
+		Status: &agentapi.Status{
+			Code: 0,
+		},
+		KeaResponses: []*agentapi.KeaResponse{
+			{
+				Status: &agentapi.Status{
+					Code: 0,
+				},
+				Response: rawResponseV6,
+			},
+		},
 	}
 
 	mockAgentClient.EXPECT().
 		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
-		Return(&rsp, nil)
+		Return(&rspV4, nil)
+
+	mockAgentClient.EXPECT().
+		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return(&rspV6, nil)
 
 	ctx := context.Background()
-	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), keactrl.DHCPv4, keactrl.DHCPv6)
-	actualResponse := keactrl.ResponseList{}
-	dbApp := &dbmodel.App{
+	commandV4 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv4)
+	commandV6 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv6)
+	var responseV4 keactrl.Response
+	var responseV6 keactrl.Response
+	dbDaemon := &dbmodel.Daemon{
+		Name: constant.DaemonNameDHCPv4,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -261,35 +287,43 @@ func TestForwardToKeaOverHTTP(t *testing.T) {
 			Key:     "",
 		}},
 	}
-	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, []keactrl.SerializableCommand{command}, &actualResponse)
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{commandV4}, &responseV4)
 	require.NoError(t, err)
-	require.NotNil(t, actualResponse)
+	require.NotNil(t, responseV4)
+	require.NoError(t, cmdsResult.Error)
+	require.Len(t, cmdsResult.CmdsErrors, 1)
+	require.Error(t, cmdsResult.CmdsErrors[0])
+
+	require.Equal(t, keactrl.ResponseError, responseV4.Result)
+	require.Equal(t, "operation failed", responseV4.Text)
+	require.Nil(t, responseV4.Arguments)
+
+	dbDaemon.Name = constant.DaemonNameDHCPv6
+	cmdsResult, err = agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{commandV6}, &responseV6)
+	require.NoError(t, err)
+	require.NotNil(t, responseV6)
 	require.NoError(t, cmdsResult.Error)
 	require.Len(t, cmdsResult.CmdsErrors, 1)
 	require.NoError(t, cmdsResult.CmdsErrors[0])
 
-	responseList := actualResponse
-	require.Len(t, responseList, 2)
-
-	require.Equal(t, keactrl.ResponseError, responseList[0].Result)
-	require.Equal(t, "operation failed", responseList[0].Text)
-	require.Nil(t, responseList[0].Arguments)
-
-	require.Equal(t, keactrl.ResponseSuccess, responseList[1].Result)
-	require.Equal(t, "operation succeeded", responseList[1].Text)
-	require.NotNil(t, responseList[1].Arguments)
-	require.Len(t, *responseList[1].Arguments, 1)
-	require.Contains(t, *responseList[1].Arguments, "success")
+	require.NotNil(t, responseV6)
+	require.Equal(t, keactrl.ResponseSuccess, responseV6.Result)
+	require.Equal(t, "operation succeeded", responseV6.Text)
+	require.NotNil(t, responseV6.Arguments)
+	argumentMap := map[string]any{}
+	err = json.Unmarshal(responseV6.Arguments, &argumentMap)
+	require.NoError(t, err)
+	require.Len(t, argumentMap, 1)
+	require.Contains(t, argumentMap, "success")
 
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.Zero(t, agent.stats.GetTotalErrorCount())
-	keaCommErrors := agent.stats.GetKeaCommErrorStats(0)
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonCA))
-	require.EqualValues(t, 1, keaCommErrors.GetErrorCount(KeaDaemonDHCPv4))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonDHCPv6))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonD2))
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameCA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv6))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameD2))
 }
 
 // Test that two commands can be successfully forwarded to Kea and the response
@@ -299,7 +333,7 @@ func TestForwardToKeaOverHTTPWith2Cmds(t *testing.T) {
 	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
 	defer ctrl.Finish()
 
-	rsp := agentapi.ForwardToKeaOverHTTPRsp{
+	rspV4 := agentapi.ForwardToKeaOverHTTPRsp{
 		Status: &agentapi.Status{
 			Code: 0,
 		},
@@ -307,43 +341,45 @@ func TestForwardToKeaOverHTTPWith2Cmds(t *testing.T) {
 			Status: &agentapi.Status{
 				Code: 0,
 			},
-			Response: []byte(`[
-            {
+			Response: []byte(`{
                 "result": 1,
                 "text": "operation failed"
-            },
-            {
+            }`),
+		}},
+	}
+
+	rspV6 := agentapi.ForwardToKeaOverHTTPRsp{
+		Status: &agentapi.Status{
+			Code: 0,
+		},
+		KeaResponses: []*agentapi.KeaResponse{{
+			Status: &agentapi.Status{
+				Code: 0,
+			},
+			Response: []byte(`{
                 "result": 0,
                 "text": "operation succeeded",
                 "arguments": {
                     "success": true
                 }
-            }
-        ]`),
-		}, {
-			Status: &agentapi.Status{
-				Code: 0,
-			},
-			Response: []byte(`[
-            {
-                "result": 1,
-                "text": "operation failed"
-            }
-        ]`),
+            }`),
 		}},
 	}
 
 	mockAgentClient.EXPECT().
 		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
-		Return(&rsp, nil)
+		Return(&rspV4, nil)
+	mockAgentClient.EXPECT().
+		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return(&rspV6, nil)
 
 	ctx := context.Background()
-	daemons := []keactrl.DaemonName{keactrl.DHCPv4, keactrl.DHCPv6}
-	command1 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemons...)
-	command2 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemons...)
-	actualResponse1 := keactrl.ResponseList{}
-	actualResponse2 := keactrl.ResponseList{}
-	dbApp := &dbmodel.App{
+	commandV4 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv4)
+	commandV6 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv6)
+	var actualResponseV4 keactrl.Response
+	var actualResponseV6 keactrl.Response
+	dbDaemon := &dbmodel.Daemon{
+		Name: constant.DaemonNameDHCPv4,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -355,44 +391,39 @@ func TestForwardToKeaOverHTTPWith2Cmds(t *testing.T) {
 			Key:     "",
 		}},
 	}
-	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, []keactrl.SerializableCommand{command1, command2}, &actualResponse1, &actualResponse2)
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{commandV4}, &actualResponseV4)
 	require.NoError(t, err)
-	require.NotNil(t, actualResponse1)
-	require.NotNil(t, actualResponse2)
+	require.NotNil(t, actualResponseV4)
 	require.NoError(t, cmdsResult.Error)
-	require.Len(t, cmdsResult.CmdsErrors, 2)
+	require.Len(t, cmdsResult.CmdsErrors, 1)
+	require.Error(t, cmdsResult.CmdsErrors[0])
+	require.Equal(t, keactrl.ResponseError, actualResponseV4.Result)
+	require.Equal(t, "operation failed", actualResponseV4.Text)
+	require.Nil(t, actualResponseV4.Arguments)
+
+	dbDaemon.Name = constant.DaemonNameDHCPv6
+	cmdsResult, err = agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{commandV6}, &actualResponseV6)
+	require.NoError(t, err)
+	require.NotNil(t, actualResponseV6)
+	require.NoError(t, cmdsResult.Error)
+	require.Len(t, cmdsResult.CmdsErrors, 1)
 	require.NoError(t, cmdsResult.CmdsErrors[0])
-	require.NoError(t, cmdsResult.CmdsErrors[1])
-
-	responseList := actualResponse1
-	require.Len(t, responseList, 2)
-
-	require.Equal(t, keactrl.ResponseError, responseList[0].Result)
-	require.Equal(t, "operation failed", responseList[0].Text)
-	require.Nil(t, responseList[0].Arguments)
-
-	require.Equal(t, keactrl.ResponseSuccess, responseList[1].Result)
-	require.Equal(t, "operation succeeded", responseList[1].Text)
-	require.NotNil(t, responseList[1].Arguments)
-	require.Len(t, *responseList[1].Arguments, 1)
-	require.Contains(t, *responseList[1].Arguments, "success")
-
-	responseList = actualResponse2
-	require.Len(t, responseList, 1)
-
-	require.Equal(t, keactrl.ResponseError, responseList[0].Result)
-	require.Equal(t, "operation failed", responseList[0].Text)
-	require.Nil(t, responseList[0].Arguments)
+	require.Equal(t, keactrl.ResponseSuccess, actualResponseV6.Result)
+	require.Equal(t, "operation succeeded", actualResponseV6.Text)
+	require.NotNil(t, actualResponseV6.Arguments)
+	argumentMap := map[string]any{}
+	err = json.Unmarshal(actualResponseV6.Arguments, &argumentMap)
+	require.NoError(t, err)
+	require.Len(t, argumentMap, 1)
+	require.Contains(t, argumentMap, "success")
 
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.Zero(t, 0, agent.stats.GetTotalErrorCount())
-	keaCommErrors := agent.stats.GetKeaCommErrorStats(0)
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonCA))
-	require.EqualValues(t, 2, keaCommErrors.GetErrorCount(KeaDaemonDHCPv4))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonDHCPv6))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonD2))
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv6))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameD2))
 }
 
 // Test that the error is returned when the response to the forwarded Kea command
@@ -410,11 +441,9 @@ func TestForwardToKeaOverHTTPInvalidResponse(t *testing.T) {
 			Status: &agentapi.Status{
 				Code: 0,
 			},
-			Response: []byte(`[
-            {
+			Response: []byte(`{
                 "result": "a string"
-            }
-        ]`),
+            }`),
 		}},
 	}
 	mockAgentClient.EXPECT().
@@ -422,9 +451,10 @@ func TestForwardToKeaOverHTTPInvalidResponse(t *testing.T) {
 		Return(&rsp, nil)
 
 	ctx := context.Background()
-	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"))
-	actualResponse := keactrl.ResponseList{}
-	dbApp := &dbmodel.App{
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv4)
+	var actualResponse keactrl.Response
+	dbDaemon := &dbmodel.Daemon{
+		Name: constant.DaemonNameDHCPv4,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -436,7 +466,7 @@ func TestForwardToKeaOverHTTPInvalidResponse(t *testing.T) {
 			Key:     "",
 		}},
 	}
-	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, []keactrl.SerializableCommand{command}, &actualResponse)
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{command}, &actualResponse)
 	require.NoError(t, err)
 	require.NotNil(t, cmdsResult)
 	require.NoError(t, cmdsResult.Error)
@@ -447,12 +477,11 @@ func TestForwardToKeaOverHTTPInvalidResponse(t *testing.T) {
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.Zero(t, agent.stats.GetTotalErrorCount())
-	keaCommErrors := agent.stats.GetKeaCommErrorStats(0)
-	require.EqualValues(t, 1, keaCommErrors.GetErrorCount(KeaDaemonCA))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonDHCPv4))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonDHCPv6))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonD2))
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameCA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv6))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameD2))
 }
 
 // Test that the error is returned when the response to the forwarded Kea command
@@ -478,9 +507,10 @@ func TestForwardToKeaOverHTTPBadRequest(t *testing.T) {
 		Return(&rsp, nil)
 
 	ctx := context.Background()
-	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"))
-	actualResponse := keactrl.ResponseList{}
-	dbApp := &dbmodel.App{
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv4)
+	var actualResponse keactrl.Response
+	dbDaemon := &dbmodel.Daemon{
+		Name: constant.DaemonNameDHCPv4,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -492,7 +522,7 @@ func TestForwardToKeaOverHTTPBadRequest(t *testing.T) {
 			Key:     "",
 		}},
 	}
-	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbApp, []keactrl.SerializableCommand{command}, &actualResponse)
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{command}, &actualResponse)
 	require.NoError(t, err)
 	require.NotNil(t, cmdsResult)
 	require.NoError(t, cmdsResult.Error)
@@ -503,12 +533,11 @@ func TestForwardToKeaOverHTTPBadRequest(t *testing.T) {
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.Zero(t, agent.stats.GetTotalErrorCount())
-	keaCommErrors := agent.stats.GetKeaCommErrorStats(0)
-	require.EqualValues(t, 1, keaCommErrors.GetErrorCount(KeaDaemonCA))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonDHCPv4))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonDHCPv6))
-	require.Zero(t, keaCommErrors.GetErrorCount(KeaDaemonD2))
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameCA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv6))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameD2))
 }
 
 // Test that a statistics request can be successfully forwarded to named
@@ -557,15 +586,20 @@ func TestForwardToNamedStats(t *testing.T) {
 	ctx := context.Background()
 	actualResponse := NamedStatsGetResponse{}
 	err := agents.ForwardToNamedStats(ctx,
-		dbmodel.App{
+		dbmodel.Daemon{
 			ID:   1,
-			Type: dbmodel.AppTypeBind9,
-			Name: "named",
+			Name: constant.DaemonNameBind9,
 			Machine: &dbmodel.Machine{
 				Address:   "127.0.0.1",
 				AgentPort: 8080,
 			},
-		}, "localhost", 8000, agentapi.ForwardToNamedStatsReq_SERVER, &actualResponse)
+			AccessPoints: []*dbmodel.AccessPoint{{
+				Type:     AccessPointStatistics,
+				Address:  "localhost",
+				Port:     8000,
+				Protocol: "http",
+			}},
+		}, agentapi.ForwardToNamedStatsReq_SERVER, &actualResponse)
 	require.NoError(t, err)
 	require.NotNil(t, actualResponse)
 	require.Len(t, *actualResponse.Views, 1)
@@ -574,10 +608,9 @@ func TestForwardToNamedStats(t *testing.T) {
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.Zero(t, agent.stats.GetTotalErrorCount())
-	bind9CommErrors := agent.stats.GetBind9CommErrorStats(1)
-	require.Zero(t, bind9CommErrors.GetErrorCount(Bind9ChannelRNDC))
-	require.Zero(t, bind9CommErrors.GetErrorCount(Bind9ChannelStats))
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointControl))
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointStatistics))
 }
 
 // Test that the error is returned when the response to the forwarded
@@ -607,24 +640,27 @@ func TestForwardToNamedStatsInvalidResponse(t *testing.T) {
 	ctx := context.Background()
 	actualResponse := NamedStatsGetResponse{}
 	err := agents.ForwardToNamedStats(ctx,
-		dbmodel.App{
+		dbmodel.Daemon{
 			ID:   1,
-			Type: dbmodel.AppTypeBind9,
-			Name: "named",
+			Name: constant.DaemonNameBind9,
 			Machine: &dbmodel.Machine{
 				Address:   "127.0.0.1",
 				AgentPort: 8080,
 			},
-		}, "localhost", 8000, agentapi.ForwardToNamedStatsReq_DEFAULT, &actualResponse)
+			AccessPoints: []*dbmodel.AccessPoint{{
+				Type:    AccessPointStatistics,
+				Address: "localhost",
+				Port:    8000,
+			}},
+		}, agentapi.ForwardToNamedStatsReq_DEFAULT, &actualResponse)
 	require.Error(t, err)
 
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.Zero(t, agent.stats.GetTotalErrorCount())
-	bind9CommErrors := agent.stats.GetBind9CommErrorStats(1)
-	require.Zero(t, bind9CommErrors.GetErrorCount(Bind9ChannelRNDC))
-	require.EqualValues(t, 1, bind9CommErrors.GetErrorCount(Bind9ChannelStats))
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointControl))
+	require.EqualValues(t, 1, agent.stats.GetBind9Stats().GetErrorCount(AccessPointStatistics))
 }
 
 // Test that a command can be successfully forwarded to rndc and the response
@@ -651,7 +687,8 @@ func TestForwardRndcCommand(t *testing.T) {
 	).Return(&rsp, nil)
 
 	ctx := context.Background()
-	dbApp := &dbmodel.App{
+	dbDaemon := &dbmodel.Daemon{
+		Name: constant.DaemonNameBind9,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -664,17 +701,16 @@ func TestForwardRndcCommand(t *testing.T) {
 		}},
 	}
 
-	out, err := agents.ForwardRndcCommand(ctx, dbApp, "test")
+	out, err := agents.ForwardRndcCommand(ctx, dbDaemon, "test")
 	require.NoError(t, err)
 	require.Equal(t, out.Output, "all good")
 
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.Zero(t, agent.stats.GetTotalErrorCount())
-	bind9CommErrors := agent.stats.GetBind9CommErrorStats(0)
-	require.Zero(t, bind9CommErrors.GetErrorCount(Bind9ChannelRNDC))
-	require.Zero(t, bind9CommErrors.GetErrorCount(Bind9ChannelStats))
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointControl))
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointStatistics))
 }
 
 // Test the gRPC call which fetches the tail of the specified text file.
@@ -730,18 +766,7 @@ func TestTailTextFileError(t *testing.T) {
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
-	require.EqualValues(t, 1, agent.stats.GetTotalErrorCount())
-}
-
-// Check MakeAccessPoint.
-func TestMakeAccessPoint(t *testing.T) {
-	aps := MakeAccessPoint(dbmodel.AccessPointControl, "1.2.3.4", "abcd", 124)
-	require.Len(t, aps, 1)
-	ap := aps[0]
-	require.EqualValues(t, dbmodel.AccessPointControl, ap.Type)
-	require.EqualValues(t, "1.2.3.4", ap.Address)
-	require.EqualValues(t, 124, ap.Port)
-	require.EqualValues(t, "abcd", ap.Key)
+	require.EqualValues(t, 1, agent.stats.GetTotalAgentErrorCount())
 }
 
 // Test getting first Kea error found in the KeaCmdsResult structure.
@@ -782,7 +807,7 @@ func TestKeaCmdsResultGetFirstError(t *testing.T) {
 // Test that an error is returned when specified access point does not exist.
 func TestReceiveZonesNonExistingAccessPoint(t *testing.T) {
 	// Create an app without the access point.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -799,7 +824,7 @@ func TestReceiveZonesNonExistingAccessPoint(t *testing.T) {
 
 	// The iterator should return an error that there is no access point available
 	// for this app.
-	for zone, err := range agents.ReceiveZones(context.Background(), app, nil) {
+	for zone, err := range agents.ReceiveZones(context.Background(), daemon, nil) {
 		require.ErrorContains(t, err, "access point")
 		require.Nil(t, zone)
 	}
@@ -808,7 +833,7 @@ func TestReceiveZonesNonExistingAccessPoint(t *testing.T) {
 // Test that an error is returned when establishing connection fails.
 func TestReceiveZonesConnectionError(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -840,7 +865,7 @@ func TestReceiveZonesConnectionError(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZones(gomock.Any(), gomock.Any()).Times(0)
 
 	// The iterator should return an error during an attempt to connect.
-	for zone, err := range agents.ReceiveZones(context.Background(), app, nil) {
+	for zone, err := range agents.ReceiveZones(context.Background(), daemon, nil) {
 		var testError *testError
 		require.ErrorAs(t, err, &testError)
 		require.Nil(t, zone)
@@ -850,7 +875,7 @@ func TestReceiveZonesConnectionError(t *testing.T) {
 // Test that an error is returned when getting a gRPC stream fails.
 func TestReceiveZonesGetStreamError(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -872,7 +897,7 @@ func TestReceiveZonesGetStreamError(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZones(gomock.Any(), gomock.Any()).Times(2).Return(nil, &testError{})
 
 	// The iterator should return an error returned by ReceiveZones().
-	for zone, err := range agents.ReceiveZones(context.Background(), app, nil) {
+	for zone, err := range agents.ReceiveZones(context.Background(), daemon, nil) {
 		require.ErrorContains(t, err, "test error")
 		require.Nil(t, zone)
 	}
@@ -882,7 +907,7 @@ func TestReceiveZonesGetStreamError(t *testing.T) {
 // inventory hasn't been initialized.
 func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -912,7 +937,7 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZones(gomock.Any(), gomock.Any()).Times(2).Return(nil, ds.Err())
 
 	// The iterator should return ZoneInventoryNotInitedError.
-	for zone, err := range agents.ReceiveZones(context.Background(), app, nil) {
+	for zone, err := range agents.ReceiveZones(context.Background(), daemon, nil) {
 		var zoneInventoryNotInitedError *ZoneInventoryNotInitedError
 		require.ErrorAs(t, err, &zoneInventoryNotInitedError)
 		require.Nil(t, zone)
@@ -923,7 +948,7 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 // inventory is busy.
 func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -953,7 +978,7 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZones(gomock.Any(), gomock.Any()).Times(2).Return(nil, ds.Err())
 
 	// The iterator should return ZoneInventoryBusyError.
-	for zone, err := range agents.ReceiveZones(context.Background(), app, nil) {
+	for zone, err := range agents.ReceiveZones(context.Background(), daemon, nil) {
 		var zoneInventoryBusyError *ZoneInventoryBusyError
 		require.ErrorAs(t, err, &zoneInventoryBusyError)
 		require.Nil(t, zone)
@@ -963,7 +988,7 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 // Test that other gRPC status errors are handled properly.
 func TestReceiveZonesOtherStatusError(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -992,7 +1017,7 @@ func TestReceiveZonesOtherStatusError(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZones(gomock.Any(), gomock.Any()).Times(2).Return(nil, ds.Err())
 
 	// The iterator should return the original error without special handling.
-	for zone, err := range agents.ReceiveZones(context.Background(), app, nil) {
+	for zone, err := range agents.ReceiveZones(context.Background(), daemon, nil) {
 		require.ErrorContains(t, err, "internal server error")
 		require.Nil(t, zone)
 	}
@@ -1001,7 +1026,7 @@ func TestReceiveZonesOtherStatusError(t *testing.T) {
 // Test that an error is returned when getting a zone over the stream fails.
 func TestReceiveZonesZoneInventoryReceiveZoneError(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1022,7 +1047,7 @@ func TestReceiveZonesZoneInventoryReceiveZoneError(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZones(gomock.Any(), gomock.Any()).Times(1).Return(mockStreamingClient, nil)
 
 	// The iterator should return an error returned by Recv().
-	for zone, err := range agents.ReceiveZones(context.Background(), app, nil) {
+	for zone, err := range agents.ReceiveZones(context.Background(), daemon, nil) {
 		var testError *testError
 		require.ErrorAs(t, err, &testError)
 		require.Nil(t, zone)
@@ -1032,7 +1057,7 @@ func TestReceiveZonesZoneInventoryReceiveZoneError(t *testing.T) {
 // Test successful reception of all zones over the stream.
 func TestReceiveZones(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1081,7 +1106,7 @@ func TestReceiveZones(t *testing.T) {
 
 	// Collect the zones returned over the stream.
 	var zones []*bind9stats.ExtendedZone
-	for zone, err := range agents.ReceiveZones(context.Background(), app, nil) {
+	for zone, err := range agents.ReceiveZones(context.Background(), daemon, nil) {
 		require.NoError(t, err)
 		require.NotNil(t, zone)
 		zones = append(zones, zone)
@@ -1105,7 +1130,7 @@ func TestReceiveZones(t *testing.T) {
 // Test that an error is returned when specified access point does not exist.
 func TestReceiveZoneRRsNonExistingAccessPoint(t *testing.T) {
 	// Create an app without the access point.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1122,7 +1147,7 @@ func TestReceiveZoneRRsNonExistingAccessPoint(t *testing.T) {
 
 	// The iterator should return an error that there is no access point available
 	// for this app.
-	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), app, "example.com", "_default") {
+	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), daemon, "example.com", "_default") {
 		require.ErrorContains(t, err, "access point")
 		require.Nil(t, rrs)
 	}
@@ -1131,7 +1156,7 @@ func TestReceiveZoneRRsNonExistingAccessPoint(t *testing.T) {
 // Test that an error is returned when establishing connection fails.
 func TestReceiveZoneRRsConnectionError(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1163,7 +1188,7 @@ func TestReceiveZoneRRsConnectionError(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZones(gomock.Any(), gomock.Any()).Times(0)
 
 	// The iterator should return an error during an attempt to connect.
-	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), app, "example.com", "_default") {
+	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), daemon, "example.com", "_default") {
 		var testError *testError
 		require.ErrorAs(t, err, &testError)
 		require.Nil(t, rrs)
@@ -1173,7 +1198,7 @@ func TestReceiveZoneRRsConnectionError(t *testing.T) {
 // Test that an error is returned when getting a gRPC stream fails.
 func TestReceiveZoneRRsGetStreamError(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1195,7 +1220,7 @@ func TestReceiveZoneRRsGetStreamError(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZoneRRs(gomock.Any(), gomock.Any()).Times(2).Return(nil, &testError{})
 
 	// The iterator should return an error returned by ReceiveZones().
-	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), app, "example.com", "_default") {
+	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), daemon, "example.com", "_default") {
 		require.ErrorContains(t, err, "test error")
 		require.Nil(t, rrs)
 	}
@@ -1205,7 +1230,7 @@ func TestReceiveZoneRRsGetStreamError(t *testing.T) {
 // inventory hasn't been initialized.
 func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1235,7 +1260,7 @@ func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZoneRRs(gomock.Any(), gomock.Any()).Times(2).Return(nil, ds.Err())
 
 	// The iterator should return ZoneInventoryNotInitedError.
-	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), app, "example.com", "_default") {
+	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), daemon, "example.com", "_default") {
 		var zoneInventoryNotInitedError *ZoneInventoryNotInitedError
 		require.ErrorAs(t, err, &zoneInventoryNotInitedError)
 		require.Nil(t, rrs)
@@ -1246,7 +1271,7 @@ func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 // inventory is busy.
 func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1276,7 +1301,7 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZoneRRs(gomock.Any(), gomock.Any()).Times(2).Return(nil, ds.Err())
 
 	// The iterator should return ZoneInventoryBusyError.
-	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), app, "example.com", "_default") {
+	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), daemon, "example.com", "_default") {
 		var zoneInventoryBusyError *ZoneInventoryBusyError
 		require.ErrorAs(t, err, &zoneInventoryBusyError)
 		require.Nil(t, rrs)
@@ -1286,7 +1311,7 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 // Test that other gRPC status errors are handled properly.
 func TestReceiveZoneRRsOtherStatusError(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1315,7 +1340,7 @@ func TestReceiveZoneRRsOtherStatusError(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZoneRRs(gomock.Any(), gomock.Any()).Times(2).Return(nil, ds.Err())
 
 	// The iterator should return the original error without special handling.
-	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), app, "example.com", "_default") {
+	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), daemon, "example.com", "_default") {
 		require.ErrorContains(t, err, "internal server error")
 		require.Nil(t, rrs)
 	}
@@ -1324,7 +1349,7 @@ func TestReceiveZoneRRsOtherStatusError(t *testing.T) {
 // Test that an error is returned when getting zone contents over the stream fails.
 func TestReceiveZoneRRsZoneInventoryReceiveError(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1345,7 +1370,7 @@ func TestReceiveZoneRRsZoneInventoryReceiveError(t *testing.T) {
 	mockAgentClient.EXPECT().ReceiveZoneRRs(gomock.Any(), gomock.Any()).Times(1).Return(mockStreamingClient, nil)
 
 	// The iterator should return an error returned by Recv().
-	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), app, "example.com", "_default") {
+	for rrs, err := range agents.ReceiveZoneRRs(context.Background(), daemon, "example.com", "_default") {
 		var testError *testError
 		require.ErrorAs(t, err, &testError)
 		require.Nil(t, rrs)
@@ -1355,7 +1380,7 @@ func TestReceiveZoneRRsZoneInventoryReceiveError(t *testing.T) {
 // Test successful reception of zone contents over the stream.
 func TestReceiveZoneRRs(t *testing.T) {
 	// Create an app.
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1399,7 +1424,7 @@ func TestReceiveZoneRRs(t *testing.T) {
 
 	// Collect the RRs returned over the stream.
 	var contents []*dnsconfig.RR
-	for receivedRRs, err := range agents.ReceiveZoneRRs(context.Background(), app, "zone1", "_default") {
+	for receivedRRs, err := range agents.ReceiveZoneRRs(context.Background(), daemon, "zone1", "_default") {
 		require.NoError(t, err)
 		require.NotNil(t, receivedRRs)
 		contents = append(contents, receivedRRs...)
@@ -1417,7 +1442,7 @@ func TestReceiveZoneRRs(t *testing.T) {
 
 // Test successfully getting the PowerDNS server information.
 func TestGetPowerDNSServerInfo(t *testing.T) {
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1447,7 +1472,7 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 	}
 	mockAgentClient.EXPECT().GetPowerDNSServerInfo(gomock.Any(), gomock.Any(), newGZIPMatcher()).AnyTimes().Return(rsp, nil)
 
-	serverInfo, err := agents.GetPowerDNSServerInfo(context.Background(), app)
+	serverInfo, err := agents.GetPowerDNSServerInfo(context.Background(), daemon)
 	require.NoError(t, err)
 	require.NotNil(t, serverInfo)
 	require.Equal(t, "PowerDNS", serverInfo.Type)
@@ -1464,7 +1489,7 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 // Test that an error is returned when trying to get the PowerDNS server
 // when there is no access point.
 func TestGetPowerDNSServerInfoNoAccessPoint(t *testing.T) {
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1475,7 +1500,7 @@ func TestGetPowerDNSServerInfoNoAccessPoint(t *testing.T) {
 	_, agents := setupGrpcliTestCase(ctrl)
 	defer ctrl.Finish()
 
-	serverInfo, err := agents.GetPowerDNSServerInfo(context.Background(), app)
+	serverInfo, err := agents.GetPowerDNSServerInfo(context.Background(), daemon)
 	require.Error(t, err)
 	require.ErrorContains(t, err, "no access point")
 	require.Nil(t, serverInfo)
@@ -1484,7 +1509,7 @@ func TestGetPowerDNSServerInfoNoAccessPoint(t *testing.T) {
 // Test that an error is returned when trying to get the PowerDNS server
 // when the gRPC call fails.
 func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
-	app := &dbmodel.App{
+	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -1503,7 +1528,7 @@ func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
 
 	mockAgentClient.EXPECT().GetPowerDNSServerInfo(gomock.Any(), gomock.Any(), newGZIPMatcher()).AnyTimes().Return(nil, &testError{})
 
-	serverInfo, err := agents.GetPowerDNSServerInfo(context.Background(), app)
+	serverInfo, err := agents.GetPowerDNSServerInfo(context.Background(), daemon)
 	require.Error(t, err)
 	require.ErrorContains(t, err, "test error")
 	require.Nil(t, serverInfo)
