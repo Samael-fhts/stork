@@ -217,11 +217,11 @@ func (module *ConfigModule) ApplyGlobalParametersUpdate(ctx context.Context, dae
 					return ctx, err
 				}
 				daemonName, _ := existingDaemon.GetName().ToKeaDaemonName()
-				appCommand := ConfigCommand{
+				command := ConfigCommand{
 					Command: keactrl.NewCommandConfigSet(existingDaemon.KeaDaemon.Config.Config, daemonName),
 					Daemon:  &existingDaemon,
 				}
-				commands = append(commands, appCommand)
+				commands = append(commands, command)
 				updatedDaemonIDs = append(updatedDaemonIDs, daemonSettableConfig.GetID())
 			}
 		}
@@ -232,11 +232,11 @@ func (module *ConfigModule) ApplyGlobalParametersUpdate(ctx context.Context, dae
 	// Each config-set must come with config-write to persist the configuration.
 	for _, existingDaemon := range existingDaemons {
 		daemonName, _ := existingDaemon.GetName().ToKeaDaemonName()
-		appCommand := ConfigCommand{
+		command := ConfigCommand{
 			Command: keactrl.NewCommandBase(keactrl.ConfigWrite, daemonName),
 			Daemon:  &existingDaemon,
 		}
-		commands = append(commands, appCommand)
+		commands = append(commands, command)
 	}
 	// Remember the modified configurations.
 	recipe.KeaDaemonsAfterConfigUpdate = existingDaemons
@@ -521,7 +521,7 @@ func (module *ConfigModule) ApplyHostDelete(ctx context.Context, host *dbmodel.H
 		if err != nil {
 			return ctx, err
 		}
-		// Associate the command with an app receiving this command.
+		// Associate the command with a daemon receiving this command.
 		daemonName, _ := lh.Daemon.GetName().ToKeaDaemonName()
 		command := ConfigCommand{
 			Command: keactrl.NewCommandReservationDel(reservation, daemonName),
@@ -607,10 +607,10 @@ func (module *ConfigModule) commitChanges(ctx context.Context) (context.Context,
 	for _, update := range state.Updates {
 		// Retrieve associations between the commands and daemons.
 		// Iterate over the associations.
-		for _, acs := range update.Recipe.Commands {
+		for _, cmd := range update.Recipe.Commands {
 			// Send the command to Kea.
 			var response keactrl.Response
-			result, err := module.manager.GetConnectedAgents().ForwardToKeaOverHTTP(context.Background(), acs.Daemon, []keactrl.SerializableCommand{acs.Command}, &response)
+			result, err := module.manager.GetConnectedAgents().ForwardToKeaOverHTTP(context.Background(), cmd.Daemon, []keactrl.SerializableCommand{cmd.Command}, &response)
 			// There was no error in communication between the server and the agent but
 			// the agent could have issues with the Kea response.
 			if err == nil {
@@ -626,7 +626,7 @@ func (module *ConfigModule) commitChanges(ctx context.Context) (context.Context,
 				}
 			}
 			if err != nil {
-				err = errors.WithMessagef(err, "%s command to %s failed", acs.Command.GetCommand(), acs.Daemon.GetName())
+				err = errors.WithMessagef(err, "%s command to %s failed", cmd.Command.GetCommand(), cmd.Daemon.GetName())
 				return ctx, err
 			}
 		}

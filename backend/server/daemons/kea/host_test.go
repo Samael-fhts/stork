@@ -9,6 +9,7 @@ import (
 
 	require "github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/configreview"
@@ -17,8 +18,8 @@ import (
 	storktest "isc.org/stork/server/test/dbmodel"
 )
 
-// Returns test Kea configuration including multiple IPv4 subnets.
-func getTestConfigWithIPv4Subnets(t *testing.T, hostCmds bool) *dbmodel.KeaConfig {
+// Returns test Kea configuration JSON including multiple IPv4 subnets.
+func getTestConfigWithIPv4Subnets(t *testing.T, hostCmds bool) []byte {
 	configStr := `{
         "Dhcp4": {
             "subnet4": [
@@ -52,15 +53,11 @@ func getTestConfigWithIPv4Subnets(t *testing.T, hostCmds bool) *dbmodel.KeaConfi
 		configStr = fmt.Sprintf(configStr, "")
 	}
 
-	cfg, err := dbmodel.NewKeaConfigFromJSON(configStr)
-	require.NoError(t, err)
-	require.NotNil(t, cfg)
-
-	return cfg
+	return []byte(configStr)
 }
 
-// Returns test Kea configuration including one IPv4 subnet.
-func getTestConfigWithOneIPv4Subnet(t *testing.T) *dbmodel.KeaConfig {
+// Returns test Kea configuration JSON including one IPv4 subnet.
+func getTestConfigWithOneIPv4Subnet(t *testing.T) []byte {
 	configStr := `{
         "Dhcp4": {
             "subnet4": [
@@ -77,15 +74,11 @@ func getTestConfigWithOneIPv4Subnet(t *testing.T) *dbmodel.KeaConfig {
         }
     }`
 
-	cfg, err := dbmodel.NewKeaConfigFromJSON(configStr)
-	require.NoError(t, err)
-	require.NotNil(t, cfg)
-
-	return cfg
+	return []byte(configStr)
 }
 
-// Returns test Kea configuration including one IPv6 subnet.
-func getTestConfigWithOneIPv6Subnet(t *testing.T) *dbmodel.KeaConfig {
+// Returns test Kea configuration JSON including one IPv6 subnet.
+func getTestConfigWithOneIPv6Subnet(t *testing.T) []byte {
 	configStr := `{
         "Dhcp6": {
             "subnet6": [
@@ -102,15 +95,11 @@ func getTestConfigWithOneIPv6Subnet(t *testing.T) *dbmodel.KeaConfig {
         }
     }`
 
-	cfg, err := dbmodel.NewKeaConfigFromJSON(configStr)
-	require.NoError(t, err)
-	require.NotNil(t, cfg)
-
-	return cfg
+	return []byte(configStr)
 }
 
-// Returns test Kea configuration including multiple IPv6 subnets.
-func getTestConfigWithIPv6Subnets(t *testing.T) *dbmodel.KeaConfig {
+// Returns test Kea configuration JSON including multiple IPv6 subnets.
+func getTestConfigWithIPv6Subnets(t *testing.T) []byte {
 	configStr := `{
         "Dhcp6": {
             "subnet6": [
@@ -139,15 +128,11 @@ func getTestConfigWithIPv6Subnets(t *testing.T) *dbmodel.KeaConfig {
         }
     }`
 
-	cfg, err := dbmodel.NewKeaConfigFromJSON(configStr)
-	require.NoError(t, err)
-	require.NotNil(t, cfg)
-
-	return cfg
+	return []byte(configStr)
 }
 
-// Returns test Kea configuration including global host reservations.
-func getTestConfigWithIPv4GlobalHosts(t *testing.T) *dbmodel.KeaConfig {
+// Returns test Kea configuration JSON including global host reservations.
+func getTestConfigWithIPv4GlobalHosts(t *testing.T) []byte {
 	configStr := `{
         "Dhcp4": {
             "reservations": [
@@ -170,15 +155,11 @@ func getTestConfigWithIPv4GlobalHosts(t *testing.T) *dbmodel.KeaConfig {
         }
     }`
 
-	cfg, err := dbmodel.NewKeaConfigFromJSON(configStr)
-	require.NoError(t, err)
-	require.NotNil(t, cfg)
-
-	return cfg
+	return []byte(configStr)
 }
 
-// Returns test Kea configuration including global host reservations.
-func getTestConfigWithIPv6GlobalHosts(t *testing.T) *dbmodel.KeaConfig {
+// Returns test Kea configuration JSON including global host reservations.
+func getTestConfigWithIPv6GlobalHosts(t *testing.T) []byte {
 	configStr := `{
         "Dhcp6": {
             "reservations": [
@@ -221,11 +202,7 @@ func getTestConfigWithIPv6GlobalHosts(t *testing.T) *dbmodel.KeaConfig {
         }
     }`
 
-	cfg, err := dbmodel.NewKeaConfigFromJSON(configStr)
-	require.NoError(t, err)
-	require.NotNil(t, cfg)
-
-	return cfg
+	return []byte(configStr)
 }
 
 // This function mocks the response of the Kea servers to the reservation-get-page
@@ -296,7 +273,7 @@ func mockReservationGetPage(callNo int, cmdResponses []interface{}) {
 	}
 
 	// Generate the response with filling in the values as appropriate.
-	json := []byte(fmt.Sprintf(`[
+	bytes := []byte(fmt.Sprintf(`[
         {
             "result": 0,
             "text": "Hosts found",
@@ -311,19 +288,17 @@ func mockReservationGetPage(callNo int, cmdResponses []interface{}) {
         }
     ]`, len(hosts), string(hostsAsJSON), fromValue, sourceIndex))
 
-	command := keactrl.NewCommandBase(keactrl.ReservationGetPage, fmt.Sprintf("dhcp%d", family))
-
-	_ = keactrl.UnmarshalResponseList(command, json, cmdResponses[0])
+	_ = json.Unmarshal(bytes, &cmdResponses[0])
 }
 
 // This function mocks the response of the Kea servers to the reservation-get-page
 // command. It should be used to test cases that the second attempt to fetch hosts
 // reduces the number of hosts in the database.
 func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
-	var json string
+	var str string
 	switch callNo {
 	case 1:
-		json = `[
+		str = `[
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -347,7 +322,7 @@ func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
             }
         ]`
 	case 0, 2, 3, 5:
-		json = `[
+		str = `[
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -362,7 +337,7 @@ func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
             }
         ]`
 	case 4:
-		json = `[
+		str = `[
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -383,10 +358,7 @@ func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
         ]`
 	}
 
-	command := keactrl.NewCommandBase(keactrl.ReservationGetPage, keactrl.DHCPv4)
-
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
-	fmt.Printf("cmdResponses[0]: %+v\n", cmdResponses[0])
+	_ = json.Unmarshal([]byte(str), &cmdResponses[0])
 }
 
 // This function mocks the response of the Kea server to the reservation-get-page
@@ -394,12 +366,12 @@ func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
 // first response to the reservation-get-page hasn't changed but the reservations
 // in the second response have changed.
 func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{}) {
-	var json string
+	var str string
 	switch callNo {
 	// No global hosts, third response returns empty response terminating the
 	// process of fetching the hosts. The same for the second iteration.
 	case 0, 3, 4, 7:
-		json = `[
+		str = `[
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -416,7 +388,7 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
 	// Two hosts in the first response that don't change in the second
 	// iteration.
 	case 1, 5:
-		json = `[
+		str = `[
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -441,7 +413,7 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
         ]`
 	// One host in the second response that changes in the next iteration.
 	case 2:
-		json = `[
+		str = `[
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -462,7 +434,7 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
         ]`
 	// One host in the second response in the second iteration.
 	case 6:
-		json = `[
+		str = `[
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -483,10 +455,7 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
         ]`
 	}
 
-	command := keactrl.NewCommandBase(keactrl.ReservationGetPage, keactrl.DHCPv4)
-
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
-	fmt.Printf("cmdResponses[0]: %+v\n", cmdResponses[0])
+	_ = json.Unmarshal([]byte(str), &cmdResponses[0])
 }
 
 // Verifies that the specified host contains the specified host identifier and
@@ -496,7 +465,7 @@ func testHost(t *testing.T, reservation interface{}, identifier string, address 
 		host *dbmodel.Host
 		err  error
 	)
-	daemon := dbmodel.NewKeaDaemon(dbmodel.DaemonNameDHCPv4, true)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
 	if r, ok := reservation.(keaconfig.Reservation); ok {
 		host, err = dbmodel.NewHostFromKeaConfigReservation(r, daemon, dbmodel.HostDataSourceConfig, dbmodel.NewDHCPOptionDefinitionLookup())
 		require.NoError(t, err)
@@ -558,34 +527,30 @@ func TestDetectHostsFromConfig(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Creates new app with provided configurations.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getTestConfigWithIPv4GlobalHosts(t),
-				},
-			},
-			{
-				Name:   "dhcp6",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getTestConfigWithIPv6GlobalHosts(t),
-				},
-			},
+	// Create daemons with provided configurations.
+	daemon1 := dbmodel.NewDaemon(m, "dhcp4", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
+	})
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4GlobalHosts(t))
+
+	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+		},
+	})
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6GlobalHosts(t))
+
+	// Add the daemons to the database.
+	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
-	app.Machine = m
+	err = dbmodel.AddDaemon(db, daemon2)
+	require.NoError(t, err)
 
 	var (
 		hosts   []dbmodel.Host
@@ -595,11 +560,11 @@ func TestDetectHostsFromConfig(t *testing.T) {
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
-	// Detect global hosts in the configurations of the app.
-	v4hosts, err = detectGlobalHostsFromConfig(db, app.Daemons[0], lookup)
+	// Detect global hosts in the configurations of the daemons.
+	v4hosts, err = detectGlobalHostsFromConfig(db, daemon1, lookup)
 	require.NoError(t, err)
 	hosts = append(hosts, v4hosts...)
-	v6hosts, err = detectGlobalHostsFromConfig(db, app.Daemons[1], lookup)
+	v6hosts, err = detectGlobalHostsFromConfig(db, daemon2, lookup)
 	require.NoError(t, err)
 	hosts = append(hosts, v6hosts...)
 	require.Len(t, hosts, 4)
@@ -609,7 +574,7 @@ func TestDetectHostsFromConfig(t *testing.T) {
 		require.Zero(t, h.SubnetID)
 		// Each of them has single DHCP identifier.
 		require.Len(t, h.HostIdentifiers, 1)
-		// The hosts should be associated with the app.
+		// The hosts should be associated with the daemon.
 		require.Len(t, h.LocalHosts, 1)
 	}
 
@@ -625,8 +590,8 @@ func TestDetectHostsFromConfig(t *testing.T) {
 
 	// Run the detection again.
 	hosts = []dbmodel.Host{}
-	for i := range app.Daemons {
-		detectedHosts, err := detectGlobalHostsFromConfig(db, app.Daemons[i], lookup)
+	for _, daemon := range []*dbmodel.Daemon{daemon1, daemon2} {
+		detectedHosts, err := detectGlobalHostsFromConfig(db, daemon, lookup)
 		require.NoError(t, err)
 		hosts = append(hosts, detectedHosts...)
 	}
@@ -636,9 +601,9 @@ func TestDetectHostsFromConfig(t *testing.T) {
 	for _, h := range hosts {
 		require.Zero(t, h.SubnetID)
 		require.Len(t, h.HostIdentifiers, 1)
-		// The hosts should have been already associated with our app.
+		// The hosts should have been already associated with our daemons.
 		require.Len(t, h.LocalHosts, 1)
-		require.Contains(t, []int64{app.Daemons[0].ID, app.Daemons[1].ID}, h.LocalHosts[0].DaemonID)
+		require.Contains(t, []int64{daemon1.ID, daemon2.ID}, h.LocalHosts[0].DaemonID)
 	}
 }
 
@@ -659,47 +624,35 @@ func TestDetectHostsSameConfig(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Creates new app with provided configurations.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   dbmodel.DaemonNameDHCPv4,
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getTestConfigWithIPv4GlobalHosts(t),
-				},
-			},
-			{
-				Name:   dbmodel.DaemonNameDHCPv6,
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getTestConfigWithIPv6GlobalHosts(t),
-				},
-			},
+	// Create new daemons with provided configurations.
+	daemon1 := dbmodel.NewDaemon(m, "dhcp4", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
-	require.NoError(t, err)
-	app.Machine = m
+	})
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4GlobalHosts(t))
 
-	// Indicate that the DHCP configurations haven't changed.
-	state := &AppStateMeta{
-		SameConfigDaemons: map[string]bool{
-			dbmodel.DaemonNameDHCPv4: true,
-			dbmodel.DaemonNameDHCPv6: true,
+	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
+	})
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6GlobalHosts(t))
+
+	// Add the daemons to the database.
+	err = dbmodel.AddDaemon(db, daemon1)
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon2)
+	require.NoError(t, err)
 
 	// Both configurations are indicated to be the same so the hosts should not
 	// be committed to the database.
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, &app, fec, state, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	// Make sure that no hosts have been added.
@@ -708,12 +661,7 @@ func TestDetectHostsSameConfig(t *testing.T) {
 	require.Empty(t, hosts)
 
 	// Indicate that configuration is the same for DHCPv4 but not for DHCPv6.
-	state = &AppStateMeta{
-		SameConfigDaemons: map[string]bool{
-			dbmodel.DaemonNameDHCPv4: true,
-		},
-	}
-	err = CommitAppIntoDB(db, &app, fec, state, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	// The hosts should have been added for the DHCPv6 daemon.
@@ -738,44 +686,38 @@ func TestGetPageFromHostCmds(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Creates new app with provided configurations.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithIPv4Subnets(t, true),
-				},
-			},
-			{
-				Name:   "dhcp6",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithIPv6Subnets(t),
-				},
-			},
+	// Create daemons with provided configurations.
+	daemon1 := dbmodel.NewDaemon(m, "dhcp4", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
+	})
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(t, true))
+
+	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+		},
+	})
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets(t))
+
+	// Add the daemons to the database.
+	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
-	app.Machine = m
+	err = dbmodel.AddDaemon(db, daemon2)
+	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, &app, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
 
-	it := newHostIterator(db, &app, app.Daemons[0], fa, 5)
+	it := newHostIterator(db, daemon1, fa, 5)
 	require.NotNil(t, it)
 
 	// Should get addresses 192.0.2.10 thru 192.0.2.14
@@ -1007,7 +949,7 @@ func TestGetPageFromHostCmds(t *testing.T) {
 	testReservationGetPageReceived(t, it)
 	require.EqualValues(t, 678, (fa.GetLastCommand().Arguments.(map[string]interface{}))["subnet-id"])
 
-	it = newHostIterator(db, &app, app.Daemons[1], fa, 5)
+	it = newHostIterator(db, daemon2, fa, 5)
 	require.NotNil(t, it)
 
 	// Should get addresses 2001:db8:2::10 thru 2001:db8:2::14
@@ -1256,39 +1198,33 @@ func TestFetchHostsFromHostCmds(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Creates new app with provided configurations.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithIPv4Subnets(t, true),
-				},
-			},
-			{
-				Name:   "dhcp6",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithIPv6Subnets(t),
-				},
-			},
+	// Create daemons with provided configurations.
+	daemon1 := dbmodel.NewDaemon(m, "dhcp4", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
+	})
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(t, true))
+
+	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+		},
+	})
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets(t))
+
+	// Add the daemons to the database.
+	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
-	app.Machine = m
+	err = dbmodel.AddDaemon(db, daemon2)
+	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, &app, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1319,10 +1255,10 @@ func TestFetchHostsFromHostCmds(t *testing.T) {
 
 		// Ensure that the traces have been created.
 		traces := puller.traces
-		require.Contains(t, traces, app.Daemons[0].ID)
-		require.EqualValues(t, 10, traces[app.Daemons[0].ID].getResponseCount())
-		require.Contains(t, traces, app.Daemons[1].ID)
-		require.EqualValues(t, 10, traces[app.Daemons[1].ID].getResponseCount())
+		require.Contains(t, traces, daemon1.ID)
+		require.EqualValues(t, 10, traces[daemon1.ID].getResponseCount())
+		require.Contains(t, traces, daemon2.ID)
+		require.EqualValues(t, 10, traces[daemon2.ID].getResponseCount())
 
 		// Here, we test indirectly that hosts update was detected in the first
 		// iteration and that it was not detected in the second iteration. The
@@ -1369,39 +1305,33 @@ func TestPullHostsIntoDB(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Creates new app with provided configurations.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithIPv4Subnets(t, true),
-				},
-			},
-			{
-				Name:   "dhcp6",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithIPv6Subnets(t),
-				},
-			},
+	// Create daemons with provided configurations.
+	daemon1 := dbmodel.NewDaemon(m, "dhcp4", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
+	})
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(t, true))
+
+	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+		},
+	})
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets(t))
+
+	// Add the daemons to the database.
+	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
-	app.Machine = m
+	err = dbmodel.AddDaemon(db, daemon2)
+	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, &app, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1438,9 +1368,9 @@ func TestPullHostsIntoDB(t *testing.T) {
 
 	// Ensure that the config review was scheduled after updating the hosts.
 	require.Len(t, fd.CallLog, 2)
-	for i, call := range fd.CallLog {
+	for _, call := range fd.CallLog {
 		require.Equal(t, "BeginReview", call.CallName)
-		require.Equal(t, app.Daemons[i%2].ID, call.DaemonID)
+		require.Contains(t, []int64{daemon1.ID, daemon2.ID}, call.DaemonID)
 		require.Equal(t, configreview.Triggers{configreview.DBHostsModified}, call.Triggers)
 	}
 }
@@ -1461,31 +1391,22 @@ func TestReduceHostsIntoDB(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Creates new app with provided configurations.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithOneIPv4Subnet(t),
-				},
-			},
+	// Create daemon with provided configuration.
+	daemon := dbmodel.NewDaemon(m, "dhcp4", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
+	})
+	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv4Subnet(t))
+
+	// Add the daemon to the database.
+	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
-	app.Machine = m
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, &app, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	// Create server which returns two hosts at the first attempt and
@@ -1544,32 +1465,23 @@ func TestPartialHostsChange(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Creates new app with provided configurations.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithOneIPv4Subnet(t),
-				},
-			},
+	// Create daemon with provided configuration.
+	daemon := dbmodel.NewDaemon(m, "dhcp4", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
+	})
+	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv4Subnet(t))
+
+	// Add the daemon to the database.
+	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
-	app.Machine = m
 
 	fec := &storktest.FakeEventCenter{}
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, &app, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPagePartialChange, nil)
@@ -1634,40 +1546,34 @@ func TestSkipPullingHostsIntoDB(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Create an app with DHCP configurations lacking the libdhcp_host_cmds
+	// Create daemons with DHCP configurations lacking the libdhcp_host_cmds
 	// hooks library.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithIPv4Subnets(t, false),
-				},
-			},
-			{
-				Name:   "dhcp6",
-				Active: false,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithIPv6Subnets(t),
-				},
-			},
+	daemon1 := dbmodel.NewDaemon(m, "dhcp4", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
+	})
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(t, false))
+
+	daemon2 := dbmodel.NewDaemon(m, "dhcp6", false, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+		},
+	})
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets(t))
+
+	// Add the daemons to the database.
+	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
-	app.Machine = m
+	err = dbmodel.AddDaemon(db, daemon2)
+	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, &app, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1750,38 +1656,29 @@ func TestUpdateHost(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp6",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-					Config:        getTestConfigWithOneIPv6Subnet(t),
-				},
-			},
+	daemon := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
 		},
-	}
+	})
+	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv6Subnet(t))
 
-	_, err = dbmodel.AddApp(db, &app)
+	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
-	app.Machine = m
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	_ = CommitAppIntoDB(db, &app, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
+	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		var json string
+		var str string
 		// Update option data - read reservation option is unsupported yet.
 		switch callNo {
 		// Initial data
 		case 1:
-			json = `[
+			str = `[
 				{
 					"result": 0,
 					"text": "Hosts found",
@@ -1798,7 +1695,7 @@ func TestUpdateHost(t *testing.T) {
 			]`
 		// Update hostname
 		case 4:
-			json = `[
+			str = `[
 				{
 					"result": 0,
 					"text": "Hosts found",
@@ -1816,7 +1713,7 @@ func TestUpdateHost(t *testing.T) {
 			]`
 		// Break pulling
 		case 0, 2, 3, 5:
-			json = `[
+			str = `[
 				{
 					"result": 0,
 					"text": "Hosts found",
@@ -1832,9 +1729,7 @@ func TestUpdateHost(t *testing.T) {
 			]`
 		}
 
-		command := keactrl.NewCommandBase(keactrl.ReservationGetPage, keactrl.DHCPv6)
-
-		err = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+		err := json.Unmarshal([]byte(str), cmdResponses[0])
 		require.NoError(t, err)
 		fmt.Printf("cmdResponses[0]: %+v\n", cmdResponses[0])
 	}, nil)

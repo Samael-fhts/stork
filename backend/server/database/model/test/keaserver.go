@@ -68,3 +68,12 @@ func (server *KeaServer) GetMachine() (*dbmodel.Machine, error) {
 	}
 	return machine, nil
 }
+
+// Returns a daemon the Kea server belongs to.
+func (server *KeaServer) GetDaemon() (*dbmodel.Daemon, error) {
+	daemon, err := dbmodel.GetDaemonByID(server.machine.db, server.DaemonID)
+	if err != nil {
+		return nil, err
+	}
+	return daemon, nil
+}

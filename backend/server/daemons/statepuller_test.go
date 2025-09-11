@@ -4,7 +4,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/datamodel"
+	"isc.org/stork/daemonctrl/constant"
+	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/configreview"
@@ -47,21 +48,39 @@ func TestStatePullerPullData(t *testing.T) {
 	defer teardown()
 
 	// prepare fake agents
-	fa := agentcommtest.NewFakeAgents(nil, nil)
+	fa := agentcommtest.NewFakeAgents(func(i int, response []any) {
+		r := response[1].(*keactrl.Response)
+		r.Arguments = []byte(`{ "Dhcp4": {} }`)
+	}, nil)
 	fa.MachineState = &agentcomm.State{
-		Apps: []*agentcomm.App{
+		AgentVersion: "2.4.0",
+		Daemons: []*agentcomm.Daemon{
 			{
-				Type: datamodel.AppTypeKea.String(),
+				Name: constant.DaemonNameDHCPv4,
 				// access point is changing from 1.1.1.1 to 1.2.3.4
-				AccessPoints: agentcomm.MakeAccessPoint(dbmodel.AccessPointControl, "1.2.3.4", "", 1234),
+				AccessPoints: []agentcomm.AccessPoint{{
+					Type:    dbmodel.AccessPointControl,
+					Address: "1.2.3.4",
+					Port:    1234,
+				}},
 			},
 			{
-				Type:         datamodel.AppTypeBind9.String(),
-				AccessPoints: agentcomm.MakeAccessPoint(dbmodel.AccessPointControl, "1.2.3.4", "abcd", 124),
+				Name: constant.DaemonNameBind9,
+				AccessPoints: []agentcomm.AccessPoint{{
+					Type:    dbmodel.AccessPointControl,
+					Address: "1.2.3.4",
+					Port:    124,
+					Key:     "abcd",
+				}},
 			},
 			{
-				Type:         datamodel.AppTypePDNS.String(),
-				AccessPoints: agentcomm.MakeAccessPoint(dbmodel.AccessPointControl, "1.2.3.4", "abcd", 134),
+				Name: constant.DaemonNamePDNS,
+				AccessPoints: []agentcomm.AccessPoint{{
+					Type:    dbmodel.AccessPointControl,
+					Address: "1.2.3.4",
+					Port:    134,
+					Key:     "abcd",
+				}},
 			},
 		},
 	}
@@ -83,31 +102,17 @@ func TestStatePullerPullData(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, 0, m.ID)
 
-	config, err := dbmodel.NewKeaConfigFromJSON(`{"Dhcp4": { }}`)
+	d := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{{
+		Type:    dbmodel.AccessPointControl,
+		Address: "1.1.1.1",
+		Port:    1234,
+		Key:     "",
+	}})
+	err = d.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)
-
-	var ap []*dbmodel.AccessPoint
-	a := &dbmodel.App{
-		ID:        0,
-		MachineID: m.ID,
-		Type:      dbmodel.AppTypeKea,
-		Active:    true,
-		// initial access point is 1.1.1.1
-		AccessPoints: dbmodel.AppendAccessPoint(ap, dbmodel.AccessPointControl, "1.1.1.1", "", 1234, false),
-		Daemons: []*dbmodel.Daemon{
-			{
-				Active: true,
-				Name:   "dhcp4",
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config:        config,
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
-		},
-	}
-	_, err = dbmodel.AddApp(db, a)
+	err = dbmodel.AddDaemon(db, d)
 	require.NoError(t, err)
-	require.NotEqual(t, 0, a.ID)
+	require.NotEqual(t, 0, d.ID)
 
 	// set one setting that is needed by puller
 	setting := dbmodel.Setting{
@@ -128,101 +133,97 @@ func TestStatePullerPullData(t *testing.T) {
 	err = sp.pullData()
 	require.NoError(t, err)
 
-	// check if apps have been updated correctly
-	apps, err := dbmodel.GetAllApps(db, true)
+	// check if daemons have been updated correctly
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, apps, 3)
+	require.Len(t, daemons, 3)
 
-	var keaApp dbmodel.App
-	for _, app := range apps {
-		if app.Type == dbmodel.AppTypeKea {
-			keaApp = app
+	var keaDaemon dbmodel.Daemon
+	for _, daemon := range daemons {
+		if daemon.Name == constant.DaemonNameDHCPv4 {
+			keaDaemon = daemon
 		}
 	}
-	require.Len(t, keaApp.AccessPoints, 1)
-	require.EqualValues(t, keaApp.AccessPoints[0].Address, "1.2.3.4")
+	require.Len(t, keaDaemon.AccessPoints, 1)
+	require.EqualValues(t, keaDaemon.AccessPoints[0].Address, "1.2.3.4")
 
 	// Ensure that the puller initiated configuration review for the Kea daemon.
 	require.Len(t, fd.CallLog, 1)
 	require.Equal(t, "BeginReview", fd.CallLog[0].CallName)
 }
 
-// Check appCompare.
-func TestAppCompare(t *testing.T) {
-	// no access points so not equal
-	dbApp := &dbmodel.App{}
-	app := &agentcomm.App{}
-	require.False(t, appCompare(dbApp, app))
+// Check daemonCompare.
+func TestDaemonCompare(t *testing.T) {
+	// no access points so equal
+	var dbDaemon dbmodel.Daemon
+	daemon := &agentcomm.Daemon{}
+	require.True(t, daemonCompare(dbDaemon, daemon))
 
-	// access point only in dbApp so not equal
-	var ap []*dbmodel.AccessPoint
-	dbApp.AccessPoints = dbmodel.AppendAccessPoint(ap, dbmodel.AccessPointControl, "1.1.1.1", "", 1234, true)
-	require.False(t, appCompare(dbApp, app))
+	// access point only in dbDaemon so not equal
+	dbDaemon.AccessPoints = []*dbmodel.AccessPoint{{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "1.1.1.1",
+		Port:     1234,
+		Key:      "abcd",
+		Protocol: "https",
+	}}
+	require.False(t, daemonCompare(dbDaemon, daemon))
 
 	// the same access points so equal
-	app.AccessPoints = agentcomm.MakeAccessPoint(dbmodel.AccessPointControl, "1.2.3.4", "abcd", 1234)
-	require.True(t, appCompare(dbApp, app))
+	daemon.AccessPoints = []agentcomm.AccessPoint{{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "1.1.1.1",
+		Port:     1234,
+		Key:      "abcd",
+		Protocol: "https",
+	}}
+	require.True(t, daemonCompare(dbDaemon, daemon))
 
 	// different ports so not equal
-	dbApp.AccessPoints[0].Port = 4321
-	require.False(t, appCompare(dbApp, app))
+	dbDaemon.AccessPoints[0].Port = 4321
+	require.False(t, daemonCompare(dbDaemon, daemon))
 }
 
 // Test that new configuration review is scheduled when a daemon's
 // configuration has changed or when review dispatcher's checkers
 // have changed.
 func TestConditionallyBeginKeaConfigReviews(t *testing.T) {
-	config, err := dbmodel.NewKeaConfigFromJSON(`{"Dhcp4": { }}`)
+
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{})
+	err := daemon.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)
-
-	app := &dbmodel.App{
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: "dhcp4",
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: config,
-				},
-				ConfigReview: &dbmodel.ConfigReview{
-					Signature: "",
-				},
-			},
-		},
-	}
-
-	state := &kea.AppStateMeta{
-		SameConfigDaemons: make(map[string]bool),
-	}
+	state := kea.DaemonStateMeta{IsConfigChanged: true}
 
 	dispatcher := &storktest.FakeDispatcher{}
 
 	// New daemon. The review should be initiated.
-	conditionallyBeginKeaConfigReviews(app, state, dispatcher, false)
+	conditionallyBeginKeaConfigReviews(daemon, state, dispatcher, false)
 	require.Len(t, dispatcher.CallLog, 1)
 	require.Equal(t, "BeginReview", dispatcher.CallLog[0].CallName)
+	daemon.ConfigReview = &dbmodel.ConfigReview{}
 
-	// There are no "same daemons". The review should be
-	// performed again.
-	conditionallyBeginKeaConfigReviews(app, state, dispatcher, false)
+	// IsConfigChanged is still true. The review should be performed again.
+	conditionallyBeginKeaConfigReviews(daemon, state, dispatcher, false)
 	require.Len(t, dispatcher.CallLog, 2)
 	require.Equal(t, "BeginReview", dispatcher.CallLog[1].CallName)
 
 	// Neither daemon's configuration nor dispatcher's signature
 	// have changed. The review should not be performed.
-	state.SameConfigDaemons["dhcp4"] = true
-	conditionallyBeginKeaConfigReviews(app, state, dispatcher, false)
+	state.IsConfigChanged = false
+	conditionallyBeginKeaConfigReviews(daemon, state, dispatcher, false)
 	require.Len(t, dispatcher.CallLog, 3)
 	require.Equal(t, "GetSignature", dispatcher.CallLog[2].CallName)
 
 	// Modify the dispatcher's signature. It should result in
 	// another config review.
 	dispatcher.Signature = "new signature"
-	conditionallyBeginKeaConfigReviews(app, state, dispatcher, false)
+	conditionallyBeginKeaConfigReviews(daemon, state, dispatcher, false)
 	require.Len(t, dispatcher.CallLog, 5)
 	require.Equal(t, "GetSignature", dispatcher.CallLog[3].CallName)
 	require.Equal(t, "BeginReview", dispatcher.CallLog[4].CallName)
 
 	// Stork Agent configuration changed. The review should be performed again.
-	conditionallyBeginKeaConfigReviews(app, state, dispatcher, true)
+	conditionallyBeginKeaConfigReviews(daemon, state, dispatcher, true)
 	require.Len(t, dispatcher.CallLog, 7)
 	require.Equal(t, "GetSignature", dispatcher.CallLog[5].CallName)
 	require.Equal(t, "BeginReview", dispatcher.CallLog[6].CallName)

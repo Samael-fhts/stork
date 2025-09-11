@@ -7,18 +7,19 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constant"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
 	storktest "isc.org/stork/server/test/dbmodel"
 )
 
-// Creates an app instance used in the tests. The index value should be incremented
-// for each new app to make sure that the address/address port tuple inserted to
+// Creates daemon instances used in the tests. The index value should be incremented
+// for each new daemon to make sure that the address/address port tuple inserted to
 // the database is unique. The DHCPv4 and DHCPv6 configurations provided as text.
-// If any of them is empty, it is ignored. The created app instance is inserted
+// If any of them is empty, it is ignored. The created daemon instances are inserted
 // to the database and then returned to the unit test.
-func createAppWithSubnets(t *testing.T, db *dbops.PgDB, index int64, v4Config, v6Config string) *dbmodel.App {
+func createDaemonsWithSubnets(t *testing.T, db *dbops.PgDB, index int64, v4Config, v6Config string) []*dbmodel.Daemon {
 	// Add the machine.
 	m := &dbmodel.Machine{
 		ID:        0,
@@ -28,51 +29,44 @@ func createAppWithSubnets(t *testing.T, db *dbops.PgDB, index int64, v4Config, v
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// DHCPv4 configuration.
-	var kea4Config *dbmodel.KeaConfig
+	var daemons []*dbmodel.Daemon
+
+	// Create DHCPv4 daemon if config provided.
 	if len(v4Config) > 0 {
-		kea4Config, err = dbmodel.NewKeaConfigFromJSON(v4Config)
+		accessPoints := []*dbmodel.AccessPoint{
+			{
+				Type:    dbmodel.AccessPointControl,
+				Address: "localhost",
+				Port:    8000 + index*2,
+			},
+		}
+		daemon4 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+		err = daemon4.SetConfigFromJSON([]byte(v4Config))
 		require.NoError(t, err)
+		daemons = append(daemons, daemon4)
 	}
 
-	// DHCPv6 configuration.
-	var kea6Config *dbmodel.KeaConfig
+	// Create DHCPv6 daemon if config provided.
 	if len(v6Config) > 0 {
-		kea6Config, err = dbmodel.NewKeaConfigFromJSON(v6Config)
+		accessPoints := []*dbmodel.AccessPoint{
+			{
+				Type:    dbmodel.AccessPointControl,
+				Address: "localhost",
+				Port:    8001 + index*2,
+			},
+		}
+		daemon6 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints)
+		err = daemon6.SetConfigFromJSON([]byte(v6Config))
 		require.NoError(t, err)
+		daemons = append(daemons, daemon6)
 	}
 
-	// Creates new app with provided configurations.
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := dbmodel.App{
-		MachineID:    m.ID,
-		Machine:      m,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config:        kea4Config,
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
-			{
-				Name:   "dhcp6",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config:        kea6Config,
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
-		},
+	// Add the daemons to the database.
+	for _, daemon := range daemons {
+		err = dbmodel.AddDaemon(db, daemon)
+		require.NoError(t, err)
 	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app)
-	require.NoError(t, err)
-	return &app
+	return daemons
 }
 
 // Multi step test which verifies that the subnets and shared networks can be

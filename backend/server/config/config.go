@@ -63,9 +63,6 @@ type Update[T any] struct {
 // A structure describing a single configuration change. It includes one or more
 // configuration updates.
 type TransactionState[T any] struct {
-	// A flag indicating if the state has been re-created from the information
-	// stored in the database (scheduled configuration change).
-	Scheduled bool
 	// Configuration updates belonging to the transaction.
 	Updates []*Update[T]
 }

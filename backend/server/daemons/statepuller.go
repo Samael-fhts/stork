@@ -208,7 +208,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 
 	agentVersion, err := storkutil.ParseSemanticVersion(state.AgentVersion)
 	if err != nil {
-		log.WithError(err).Error("Cannot parse agent version: %s", state.AgentVersion)
+		log.WithError(err).Errorf("Cannot parse agent version: %s", state.AgentVersion)
 		return "Cannot parse agent version"
 	}
 

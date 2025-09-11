@@ -1,11 +1,13 @@
 package kea
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
@@ -235,36 +237,35 @@ func rpsTestAddMachine(t *testing.T, db *dbops.PgDB, dhcp4Active bool, dhcp6Acti
 	require.NoError(t, err)
 	require.NotEqual(t, 0, m.ID)
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "cool.example.org", "", 1234, true)
-	a := &dbmodel.App{
+	accessPoints := []*dbmodel.AccessPoint{{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "cool.example.org",
+		Port:     1234,
+		Protocol: "https",
+	}}
+	daemonV4 := &dbmodel.Daemon{
 		ID:           0,
 		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
+		Name:         constant.DaemonNameDHCPv4,
 		Active:       true,
 		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Active: dhcp4Active,
-				Name:   dhcp4,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
-			{
-				Active: dhcp6Active,
-				Name:   dhcp6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
+	}
+
+	daemonV6 := &dbmodel.Daemon{
+		Active: dhcp6Active,
+		Name:   constant.DaemonNameDHCPv6,
+		KeaDaemon: &dbmodel.KeaDaemon{
+			KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
 		},
 	}
-	_, err = dbmodel.AddApp(db, a)
+	err = dbmodel.AddDaemon(db, daemonV4)
 	require.NoError(t, err)
-	require.NotEqual(t, 0, a.ID)
+	require.NotEqual(t, 0, daemonV4.ID)
+	err = dbmodel.AddDaemon(db, daemonV6)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, daemonV6.ID)
 
-	return a.Daemons[0], a.Daemons[1]
+	return daemonV4, daemonV6
 }
 
 // Verifies RPS values for both intervals for a given daemon.
@@ -308,19 +309,21 @@ func getExpectedRps(rpsIntervals []*dbmodel.RpsInterval, endIdx int) float32 {
 // Marshall a given json response to a DHCP4 command and pass that into Response4Handler.
 func rpsTestInvokeResponse4Handler(rps *RpsWorker, daemon *dbmodel.Daemon, jsonResponse string) error {
 	var response keactrl.StatisticGetAllResponse
-	cmd := keactrl.NewCommandBase(keactrl.StatisticGetAll, daemon.Name)
-	keactrl.UnmarshalResponseList(cmd, []byte(jsonResponse), &response)
-
-	err := rps.Response4Handler(daemon, response[0])
+	err := json.Unmarshal([]byte(jsonResponse), &response)
+	if err != nil {
+		return err
+	}
+	err = rps.Response4Handler(daemon, &response)
 	return err
 }
 
 // Marshall a given json response to a DHCP6 command and pass that into Response6Handler.
 func rpsTestInvokeResponse6Handler(rps *RpsWorker, daemon *dbmodel.Daemon, jsonResponse string) error {
 	var response keactrl.StatisticGetAllResponse
-	cmd := keactrl.NewCommandBase(keactrl.StatisticGetAll, daemon.Name)
-	keactrl.UnmarshalResponseList(cmd, []byte(jsonResponse), &response)
-
-	err := rps.Response6Handler(daemon, response[0])
+	err := json.Unmarshal([]byte(jsonResponse), &response)
+	if err != nil {
+		return err
+	}
+	err = rps.Response6Handler(daemon, &response)
 	return err
 }
