@@ -1170,30 +1170,28 @@ func (r *RestAPI) daemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.AnyDaemon {
 			return apiDaemon
 		}
 
-		namedStats := dbDaemon.Bind9Daemon.Stats.NamedStats
+		namedStats := &dbDaemon.Bind9Daemon.Stats.NamedStats
 		var views []*models.Bind9DaemonView
-		if namedStats != nil {
-			for name, view := range namedStats.Views {
-				queryHits := view.Resolver.CacheStats["QueryHits"]
-				queryMisses := view.Resolver.CacheStats["QueryMisses"]
-				queryTotal := float64(queryHits) + float64(queryMisses)
-				var queryHitRatio float64
-				if queryTotal > 0 {
-					queryHitRatio = float64(queryHits) / queryTotal
-				}
-				views = append(views, &models.Bind9DaemonView{
-					Name:          name,
-					QueryHits:     queryHits,
-					QueryMisses:   queryMisses,
-					QueryHitRatio: queryHitRatio,
-				})
+		for name, view := range namedStats.Views {
+			queryHits := view.Resolver.CacheStats["QueryHits"]
+			queryMisses := view.Resolver.CacheStats["QueryMisses"]
+			queryTotal := float64(queryHits) + float64(queryMisses)
+			var queryHitRatio float64
+			if queryTotal > 0 {
+				queryHitRatio = float64(queryHits) / queryTotal
 			}
-			// Sort views by name. Otherwise they will be returned in the random
-			// order of a map.
-			sort.Slice(views, func(i, j int) bool {
-				return views[i].Name < views[j].Name
+			views = append(views, &models.Bind9DaemonView{
+				Name:          name,
+				QueryHits:     queryHits,
+				QueryMisses:   queryMisses,
+				QueryHitRatio: queryHitRatio,
 			})
 		}
+		// Sort views by name. Otherwise they will be returned in the random
+		// order of a map.
+		sort.Slice(views, func(i, j int) bool {
+			return views[i].Name < views[j].Name
+		})
 
 		apiDaemon.Bind9DaemonDetails = models.Bind9DaemonDetails{
 			ZoneCount:     dbDaemon.Bind9Daemon.Stats.ZoneCount,

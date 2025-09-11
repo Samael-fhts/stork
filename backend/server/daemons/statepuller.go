@@ -110,7 +110,7 @@ func updateMachineFields(db *dbops.PgDB, dbMachine *dbmodel.Machine, m *agentcom
 // equal if their type matches and if they have the same control port. Return
 // true if equal, false otherwise.
 func daemonCompare(dbDaemon dbmodel.Daemon, grpcDaemon *agentcomm.Daemon) bool {
-	if dbDaemon.Name != constant.DaemonName(grpcDaemon.Name) {
+	if dbDaemon.Name != grpcDaemon.Name {
 		return false
 	}
 	if len(dbDaemon.AccessPoints) != len(grpcDaemon.AccessPoints) {
@@ -174,7 +174,7 @@ DISCOVERED_LOOP:
 			}
 		}
 
-		newDaemon := dbmodel.NewDaemon(dbMachine, constant.DaemonName(discoveredDaemon.Name), true, accessPoints)
+		newDaemon := dbmodel.NewDaemon(dbMachine, discoveredDaemon.Name, true, accessPoints)
 		matchedDaemons = append(matchedDaemons, *newDaemon)
 	}
 

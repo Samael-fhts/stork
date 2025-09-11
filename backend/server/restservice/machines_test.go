@@ -1761,7 +1761,7 @@ func TestRestGetBind9AppWithQueryStats(t *testing.T) {
 					Stats: dbmodel.Bind9DaemonStats{
 						ZoneCount:          int64(100),
 						AutomaticZoneCount: int64(50),
-						NamedStats: &bind9stats.Bind9NamedStats{
+						NamedStats: bind9stats.Bind9NamedStats{
 							Views: map[string]*bind9stats.Bind9StatsView{
 								"trusted": {
 									Resolver: &bind9stats.Bind9StatsResolver{

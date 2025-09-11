@@ -70,7 +70,7 @@ type KeaDaemon struct {
 type Bind9DaemonStats struct {
 	ZoneCount          int64
 	AutomaticZoneCount int64
-	NamedStats         *bind9stats.Bind9NamedStats
+	NamedStats         bind9stats.Bind9NamedStats
 }
 
 // A structure holding BIND9 daemon specific information.

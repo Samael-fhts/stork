@@ -61,7 +61,7 @@ func GetDaemonStatistics(ctx context.Context, agents agentcomm.ConnectedAgents, 
 		return nil
 	}
 
-	namedStats := &bind9stats.Bind9NamedStats{}
+	namedStats := bind9stats.Bind9NamedStats{}
 
 	viewStats := make(map[string]*bind9stats.Bind9StatsView)
 

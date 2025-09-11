@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	agentapi "isc.org/stork/api"
+	"isc.org/stork/daemonctrl/constant"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -82,25 +83,15 @@ func TestStatsPullerPullStats(t *testing.T) {
 
 	mockConnectedAgents := NewMockConnectedAgents(ctrl)
 	mockConnectedAgents.EXPECT().
-		ForwardToNamedStats(gomock.Any(), gomock.Any(), "127.0.0.1", int64(8000), agentapi.ForwardToNamedStatsReq_SERVER, gomock.Any()).
+		ForwardToNamedStats(gomock.Any(), gomock.Any(), agentapi.ForwardToNamedStatsReq_SERVER, gomock.Any()).
 		AnyTimes().
-		SetArg(5, response).
+		SetArg(3, response).
 		Return(nil)
 
 	fec := &storktest.FakeEventCenter{}
 
-	// prepare bind9 apps
+	// prepare bind9 daemons
 	var err error
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "127.0.0.1", "abcd", 953, false)
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointStatistics, "127.0.0.1", "abcd", 8000, false)
-
-	daemon := &dbmodel.Daemon{
-		Pid:         0,
-		Name:        "named",
-		Active:      true,
-		Bind9Daemon: &dbmodel.Bind9Daemon{},
-	}
 
 	machine1 := &dbmodel.Machine{
 		ID:        0,
@@ -110,20 +101,26 @@ func TestStatsPullerPullStats(t *testing.T) {
 	err = dbmodel.AddMachine(db, machine1)
 	require.NoError(t, err)
 	require.NotZero(t, machine1.ID)
-	dbApp1 := dbmodel.App{
-		Type:         dbmodel.AppTypeBind9,
-		AccessPoints: accessPoints,
-		MachineID:    machine1.ID,
-		Machine:      machine1,
-		Daemons: []*dbmodel.Daemon{
-			daemon,
+
+	daemon1 := dbmodel.NewDaemon(machine1, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "127.0.0.1",
+			Port:     953,
+			Key:      "abcd",
+			Protocol: "rndc",
 		},
-	}
-	err = CommitAppIntoDB(db, &dbApp1, fec)
+		{
+			Type:     dbmodel.AccessPointStatistics,
+			Address:  "127.0.0.1",
+			Port:     8000,
+			Key:      "abcd",
+			Protocol: "http",
+		},
+	})
+	err = CommitDaemonIntoDB(db, daemon1, fec)
 	require.NoError(t, err)
 
-	daemon.ID = 0
-	daemon.Bind9Daemon.ID = 0
 	machine2 := &dbmodel.Machine{
 		ID:        0,
 		Address:   "192.0.2.0",
@@ -132,16 +129,24 @@ func TestStatsPullerPullStats(t *testing.T) {
 	err = dbmodel.AddMachine(db, machine2)
 	require.NoError(t, err)
 	require.NotZero(t, machine2.ID)
-	dbApp2 := dbmodel.App{
-		Type:         dbmodel.AppTypeBind9,
-		AccessPoints: accessPoints,
-		MachineID:    machine2.ID,
-		Machine:      machine2,
-		Daemons: []*dbmodel.Daemon{
-			daemon,
+
+	daemon2 := dbmodel.NewDaemon(machine2, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "127.0.0.1",
+			Port:     953,
+			Key:      "abcd",
+			Protocol: "rndc",
 		},
-	}
-	err = CommitAppIntoDB(db, &dbApp2, fec)
+		{
+			Type:     dbmodel.AccessPointStatistics,
+			Address:  "127.0.0.1",
+			Port:     8000,
+			Key:      "abcd",
+			Protocol: "http",
+		},
+	})
+	err = CommitDaemonIntoDB(db, daemon2, fec)
 	require.NoError(t, err)
 
 	// set one setting that is needed by puller
@@ -164,40 +169,36 @@ func TestStatsPullerPullStats(t *testing.T) {
 	require.NoError(t, err)
 
 	// check collected stats
-	app1, err := dbmodel.GetAppByID(db, dbApp1.ID)
+	daemon1Retrieved, err := dbmodel.GetDaemonByID(db, daemon1.ID)
 	require.NoError(t, err)
 
-	require.Len(t, app1.Daemons, 1)
-	require.NotNil(t, app1.Daemons[0].Bind9Daemon)
-	daemon = app1.Daemons[0]
-	require.EqualValues(t, 60, daemon.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["CacheHits"])
-	require.EqualValues(t, 40, daemon.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["CacheMisses"])
-	require.EqualValues(t, 10, daemon.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["QueryHits"])
-	require.EqualValues(t, 90, daemon.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["QueryMisses"])
+	require.NotNil(t, daemon1Retrieved.Bind9Daemon)
+	require.EqualValues(t, 60, daemon1Retrieved.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["CacheHits"])
+	require.EqualValues(t, 40, daemon1Retrieved.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["CacheMisses"])
+	require.EqualValues(t, 10, daemon1Retrieved.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["QueryHits"])
+	require.EqualValues(t, 90, daemon1Retrieved.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["QueryMisses"])
 
 	// Add assertions for "guest" view
-	require.EqualValues(t, 100, daemon.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["CacheHits"])
-	require.EqualValues(t, 200, daemon.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["CacheMisses"])
-	require.EqualValues(t, 56, daemon.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["QueryHits"])
-	require.EqualValues(t, 75, daemon.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["QueryMisses"])
+	require.EqualValues(t, 100, daemon1Retrieved.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["CacheHits"])
+	require.EqualValues(t, 200, daemon1Retrieved.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["CacheMisses"])
+	require.EqualValues(t, 56, daemon1Retrieved.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["QueryHits"])
+	require.EqualValues(t, 75, daemon1Retrieved.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["QueryMisses"])
 
-	app2, err := dbmodel.GetAppByID(db, dbApp2.ID)
+	daemon2Retrieved, err := dbmodel.GetDaemonByID(db, daemon2.ID)
 	require.NoError(t, err)
-	require.Len(t, app2.Daemons, 1)
-	require.NotNil(t, app2.Daemons[0].Bind9Daemon)
-	daemon = app2.Daemons[0]
-	require.EqualValues(t, 60, daemon.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["CacheHits"])
-	require.EqualValues(t, 40, daemon.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["CacheMisses"])
-	require.EqualValues(t, 10, daemon.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["QueryHits"])
-	require.EqualValues(t, 90, daemon.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["QueryMisses"])
+	require.NotNil(t, daemon2Retrieved.Bind9Daemon)
+	require.EqualValues(t, 60, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["CacheHits"])
+	require.EqualValues(t, 40, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["CacheMisses"])
+	require.EqualValues(t, 10, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["QueryHits"])
+	require.EqualValues(t, 90, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views["trusted"].Resolver.CacheStats["QueryMisses"])
 
 	// Add assertions for "guest" view
-	require.EqualValues(t, 100, daemon.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["CacheHits"])
-	require.EqualValues(t, 200, daemon.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["CacheMisses"])
-	require.EqualValues(t, 56, daemon.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["QueryHits"])
-	require.EqualValues(t, 75, daemon.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["QueryMisses"])
+	require.EqualValues(t, 100, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["CacheHits"])
+	require.EqualValues(t, 200, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["CacheMisses"])
+	require.EqualValues(t, 56, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["QueryHits"])
+	require.EqualValues(t, 75, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views["guest"].Resolver.CacheStats["QueryMisses"])
 
-	require.NotContains(t, daemon.Bind9Daemon.Stats.NamedStats.Views, "_bind")
+	require.NotContains(t, daemon2Retrieved.Bind9Daemon.Stats.NamedStats.Views, "_bind")
 }
 
 // Check if statistics-channel response is handled correctly when it is empty.
@@ -216,18 +217,8 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, bind9Mock)
 	fec := &storktest.FakeEventCenter{}
 
-	// prepare bind9 app
+	// prepare bind9 daemon
 	var err error
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "127.0.0.1", "abcd", 953, false)
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointStatistics, "127.0.0.1", "abcd", 8000, false)
-
-	daemon := &dbmodel.Daemon{
-		Pid:         0,
-		Name:        "named",
-		Active:      true,
-		Bind9Daemon: &dbmodel.Bind9Daemon{},
-	}
 
 	machine := &dbmodel.Machine{
 		ID:        0,
@@ -237,16 +228,24 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 	err = dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
-	dbApp := dbmodel.App{
-		Type:         dbmodel.AppTypeBind9,
-		AccessPoints: accessPoints,
-		MachineID:    machine.ID,
-		Machine:      machine,
-		Daemons: []*dbmodel.Daemon{
-			daemon,
+
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "127.0.0.1",
+			Port:     953,
+			Key:      "abcd",
+			Protocol: "rndc",
 		},
-	}
-	err = CommitAppIntoDB(db, &dbApp, fec)
+		{
+			Type:     dbmodel.AccessPointStatistics,
+			Address:  "127.0.0.1",
+			Port:     8000,
+			Key:      "abcd",
+			Protocol: "http",
+		},
+	})
+	err = CommitDaemonIntoDB(db, daemon, fec)
 	require.NoError(t, err)
 
 	// set one setting that is needed by puller
@@ -269,12 +268,10 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 	require.NoError(t, err)
 
 	// check collected stats
-	app1, err := dbmodel.GetAppByID(db, dbApp.ID)
+	daemonRetrieved, err := dbmodel.GetDaemonByID(db, daemon.ID)
 	require.NoError(t, err)
-	require.Len(t, app1.Daemons, 1)
-	require.NotNil(t, app1.Daemons[0].Bind9Daemon)
-	daemon = app1.Daemons[0]
-	require.Empty(t, daemon.Bind9Daemon.Stats.NamedStats.Views)
+	require.NotNil(t, daemonRetrieved.Bind9Daemon)
+	require.Empty(t, daemonRetrieved.Bind9Daemon.Stats.NamedStats.Views)
 }
 
 // Test that the stats puller doesn't crash if the BIND 9 process has been
@@ -289,13 +286,8 @@ func TestStatsPullerPullStatsForPartiallyDetectedDaemon(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	fec := &storktest.FakeEventCenter{}
 
-	// Prepare bind9 app.
+	// Prepare bind9 daemon.
 	var err error
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints,
-		dbmodel.AccessPointControl, "127.0.0.1", "abcd", 953, false)
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints,
-		dbmodel.AccessPointStatistics, "127.0.0.1", "abcd", 8000, false)
 
 	machine := &dbmodel.Machine{
 		ID:        0,
@@ -305,14 +297,26 @@ func TestStatsPullerPullStatsForPartiallyDetectedDaemon(t *testing.T) {
 	err = dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
-	dbApp := dbmodel.App{
-		Type:         dbmodel.AppTypeBind9,
-		AccessPoints: accessPoints,
-		MachineID:    machine.ID,
-		Machine:      machine,
-		Daemons:      nil,
-	}
-	err = CommitAppIntoDB(db, &dbApp, fec)
+
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, false, []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "127.0.0.1",
+			Port:     953,
+			Key:      "abcd",
+			Protocol: "rndc",
+		},
+		{
+			Type:     dbmodel.AccessPointStatistics,
+			Address:  "127.0.0.1",
+			Port:     8000,
+			Key:      "abcd",
+			Protocol: "http",
+		},
+	})
+	// Don't set the Bind9Daemon to simulate a partially detected daemon
+	daemon.Bind9Daemon = nil
+	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
 
 	// Set one setting that is needed by puller.
