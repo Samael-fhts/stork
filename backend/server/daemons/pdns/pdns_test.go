@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"isc.org/stork/daemonctrl/constant"
 	pdnsdata "isc.org/stork/daemondata/pdns"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -23,7 +24,7 @@ func (e *testError) Error() string {
 }
 
 // Test successfully getting state from new PowerDNS server.
-func TestGetAppState(t *testing.T) {
+func TestGetDaemonState(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -33,30 +34,28 @@ func TestGetAppState(t *testing.T) {
 		Version: "4.7.0",
 	}, nil)
 
-	dbApp := dbmodel.App{
-		AccessPoints: []*dbmodel.AccessPoint{
-			{
-				Type:    dbmodel.AccessPointControl,
-				Address: "127.0.0.1",
-				Port:    53,
-			},
-		},
-		Machine: &dbmodel.Machine{
-			Address:   "127.0.0.1",
-			AgentPort: 1111,
-		},
+	machine := &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 1111,
 	}
-	GetAppState(context.Background(), agents, &dbApp, nil)
 
-	// Make sure that the daemon is added and contains the returned info.
-	require.Len(t, dbApp.Daemons, 1)
-	require.Equal(t, "4.7.0", dbApp.Daemons[0].Version)
-	require.Equal(t, "4.7.0", dbApp.Meta.Version)
-	require.Equal(t, "4.7.0", dbApp.Meta.ExtendedVersion)
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNamePDNS, true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "127.0.0.1",
+			Port:    53,
+		},
+	})
+
+	GetDaemonState(context.Background(), agents, daemon, nil)
+
+	// Make sure that the daemon contains the returned info.
+	require.Equal(t, "4.7.0", daemon.Version)
+	require.Equal(t, "4.7.0", daemon.ExtendedVersion)
 }
 
 // Test successfully getting state from existing PowerDNS server.
-func TestGetAppStateUpdateDaemon(t *testing.T) {
+func TestGetDaemonStateUpdateDaemon(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -71,59 +70,50 @@ func TestGetAppStateUpdateDaemon(t *testing.T) {
 		AutoprimariesURL: "http://127.0.0.1:8081/autoprimaries",
 	}, nil)
 
-	dbApp := dbmodel.App{
-		AccessPoints: []*dbmodel.AccessPoint{
-			{
-				Type:    dbmodel.AccessPointControl,
-				Address: "127.0.0.1",
-				Port:    53,
-			},
-		},
-		Machine: &dbmodel.Machine{
-			Address:   "127.0.0.1",
-			AgentPort: 1111,
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				ID:              123,
-				Active:          true,
-				Version:         "4.5.2",
-				ExtendedVersion: "4.5.2",
-				Uptime:          1234,
-				PDNSDaemon: &dbmodel.PDNSDaemon{
-					ID:       234,
-					DaemonID: 123,
-					Details: dbmodel.PDNSDaemonDetails{
-						URL:              "http://127.0.0.1:8081",
-						ConfigURL:        "http://127.0.0.1:8081/config",
-						ZonesURL:         "http://127.0.0.1:8081/zones",
-						AutoprimariesURL: "http://127.0.0.1:8081/autoprimaries",
-					},
-				},
-			},
-		},
+	machine := &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 1111,
 	}
-	GetAppState(context.Background(), agents, &dbApp, nil)
+
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNamePDNS, true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "127.0.0.1",
+			Port:    53,
+		},
+	})
+	daemon.ID = 123
+	daemon.Version = "4.5.2"
+	daemon.ExtendedVersion = "4.5.2"
+	daemon.Uptime = 1234
+	daemon.PDNSDaemon.ID = 234
+	daemon.PDNSDaemon.DaemonID = 123
+	daemon.PDNSDaemon.Details = dbmodel.PDNSDaemonDetails{
+		URL:              "http://127.0.0.1:8081",
+		ConfigURL:        "http://127.0.0.1:8081/config",
+		ZonesURL:         "http://127.0.0.1:8081/zones",
+		AutoprimariesURL: "http://127.0.0.1:8081/autoprimaries",
+	}
+
+	GetDaemonState(context.Background(), agents, daemon, nil)
 
 	// The existing daemon information should be updated.
-	require.Len(t, dbApp.Daemons, 1)
-	require.EqualValues(t, 123, dbApp.Daemons[0].ID)
-	require.True(t, dbApp.Daemons[0].Active)
-	require.Equal(t, "4.7.0", dbApp.Daemons[0].Version)
-	require.Equal(t, "4.7.0", dbApp.Meta.Version)
-	require.Equal(t, "4.7.0", dbApp.Meta.ExtendedVersion)
-	require.NotNil(t, dbApp.Daemons[0].PDNSDaemon)
-	require.EqualValues(t, 234, dbApp.Daemons[0].PDNSDaemon.ID)
-	require.EqualValues(t, 123, dbApp.Daemons[0].PDNSDaemon.DaemonID)
-	require.EqualValues(t, 1234, dbApp.Daemons[0].Uptime)
-	require.Equal(t, "http://127.0.0.1:8081", dbApp.Daemons[0].PDNSDaemon.Details.URL)
-	require.Equal(t, "http://127.0.0.1:8081/config", dbApp.Daemons[0].PDNSDaemon.Details.ConfigURL)
-	require.Equal(t, "http://127.0.0.1:8081/zones", dbApp.Daemons[0].PDNSDaemon.Details.ZonesURL)
-	require.Equal(t, "http://127.0.0.1:8081/autoprimaries", dbApp.Daemons[0].PDNSDaemon.Details.AutoprimariesURL)
+	require.EqualValues(t, 123, daemon.ID)
+	require.True(t, daemon.Active)
+	require.Equal(t, "4.7.0", daemon.Version)
+	require.Equal(t, "4.7.0", daemon.ExtendedVersion)
+	require.NotNil(t, daemon.PDNSDaemon)
+	require.EqualValues(t, 234, daemon.PDNSDaemon.ID)
+	require.EqualValues(t, 123, daemon.PDNSDaemon.DaemonID)
+	require.EqualValues(t, 1234, daemon.Uptime)
+	require.Equal(t, "http://127.0.0.1:8081", daemon.PDNSDaemon.Details.URL)
+	require.Equal(t, "http://127.0.0.1:8081/config", daemon.PDNSDaemon.Details.ConfigURL)
+	require.Equal(t, "http://127.0.0.1:8081/zones", daemon.PDNSDaemon.Details.ZonesURL)
+	require.Equal(t, "http://127.0.0.1:8081/autoprimaries", daemon.PDNSDaemon.Details.AutoprimariesURL)
 }
 
 // Test the case when an attempt to get state fails.
-func TestGetAppStateError(t *testing.T) {
+func TestGetDaemonStateError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -131,33 +121,28 @@ func TestGetAppStateError(t *testing.T) {
 
 	agents.EXPECT().GetPowerDNSServerInfo(gomock.Any(), gomock.Any()).Return(nil, &testError{})
 
-	dbApp := dbmodel.App{
-		AccessPoints: []*dbmodel.AccessPoint{
-			{
-				Type:    dbmodel.AccessPointControl,
-				Address: "127.0.0.1",
-				Port:    53,
-			},
-		},
-		Machine: &dbmodel.Machine{
-			Address:   "127.0.0.1",
-			AgentPort: 1111,
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				Version: "4.5.2",
-			},
-		},
+	machine := &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 1111,
 	}
-	GetAppState(context.Background(), agents, &dbApp, nil)
+
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNamePDNS, true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "127.0.0.1",
+			Port:    53,
+		},
+	})
+	daemon.Version = "4.5.2"
+
+	GetDaemonState(context.Background(), agents, daemon, nil)
 
 	// The existing daemon info should not be updated.
-	require.Len(t, dbApp.Daemons, 1)
-	require.Equal(t, "4.5.2", dbApp.Daemons[0].Version)
+	require.Equal(t, "4.5.2", daemon.Version)
 }
 
-// Test inserting PowerDNS app into the database.
-func TestCommitAppIntoDB(t *testing.T) {
+// Test inserting PowerDNS daemon into the database.
+func TestCommitDaemonIntoDB(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
@@ -173,35 +158,38 @@ func TestCommitAppIntoDB(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "", "", 1234, false)
-	app := &dbmodel.App{
-		ID:           0,
-		MachineID:    machine.ID,
-		Machine:      machine,
-		Type:         dbmodel.AppTypePDNS,
-		Active:       true,
-		AccessPoints: accessPoints,
-	}
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNamePDNS, true, []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "",
+			Port:    1234,
+			Key:     "",
+		},
+	})
 
 	// Make sure an event is emitted with appropriate parameters when the
-	// app is first added to the database.
+	// daemon is first added to the database.
 	eventCenterMock := NewMockEventCenter(ctrl)
-	eventCenterMock.EXPECT().AddInfoEvent("added {app}", app.Machine, app).Times(1)
+	eventCenterMock.EXPECT().AddInfoEvent("added {daemon} to {machine}", daemon, daemon.Machine).Times(1)
 
-	// Insert the app into the database.
-	err = CommitAppIntoDB(db, app, eventCenterMock)
+	// Insert the daemon into the database.
+	err = CommitDaemonIntoDB(db, daemon, eventCenterMock)
 	require.NoError(t, err)
 
-	// Update the app in the database. The event should not be emitted.
-	accessPoints = []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "", "", 2345, false)
-	app.AccessPoints = accessPoints
-	err = CommitAppIntoDB(db, app, eventCenterMock)
+	// Update the daemon in the database. The event should not be emitted.
+	daemon.AccessPoints = []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "",
+			Port:    2345,
+			Key:     "",
+		},
+	}
+	err = CommitDaemonIntoDB(db, daemon, eventCenterMock)
 	require.NoError(t, err)
 
-	// Check that the app is stored in the database.
-	returned, err := dbmodel.GetAppByID(db, app.ID)
+	// Check that the daemon is stored in the database.
+	returned, err := dbmodel.GetDaemonByID(db, daemon.ID)
 	require.NoError(t, err)
 	require.NotNil(t, returned)
 	require.Len(t, returned.AccessPoints, 1)
