@@ -15,13 +15,8 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=agent -destination=agentmanagermock_test.go isc.org/stork/agent AgentManager
-
 // Test the case that the command is successfully sent to Kea.
 func TestSendCommand(t *testing.T) {
-	httpClient := newHTTPClientWithDefaults()
-	gock.InterceptClient(httpClient.client)
-
 	// Expect appropriate content type and the body. If they are not matched
 	// an error will be raised.
 	defer gock.Off()
@@ -40,7 +35,7 @@ func TestSendCommand(t *testing.T) {
 			Name:         constant.DaemonNameCA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
 	}
 	var response keactrl.Response
 	err := daemon.sendCommand(command, &response)
@@ -67,9 +62,6 @@ func TestSendCommandNoAccessPoint(t *testing.T) {
 
 // Test the case when Kea returns invalid response to the command.
 func TestSendCommandInvalidResponse(t *testing.T) {
-	httpClient := newHTTPClientWithDefaults()
-	gock.InterceptClient(httpClient.client)
-
 	// Return invalid response. Arguments must be a map not an integer.
 	defer gock.Off()
 	gock.New("http://localhost:45634").
@@ -89,7 +81,7 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 			Name:         constant.DaemonNameDHCPv4,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
 	}
 
 	type versionGet struct {
@@ -123,9 +115,6 @@ func TestSendCommandNoKea(t *testing.T) {
 // daemon by sending the request to the Kea Control Agent and the
 // daemons behind it.
 func TestKeaAllowedLogs(t *testing.T) {
-	httpClient := newHTTPClientWithDefaults()
-	gock.InterceptClient(httpClient.client)
-
 	// The first config-get command should go to the Kea Control Agent.
 	// The logs should be extracted from there and the subsequent config-get
 	// commands should be sent to the daemons with which the CA is configured
@@ -218,7 +207,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 			Name:         constant.DaemonNameCA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
 	}
 
 	ctrl := gomock.NewController(t)
@@ -237,9 +226,6 @@ func TestKeaAllowedLogs(t *testing.T) {
 // daemons behind it. This test variant uses output-options alias for
 // logger configuration.
 func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
-	httpClient := newHTTPClientWithDefaults()
-	gock.InterceptClient(httpClient.client)
-
 	// The first config-get command should go to the Kea Control Agent.
 	// The logs should be extracted from there and the subsequent config-get
 	// commands should be sent to the daemons with which the CA is configured
@@ -332,7 +318,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 			Name:         constant.DaemonNameCA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
 	}
 
 	ctrl := gomock.NewController(t)
@@ -350,9 +336,6 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 // from the Kea daemons is lower than the number of services specified in the
 // command.
 func TestKeaAllowedLogsFewerResponses(t *testing.T) {
-	httpClient := newHTTPClientWithDefaults()
-	gock.InterceptClient(httpClient.client)
-
 	defer gock.Off()
 
 	// Return only one response while the number of daemons is two.
@@ -382,7 +365,7 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 			Name:         constant.DaemonNameCA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
 	}
 
 	ctrl := gomock.NewController(t)

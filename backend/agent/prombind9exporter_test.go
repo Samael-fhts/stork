@@ -9,6 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
+	"isc.org/stork/daemonctrl/constant"
 )
 
 //go:embed testdata/bind9-prom-server-stats.json
@@ -17,42 +18,50 @@ var bind9PromServerStats []byte
 //go:embed testdata/bind9-prom-traffic-stats.json
 var bind9PromTrafficStats []byte
 
-// Fake app monitor that returns some predefined list of apps.
-type PromFakeBind9AppMonitor struct{}
+// Fake daemon monitor that returns some predefined list of daemons.
+type PromFakeBind9DaemonMonitor struct{}
 
-func (fam *PromFakeBind9AppMonitor) GetApps() []App {
-	accessPoints := makeAccessPoint(AccessPointStatistics, "localhost", "", 1234, false)
-	accessPoints = append(accessPoints, AccessPoint{
-		Type:    AccessPointControl,
-		Address: "1.9.5.3",
-		Port:    1953,
-		Key:     "abcd",
-	})
-	ba := &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
+func (fdm *PromFakeBind9DaemonMonitor) GetDaemons() []Daemon {
+	accessPoints := []AccessPoint{
+		{
+			Type:     AccessPointStatistics,
+			Address:  "localhost",
+			Port:     1234,
+			Protocol: "http",
+		},
+		{
+			Type:     AccessPointControl,
+			Address:  "localhost",
+			Port:     953,
+			Key:      "abcd",
+			Protocol: "rndc",
+		},
+	}
+	bd := &Bind9Daemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameBind9,
 			AccessPoints: accessPoints,
 		},
-		RndcClient: nil,
+		rndcClient: nil,
 	}
-	return []App{ba}
+	return []Daemon{bd}
 }
 
-func (fam *PromFakeBind9AppMonitor) GetApp(apType, address string, port int64) App {
+func (fdm *PromFakeBind9DaemonMonitor) GetDaemonByAccessPoint(accessPointType string, address string, port int64) Daemon {
 	return nil
 }
 
-func (fam *PromFakeBind9AppMonitor) Shutdown() {
+func (fdm *PromFakeBind9DaemonMonitor) Shutdown() {
 }
 
-func (fam *PromFakeBind9AppMonitor) Start(storkAgent *StorkAgent) {
+func (fdm *PromFakeBind9DaemonMonitor) Start(manager AgentManager) {
 }
 
 // Check creating PromBind9Exporter, check if prometheus stats are set up.
 func TestNewPromBind9ExporterBasic(t *testing.T) {
-	fam := &PromFakeBind9AppMonitor{}
+	fdm := &PromFakeBind9DaemonMonitor{}
 	httpClient := NewBind9StatsClient()
-	pbe := NewPromBind9Exporter("foo", 42, fam, httpClient)
+	pbe := NewPromBind9Exporter("foo", 42, fdm, httpClient)
 	defer pbe.Shutdown()
 
 	require.Equal(t, "foo", pbe.Host)
@@ -86,7 +95,7 @@ func TestPromBind9ExporterStart(t *testing.T) {
 		AddHeader("Content-Type", "application/json").
 		BodyString(string(bind9PromTrafficStats))
 
-	fam := &PromFakeBind9AppMonitor{}
+	fam := &PromFakeBind9DaemonMonitor{}
 	httpClient := NewBind9StatsClient()
 	pbe := NewPromBind9Exporter("localhost", 1234, fam, httpClient)
 	defer pbe.Shutdown()

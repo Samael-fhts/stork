@@ -8,44 +8,52 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	pdnsconfig "isc.org/stork/daemoncfg/pdns"
+	"isc.org/stork/daemonctrl/constant"
 )
 
 //go:generate mockgen -package=agent -destination=pdnsmock_test.go -mock_names=pdnsConfigParser=MockPDNSConfigParser isc.org/stork/agent pdnsConfigParser
 
 // Test that the BaseApp structure can be accessed.
 func TestPowerDNSAppGetBaseApp(t *testing.T) {
-	app := &PDNSApp{
-		BaseApp: BaseApp{
-			Type: AppTypePowerDNS,
+	daemon := &PDNSDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNamePDNS,
 		},
 	}
-	require.Equal(t, &app.BaseApp, app.GetBaseApp())
+	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
 }
 
-// Test that no allowed logs are returned.
-func TestPowerDNSAppDetectAllowedLogs(t *testing.T) {
-	app := &PDNSApp{}
-	logs, err := app.DetectAllowedLogs()
+// Test that the evaluation of the PowerDNS daemon doesn't return any errors.
+func TestPowerDNSDaemonEvaluation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	agentManager := NewMockAgentManager(ctrl)
+
+	daemon := &PDNSDaemon{}
+	err := daemon.Evaluate(agentManager)
 	require.NoError(t, err)
-	require.Empty(t, logs)
 }
 
-// Test that awaiting background tasks doesn't panic when zone inventory is nil.
-func TestPowerDNSAppAwaitBackgroundTasksNilZoneInventory(t *testing.T) {
-	app := &PDNSApp{}
-	require.NotPanics(t, app.AwaitBackgroundTasks)
+// Test that cleanup doesn't panic when zone inventory is nil.
+func TestPowerDNSDaemonCleanupNilZoneInventory(t *testing.T) {
+	daemon := &PDNSDaemon{}
+	require.NotPanics(t, func() {
+		err := daemon.Cleanup()
+		require.NoError(t, err)
+	})
 }
 
 // Test that the zone inventory can be accessed.
-func TestPowerDNSAppGetZoneInventory(t *testing.T) {
-	app := &PDNSApp{
+func TestPowerDNSDaemonGetZoneInventory(t *testing.T) {
+	daemon := &PDNSDaemon{
 		zoneInventory: &zoneInventory{},
 	}
-	require.Equal(t, app.zoneInventory, app.GetZoneInventory())
+	require.Equal(t, daemon.zoneInventory, daemon.GetZoneInventory())
 }
 
-// Test successfully detecting PowerDNS app.
-func TestDetectPowerDNSApp(t *testing.T) {
+// Test successfully detecting PowerDNS daemon.
+func TestDetectPowerDNSDaemon(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -58,24 +66,25 @@ func TestDetectPowerDNSApp(t *testing.T) {
 		return pdnsconfig.NewParser().Parse(strings.NewReader(defaultPDNSConfig))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.NoError(t, err)
-	require.NotNil(t, app)
+	require.NotNil(t, daemon)
 
-	require.IsType(t, &PDNSApp{}, app)
-	require.Equal(t, AppTypePowerDNS, app.GetBaseApp().Type)
-	require.Zero(t, app.GetBaseApp().Pid)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	require.Equal(t, AccessPointControl, app.GetBaseApp().AccessPoints[0].Type)
-	require.EqualValues(t, 8081, app.GetBaseApp().AccessPoints[0].Port)
-	require.Equal(t, "127.0.0.1", app.GetBaseApp().AccessPoints[0].Address)
-	require.Equal(t, "stork", app.GetBaseApp().AccessPoints[0].Key)
-	require.NotNil(t, app.GetZoneInventory())
+	require.IsType(t, &PDNSDaemon{}, daemon)
+	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
+	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
+	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
+	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
+
+	pdnsDaemon := daemon.(*PDNSDaemon)
+	require.NotNil(t, pdnsDaemon.GetZoneInventory())
 }
 
 // Test that the PowerDNS is correctly detected when no parameters are
 // specified. It should use the default config directory.
-func TestDetectPowerDNSAppNoConfigDir(t *testing.T) {
+func TestDetectPowerDNSDaemonNoConfigDir(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -88,37 +97,38 @@ func TestDetectPowerDNSAppNoConfigDir(t *testing.T) {
 		return pdnsconfig.NewParser().Parse(strings.NewReader(defaultPDNSConfig))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.NoError(t, err)
-	require.NotNil(t, app)
+	require.NotNil(t, daemon)
 
-	require.IsType(t, &PDNSApp{}, app)
-	require.Equal(t, AppTypePowerDNS, app.GetBaseApp().Type)
-	require.Zero(t, app.GetBaseApp().Pid)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	require.Equal(t, AccessPointControl, app.GetBaseApp().AccessPoints[0].Type)
-	require.EqualValues(t, 8081, app.GetBaseApp().AccessPoints[0].Port)
-	require.Equal(t, "127.0.0.1", app.GetBaseApp().AccessPoints[0].Address)
-	require.Equal(t, "stork", app.GetBaseApp().AccessPoints[0].Key)
-	require.NotNil(t, app.GetZoneInventory())
+	require.IsType(t, &PDNSDaemon{}, daemon)
+	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
+	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
+	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
+	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
+
+	pdnsDaemon := daemon.(*PDNSDaemon)
+	require.NotNil(t, pdnsDaemon.GetZoneInventory())
 }
 
 // Test that an error is returned when getting a process command line fails.
-func TestDetectPowerDNSAppCmdLineError(t *testing.T) {
+func TestDetectPowerDNSDaemonCmdLineError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	process := NewMockSupportedProcess(ctrl)
 	process.EXPECT().getCmdline().Return("", errors.New("test error"))
 
-	app, err := detectPowerDNSApp(process, nil)
+	daemon, err := detectPowerDNSDaemon(process, nil)
 	require.Error(t, err)
 	require.ErrorContains(t, err, "test error")
-	require.Nil(t, app)
+	require.Nil(t, daemon)
 }
 
 // Test that an error is returned when getting a process current working directory fails.
-func TestDetectPowerDNSAppCwdError(t *testing.T) {
+func TestDetectPowerDNSDaemonCwdError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -131,23 +141,22 @@ func TestDetectPowerDNSAppCwdError(t *testing.T) {
 		return pdnsconfig.NewParser().Parse(strings.NewReader(defaultPDNSConfig))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.NoError(t, err)
-	require.NotNil(t, app)
+	require.NotNil(t, daemon)
 
-	require.IsType(t, &PDNSApp{}, app)
-	require.Equal(t, AppTypePowerDNS, app.GetBaseApp().Type)
-	require.Zero(t, app.GetBaseApp().Pid)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	require.Equal(t, AccessPointControl, app.GetBaseApp().AccessPoints[0].Type)
-	require.EqualValues(t, 8081, app.GetBaseApp().AccessPoints[0].Port)
-	require.Equal(t, "127.0.0.1", app.GetBaseApp().AccessPoints[0].Address)
-	require.Equal(t, "stork", app.GetBaseApp().AccessPoints[0].Key)
-	require.NotNil(t, app.GetZoneInventory())
+	require.IsType(t, &PDNSDaemon{}, daemon)
+	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
+	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
+	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
+	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
+	require.NotNil(t, daemon.(*PDNSDaemon).GetZoneInventory())
 }
 
-// Test that the app can be detected when the chroot directory is used.
-func TestDetectPowerDNSAppChroot(t *testing.T) {
+// Test that the daemon can be detected when the chroot directory is used.
+func TestDetectPowerDNSDaemonChroot(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -160,24 +169,23 @@ func TestDetectPowerDNSAppChroot(t *testing.T) {
 		return pdnsconfig.NewParser().Parse(strings.NewReader(defaultPDNSConfig))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.NoError(t, err)
-	require.NotNil(t, app)
+	require.NotNil(t, daemon)
 
-	require.IsType(t, &PDNSApp{}, app)
-	require.Equal(t, AppTypePowerDNS, app.GetBaseApp().Type)
-	require.Zero(t, app.GetBaseApp().Pid)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	require.Equal(t, AccessPointControl, app.GetBaseApp().AccessPoints[0].Type)
-	require.EqualValues(t, 8081, app.GetBaseApp().AccessPoints[0].Port)
-	require.Equal(t, "127.0.0.1", app.GetBaseApp().AccessPoints[0].Address)
-	require.Equal(t, "stork", app.GetBaseApp().AccessPoints[0].Key)
-	require.NotNil(t, app.GetZoneInventory())
+	require.IsType(t, &PDNSDaemon{}, daemon)
+	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
+	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
+	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
+	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
+	require.NotNil(t, daemon.(*PDNSDaemon).GetZoneInventory())
 }
 
 // Test that custom config directory and name can be specified while detecting
-// PowerDNS app.
-func TestDetectPowerDNSAppConfigDir(t *testing.T) {
+// PowerDNS daemon.
+func TestDetectPowerDNSDaemonConfigDir(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -190,23 +198,22 @@ func TestDetectPowerDNSAppConfigDir(t *testing.T) {
 		return pdnsconfig.NewParser().Parse(strings.NewReader(defaultPDNSConfig))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.NoError(t, err)
-	require.NotNil(t, app)
+	require.NotNil(t, daemon)
 
-	require.IsType(t, &PDNSApp{}, app)
-	require.Equal(t, AppTypePowerDNS, app.GetBaseApp().Type)
-	require.Zero(t, app.GetBaseApp().Pid)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	require.Equal(t, AccessPointControl, app.GetBaseApp().AccessPoints[0].Type)
-	require.EqualValues(t, 8081, app.GetBaseApp().AccessPoints[0].Port)
-	require.Equal(t, "127.0.0.1", app.GetBaseApp().AccessPoints[0].Address)
-	require.Equal(t, "stork", app.GetBaseApp().AccessPoints[0].Key)
-	require.NotNil(t, app.GetZoneInventory())
+	require.IsType(t, &PDNSDaemon{}, daemon)
+	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
+	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
+	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
+	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
+	require.NotNil(t, daemon.(*PDNSDaemon).GetZoneInventory())
 }
 
 // Test that an error is returned when parsing the configuration file fails.
-func TestDetectPowerDNSAppParseError(t *testing.T) {
+func TestDetectPowerDNSDaemonParseError(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -217,15 +224,15 @@ func TestDetectPowerDNSAppParseError(t *testing.T) {
 	parser := NewMockPDNSConfigParser(ctrl)
 	parser.EXPECT().ParseFile("/etc/pdns.conf").Return(nil, errors.New("test error"))
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.Error(t, err)
 	require.ErrorContains(t, err, "test error")
-	require.Nil(t, app)
+	require.Nil(t, daemon)
 }
 
 // Test that default webserver address and port are used when not specified
 // in the configuration file.
-func TestDetectPowerDNSAppDefaultWebserver(t *testing.T) {
+func TestDetectPowerDNSDaemonDefaultWebserver(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -242,24 +249,23 @@ func TestDetectPowerDNSAppDefaultWebserver(t *testing.T) {
 		`))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.NoError(t, err)
-	require.NotNil(t, app)
+	require.NotNil(t, daemon)
 
-	require.IsType(t, &PDNSApp{}, app)
-	require.Equal(t, AppTypePowerDNS, app.GetBaseApp().Type)
-	require.Zero(t, app.GetBaseApp().Pid)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	require.Equal(t, AccessPointControl, app.GetBaseApp().AccessPoints[0].Type)
-	require.EqualValues(t, 8081, app.GetBaseApp().AccessPoints[0].Port)
-	require.Equal(t, "127.0.0.1", app.GetBaseApp().AccessPoints[0].Address)
-	require.Equal(t, "stork", app.GetBaseApp().AccessPoints[0].Key)
-	require.NotNil(t, app.GetZoneInventory())
+	require.IsType(t, &PDNSDaemon{}, daemon)
+	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
+	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
+	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
+	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
+	require.NotNil(t, daemon.(*PDNSDaemon).GetZoneInventory())
 }
 
 // Test that an error is returned when the API key is not specified in the
 // configuration file.
-func TestDetectPowerDNSAppNoAPIKey(t *testing.T) {
+func TestDetectPowerDNSDaemonNoAPIKey(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -275,15 +281,15 @@ func TestDetectPowerDNSAppNoAPIKey(t *testing.T) {
 		`))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.Error(t, err)
 	require.ErrorContains(t, err, "api-key not found in /etc/pdns.conf")
-	require.Nil(t, app)
+	require.Nil(t, daemon)
 }
 
 // Test that an error is returned when the webserver is disabled in the
 // configuration file.
-func TestDetectPowerDNSAppNoWebserver(t *testing.T) {
+func TestDetectPowerDNSDaemonNoWebserver(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -299,15 +305,15 @@ func TestDetectPowerDNSAppNoWebserver(t *testing.T) {
 		`))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.Error(t, err)
 	require.ErrorContains(t, err, "webserver disabled in /etc/pdns.conf")
-	require.Nil(t, app)
+	require.Nil(t, daemon)
 }
 
 // Test that an error is returned when the API is disabled in the
 // configuration file.
-func TestDetectPowerDNSAppNoAPI(t *testing.T) {
+func TestDetectPowerDNSDaemonNoAPI(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -322,8 +328,8 @@ func TestDetectPowerDNSAppNoAPI(t *testing.T) {
 		`))
 	})
 
-	app, err := detectPowerDNSApp(process, parser)
+	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.Error(t, err)
 	require.ErrorContains(t, err, "API or webserver disabled in /etc/pdns.conf")
-	require.Nil(t, app)
+	require.Nil(t, daemon)
 }

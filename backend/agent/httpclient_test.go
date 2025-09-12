@@ -18,14 +18,14 @@ import (
 
 // Creates a new HTTP client with the default configuration.
 // It is intended to be used in the tests.
-func newHTTPClientWithDefaults() *httpClient {
+func newTestHTTPClientWithDefaults() *httpClient {
 	return NewHTTPClient(HTTPClientConfig{})
 }
 
 // Check that HTTP client can be created.
 func TestNewHTTPClient(t *testing.T) {
 	// Arrange & Act
-	client := newHTTPClientWithDefaults()
+	client := newTestHTTPClientWithDefaults()
 
 	// Assert
 	require.NotNil(t, client)
@@ -178,7 +178,7 @@ func TestCallWithMissingBody(t *testing.T) {
 	}))
 	defer ts.Close()
 
-	client := newHTTPClientWithDefaults()
+	client := newTestHTTPClientWithDefaults()
 	res, err := client.Call(ts.URL, nil)
 	require.NoError(t, err)
 	defer res.Body.Close()

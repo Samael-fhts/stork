@@ -28,6 +28,7 @@ import (
 
 	"isc.org/stork"
 	agentapi "isc.org/stork/api"
+	"isc.org/stork/daemonctrl/constant"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
 	"isc.org/stork/hooks"
@@ -41,9 +42,8 @@ import (
 //go:embed testdata/valid-zone.json
 var validZoneData []byte
 
-type FakeAppMonitor struct {
-	Apps       []App
-	HTTPClient *httpClient
+type FakeMonitor struct {
+	Daemons []Daemon
 }
 
 // Initializes StorkAgent instance and context used by the tests.
@@ -62,34 +62,39 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 	pdnsClient := newPDNSClient()
 	gock.InterceptClient(pdnsClient.innerClient.GetClient())
 
-	httpClientConfig := HTTPClientConfig{SkipTLSVerification: true}
-	httpClient := NewHTTPClient(httpClientConfig)
-	gock.InterceptClient(httpClient.client)
+	httpClientConfig := HTTPClientConfig{SkipTLSVerification: true, Interceptor: gock.InterceptClient}
 
 	cleanupCerts, _ := GenerateSelfSignedCerts()
 
-	fam := FakeAppMonitor{
-		Apps: []App{
-			&KeaApp{
-				BaseApp: BaseApp{
-					Type:         AppTypeKea,
-					AccessPoints: makeAccessPoint(AccessPointControl, "localhost", "", 45634, false),
-					Pid:          42,
+	fdm := FakeMonitor{
+		Daemons: []Daemon{
+			&KeaDaemon{
+				daemon: daemon{
+					Name: constant.DaemonNameDHCPv4,
+					AccessPoints: []AccessPoint{{
+						Type:     AccessPointControl,
+						Address:  "localhost",
+						Port:     45634,
+						Protocol: "http",
+					}},
 				},
-				HTTPClient: httpClient,
 			},
-			&Bind9App{
-				BaseApp: BaseApp{
-					Type:         AppTypeBind9,
-					AccessPoints: makeAccessPoint(AccessPointControl, "localhost", "abcd", 45635, false),
-					Pid:          43,
+			&Bind9Daemon{
+				daemon: daemon{
+					Name: constant.DaemonNameBind9,
+					AccessPoints: []AccessPoint{{
+						Type:     AccessPointControl,
+						Address:  "localhost",
+						Port:     45635,
+						Protocol: "rndc",
+					}},
 				},
 			},
 		},
 	}
 
 	sa := &StorkAgent{
-		AppMonitor:          &fam,
+		Monitor:             &fdm,
 		bind9StatsClient:    bind9StatsClient,
 		pdnsClient:          pdnsClient,
 		KeaHTTPClientConfig: httpClientConfig,
@@ -104,30 +109,33 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 		panic(err)
 	}
 	ctx := context.Background()
-	return sa, ctx, cleanupCerts
+	return sa, ctx, func() {
+		cleanupCerts()
+		gock.Off()
+	}
 }
 
-// Stub function for AppMonitor. It returns a fixed list of apps.
-func (fam *FakeAppMonitor) GetApps() []App {
-	return fam.Apps
+// Stub function for Monitor. It returns a fixed list of daemons.
+func (fdm *FakeMonitor) GetDaemons() []Daemon {
+	return fdm.Daemons
 }
 
-// Stub function for AppMonitor. It behaves in the same way as original one.
-func (fam *FakeAppMonitor) GetApp(apType, address string, port int64) App {
-	for _, app := range fam.GetApps() {
-		for _, ap := range app.GetBaseApp().AccessPoints {
+// Stub function for Monitor. It behaves in the same way as original one.
+func (fdm *FakeMonitor) GetDaemonByAccessPoint(apType, address string, port int64) Daemon {
+	for _, daemon := range fdm.GetDaemons() {
+		for _, ap := range daemon.GetAccessPoints() {
 			if ap.Type == apType && ap.Address == address && ap.Port == port {
-				return app
+				return daemon
 			}
 		}
 	}
 	return nil
 }
 
-func (fam *FakeAppMonitor) Shutdown() {
+func (fdm *FakeMonitor) Shutdown() {
 }
 
-func (fam *FakeAppMonitor) Start(storkAgent *StorkAgent) {
+func (fdm *FakeMonitor) Start(storkAgent AgentManager) {
 }
 
 // A matcher for PowerDNS zones. It excludes the Loaded field which is
@@ -158,13 +166,13 @@ func (m *powerDNSZoneMatcher) String() string {
 
 // Check if NewStorkAgent can be invoked and sets SA members.
 func TestNewStorkAgent(t *testing.T) {
-	fam := &FakeAppMonitor{}
+	fdm := &FakeMonitor{}
 	bind9StatsClient := NewBind9StatsClient()
 	keaHTTPClientConfig := HTTPClientConfig{}
 	sa := NewStorkAgent(
-		"foo", 42, fam, bind9StatsClient, keaHTTPClientConfig, NewHookManager(), "",
+		"foo", 42, fdm, bind9StatsClient, NewHookManager(),
 	)
-	require.NotNil(t, sa.AppMonitor)
+	require.NotNil(t, sa.Monitor)
 	require.Equal(t, bind9StatsClient, sa.bind9StatsClient)
 	require.Equal(t, keaHTTPClientConfig, sa.KeaHTTPClientConfig)
 }
@@ -184,42 +192,53 @@ func TestPing(t *testing.T) {
 func TestGetState(t *testing.T) {
 	sa, ctx, teardown := setupAgentTest()
 	defer teardown()
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = nil
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = nil
 
-	// app monitor is empty, no apps should be returned by GetState
+	// daemon monitor is empty, no daemons should be returned by GetState
 	rsp, err := sa.GetState(ctx, &agentapi.GetStateReq{})
 	require.NoError(t, err)
 	require.Equal(t, rsp.AgentVersion, stork.Version)
 	require.Empty(t, rsp.Apps)
 
-	// add some apps to app monitor so GetState should return something
-	var apps []App
-	apps = append(apps, &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: makeAccessPoint(AccessPointControl, "1.2.3.1", "", 1234, false),
+	// add some daemons to daemon monitor so GetState should return something
+	var daemons []Daemon
+	daemons = append(daemons, &KeaDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNameDHCPv4,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "1.2.3.1",
+				Port:     1234,
+				Protocol: "http",
+			}},
 		},
-		HTTPClient: newHTTPClientWithDefaults(),
 	})
 
-	accessPoints := makeAccessPoint(AccessPointControl, "2.3.4.4", "abcd", 2345, true)
-	accessPoints = append(accessPoints, AccessPoint{
-		Type:              AccessPointStatistics,
-		Address:           "2.3.4.5",
-		Port:              2346,
-		Key:               "foo",
-		UseSecureProtocol: false,
-	})
+	accessPoints := []AccessPoint{
+		{
+			Type:     AccessPointControl,
+			Address:  "2.3.4.4",
+			Port:     2345,
+			Key:      "abcd",
+			Protocol: "https",
+		},
+		{
+			Type:     AccessPointStatistics,
+			Address:  "2.3.4.5",
+			Port:     2346,
+			Key:      "foo",
+			Protocol: "http",
+		},
+	}
 
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameBind9,
 			AccessPoints: accessPoints,
 		},
-		RndcClient: nil,
 	})
-	fam.Apps = apps
+	fdm.Daemons = daemons
 	rsp, err = sa.GetState(ctx, &agentapi.GetStateReq{})
 	require.NoError(t, err)
 	require.Equal(t, rsp.AgentVersion, stork.Version)
@@ -256,8 +275,8 @@ func TestGetState(t *testing.T) {
 	sa, ctx, teardown = setupAgentTest()
 	defer teardown()
 
-	app := fam.GetApp(AccessPointControl, "1.2.3.1", 1234).(*KeaApp)
-	app.HTTPClient = NewHTTPClient(HTTPClientConfig{
+	daemon := fdm.GetDaemonByAccessPoint(AccessPointControl, "1.2.3.1", 1234).(*KeaDaemon)
+	daemon.connector = newKeaConnector(daemon.AccessPoints[0], HTTPClientConfig{
 		BasicAuth: basicAuthCredentials{User: "foo", Password: "bar"},
 	})
 
@@ -543,17 +562,21 @@ func TestForwardRndcCommandSuccess(t *testing.T) {
 	rndcClient := NewRndcClient(executor)
 	rndcClient.BaseCommand = []string{"/rndc"}
 
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "_", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Protocol: "rndc",
+			}},
 		},
-		RndcClient: rndcClient,
+		rndcClient: rndcClient,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	cmd := &agentapi.RndcRequest{Request: "status"}
 
@@ -602,17 +625,21 @@ func TestForwardRndcCommandError(t *testing.T) {
 	rndcClient := NewRndcClient(executor)
 	rndcClient.BaseCommand = []string{"/rndc"}
 
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "_", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Protocol: "rndc",
+			}},
 		},
-		RndcClient: rndcClient,
+		rndcClient: rndcClient,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	cmd := &agentapi.RndcRequest{Request: "status"}
 
@@ -630,7 +657,7 @@ func TestForwardRndcCommandError(t *testing.T) {
 	require.NotEmpty(t, rsp.Status.Message)
 }
 
-// Test rndc command when there is no app.
+// Test rndc command when there is no daemon.
 func TestForwardRndcCommandNoApp(t *testing.T) {
 	sa, ctx, teardown := setupAgentTest()
 	defer teardown()
@@ -648,7 +675,7 @@ func TestForwardRndcCommandNoApp(t *testing.T) {
 	require.NotNil(t, rsp)
 	require.NoError(t, err)
 	require.Equal(t, agentapi.Status_ERROR, rsp.Status.Code)
-	require.EqualValues(t, "cannot find BIND 9 app", rsp.Status.Message)
+	require.EqualValues(t, "cannot find BIND 9 daemon", rsp.Status.Message)
 }
 
 // Test rndc command successfully forwarded, but bad response.
@@ -659,17 +686,21 @@ func TestForwardRndcCommandEmpty(t *testing.T) {
 	rndcClient := NewRndcClient(executor)
 	rndcClient.BaseCommand = []string{"/rndc"}
 
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "_", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Protocol: "rndc",
+			}},
 		},
-		RndcClient: rndcClient,
+		rndcClient: rndcClient,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	cmd := &agentapi.RndcRequest{Request: "status"}
 
@@ -1039,18 +1070,23 @@ func TestReceiveZonesFilterByView(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	ctrl := gomock.NewController(t)
@@ -1109,18 +1145,22 @@ func TestReceiveZonesPDNS(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a PowerDNS app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "", 1234, false)
-	var apps []App
-	apps = append(apps, &PDNSApp{
-		BaseApp: BaseApp{
-			Type:         AppTypePowerDNS,
-			AccessPoints: accessPoints,
+	// Add a PowerDNS daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &PDNSDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNamePDNS,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Protocol: "http",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	ctrl := gomock.NewController(t)
@@ -1192,18 +1232,23 @@ func TestReceiveRPZZones(t *testing.T) {
 		<-done
 	}
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
@@ -1268,18 +1313,23 @@ func TestReceiveZonesFilterByLoadedAfter(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	ctrl := gomock.NewController(t)
@@ -1328,18 +1378,23 @@ func TestReceiveZonesFilterLowerBound(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	ctrl := gomock.NewController(t)
@@ -1378,18 +1433,23 @@ func TestReceiveZonesNilZoneInventory(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a BIND9 app without zone inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon without zone inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: nil,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	ctrl := gomock.NewController(t)
@@ -1411,17 +1471,22 @@ func TestReceiveZonesUnsupportedApp(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add an app that is not a DNS server.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: accessPoints,
+	// Add a daemon that is not a DNS server.
+	var daemons []Daemon
+	daemons = append(daemons, &KeaDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNameDHCPv4,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "http",
+			}},
 		},
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	ctrl := gomock.NewController(t)
@@ -1467,18 +1532,23 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	ctrl := gomock.NewController(t)
@@ -1548,18 +1618,23 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "_", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	ctrl := gomock.NewController(t)
@@ -1656,18 +1731,23 @@ func TestReceiveZoneRRs(t *testing.T) {
 		<-done
 	}
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	mock := NewMockServerStreamingServer[agentapi.ReceiveZoneRRsRsp](ctrl)
@@ -1750,18 +1830,22 @@ func TestReceiveZoneRRsPowerDNS(t *testing.T) {
 		<-done
 	}
 
-	// Add a PowerDNS app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &PDNSApp{
-		BaseApp: BaseApp{
-			Type:         AppTypePowerDNS,
-			AccessPoints: accessPoints,
+	// Add a PowerDNS daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &PDNSDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNamePDNS,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Protocol: "http",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	mock := NewMockServerStreamingServer[agentapi.ReceiveZoneRRsRsp](ctrl)
@@ -1797,17 +1881,21 @@ func TestReceiveZoneRRsNilZoneInventory(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a BIND9 app with the nil zone inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the nil zone inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Protocol: "rndc",
+			}},
 		},
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	mock := NewMockServerStreamingServer[agentapi.ReceiveZoneRRsRsp](ctrl)
@@ -1865,18 +1953,23 @@ func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 	axfrExecutor.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).MaxTimes(0)
 	inventory.axfrExecutor = axfrExecutor
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	mock := NewMockServerStreamingServer[agentapi.ReceiveZoneRRsRsp](ctrl)
@@ -1934,7 +2027,6 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	if inventory.getCurrentState().name == zoneInventoryStatePopulating {
 		<-done
 	}
-
 	// Start receiving zones but don't complete it. It turns the inventory
 	// into "busy" state.
 	ctx, cancel := context.WithCancel(context.Background())
@@ -1954,18 +2046,23 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	axfrExecutor.EXPECT().run(gomock.Any(), gomock.Any(), gomock.Any()).MaxTimes(0)
 	inventory.axfrExecutor = axfrExecutor
 
-	// Add a BIND9 app with the inventory.
-	accessPoints := makeAccessPoint(AccessPointControl, "127.0.0.1", "key", 1234, false)
-	var apps []App
-	apps = append(apps, &Bind9App{
-		BaseApp: BaseApp{
-			Type:         AppTypeBind9,
-			AccessPoints: accessPoints,
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		daemon: daemon{
+			Name: constant.DaemonNameBind9,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "127.0.0.1",
+				Port:     1234,
+				Key:      "key",
+				Protocol: "rndc",
+			}},
 		},
 		zoneInventory: inventory,
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Mock the streaming server.
 	mock := NewMockServerStreamingServer[agentapi.ReceiveZoneRRsRsp](ctrl)
@@ -2024,17 +2121,22 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 			},
 		})
 
-	// Add a PowerDNS app.
-	accessPoints := makeAccessPoint(AccessPointControl, "localhost", "stork", 1234, false)
-	var apps []App
-	apps = append(apps, &PDNSApp{
-		BaseApp: BaseApp{
-			Type:         AppTypePowerDNS,
-			AccessPoints: accessPoints,
+	// Add a PowerDNS daemon.
+	var daemons []Daemon
+	daemons = append(daemons, &PDNSDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNamePDNS,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "localhost",
+				Port:     1234,
+				Key:      "stork",
+				Protocol: "http",
+			}},
 		},
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Get the server information.
 	rsp, err := sa.GetPowerDNSServerInfo(context.Background(), &agentapi.GetPowerDNSServerInfoReq{
@@ -2060,8 +2162,8 @@ func TestGetPowerDNSServerInfoNoApp(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = []App{}
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = []Daemon{}
 
 	// Get the server information.
 	rsp, err := sa.GetPowerDNSServerInfo(context.Background(), &agentapi.GetPowerDNSServerInfoReq{
@@ -2088,17 +2190,22 @@ func TestGetPowerDNSServerInfoNoAPIKey(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
-	// Add a PowerDNS app with no API key.
-	accessPoints := makeAccessPoint(AccessPointControl, "localhost", "", 1234, false)
-	var apps []App
-	apps = append(apps, &PDNSApp{
-		BaseApp: BaseApp{
-			Type:         AppTypePowerDNS,
-			AccessPoints: accessPoints,
+	// Add a PowerDNS daemon with no API key.
+	var daemons []Daemon
+	daemons = append(daemons, &PDNSDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNamePDNS,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "localhost",
+				Port:     1234,
+				Key:      "",
+				Protocol: "http",
+			}},
 		},
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Get the server information.
 	rsp, err := sa.GetPowerDNSServerInfo(context.Background(), &agentapi.GetPowerDNSServerInfoReq{
@@ -2132,17 +2239,22 @@ func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
 		Reply(http.StatusInternalServerError).
 		BodyString("Internal server error")
 
-	// Add a PowerDNS app.
-	accessPoints := makeAccessPoint(AccessPointControl, "localhost", "stork", 1234, false)
-	var apps []App
-	apps = append(apps, &PDNSApp{
-		BaseApp: BaseApp{
-			Type:         AppTypePowerDNS,
-			AccessPoints: accessPoints,
+	// Add a PowerDNS daemon.
+	var daemons []Daemon
+	daemons = append(daemons, &PDNSDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNamePDNS,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "localhost",
+				Port:     1234,
+				Key:      "stork",
+				Protocol: "http",
+			}},
 		},
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Get the server information.
 	rsp, err := sa.GetPowerDNSServerInfo(context.Background(), &agentapi.GetPowerDNSServerInfoReq{
@@ -2189,17 +2301,22 @@ func TestGetPowerDNSServerInfoStatisticsErrorResponse(t *testing.T) {
 		Reply(http.StatusInternalServerError).
 		BodyString("Internal server error")
 
-	// Add a PowerDNS app.
-	accessPoints := makeAccessPoint(AccessPointControl, "localhost", "stork", 1234, false)
-	var apps []App
-	apps = append(apps, &PDNSApp{
-		BaseApp: BaseApp{
-			Type:         AppTypePowerDNS,
-			AccessPoints: accessPoints,
+	// Add a PowerDNS daemon.
+	var daemons []Daemon
+	daemons = append(daemons, &PDNSDaemon{
+		daemon: daemon{
+			Name: constant.DaemonNamePDNS,
+			AccessPoints: []AccessPoint{{
+				Type:     AccessPointControl,
+				Address:  "localhost",
+				Port:     1234,
+				Key:      "stork",
+				Protocol: "http",
+			}},
 		},
 	})
-	fam, _ := sa.AppMonitor.(*FakeAppMonitor)
-	fam.Apps = apps
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
 
 	// Get the server information.
 	rsp, err := sa.GetPowerDNSServerInfo(context.Background(), &agentapi.GetPowerDNSServerInfoReq{

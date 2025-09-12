@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	bind9config "isc.org/stork/daemoncfg/bind9"
+	"isc.org/stork/daemonctrl/constant"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
 )
@@ -17,22 +18,25 @@ import (
 //go:generate mockgen -package=agent -destination=bind9mock_test.go -mock_names=bind9FileParser=MockBind9FileParser isc.org/stork/agent bind9FileParser
 
 // Test the function which extracts the list of log files from the Bind9
-// application by sending the request to the Kea Control Agent and the
+// daemon by sending the request to the Kea Control Agent and the
 // daemons behind it.
-func TestBind9AllowedLogs(t *testing.T) {
-	ba := &Bind9App{}
-	paths, err := ba.DetectAllowedLogs()
+func TestBind9Evaluate(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	agentManager := NewMockAgentManager(ctrl)
+
+	daemon := &Bind9Daemon{}
+	err := daemon.Evaluate(agentManager)
 	require.NoError(t, err)
-	require.Len(t, paths, 0)
 }
 
 // Test that the zone inventory can be accessed.
 func TestBind9GetZoneInventory(t *testing.T) {
-	app := &Bind9App{
+	daemon := &Bind9Daemon{
 		zoneInventory: &zoneInventory{},
 	}
-	inventory := app.GetZoneInventory()
-	require.Equal(t, app.zoneInventory, inventory)
+	inventory := daemon.GetZoneInventory()
+	require.Equal(t, daemon.zoneInventory, inventory)
 }
 
 // Check if getPotentialNamedConfLocations returns paths.
@@ -318,12 +322,12 @@ func TestDetectBind9Step1ProcessCmdLine(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -c %s", absolutePath, config1Path), nil)
 	process.EXPECT().getCwd().Return("", nil)
-	app, err := detectBind9App(process, executor, "", bind9config.NewParser())
+	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	point := app.GetBaseApp().AccessPoints[0]
+	require.NotNil(t, daemon)
+	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "1.1.1.1", point.Address)
 	require.EqualValues(t, 1111, point.Port)
@@ -354,12 +358,12 @@ func TestDetectBind9ChrootStep1ProcessCmdLine(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -c %s", absolutePath, chrootPath, config1Path), nil)
 	process.EXPECT().getCwd().Return("", nil)
-	app, err := detectBind9App(process, executor, "", bind9config.NewParser())
+	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	point := app.GetBaseApp().AccessPoints[0]
+	require.NotNil(t, daemon)
+	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "1.1.1.1", point.Address)
 	require.EqualValues(t, 1111, point.Port)
@@ -393,12 +397,12 @@ func TestDetectBind9Step2ExplicitPath(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "usr", "sbin", "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -some -params", absolutePath), nil)
 	process.EXPECT().getCwd().Return("", nil)
-	app, err := detectBind9App(process, executor, confPath, bind9config.NewParser())
+	daemon, err := detectBind9Daemon(process, executor, confPath, bind9config.NewParser())
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	point := app.GetBaseApp().AccessPoints[0]
+	require.NotNil(t, daemon)
+	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "192.0.2.1", point.Address)
 	require.EqualValues(t, 1234, point.Port)
@@ -434,12 +438,12 @@ func TestDetectBind9ChrootStep2ExplicitPath(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -some -params", absolutePath, chrootPath), nil)
 	process.EXPECT().getCwd().Return("", nil)
-	app, err := detectBind9App(process, executor, fullConfPath, bind9config.NewParser())
+	daemon, err := detectBind9Daemon(process, executor, fullConfPath, bind9config.NewParser())
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	point := app.GetBaseApp().AccessPoints[0]
+	require.NotNil(t, daemon)
+	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "192.0.2.1", point.Address)
 	require.EqualValues(t, 1234, point.Port)
@@ -475,9 +479,9 @@ func TestDetectBind9ChrootStep2ExplicitPathNotPrefixed(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -some -params", absolutePath, chrootPath), nil)
 	process.EXPECT().getCwd().Return("", nil)
-	app, err := detectBind9App(process, executor, confPath, bind9config.NewParser())
+	daemon, err := detectBind9Daemon(process, executor, confPath, bind9config.NewParser())
 	require.ErrorContains(t, err, "cannot find config file for BIND 9")
-	require.Nil(t, app)
+	require.Nil(t, daemon)
 }
 
 // Checks detection STEP 3: parse output of the named -V command.
@@ -508,12 +512,12 @@ func TestDetectBind9Step3BindVOutput(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -some -params", absolutePath), nil)
 	process.EXPECT().getCwd().Return("", nil)
-	app, err := detectBind9App(process, executor, "", bind9config.NewParser())
+	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	point := app.GetBaseApp().AccessPoints[0]
+	require.NotNil(t, daemon)
+	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "192.0.2.1", point.Address)
 	require.EqualValues(t, 1234, point.Port)
@@ -550,12 +554,12 @@ func TestDetectBind9ChrootStep3BindVOutput(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -some -params", absolutePath, chrootPath), nil)
 	process.EXPECT().getCwd().Return("", nil)
-	app, err := detectBind9App(process, executor, "", bind9config.NewParser())
+	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	point := app.GetBaseApp().AccessPoints[0]
+	require.NotNil(t, daemon)
+	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "192.0.2.1", point.Address)
 	require.EqualValues(t, 1234, point.Port)
@@ -602,14 +606,14 @@ func TestDetectBind9Step4TypicalLocations(t *testing.T) {
 			absolutePath := path.Join(sandbox.BasePath, "named")
 			process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -some -params", absolutePath), nil)
 			process.EXPECT().getCwd().Return("", nil)
-			app, err := detectBind9App(process, executor, "", parser)
+			daemon, err := detectBind9Daemon(process, executor, "", parser)
 
 			// Assert
 			require.NoError(t, err)
-			require.NotNil(t, app)
-			require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-			require.Len(t, app.GetBaseApp().AccessPoints, 1)
-			point := app.GetBaseApp().AccessPoints[0]
+			require.NotNil(t, daemon)
+			require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+			require.Len(t, daemon.GetAccessPoints(), 1)
+			point := daemon.GetAccessPoints()[0]
 			require.Equal(t, AccessPointControl, point.Type)
 			require.Equal(t, "192.0.2.1", point.Address)
 			require.EqualValues(t, 1234, point.Port)
@@ -655,14 +659,14 @@ func TestDetectBind9ChrootStep4TypicalLocations(t *testing.T) {
 			absolutePath := path.Join(sandbox.BasePath, "named")
 			process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -some -params", absolutePath, chrootPath), nil)
 			process.EXPECT().getCwd().Return("", nil)
-			app, err := detectBind9App(process, executor, "", parser)
+			daemon, err := detectBind9Daemon(process, executor, "", parser)
 
 			// Assert
 			require.NoError(t, err)
-			require.NotNil(t, app)
-			require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-			require.Len(t, app.GetBaseApp().AccessPoints, 1)
-			point := app.GetBaseApp().AccessPoints[0]
+			require.NotNil(t, daemon)
+			require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+			require.Len(t, daemon.GetAccessPoints(), 1)
+			point := daemon.GetAccessPoints()[0]
 			require.Equal(t, AccessPointControl, point.Type)
 			require.Equal(t, "192.0.2.1", point.Address)
 			require.EqualValues(t, 1234, point.Port)
@@ -719,12 +723,12 @@ func TestDetectBind9DetectOrder(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -c %s", absolutePath, config1Path), nil)
 	process.EXPECT().getCwd().Return("", nil)
-	app, err := detectBind9App(process, executor, config2Path, bind9config.NewParser())
+	daemon, err := detectBind9Daemon(process, executor, config2Path, bind9config.NewParser())
 	require.NoError(t, err)
-	require.NotNil(t, app)
-	require.Equal(t, app.GetBaseApp().Type, AppTypeBind9)
-	require.Len(t, app.GetBaseApp().AccessPoints, 1)
-	point := app.GetBaseApp().AccessPoints[0]
+	require.NotNil(t, daemon)
+	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Len(t, daemon.GetAccessPoints(), 1)
+	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "1.1.1.1", point.Address) // we expect the STEP 1 (-c parameter) to take precedence
 	require.EqualValues(t, 1111, point.Port)
@@ -1046,8 +1050,11 @@ func TestDetermineDetailsCustomKeyMissingConfigMissingKey(t *testing.T) {
 	require.Equal(t, expectedBaseCommand, client.BaseCommand)
 }
 
-// Test that awaiting background tasks doesn't panic when zone inventory is nil.
-func TestBind9AppAwaitBackgroundTasksNilZoneInventory(t *testing.T) {
-	app := &Bind9App{}
-	require.NotPanics(t, app.StopZoneInventory)
+// Test that stopping zone inventory doesn't panic when zone inventory is nil.
+func TestBind9DaemonStopZoneInventoryNil(t *testing.T) {
+	daemon := &Bind9Daemon{}
+	require.NotPanics(t, func() {
+		err := daemon.Cleanup()
+		require.NoError(t, err)
+	})
 }
