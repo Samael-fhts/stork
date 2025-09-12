@@ -99,9 +99,8 @@ func TestPromKeaExporterStart(t *testing.T) {
 	defer gock.CleanUnmatchedRequest()
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp4"},
-			"arguments": map[string]string{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp4"},
 		}).
 		Post("/").
 		Persist().
@@ -116,9 +115,8 @@ func TestPromKeaExporterStart(t *testing.T) {
 
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "subnet4-list",
-			"service":   []string{"dhcp4"},
-			"arguments": map[string]string{},
+			"command": "subnet4-list",
+			"service": []string{"dhcp4"},
 		}).
 		Post("/").
 		Persist().
@@ -141,7 +139,7 @@ func TestPromKeaExporterStart(t *testing.T) {
 	pke.Collect(c)
 
 	// Check the collected stats.
-	metric, _ := pke.Addr4StatsMap["assigned-addresses"].GetMetricWith(
+	metric, err := pke.Addr4StatsMap["assigned-addresses"].GetMetricWith(
 		prometheus.Labels{
 			"subnet":         "7",
 			"subnet_id":      "7",
@@ -149,10 +147,12 @@ func TestPromKeaExporterStart(t *testing.T) {
 			"shared_network": "",
 		},
 	)
+	require.NoError(t, err)
 	require.EqualValues(t, 13.0, testutil.ToFloat64(metric))
 
 	// check if pkt4-nak-received is 19
-	metric, _ = pke.PktStatsMap["pkt4-nak-received"].Stat.GetMetricWith(prometheus.Labels{"operation": "nak"})
+	metric, err = pke.PktStatsMap["pkt4-nak-received"].Stat.GetMetricWith(prometheus.Labels{"operation": "nak"})
+	require.NoError(t, err)
 	require.Equal(t, 19.0, testutil.ToFloat64(metric))
 
 	require.False(t, gock.HasUnmatchedRequest())
@@ -177,9 +177,8 @@ func TestPromKeaExporterStartKeaPrior2_4_0(t *testing.T) {
 	defer gock.CleanUnmatchedRequest()
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp6"},
-			"arguments": map[string]string{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp6"},
 		}).
 		Post("/").
 		Persist().
@@ -188,9 +187,8 @@ func TestPromKeaExporterStartKeaPrior2_4_0(t *testing.T) {
 
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "subnet6-list",
-			"service":   []string{"dhcp6"},
-			"arguments": map[string]string{},
+			"command": "subnet6-list",
+			"service": []string{"dhcp6"},
 		}).
 		Post("/").
 		Persist().
@@ -237,9 +235,8 @@ func TestPromKeaExporterStartKea2_4_0DHCPv4(t *testing.T) {
 	defer gock.CleanUnmatchedRequest()
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp4"},
-			"arguments": map[string]string{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp4"},
 		}).
 		Post("/").
 		Persist().
@@ -248,9 +245,8 @@ func TestPromKeaExporterStartKea2_4_0DHCPv4(t *testing.T) {
 
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "subnet4-list",
-			"service":   []string{"dhcp4"},
-			"arguments": map[string]string{},
+			"command": "subnet4-list",
+			"service": []string{"dhcp4"},
 		}).
 		Post("/").
 		Persist().
@@ -306,9 +302,8 @@ func TestPromKeaExporterStartKea2_4_0DHCPv6(t *testing.T) {
 	defer gock.CleanUnmatchedRequest()
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp6"},
-			"arguments": map[string]string{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp6"},
 		}).
 		Post("/").
 		Persist().
@@ -317,9 +312,8 @@ func TestPromKeaExporterStartKea2_4_0DHCPv6(t *testing.T) {
 
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "subnet6-list",
-			"service":   []string{"dhcp6"},
-			"arguments": map[string]string{},
+			"command": "subnet6-list",
+			"service": []string{"dhcp6"},
 		}).
 		Post("/").
 		Persist().
@@ -427,8 +421,6 @@ func TestUnmarshalSubnetListOKResponsePriorKea2_7_8(t *testing.T) {
 
 	// Assert
 	require.NoError(t, err)
-	require.Len(t, response, 2)
-	require.Contains(t, response, 100)
 	idx := slices.IndexFunc(response.Arguments.Subnets, func(item subnetListJSONArgumentsSubnet) bool {
 		return item.ID == 100
 	})
@@ -479,12 +471,12 @@ func TestUnmarshalSubnetListOKResponseKea2_7_8(t *testing.T) {
 // Test the Kea JSON subnet4-list or subnet6-list response when the hook is not installed.
 func TestUnmarshalSubnetListUnsupportedResponse(t *testing.T) {
 	// Arrange
-	rawResponse := `[
+	rawResponse := `
 		{
 			"result": 2,
 			"text": "'subnet4-list' command not supported."
 		}
-	]`
+	`
 
 	// Act
 	var response subnetListJSON
@@ -516,9 +508,8 @@ func TestSubnetPrefixInPrometheusMetrics(t *testing.T) {
 	gock.New("http://0.1.2.3:1234/").
 		Post("/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp4", "dhcp6"},
-			"arguments": map[string]interface{}{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp4", "dhcp6"},
 		}).
 		Persist().
 		Reply(200).
@@ -531,9 +522,8 @@ func TestSubnetPrefixInPrometheusMetrics(t *testing.T) {
 	gock.New("http://0.1.2.3:1234/").
 		Post("/").
 		JSON(map[string]interface{}{
-			"command":   "subnet4-list",
-			"service":   []string{"dhcp4"},
-			"arguments": map[string]interface{}{},
+			"command": "subnet4-list",
+			"service": []string{"dhcp4"},
 		}).
 		Persist().
 		Reply(200).
@@ -590,7 +580,7 @@ func newFakeKeaCASender() *FakeKeaCASender {
 			ResponseHeader: keactrl.ResponseHeader{
 				Result: 0,
 			},
-			Arguments: &subnetListJSONArguments{
+			Arguments: subnetListJSONArguments{
 				Subnets: []subnetListJSONArgumentsSubnet{
 					{
 						ID:     1,
@@ -720,9 +710,8 @@ func TestDisablePerSubnetStatsCollecting(t *testing.T) {
 	gock.CleanUnmatchedRequest()
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp4"},
-			"arguments": map[string]string{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp4"},
 		}).
 		Post("/").
 		Persist().
@@ -812,9 +801,8 @@ func TestSendRequestOnlyToDetectedDaemons(t *testing.T) {
 	defer gock.CleanUnmatchedRequest()
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp6"},
-			"arguments": map[string]string{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp6"},
 		}).
 		Post("/").
 		Persist().
@@ -848,9 +836,8 @@ func TestEncounteredUnsupportedStatisticsAreAppendedToIgnoreList(t *testing.T) {
 	defer gock.CleanUnmatchedRequest()
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp4", "dhcp6"},
-			"arguments": map[string]string{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp4", "dhcp6"},
 		}).
 		Post("/").
 		Persist().

@@ -21,7 +21,7 @@ func TestSendCommand(t *testing.T) {
 	// an error will be raised.
 	defer gock.Off()
 	gock.New("http://localhost:45634").
-		MatchHeader("Content-Type", "daemon/json").
+		MatchHeader("Content-Type", "application/json").
 		JSON(map[string]string{"command": "list-commands"}).
 		Post("/").
 		Reply(200).
@@ -65,7 +65,7 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 	// Return invalid response. Arguments must be a map not an integer.
 	defer gock.Off()
 	gock.New("http://localhost:45634").
-		MatchHeader("Content-Type", "daemon/json").
+		MatchHeader("Content-Type", "application/json").
 		JSON(map[string]string{"command": "version-get"}).
 		Post("/").
 		Reply(200).
@@ -148,7 +148,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 	err := json.Unmarshal([]byte(caResponseJSON), &caResponse)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "daemon/json").
+		MatchHeader("Content-Type", "application/json").
 		JSON(map[string]string{"command": "config-get"}).
 		Post("/").
 		Reply(200).
@@ -195,7 +195,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 	// The config-get command sent to the daemons behind CA should return
 	// configurations of the DHCPv4 and DHCPv6 daemons.
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "daemon/json").
+		MatchHeader("Content-Type", "application/json").
 		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
 		Post("/").
 		Reply(200).
@@ -259,7 +259,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	err := json.Unmarshal([]byte(caResponseJSON), &caResponse)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "daemon/json").
+		MatchHeader("Content-Type", "application/json").
 		JSON(map[string]string{"command": "config-get"}).
 		Post("/").
 		Reply(200).
@@ -306,7 +306,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	// The config-get command sent to the daemons behind CA should return
 	// configurations of the DHCPv4 and DHCPv6 daemons.
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "daemon/json").
+		MatchHeader("Content-Type", "application/json").
 		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
 		Post("/").
 		Reply(200).
@@ -353,7 +353,7 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 	require.NoError(t, err)
 
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "daemon/json").
+		MatchHeader("Content-Type", "application/json").
 		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
 		Post("/").
 		Reply(200).

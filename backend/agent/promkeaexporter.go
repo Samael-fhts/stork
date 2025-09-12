@@ -45,7 +45,7 @@ type subnetListJSONArguments struct {
 
 type subnetListJSON struct {
 	keactrl.ResponseHeader
-	Arguments *subnetListJSONArguments
+	Arguments subnetListJSONArguments
 }
 
 // Stats descriptor that holds reference to prometheus stats

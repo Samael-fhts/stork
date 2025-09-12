@@ -286,7 +286,7 @@ func TestKeaInterceptorSyncHandleReturnError(t *testing.T) {
 	outResponse, err := interceptor.syncHandle(nil, command, inResponse)
 
 	// Assert
-	require.Nil(t, outResponse)
+	require.Empty(t, outResponse)
 	require.Error(t, err)
 	require.Zero(t, callCount)
 }
