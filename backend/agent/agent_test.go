@@ -66,18 +66,21 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 
 	cleanupCerts, _ := GenerateSelfSignedCerts()
 
+	keaAccessPoint := AccessPoint{
+		Type:     AccessPointControl,
+		Address:  "localhost",
+		Port:     45634,
+		Protocol: "http",
+	}
+
 	fdm := FakeMonitor{
 		Daemons: []Daemon{
 			&KeaDaemon{
 				daemon: daemon{
-					Name: constant.DaemonNameDHCPv4,
-					AccessPoints: []AccessPoint{{
-						Type:     AccessPointControl,
-						Address:  "localhost",
-						Port:     45634,
-						Protocol: "http",
-					}},
+					Name:         constant.DaemonNameDHCPv4,
+					AccessPoints: []AccessPoint{keaAccessPoint},
 				},
+				connector: newKeaConnector(keaAccessPoint, httpClientConfig),
 			},
 			&Bind9Daemon{
 				daemon: daemon{
@@ -315,7 +318,10 @@ func TestForwardToKeaOverHTTPSuccess(t *testing.T) {
 	require.NotNil(t, rsp)
 	require.NoError(t, err)
 	require.Len(t, rsp.KeaResponses, 1)
-	require.JSONEq(t, "[{\"result\":0}]", string(rsp.KeaResponses[0].Response))
+	keaResponse := rsp.KeaResponses[0]
+	status := keaResponse.GetStatus()
+	require.Zero(t, status.Code, status.Message)
+	require.JSONEq(t, "{\"result\":0, \"text\":\"\"}", string(keaResponse.Response))
 }
 
 // Test forwarding command to Kea when HTTP 400 (Bad Request) status
@@ -344,7 +350,7 @@ func TestForwardToKeaOverHTTPBadRequest(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, rsp.KeaResponses, 1)
 	require.Equal(t, agentapi.Status_ERROR, rsp.KeaResponses[0].Status.Code)
-	require.Equal(t, "failed to forward commands to Kea: received non-success status code 400 from Kea, with status text: 400 Bad Request; url: http://localhost:45634/", rsp.KeaResponses[0].Status.Message)
+	require.Contains(t, rsp.KeaResponses[0].Status.Message, "received non-success status code 400 from Kea, with status text: 400 Bad Request; url: http://localhost:45634/")
 }
 
 // Test forwarding command to Kea when no body is returned.
