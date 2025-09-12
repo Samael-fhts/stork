@@ -55,19 +55,15 @@ func TestInterceptConfigGetLoggers(t *testing.T) {
             ]
         }
     }`
-	responseArgs := make(map[string]interface{})
-	err := json.Unmarshal([]byte(responseArgsJSON), &responseArgs)
-	require.NoError(t, err)
 
 	response := &keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 0,
 			Text:   "Everything is fine",
-			Daemon: "dhcp4",
 		},
-		Arguments: &responseArgs,
+		Arguments: json.RawMessage(responseArgsJSON),
 	}
-	err = interceptConfigGetLoggers(sa, response)
+	err := interceptConfigGetLoggers(sa, response)
 	require.NoError(t, err)
 	require.NotNil(t, sa.logTailer)
 	require.True(t, sa.logTailer.allowed("/tmp/kea-dhcp4.log"))

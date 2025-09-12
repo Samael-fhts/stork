@@ -41,6 +41,10 @@ func (d *KeaDaemon) getControlAccessPoint() *AccessPoint {
 
 // Sends a command to Kea and returns a response.
 func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
+	if d.connector == nil {
+		return errors.New("cannot send command to Kea because no control access point is configured")
+	}
+
 	// Stork requires that command has exactly one target daemon.
 	// However, Kea CA expects that if the command is targeted to itself,
 	// the Daemons field must be empty.
@@ -269,56 +273,59 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 		return nil, errors.WithMessagef(err, "invalid Kea %s config: %s", daemonName, configPath)
 	}
 
+	var accessPoints []AccessPoint
+	var connector keaConnector
 	controlSockets := config.GetListeningControlSockets()
-	if len(controlSockets) == 0 {
-		return nil, errors.New("no listening control sockets configured in Kea config")
-	}
-	controlSocket := controlSockets[0]
+	if len(controlSockets) != 0 {
+		controlSocket := controlSockets[0]
 
-	// Credentials
-	// Key is a user name that Stork uses to authenticate with Kea.
-	var key string
-	if controlSocket.Authentication != nil {
-		allCredentials, err := readClientCredentials(controlSocket.Authentication)
-		if err != nil {
-			return nil, errors.WithMessage(err, "cannot read client credentials")
-		}
-
-		if len(allCredentials) > 0 {
-			// Fall back to the first set of credentials.
-			credentials := allCredentials[0]
-
-			// Look for the credentials prefixed with "stork".
-			for _, c := range allCredentials {
-				if strings.HasPrefix(c.User, "stork") {
-					credentials = c
-					break
-				}
+		// Credentials
+		// Key is a user name that Stork uses to authenticate with Kea.
+		var key string
+		if controlSocket.Authentication != nil {
+			allCredentials, err := readClientCredentials(controlSocket.Authentication)
+			if err != nil {
+				return nil, errors.WithMessage(err, "cannot read client credentials")
 			}
 
-			httpClientConfig.BasicAuth = basicAuthCredentials(credentials)
-			key = credentials.User
-		}
-	}
+			if len(allCredentials) > 0 {
+				// Fall back to the first set of credentials.
+				credentials := allCredentials[0]
 
-	accessPoint := AccessPoint{
-		Type:     AccessPointControl,
-		Address:  controlSocket.GetAddress(),
-		Port:     controlSocket.GetPort(),
-		Protocol: controlSocket.GetProtocol(),
-		Key:      key,
+				// Look for the credentials prefixed with "stork".
+				for _, c := range allCredentials {
+					if strings.HasPrefix(c.User, "stork") {
+						credentials = c
+						break
+					}
+				}
+
+				httpClientConfig.BasicAuth = basicAuthCredentials(credentials)
+				key = credentials.User
+			}
+		}
+
+		accessPoint := AccessPoint{
+			Type:     AccessPointControl,
+			Address:  controlSocket.GetAddress(),
+			Port:     controlSocket.GetPort(),
+			Protocol: controlSocket.GetProtocol(),
+			Key:      key,
+		}
+		accessPoints = append(accessPoints, accessPoint)
+		connector = newKeaConnector(accessPoint, httpClientConfig)
 	}
 
 	thisDaemon := &KeaDaemon{
 		daemon: daemon{
 			Name:         daemonName,
-			AccessPoints: []AccessPoint{accessPoint},
+			AccessPoints: accessPoints,
 		},
-		connector: newKeaConnector(accessPoint, httpClientConfig),
+		connector: connector,
 	}
 
 	detectedDaemons := []Daemon{thisDaemon}
-	if shouldTunnelViaCA {
+	if shouldTunnelViaCA && len(accessPoints) != 0 {
 		// For Kea prior to 3.0, get the list of configured daemons.
 		managementControlSockets := config.GetManagementControlSockets()
 		managedDaemonNames := managementControlSockets.GetManagedDaemonNames()
@@ -337,7 +344,7 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 			managedDaemon := &KeaDaemon{
 				daemon: daemon{
 					Name:         managedDaemonName.ToDaemonName(),
-					AccessPoints: []AccessPoint{accessPoint},
+					AccessPoints: accessPoints,
 				},
 				connector: thisDaemon.connector,
 			}

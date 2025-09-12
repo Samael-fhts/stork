@@ -6,12 +6,16 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"gopkg.in/h2non/gock.v1"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
 )
+
+//go:generate mockgen -package=agent -destination=agentmanagermock_test.go isc.org/stork/agent AgentManager
 
 // Test the case that the command is successfully sent to Kea.
 func TestSendCommand(t *testing.T) {
@@ -22,45 +26,42 @@ func TestSendCommand(t *testing.T) {
 	// an error will be raised.
 	defer gock.Off()
 	gock.New("http://localhost:45634").
-		MatchHeader("Content-Type", "application/json").
+		MatchHeader("Content-Type", "daemon/json").
 		JSON(map[string]string{"command": "list-commands"}).
 		Post("/").
 		Reply(200).
 		JSON([]map[string]int{{"result": 0}})
 
-	command := keactrl.NewCommandBase(keactrl.ListCommands)
+	command := keactrl.NewCommandBase(keactrl.ListCommands, constant.KeaDaemonNameCA)
 
-	ka := &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: makeAccessPoint(AccessPointControl, "localhost", "", 45634, false),
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
+	daemon := &KeaDaemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameCA,
+			AccessPoints: []AccessPoint{accessPoint},
 		},
-		HTTPClient: httpClient,
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
-	responses := keactrl.ResponseList{}
-	err := ka.sendCommand(command, &responses)
+	var response keactrl.Response
+	err := daemon.sendCommand(command, &response)
 	require.NoError(t, err)
-
-	require.Len(t, responses, 1)
 }
 
 // Test the case that the command is not successfully sent to Kea because
 // there is no control access point.
 func TestSendCommandNoAccessPoint(t *testing.T) {
-	httpClient := newHTTPClientWithDefaults()
+	command := keactrl.NewCommandBase(keactrl.ListCommands, constant.KeaDaemonNameCA)
 
-	command := keactrl.NewCommandBase(keactrl.ListCommands)
-
-	ka := &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: makeAccessPoint(AccessPointStatistics, "localhost", "", 45634, false),
+	daemon := &KeaDaemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameDHCPv4,
+			AccessPoints: []AccessPoint{},
 		},
-		HTTPClient: httpClient,
+		connector: nil,
 	}
 
-	responses := keactrl.ResponseList{}
-	err := ka.sendCommand(command, &responses)
+	var response keactrl.Response
+	err := daemon.sendCommand(command, &response)
 	require.ErrorContains(t, err, "no control access point")
 }
 
@@ -72,44 +73,54 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 	// Return invalid response. Arguments must be a map not an integer.
 	defer gock.Off()
 	gock.New("http://localhost:45634").
-		MatchHeader("Content-Type", "application/json").
-		JSON(map[string]string{"command": "list-commands"}).
+		MatchHeader("Content-Type", "daemon/json").
+		JSON(map[string]string{"command": "version-get"}).
 		Post("/").
 		Reply(200).
-		JSON([]map[string]int{{"result": 0, "arguments": 1}})
+		JSON([]map[string]interface{}{
+			{"result": 0, "text": "1.0.0", "arguments": 1},
+		})
 
-	command := keactrl.NewCommandBase(keactrl.ListCommands)
+	command := keactrl.NewCommandBase(keactrl.VersionGet, constant.KeaDaemonNameDHCPv4)
 
-	ka := &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: makeAccessPoint(AccessPointControl, "localhost", "", 45634, false),
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
+	daemon := &KeaDaemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameDHCPv4,
+			AccessPoints: []AccessPoint{accessPoint},
 		},
-		HTTPClient: httpClient,
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
-	responses := keactrl.ResponseList{}
-	err := ka.sendCommand(command, &responses)
+
+	type versionGet struct {
+		keactrl.ResponseHeader
+		Arguments struct {
+			ExtendedVersion string
+		}
+	}
+	var response versionGet
+	err := daemon.sendCommand(command, &response)
 	require.Error(t, err)
 }
 
 // Test the case when Kea server is unreachable.
 func TestSendCommandNoKea(t *testing.T) {
-	command := keactrl.NewCommandBase(keactrl.ListCommands)
-	httpClient := newHTTPClientWithDefaults()
-	ka := &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: makeAccessPoint(AccessPointControl, "localhost", "", 45634, false),
+	command := keactrl.NewCommandBase(keactrl.ListCommands, constant.KeaDaemonNameCA)
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
+	daemon := &KeaDaemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameCA,
+			AccessPoints: []AccessPoint{accessPoint},
 		},
-		HTTPClient: httpClient,
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
-	responses := keactrl.ResponseList{}
-	err := ka.sendCommand(command, &responses)
+	var response keactrl.Response
+	err := daemon.sendCommand(command, &response)
 	require.Error(t, err)
 }
 
 // Test the function which extracts the list of log files from the Kea
-// application by sending the request to the Kea Control Agent and the
+// daemon by sending the request to the Kea Control Agent and the
 // daemons behind it.
 func TestKeaAllowedLogs(t *testing.T) {
 	httpClient := newHTTPClientWithDefaults()
@@ -148,7 +159,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 	err := json.Unmarshal([]byte(caResponseJSON), &caResponse)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "application/json").
+		MatchHeader("Content-Type", "daemon/json").
 		JSON(map[string]string{"command": "config-get"}).
 		Post("/").
 		Reply(200).
@@ -195,30 +206,34 @@ func TestKeaAllowedLogs(t *testing.T) {
 	// The config-get command sent to the daemons behind CA should return
 	// configurations of the DHCPv4 and DHCPv6 daemons.
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "application/json").
+		MatchHeader("Content-Type", "daemon/json").
 		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
 		Post("/").
 		Reply(200).
 		JSON(dhcpResponses)
 
-	ka := &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: makeAccessPoint(AccessPointControl, "localhost", "", 45634, true),
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
+	daemon := &KeaDaemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameCA,
+			AccessPoints: []AccessPoint{accessPoint},
 		},
-		HTTPClient:    httpClient,
-		ActiveDaemons: []string{"dhcp4", "dhcp6"},
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
-	paths, err := ka.DetectAllowedLogs()
-	require.NoError(t, err)
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	agentManager := NewMockAgentManager(ctrl)
 	// We should have three log files recorded from the returned configurations.
 	// One from CA, one from DHCPv4 and one from DHCPv6.
-	require.Len(t, paths, 3)
+	agentManager.EXPECT().AllowLog(gomock.Any()).Times(3)
+
+	err = daemon.Evaluate(agentManager)
+	require.NoError(t, err)
 }
 
 // Test the function which extracts the list of log files from the Kea
-// application by sending the request to the Kea Control Agent and the
+// daemon by sending the request to the Kea Control Agent and the
 // daemons behind it. This test variant uses output-options alias for
 // logger configuration.
 func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
@@ -258,7 +273,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	err := json.Unmarshal([]byte(caResponseJSON), &caResponse)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "application/json").
+		MatchHeader("Content-Type", "daemon/json").
 		JSON(map[string]string{"command": "config-get"}).
 		Post("/").
 		Reply(200).
@@ -305,26 +320,30 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	// The config-get command sent to the daemons behind CA should return
 	// configurations of the DHCPv4 and DHCPv6 daemons.
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "application/json").
+		MatchHeader("Content-Type", "daemon/json").
 		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
 		Post("/").
 		Reply(200).
 		JSON(dhcpResponses)
 
-	ka := &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: makeAccessPoint(AccessPointControl, "localhost", "", 45634, true),
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
+	daemon := &KeaDaemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameCA,
+			AccessPoints: []AccessPoint{accessPoint},
 		},
-		HTTPClient:    httpClient,
-		ActiveDaemons: []string{"dhcp4", "dhcp6"},
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
-	paths, err := ka.DetectAllowedLogs()
-	require.NoError(t, err)
 
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	agentManager := NewMockAgentManager(ctrl)
 	// We should have three log files recorded from the returned configurations.
 	// One from CA, one from DHCPv4 and one from DHCPv6.
-	require.Len(t, paths, 3)
+	agentManager.EXPECT().AllowLog(gomock.Any()).Times(3)
+
+	err = daemon.Evaluate(agentManager)
+	require.NoError(t, err)
 }
 
 // This test verifies that an error is returned when the number of responses
@@ -351,27 +370,35 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 	require.NoError(t, err)
 
 	gock.New("https://localhost:45634").
-		MatchHeader("Content-Type", "application/json").
+		MatchHeader("Content-Type", "daemon/json").
 		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
 		Post("/").
 		Reply(200).
 		JSON(dhcpResponses)
 
-	ka := &KeaApp{
-		BaseApp: BaseApp{
-			Type:         AppTypeKea,
-			AccessPoints: makeAccessPoint(AccessPointControl, "localhost", "", 45634, true),
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
+	daemon := &KeaDaemon{
+		daemon: daemon{
+			Name:         constant.DaemonNameCA,
+			AccessPoints: []AccessPoint{accessPoint},
 		},
-		HTTPClient: httpClient,
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
-	_, err = ka.DetectAllowedLogs()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	agentManager := NewMockAgentManager(ctrl)
+
+	err = daemon.Evaluate(agentManager)
 	require.Error(t, err)
 }
 
-// Test that stopping zone inventory doesn't panic.
-func TestKeaAppStopZoneInventory(t *testing.T) {
-	app := &KeaApp{}
-	require.NotPanics(t, app.StopZoneInventory)
+// Test that cleaning up the daemon doesn't panic.
+func TestKeaDaemonCleanup(t *testing.T) {
+	daemon := &KeaDaemon{}
+	require.NotPanics(t, func() {
+		daemon.Cleanup()
+	})
 }
 
 // Test that the client credentials are retrieved properly.

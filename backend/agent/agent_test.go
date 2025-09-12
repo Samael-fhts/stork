@@ -130,17 +130,6 @@ func (fam *FakeAppMonitor) Shutdown() {
 func (fam *FakeAppMonitor) Start(storkAgent *StorkAgent) {
 }
 
-// makeAccessPoint is an utility to make single element app access point slice.
-func makeAccessPoint(tp, address, key string, port int64, useSecureProtocol bool) (ap []AccessPoint) {
-	return append(ap, AccessPoint{
-		Type:              tp,
-		Address:           address,
-		Port:              port,
-		Key:               key,
-		UseSecureProtocol: useSecureProtocol,
-	})
-}
-
 // A matcher for PowerDNS zones. It excludes the Loaded field which is
 // dynamically set by the agent, and not returned by the PowerDNS API.
 type powerDNSZoneMatcher struct {
