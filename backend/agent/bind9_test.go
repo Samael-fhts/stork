@@ -322,6 +322,7 @@ func TestDetectBind9Step1ProcessCmdLine(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -c %s", absolutePath, config1Path), nil)
 	process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
@@ -332,6 +333,7 @@ func TestDetectBind9Step1ProcessCmdLine(t *testing.T) {
 	require.Equal(t, "1.1.1.1", point.Address)
 	require.EqualValues(t, 1111, point.Port)
 	require.EqualValues(t, "foo:hmac-sha256:abcd", point.Key)
+	require.EqualValues(t, 1234, daemon.(*Bind9Daemon).pid)
 }
 
 // Checks detection with chroot STEP 1: if BIND9 detection takes -c parameter
@@ -358,6 +360,7 @@ func TestDetectBind9ChrootStep1ProcessCmdLine(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -c %s", absolutePath, chrootPath, config1Path), nil)
 	process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
@@ -397,6 +400,7 @@ func TestDetectBind9Step2ExplicitPath(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "usr", "sbin", "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -some -params", absolutePath), nil)
 	process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	daemon, err := detectBind9Daemon(process, executor, confPath, bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
@@ -438,6 +442,7 @@ func TestDetectBind9ChrootStep2ExplicitPath(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -some -params", absolutePath, chrootPath), nil)
 	process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	daemon, err := detectBind9Daemon(process, executor, fullConfPath, bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
@@ -512,6 +517,7 @@ func TestDetectBind9Step3BindVOutput(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -some -params", absolutePath), nil)
 	process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
@@ -554,6 +560,7 @@ func TestDetectBind9ChrootStep3BindVOutput(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -some -params", absolutePath, chrootPath), nil)
 	process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
@@ -606,6 +613,7 @@ func TestDetectBind9Step4TypicalLocations(t *testing.T) {
 			absolutePath := path.Join(sandbox.BasePath, "named")
 			process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -some -params", absolutePath), nil)
 			process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 			daemon, err := detectBind9Daemon(process, executor, "", parser)
 
 			// Assert
@@ -659,6 +667,7 @@ func TestDetectBind9ChrootStep4TypicalLocations(t *testing.T) {
 			absolutePath := path.Join(sandbox.BasePath, "named")
 			process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -some -params", absolutePath, chrootPath), nil)
 			process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 			daemon, err := detectBind9Daemon(process, executor, "", parser)
 
 			// Assert
@@ -723,6 +732,7 @@ func TestDetectBind9DetectOrder(t *testing.T) {
 	absolutePath := path.Join(sandbox.BasePath, "named")
 	process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -c %s", absolutePath, config1Path), nil)
 	process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	daemon, err := detectBind9Daemon(process, executor, config2Path, bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
