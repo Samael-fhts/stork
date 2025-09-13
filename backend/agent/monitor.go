@@ -128,7 +128,9 @@ func (d *daemon) String() string {
 		b.WriteString(d.AccessPoints[i].String())
 		b.WriteString(", ")
 	}
-	b.WriteString(d.AccessPoints[len(d.AccessPoints)-1].String())
+	if len(d.AccessPoints) > 0 {
+		b.WriteString(d.AccessPoints[len(d.AccessPoints)-1].String())
+	}
 
 	return b.String()
 }
@@ -397,10 +399,10 @@ func (sm *monitor) detectDaemons() {
 
 	if len(daemons) == 0 && (sm.daemons == nil || len(sm.daemons) != 0) {
 		// It is a first detection when no daemon is detected.
-		// Agent is starting up but no app to monitor has been detected.
-		// Usually, the agent is installed with at least one monitored app.
+		// Agent is starting up but no daemon to monitor has been detected.
+		// Usually, the agent is installed with at least one monitored daemon.
 		// The below message is printed for easier troubleshooting.
-		log.Warn("No app detected for monitoring; please check if they are running, and Stork can communicate with them.")
+		log.Warn("No daemon detected for monitoring; please check if they are running, and Stork can communicate with them.")
 		sm.daemons = []Daemon{}
 	}
 

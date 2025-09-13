@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 	"sync"
 	"testing"
@@ -284,15 +285,18 @@ func TestDetectDaemons(t *testing.T) {
 	// Create fake daemon for which the zone inventory should be stopped
 	// when new apps are detected.
 	fakeDaemon := NewMockDaemon(ctrl)
-	fakeDaemon.EXPECT().Bootstrap().Times(1)
-	fakeDaemon.EXPECT().Evaluate(gomock.Any()).AnyTimes()
 	fakeDaemon.EXPECT().Cleanup().Times(1)
+	fakeDaemon.EXPECT().IsEqual(gomock.Any()).AnyTimes().Return(false)
+	fakeDaemon.EXPECT().String().AnyTimes().Return("fake-daemon")
 
 	monitor.daemons = append(monitor.daemons, fakeDaemon)
 
 	// Act
 	monitor.detectDaemons()
 	daemons := monitor.daemons
+	sort.Slice(daemons, func(i, j int) bool {
+		return daemons[i].GetName() < daemons[j].GetName()
+	})
 
 	// Assert
 	require.Len(t, daemons, 3)
@@ -303,6 +307,10 @@ func TestDetectDaemons(t *testing.T) {
 	// Detect tha apps again. The zone inventory should be preserved.
 	monitor.detectDaemons()
 	daemons2 := monitor.daemons
+	sort.Slice(daemons2, func(i, j int) bool {
+		return daemons2[i].GetName() < daemons2[j].GetName()
+	})
+
 	require.Len(t, daemons2, 3)
 	require.Equal(t, daemons[1].(*Bind9Daemon).zoneInventory, daemons2[1].(*Bind9Daemon).zoneInventory)
 	require.True(t, daemons[1].(*Bind9Daemon).zoneInventory.isAXFRWorkersActive())
@@ -328,6 +336,10 @@ func TestDetectDaemons(t *testing.T) {
 	// Redetect apps. It should result in recreating the zone inventory.
 	monitor.detectDaemons()
 	daemons3 := monitor.daemons
+	sort.Slice(daemons3, func(i, j int) bool {
+		return daemons3[i].GetName() < daemons3[j].GetName()
+	})
+
 	require.Len(t, daemons3, 3)
 	require.NotEqual(t, daemons[1].(*Bind9Daemon).zoneInventory, daemons3[1].(*Bind9Daemon).zoneInventory)
 	require.False(t, daemons[1].(*Bind9Daemon).zoneInventory.isAXFRWorkersActive())
@@ -376,9 +388,10 @@ func TestDetectDaemonsConfigNoStatistics(t *testing.T) {
 	// Create fake daemon to test that the monitor stops zone inventory
 	// when new daemons are detected.
 	fakeDaemon := NewMockDaemon(ctrl)
-	fakeDaemon.EXPECT().Bootstrap().Times(1)
 	fakeDaemon.EXPECT().Evaluate(gomock.Any()).AnyTimes()
 	fakeDaemon.EXPECT().Cleanup().Times(1)
+	fakeDaemon.EXPECT().IsEqual(gomock.Any()).AnyTimes().Return(false)
+	fakeDaemon.EXPECT().String().AnyTimes().Return("fake-daemon")
 
 	monitor.daemons = append(monitor.daemons, fakeDaemon)
 
@@ -556,6 +569,7 @@ func TestDetectBind9DaemonAbsPath(t *testing.T) {
 	process := NewMockSupportedProcess(ctrl)
 	process.EXPECT().getCmdline().Return("/dir/named -c /etc/named.conf", nil)
 	process.EXPECT().getCwd().Return("", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	executor := newTestCommandExecutorDefault()
 	daemon, err := detectBind9Daemon(process, executor, "", parser)
 	require.NoError(t, err)
@@ -587,6 +601,7 @@ func TestDetectBind9DaemonRelativePath(t *testing.T) {
 	process := NewMockSupportedProcess(ctrl)
 	process.EXPECT().getCmdline().Return("/dir/named -c named.conf", nil)
 	process.EXPECT().getCwd().Return("/etc", nil)
+	process.EXPECT().getPid().Return(int32(1234))
 	daemon, err := detectBind9Daemon(process, executor, "", parser)
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
@@ -708,7 +723,8 @@ func TestDetectKeaDaemon(t *testing.T) {
 		defer ctrl.Finish()
 
 		process := NewMockSupportedProcess(ctrl)
-		process.EXPECT().getCmdline().Return(fmt.Sprintf("kea-ctrl-agent -c %s", tmpFilePath), nil)
+		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+		process.EXPECT().getCmdline().Return(fmt.Sprintf("/usr/bin/kea-ctrl-agent -c %s", tmpFilePath), nil)
 		process.EXPECT().getCwd().Return("", nil)
 		daemon, err := detectKeaDaemons(process, httpClientConfig, commander)
 		require.NoError(t, err)
@@ -716,6 +732,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 
 		// check kea daemon detection when kea conf file is relative to CWD of kea process
 		cwd, file := path.Split(tmpFilePath)
+		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("kea-ctrl-agent -c %s", file), nil)
 		process.EXPECT().getCwd().Return(cwd, nil)
 		daemon, err = detectKeaDaemons(process, httpClientConfig, commander)
@@ -732,7 +749,8 @@ func TestDetectKeaDaemon(t *testing.T) {
 		ctrl := gomock.NewController(t)
 		defer ctrl.Finish()
 		process := NewMockSupportedProcess(ctrl)
-		process.EXPECT().getCmdline().Return(fmt.Sprintf("kea-ctrl-agent -c %s", tmpFilePath), nil)
+		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+		process.EXPECT().getCmdline().Return(fmt.Sprintf("/usr/bin/kea-ctrl-agent -c %s", tmpFilePath), nil)
 		process.EXPECT().getCwd().Return("", nil)
 
 		daemon, err := detectKeaDaemons(process, httpClientConfig, commander)
@@ -741,6 +759,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 
 		// check kea daemon detection when kea conf file is relative to CWD of kea process
 		cwd, file := path.Split(tmpFilePath)
+		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("kea-ctrl-agent -c %s", file), nil)
 		process.EXPECT().getCwd().Return(cwd, nil)
 		daemon, err = detectKeaDaemons(process, httpClientConfig, commander)
@@ -811,8 +830,8 @@ func TestGetAccessPoint(t *testing.T) {
 	require.Nil(t, point)
 }
 
-// Test that the access point can be retrieved from the type.
-func TestBaseAppGetAccessPoint(t *testing.T) {
+// Test that the access point can be retrieved from the daemon.
+func TestDaemonGetAccessPoint(t *testing.T) {
 	// Arrange
 	daemon := daemon{
 		AccessPoints: []AccessPoint{
@@ -848,7 +867,7 @@ func TestDaemonEqual(t *testing.T) {
 	}
 	daemon3 := &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameCA,
+			Name: constant.DaemonNameDHCPv4,
 			AccessPoints: []AccessPoint{
 				{Type: AccessPointControl, Address: "localhost", Port: 1234},
 			},
@@ -944,6 +963,7 @@ func TestPopulateZoneInventories(t *testing.T) {
 		daemon: daemon{
 			Name: constant.DaemonNameCA,
 		},
+		connector: newKeaConnector(AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634}, HTTPClientConfig{}),
 	}
 	daemonMonitor.daemons = append(daemonMonitor.daemons, daemon0, daemon1, daemon2, daemon3, daemon4)
 	daemonMonitor.evaluateDaemons(agentManager)

@@ -275,7 +275,11 @@ func (e *testCommandExecutor) Output(command string, args ...string) ([]byte, er
 		return []byte("unknown command"), nil
 	}
 
-	return nil, nil
+	if strings.HasSuffix(command, "kea-ctrl-agent") && len(args) == 1 && args[0] == "-v" {
+		return []byte("3.0.1"), nil
+	}
+
+	return nil, errors.Errorf("unknown command: %s %s", command, strings.Join(args, " "))
 }
 
 // Looks for a given command in the system PATH and returns absolute path if found.
@@ -613,7 +617,7 @@ func TestDetectBind9Step4TypicalLocations(t *testing.T) {
 			absolutePath := path.Join(sandbox.BasePath, "named")
 			process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -some -params", absolutePath), nil)
 			process.EXPECT().getCwd().Return("", nil)
-	process.EXPECT().getPid().Return(int32(1234))
+			process.EXPECT().getPid().Return(int32(1234))
 			daemon, err := detectBind9Daemon(process, executor, "", parser)
 
 			// Assert
@@ -667,7 +671,7 @@ func TestDetectBind9ChrootStep4TypicalLocations(t *testing.T) {
 			absolutePath := path.Join(sandbox.BasePath, "named")
 			process.EXPECT().getCmdline().Return(fmt.Sprintf("%s -t %s -some -params", absolutePath, chrootPath), nil)
 			process.EXPECT().getCwd().Return("", nil)
-	process.EXPECT().getPid().Return(int32(1234))
+			process.EXPECT().getPid().Return(int32(1234))
 			daemon, err := detectBind9Daemon(process, executor, "", parser)
 
 			// Assert
