@@ -509,7 +509,7 @@ func TestSubnetPrefixInPrometheusMetrics(t *testing.T) {
 		Post("/").
 		JSON(map[string]interface{}{
 			"command": "statistic-get-all",
-			"service": []string{"dhcp4", "dhcp6"},
+			"service": []string{"dhcp4"},
 		}).
 		Persist().
 		Reply(200).
@@ -517,7 +517,7 @@ func TestSubnetPrefixInPrometheusMetrics(t *testing.T) {
 					"cumulative-assigned-addresses": [ [ 13, "2019-07-30 10:04:28.386740" ] ],
 	                "subnet[7].assigned-addresses": [ [ 13, "2019-07-30 10:04:28.386740" ] ],
 	                "pkt4-nak-received": [ [ 19, "2019-07-30 10:04:28.386733" ] ]
-	            }}, { "result": 1, "text": "server is likely to be offline" }]`)
+	            }}]`)
 
 	gock.New("http://0.1.2.3:1234/").
 		Post("/").
@@ -539,7 +539,7 @@ func TestSubnetPrefixInPrometheusMetrics(t *testing.T) {
 					}
 				]
 			}
-		}, { "result": 1, "text": "server is likely to be offline" }]`)
+		}]`)
 
 	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
 
@@ -566,54 +566,53 @@ func TestSubnetPrefixInPrometheusMetrics(t *testing.T) {
 	require.NotZero(t, testutil.ToFloat64(pke.Global4StatMap["cumulative-assigned-addresses"]))
 }
 
-// Fake Kea CA request sender.
-type FakeKeaCASender struct {
+// Fake Kea request sender.
+type fakeKeaSender struct {
 	payload   []byte
 	err       error
 	callCount int64
 }
 
-// Construct the fake Kea CA sender with default response.
-func newFakeKeaCASender() *FakeKeaCASender {
-	defaultResponse := []subnetListJSON{
-		{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-			},
-			Arguments: subnetListJSONArguments{
-				Subnets: []subnetListJSONArgumentsSubnet{
-					{
-						ID:     1,
-						Subnet: "foo",
-					},
-					{
-						ID:                42,
-						Subnet:            "bar",
-						SharedNetworkName: "baz",
-					},
+// Construct the fake Kea sender with default response.
+func newFakeKeaSender() *fakeKeaSender {
+	defaultResponse := subnetListJSON{
+		ResponseHeader: keactrl.ResponseHeader{
+			Result: 0,
+		},
+		Arguments: subnetListJSONArguments{
+			Subnets: []subnetListJSONArgumentsSubnet{
+				{
+					ID:     1,
+					Subnet: "foo",
+				},
+				{
+					ID:                42,
+					Subnet:            "bar",
+					SharedNetworkName: "baz",
 				},
 			},
 		},
 	}
+
 	data, _ := json.Marshal(defaultResponse)
 
-	return &FakeKeaCASender{data, nil, 0}
+	return &fakeKeaSender{data, nil, 0}
 }
 
 // Increment call counter and return fixed data.
-func (s *FakeKeaCASender) sendCommand(command *keactrl.Command, response any) error {
+func (s *fakeKeaSender) sendCommand(command *keactrl.Command, response any) error {
 	s.callCount++
 	if s.err != nil {
 		return s.err
 	}
 	err := json.Unmarshal(s.payload, response)
-	return errors.Wrap(err, "unmarshaling fake Kea CA response")
+	return errors.Wrap(err, "unmarshaling fake Kea response")
 }
 
 // Test that the lazy subnet lookup is constructed properly.
 func TestNewLazySubnetLookup(t *testing.T) {
 	// Arrange
-	sender := newFakeKeaCASender()
+	sender := newFakeKeaSender()
 
 	// Act
 	lookup := newLazySubnetLookup(sender)
@@ -626,7 +625,7 @@ func TestNewLazySubnetLookup(t *testing.T) {
 // Test that the subnet data are retrieved.
 func TestLazySubnetLookupFetchesData(t *testing.T) {
 	// Arrange
-	sender := newFakeKeaCASender()
+	sender := newFakeKeaSender()
 	lookup := newLazySubnetLookup(sender)
 
 	// Act
@@ -654,7 +653,7 @@ func TestLazySubnetLookupFetchesData(t *testing.T) {
 // Test that subnets are fetched only once.
 func TestLazySubnetLookupFetchesOnlyOnce(t *testing.T) {
 	// Arrange
-	sender := newFakeKeaCASender()
+	sender := newFakeKeaSender()
 	lookup := newLazySubnetLookup(sender)
 
 	// Act
@@ -671,7 +670,7 @@ func TestLazySubnetLookupFetchesOnlyOnce(t *testing.T) {
 // Test that subnets are fetched only once even if an error occurs.
 func TestLazySubnetLookupFetchesOnlyOnceEvenIfError(t *testing.T) {
 	// Arrange
-	sender := newFakeKeaCASender()
+	sender := newFakeKeaSender()
 	sender.payload = nil
 	sender.err = errors.New("baz")
 	lookup := newLazySubnetLookup(sender)
@@ -688,7 +687,7 @@ func TestLazySubnetLookupFetchesOnlyOnceEvenIfError(t *testing.T) {
 // Test that subnets are fetched again after changing the family.
 func TestLazySubnetLookupFetchesAgainWhenFamilyChanged(t *testing.T) {
 	// Arrange
-	sender := newFakeKeaCASender()
+	sender := newFakeKeaSender()
 	lookup := newLazySubnetLookup(sender)
 
 	// Act
@@ -751,9 +750,8 @@ func TestCollectingGlobalStatistics(t *testing.T) {
 	gock.New("http://0.1.2.3:1234/").
 		Post("/").
 		JSON(map[string]interface{}{
-			"command":   "statistic-get-all",
-			"service":   []string{"dhcp4", "dhcp6"},
-			"arguments": map[string]interface{}{},
+			"command": "statistic-get-all",
+			"service": []string{"dhcp4"},
 		}).
 		Persist().
 		Reply(200).
@@ -762,7 +760,16 @@ func TestCollectingGlobalStatistics(t *testing.T) {
 			"declined-addresses": [ [ 14, "2019-07-29 10:04:28.386740" ] ],
 			"reclaimed-leases": [ [ 15, "2019-07-28 10:04:28.386740" ] ],
 			"reclaimed-declined-addresses": [ [ 16, "2019-07-27 10:04:28.386740" ] ]
-		}}, {"result":0, "arguments": {
+		}}]`)
+	gock.New("http://0.1.2.3:1234/").
+		Post("/").
+		JSON(map[string]interface{}{
+			"command": "statistic-get-all",
+			"service": []string{"dhcp6"},
+		}).
+		Persist().
+		Reply(200).
+		BodyString(`[{"result":0, "arguments": {
 			"declined-addresses": [ [ 17, "2019-07-26 10:04:28.386740" ] ],
 			"cumulative-assigned-nas": [ [ 18, "2019-07-25 10:04:28.386740" ] ],
 			"cumulative-assigned-pds": [ [ 19, "2019-07-24 10:04:28.386740" ] ],
@@ -792,40 +799,6 @@ func TestCollectingGlobalStatistics(t *testing.T) {
 	require.Equal(t, 21.0, testutil.ToFloat64(pke.Global6StatMap["reclaimed-declined-addresses"]))
 }
 
-// Test that the Prometheus exporter sends the get-statics-all request only
-// to the configured daemons.
-func TestSendRequestOnlyToDetectedDaemons(t *testing.T) {
-	// Arrange
-	defer gock.Off()
-	gock.CleanUnmatchedRequest()
-	defer gock.CleanUnmatchedRequest()
-	gock.New("http://0.1.2.3:1234/").
-		JSON(map[string]interface{}{
-			"command": "statistic-get-all",
-			"service": []string{"dhcp6"},
-		}).
-		Post("/").
-		Persist().
-		Reply(200).
-		BodyString(`[{
-			"result":0,
-			"arguments": {
-				"pkt6-nak-received": [ [ 19, "2019-07-30 10:04:28.386733" ] ]
-            }
-		}]`)
-
-	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
-
-	pke := NewPromKeaExporter("foo", 1234, true, fam)
-	defer pke.Shutdown()
-
-	// Act
-	err := pke.collectStats()
-
-	// Assert
-	require.NoError(t, err)
-}
-
 // Test that the encountered unsupported Kea statistics are appended to the
 // ignore list. It avoids producing a lot of duplicated log entries that grow
 // the log file significantly.
@@ -837,7 +810,7 @@ func TestEncounteredUnsupportedStatisticsAreAppendedToIgnoreList(t *testing.T) {
 	gock.New("http://0.1.2.3:1234/").
 		JSON(map[string]interface{}{
 			"command": "statistic-get-all",
-			"service": []string{"dhcp4", "dhcp6"},
+			"service": []string{"dhcp4"},
 		}).
 		Post("/").
 		Persist().
@@ -847,11 +820,26 @@ func TestEncounteredUnsupportedStatisticsAreAppendedToIgnoreList(t *testing.T) {
 			"arguments": {
 				"foo": [ [ 19, "2019-07-30 10:04:28.386733" ] ]
             }
-		}, { "result": 1, "text": "server is likely to be offline" }]`)
+		}]`)
+
+	gock.New("http://0.1.2.3:1234/").
+		JSON(map[string]interface{}{
+			"command": "statistic-get-all",
+			"service": []string{"dhcp6"},
+		}).
+		Post("/").
+		Persist().
+		Reply(200).
+		BodyString(`[{
+			"result":0,
+			"arguments": {
+				"bar": [ [ 19, "2019-07-30 10:04:28.386733" ] ]
+            }
+		}]`)
 
 	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
 
-	pke := NewPromKeaExporter("foo", 1234, true, fam)
+	pke := NewPromKeaExporter("my-host", 1234, true, fam)
 	defer pke.Shutdown()
 
 	// Act
@@ -860,6 +848,7 @@ func TestEncounteredUnsupportedStatisticsAreAppendedToIgnoreList(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	require.Contains(t, pke.ignoredStats, "foo")
+	require.Contains(t, pke.ignoredStats, "bar")
 }
 
 // Test that the Describe method does nothing.
