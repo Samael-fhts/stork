@@ -119,36 +119,19 @@ func TestBeginGlobalParametersUpdate(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	machine1, err := server1.GetMachine()
-	require.NoError(t, err)
-	daemon1 := dbmodel.NewDaemon(machine1, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
-		{
-			Type:    dbmodel.AccessPointControl,
-			Address: machine1.Address,
-			Port:    8080,
-		},
-	})
-	err = daemon1.SetConfigFromJSON([]byte(serverConfig))
-	require.NoError(t, err)
-
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
 	require.NoError(t, err)
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	machine2, err := server2.GetMachine()
-	require.NoError(t, err)
-	daemon2 := dbmodel.NewDaemon(machine2, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
-		{
-			Type:    dbmodel.AccessPointControl,
-			Address: machine2.Address,
-			Port:    8080,
-		},
-	})
-	err = daemon2.SetConfigFromJSON([]byte(serverConfig))
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	daemon2, err := server2.GetDaemon()
+	require.NoError(t, err)
+
+	states := []DaemonStateMeta{{}, {}}
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, states, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -324,36 +307,20 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	machine1, err := server1.GetMachine()
-	require.NoError(t, err)
-	daemon1 := dbmodel.NewDaemon(machine1, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
-		{
-			Type:    dbmodel.AccessPointControl,
-			Address: machine1.Address,
-			Port:    8080,
-		},
-	})
-	err = daemon1.SetConfigFromJSON([]byte(serverConfig))
-	require.NoError(t, err)
-
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
 	require.NoError(t, err)
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	machine2, err := server2.GetMachine()
-	require.NoError(t, err)
-	daemon2 := dbmodel.NewDaemon(machine2, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
-		{
-			Type:    dbmodel.AccessPointControl,
-			Address: machine2.Address,
-			Port:    8080,
-		},
-	})
-	err = daemon2.SetConfigFromJSON([]byte(serverConfig))
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	daemon2, err := server2.GetDaemon()
+	require.NoError(t, err)
+
+	states := []DaemonStateMeta{{}, {}}
+
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, states, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetDaemonsByIDs(db, []int64{daemon1.ID, daemon2.ID})
@@ -617,9 +584,10 @@ func TestCommitHostAdd(t *testing.T) {
 					Name: constant.DaemonNameDHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
-							Type:    dbmodel.AccessPointControl,
-							Address: "192.0.2.1",
-							Port:    1234,
+							Type:     dbmodel.AccessPointControl,
+							Address:  "192.0.2.1",
+							Port:     1234,
+							Protocol: "http",
 						},
 					},
 				},
@@ -632,9 +600,10 @@ func TestCommitHostAdd(t *testing.T) {
 					Name: constant.DaemonNameDHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
-							Type:    dbmodel.AccessPointControl,
-							Address: "192.0.2.2",
-							Port:    2345,
+							Type:     dbmodel.AccessPointControl,
+							Address:  "192.0.2.2",
+							Port:     2345,
+							Protocol: "http",
 						},
 					},
 				},
@@ -685,17 +654,14 @@ func TestCommitHostAdd(t *testing.T) {
 func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		json := []byte(`[
+		json := []byte(`
 			{
 				"result": 1,
 				"text": "error is error"
 			}
-		]`)
+		`)
 		response := &keactrl.ResponseHeader{}
-		err := response.Unmarshal(json)
-		if err != nil {
-			panic(err)
-		}
+		_ = response.Unmarshal(json)
 		cmdResponses[0] = response
 	})
 
@@ -757,11 +723,14 @@ func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = module.Commit(ctx)
-	require.ErrorContains(t, err, "reservation-add command to dhcp4 failed: error status (1) returned by Kea dhcp4 daemon with text: 'error is error'")
+	require.ErrorContains(t, err, "reservation-add command to dhcp4 failed")
+	require.ErrorContains(t, err, "non-success response result from Kea: 1, text: error is error")
 
 	// The second command should not be sent in this case.
 	require.Len(t, agents.RecordedCommands, 1)
-} // Test the first stage of updating a host. It checks that the host information
+}
+
+// Test the first stage of updating a host. It checks that the host information
 // is fetched from the database and stored in the context. It also checks that
 // appropriate locks are applied.
 func TestBeginHostUpdate(t *testing.T) {
@@ -786,7 +755,7 @@ func TestBeginHostUpdate(t *testing.T) {
 	// Make sure that the locks have been applied on the daemons owning
 	// the host.
 	require.Contains(t, manager.locks, daemons[0].ID)
-	require.Contains(t, manager.locks, daemons[1].ID)
+	require.Contains(t, manager.locks, daemons[2].ID)
 
 	// Make sure that the host information has been stored in the context.
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
@@ -1046,9 +1015,10 @@ func TestCommitHostUpdate(t *testing.T) {
 					Name: constant.DaemonNameDHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
-							Type:    dbmodel.AccessPointControl,
-							Address: "192.0.2.1",
-							Port:    1234,
+							Type:     dbmodel.AccessPointControl,
+							Address:  "192.0.2.1",
+							Port:     1234,
+							Protocol: "http",
 						},
 					},
 				},
@@ -1061,9 +1031,10 @@ func TestCommitHostUpdate(t *testing.T) {
 					Name: constant.DaemonNameDHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
-							Type:    dbmodel.AccessPointControl,
-							Address: "192.0.2.2",
-							Port:    2345,
+							Type:     dbmodel.AccessPointControl,
+							Address:  "192.0.2.2",
+							Port:     2345,
+							Protocol: "http",
 						},
 					},
 				},

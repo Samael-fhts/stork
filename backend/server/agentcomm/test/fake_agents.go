@@ -2,8 +2,10 @@ package agentcommtest
 
 import (
 	"context"
+	"encoding/json"
 	"iter"
 
+	"github.com/pkg/errors"
 	"isc.org/stork/daemoncfg/dnsconfig"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
@@ -123,15 +125,15 @@ func (fa *FakeAgents) GetLastCommand() *keactrl.Command {
 // response to the command by calling the function specified in the
 // call to NewFakeAgents or NewKeaFakeAgents.
 func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm.ControlledDaemon, commands []keactrl.SerializableCommand, cmdResponses ...any) (*agentcomm.KeaCmdsResult, error) {
+	if len(cmdResponses) != len(commands) {
+		return nil, errors.New("number of command responses does not match number of commands")
+	}
+
 	caAddress, caPort, _, caUseSecureProtocol, _ := daemon.GetControlAccessPoint()
 	caURL := storkutil.HostWithPortURL(caAddress, caPort, caUseSecureProtocol)
 
 	fa.RecordedURLs = append(fa.RecordedURLs, caURL)
-	result := &agentcomm.KeaCmdsResult{}
-	for _, cmd := range commands {
-		fa.RecordedCommands = append(fa.RecordedCommands, cmd)
-		result.CmdsErrors = append(result.CmdsErrors, nil)
-	}
+
 	// Generate response.
 	var mock func(int, []any)
 	if len(fa.mockKeaFunc) > 0 {
@@ -143,6 +145,19 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm
 		mock(fa.CallNo, cmdResponses)
 	}
 	fa.CallNo++
+
+	result := &agentcomm.KeaCmdsResult{}
+	for i, cmd := range commands {
+		fa.RecordedCommands = append(fa.RecordedCommands, cmd)
+
+		responseBytes, _ := json.Marshal(cmdResponses[i])
+		var response keactrl.Response
+		_ = response.Unmarshal(responseBytes)
+
+		err := response.GetError()
+		result.CmdsErrors = append(result.CmdsErrors, err)
+	}
+
 	return result, nil
 }
 

@@ -56,6 +56,9 @@ func (machine *Machine) newKeaDaemon(name constant.DaemonName) (*KeaServer, erro
 		Name:         name,
 		Active:       true,
 		AccessPoints: ap,
+		KeaDaemon: &dbmodel.KeaDaemon{
+			KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
+		},
 	}
 	if err := dbmodel.AddDaemon(machine.db, daemon); err != nil {
 		return nil, err
