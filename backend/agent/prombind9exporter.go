@@ -578,7 +578,7 @@ func (pbe *PromBind9Exporter) Collect(ch chan<- prometheus.Metric) {
 	ch <- prometheus.MustNewConstMetric(pbe.serverStatsDesc["up"], prometheus.GaugeValue, float64(pbe.up))
 
 	if err != nil {
-		log.Errorf("Some errors were encountered while collecting stats from BIND 9: %+v", err)
+		log.WithError(err).Errorf("Some errors were encountered while collecting stats from BIND 9")
 	}
 
 	// if not up or error encountered, don't bother collecting.
@@ -920,21 +920,21 @@ func (pbe *PromBind9Exporter) scrapeTimeStats(statMap map[string]interface{}) (e
 	timeStr = getStat(statMap, "boot-time").(string)
 	timeVal, err = time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return pkgerrors.Errorf("problem parsing time %+s: %+v", timeStr, err)
+		return pkgerrors.Wrapf(err, "problem parsing time %+s", timeStr)
 	}
 	pbe.stats.BootTime = timeVal
 	// config_time_seconds
 	timeStr = getStat(statMap, "config-time").(string)
 	timeVal, err = time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return pkgerrors.Errorf("problem parsing time %+s: %+v", timeStr, err)
+		return pkgerrors.Wrapf(err, "problem parsing time %+s", timeStr)
 	}
 	pbe.stats.ConfigTime = timeVal
 	// current_time_seconds
 	timeStr = getStat(statMap, "current-time").(string)
 	timeVal, err = time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return pkgerrors.Errorf("problem parsing time %+s: %+v", timeStr, err)
+		return pkgerrors.Wrapf(err, "problem parsing time %+s", timeStr)
 	}
 	pbe.stats.CurrentTime = timeVal
 
@@ -1102,12 +1102,12 @@ func (pbe *PromBind9Exporter) setDaemonStats(stats map[string]any) (ret error) {
 	// incoming_queries_total
 	pbe.stats.IncomingQueries, err = pbe.scrapeServerStat(stats, "qtypes")
 	if err != nil {
-		return pkgerrors.Errorf("problem parsing 'qtypes': %+v", err)
+		return pkgerrors.WithMessagef(err, "problem parsing 'qtypes'")
 	}
 	// incoming_requests_total
 	pbe.stats.IncomingRequests, err = pbe.scrapeServerStat(stats, "opcodes")
 	if err != nil {
-		return pkgerrors.Errorf("problem parsing 'opcodes': %+v", err)
+		return pkgerrors.WithMessagef(err, "problem parsing 'opcodes'")
 	}
 
 	// query_duplicates_total
@@ -1119,14 +1119,14 @@ func (pbe *PromBind9Exporter) setDaemonStats(stats map[string]any) (ret error) {
 	// zone_transfer_success_total
 	pbe.stats.NsStats, err = pbe.scrapeServerStat(stats, "nsstats")
 	if err != nil {
-		return pkgerrors.Errorf("problem parsing 'nsstats': %+v", err)
+		return pkgerrors.WithMessagef(err, "problem parsing 'nsstats'")
 	}
 
 	// tasks_running
 	// worker_threads
 	pbe.stats.TaskMgr, err = pbe.scrapeServerStat(stats, "taskmgr")
 	if err != nil {
-		return pkgerrors.Errorf("problem parsing 'taskmgr': %+v", err)
+		return pkgerrors.WithMessagef(err, "problem parsing 'taskmgr'")
 	}
 
 	// Parse traffic stats.

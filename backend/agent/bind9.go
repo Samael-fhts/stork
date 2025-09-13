@@ -277,7 +277,7 @@ func parseInetSpec(config, excerpt string) (address string, port int64, key *Bin
 
 		iPort, err := strconv.Atoi(inetSpec[2])
 		if err != nil {
-			log.Warnf("Cannot parse BIND 9 control port: %+v (%+v)", inetSpec, err)
+			log.WithError(err).Warnf("Cannot parse BIND 9 control port: (%+v)", inetSpec)
 			return "", 0, nil
 		}
 		port = int64(iPort)

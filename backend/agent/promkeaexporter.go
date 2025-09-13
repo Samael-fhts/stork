@@ -102,10 +102,14 @@ func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
 		request = keactrl.NewCommandBase(keactrl.Subnet6List, constant.KeaDaemonNameDHCPv6)
 	}
 
+	// If any error occurs then we cache nil value to avoid repeated requests.
+	l.cached = true
+	l.cachedSubnets = nil
+
 	var response subnetListJSON
 	err := l.sender.sendCommand(request, &response)
 	if err != nil {
-		log.WithError(err).Errorf("Failed to fetch subnet list from Kea")
+		log.WithError(err).Error("Failed to fetch subnet list from Kea")
 		return nil
 	}
 	if err := response.GetError(); err != nil {
@@ -113,7 +117,7 @@ func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
 			// Hook not installed. Return empty mapping
 			return nil
 		}
-		log.WithError(err).Errorf("Error returned by Kea when fetching subnet list")
+		log.WithError(err).Error("Error returned by Kea when fetching subnet list")
 		return nil
 	}
 
@@ -127,7 +131,6 @@ func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
 	}
 
 	l.cachedSubnets = subnets
-	l.cached = true
 	return subnets
 }
 

@@ -122,7 +122,7 @@ func (i *keaInterceptor) asyncHandle(agent *StorkAgent, request keactrl.Command,
 
 	_, err := i.handle(i.asyncTargets, agent, request, response)
 	if err != nil {
-		log.Errorf("Failed to execute asynchronous handler: %+v", err)
+		log.WithError(err).Error("Failed to execute asynchronous handler")
 	}
 }
 

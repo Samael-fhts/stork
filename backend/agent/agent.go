@@ -598,7 +598,7 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 		// response body.
 		keaResponse, err = sa.keaInterceptor.syncHandle(sa, keaCommand, keaResponse)
 		if err != nil {
-			log.WithFields(logFields).Errorf("Failed to apply synchronous interceptors on Kea response: %+v", err)
+			log.WithFields(logFields).WithError(err).Error("Failed to apply synchronous interceptors on Kea response")
 			continue
 		}
 
@@ -609,7 +609,7 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 
 		body, err := json.Marshal(keaResponse)
 		if err != nil {
-			log.WithFields(logFields).Errorf("Failed to marshal Kea response: %+v", err)
+			log.WithFields(logFields).WithError(err).Error("Failed to marshal Kea response")
 			continue
 		}
 

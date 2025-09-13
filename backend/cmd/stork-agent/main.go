@@ -160,7 +160,7 @@ func runAgent(settings *generalSettings, reload bool) error {
 
 		go func() {
 			if err := storkAgent.Serve(); err != nil {
-				log.Fatalf("Failed to serve the Stork Agent: %+v", err)
+				log.WithError(err).Fatal("Failed to serve the Stork Agent")
 			}
 		}()
 		defer storkAgent.Shutdown(reload)
