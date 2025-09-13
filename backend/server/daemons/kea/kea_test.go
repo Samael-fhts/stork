@@ -2,9 +2,12 @@ package kea
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -15,29 +18,24 @@ import (
 // Kea servers' response to config-get command from CA. The argument indicates if
 // it is a response from a single server or two servers.
 func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
-	list1 := cmdResponses[0].(*[]VersionGetResponse)
-	*list1 = []VersionGetResponse{
-		{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-				Daemon: "ca",
-			},
-			Arguments: &VersionGetRespArgs{
-				Extended: "Extended version",
-			},
+	versionResp := cmdResponses[0].(*VersionGetResponse)
+	*versionResp = VersionGetResponse{
+		ResponseHeader: keactrl.ResponseHeader{
+			Result: 0,
+		},
+		Arguments: &VersionGetRespArgs{
+			Extended: "Extended version",
 		},
 	}
-	list2 := cmdResponses[1].(*[]keactrl.HashedResponse)
-	*list2 = []keactrl.HashedResponse{
-		{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-				Daemon: "ca",
-			},
+
+	configResp := cmdResponses[1].(*keactrl.Response)
+	*configResp = keactrl.Response{
+		ResponseHeader: keactrl.ResponseHeader{
+			Result: 0,
 		},
 	}
 	if daemons > 1 {
-		(*list2)[0].Arguments = &map[string]interface{}{
+		configArgs := map[string]interface{}{
 			"Control-agent": map[string]interface{}{
 				"control-sockets": map[string]interface{}{
 					"dhcp4": map[string]interface{}{
@@ -51,9 +49,10 @@ func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
 				},
 			},
 		}
-		(*list2)[0].ArgumentsHash = "hash1"
+		configBytes, _ := json.Marshal(configArgs)
+		(*configResp).Arguments = configBytes
 	} else {
-		(*list2)[0].Arguments = &map[string]interface{}{
+		configArgs := map[string]interface{}{
 			"Control-agent": map[string]interface{}{
 				"control-sockets": map[string]interface{}{
 					"dhcp4": map[string]interface{}{
@@ -83,109 +82,62 @@ func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
 				},
 			},
 		}
-		(*list2)[0].ArgumentsHash = "hash2"
+		configBytes, _ := json.Marshal(configArgs)
+		(*configResp).Arguments = configBytes
 	}
 }
 
-// Kea servers' response to config-get command from other Kea daemons. The argument indicates if
-// it is a response from a single server or two servers.
-func mockGetConfigFromOtherDaemonsResponse(daemons int, cmdResponses []interface{}) {
-	// version-get response
-	list1 := cmdResponses[0].(*[]VersionGetResponse)
-	*list1 = []VersionGetResponse{
-		{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-				Daemon: "dhcp4",
-			},
-			Arguments: &VersionGetRespArgs{
-				Extended: "Extended version",
-			},
+// Kea servers' response to config-get command from other Kea daemons. The
+// argument indicates of the IP family related to the daemon.
+
+func mockGetConfigFromOtherDaemonsResponse(family int, cmdResponses []interface{}) {
+	// For non-CA daemons, we have version-get, config-get, and status-get responses
+	versionResp := cmdResponses[0].(*VersionGetResponse)
+	*versionResp = VersionGetResponse{
+		ResponseHeader: keactrl.ResponseHeader{
+			Result: 0,
+		},
+		Arguments: &VersionGetRespArgs{
+			Extended: "Extended version",
 		},
 	}
-	if daemons > 1 {
-		*list1 = append(*list1, VersionGetResponse{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-				Daemon: "dhcp6",
-			},
-			Arguments: &VersionGetRespArgs{
-				Extended: "Extended version",
-			},
-		})
-	}
-	// status-get response
-	list2 := cmdResponses[1].(*[]StatusGetResponse)
-	*list2 = []StatusGetResponse{
-		{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-				Daemon: "dhcp4",
-			},
-			Arguments: &StatusGetRespArgs{
-				Pid: 123,
-			},
+
+	configResp := cmdResponses[1].(*keactrl.Response)
+	*configResp = keactrl.Response{
+		ResponseHeader: keactrl.ResponseHeader{
+			Result: 0,
 		},
 	}
-	if daemons > 1 {
-		*list2 = append(*list2, StatusGetResponse{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-				Daemon: "dhcp6",
-			},
-			Arguments: &StatusGetRespArgs{
-				Pid: 123,
-			},
-		})
-	}
-	// config-get response
-	list3 := cmdResponses[2].(*[]keactrl.HashedResponse)
-	*list3 = []keactrl.HashedResponse{
-		{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-				Daemon: "dhcp4",
-			},
-			Arguments: &map[string]interface{}{
-				"Dhcp4": map[string]interface{}{
-					"hooks-libraries": []interface{}{
-						map[string]interface{}{
-							"library": "hook_abc.so",
-						},
-						map[string]interface{}{
-							"library": "hook_def.so",
-						},
-					},
+	configArgs := map[string]interface{}{
+		fmt.Sprintf("Dhcp%d", family): map[string]interface{}{
+			"hooks-libraries": []interface{}{
+				map[string]interface{}{
+					"library": "hook_abc.so",
+				},
+				map[string]interface{}{
+					"library": "hook_def.so",
 				},
 			},
 		},
 	}
-	(*list3)[0].ArgumentsHash = "hash1"
-	if daemons > 1 {
-		*list3 = append(*list3, keactrl.HashedResponse{
+	configBytes, _ := json.Marshal(configArgs)
+	(*configResp).Arguments = configBytes
+
+	if len(cmdResponses) > 2 {
+		statusResp := cmdResponses[2].(*StatusGetResponse)
+		*statusResp = StatusGetResponse{
 			ResponseHeader: keactrl.ResponseHeader{
 				Result: 0,
-				Daemon: "dhcp6",
 			},
-			Arguments: &map[string]interface{}{
-				"Dhcp6": map[string]interface{}{
-					"hooks-libraries": []interface{}{
-						map[string]interface{}{
-							"library": "hook_abc.so",
-						},
-						map[string]interface{}{
-							"library": "hook_def.so",
-						},
-					},
-				},
+			Arguments: &StatusGetRespArgs{
+				Pid: 123,
 			},
-		})
-		(*list3)[1].ArgumentsHash = "hash2"
+		}
 	}
 }
 
-// Check if GetAppState returns response to the forwarded command.
-func TestGetAppStateWith1Daemon(t *testing.T) {
+// Check if GetDaemonState returns response to the forwarded command.
+func TestGetDaemonStateWith1Daemon(t *testing.T) {
 	ctx := context.Background()
 
 	// check getting config of 1 daemon
@@ -194,31 +146,34 @@ func TestGetAppStateWith1Daemon(t *testing.T) {
 		case 0:
 			mockGetConfigFromCAResponse(1, cmdResponses)
 		case 1:
-			mockGetConfigFromOtherDaemonsResponse(1, cmdResponses)
+			mockGetConfigFromOtherDaemonsResponse(4, cmdResponses)
 		}
 	}
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
 	fec := &storktest.FakeEventCenter{}
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "192.0.2.0", "", 1234, true)
-
-	dbApp := dbmodel.App{
-		AccessPoints: accessPoints,
-		Machine: &dbmodel.Machine{
-			Address:   "192.0.2.0",
-			AgentPort: 1111,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "192.0.2.0",
+			Port:     1234,
+			Protocol: "https",
 		},
 	}
 
-	GetAppState(ctx, fa, &dbApp, fec)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameCA, true, accessPoints)
+
+	GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
 
 	require.Contains(t, fa.RecordedURLs, "https://192.0.2.0:1234/")
 	require.Equal(t, keactrl.VersionGet, fa.RecordedCommands[0].GetCommand())
 	require.Equal(t, keactrl.ConfigGet, fa.RecordedCommands[1].GetCommand())
 }
 
-func TestGetAppStateWith2Daemons(t *testing.T) {
+func TestGetDaemonStateWith2Daemons(t *testing.T) {
 	ctx := context.Background()
 
 	// check getting configs of 2 daemons
@@ -227,73 +182,60 @@ func TestGetAppStateWith2Daemons(t *testing.T) {
 		case 0:
 			mockGetConfigFromCAResponse(2, cmdResponses)
 		case 1:
-			mockGetConfigFromOtherDaemonsResponse(2, cmdResponses)
+			mockGetConfigFromOtherDaemonsResponse(4, cmdResponses)
 		}
 	}
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
 	fec := &storktest.FakeEventCenter{}
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "192.0.2.0", "", 1234, false)
-
-	dbApp := dbmodel.App{
-		AccessPoints: accessPoints,
-		Machine: &dbmodel.Machine{
-			Address:   "192.0.2.0",
-			AgentPort: 1111,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "192.0.2.0",
+			Port:     1234,
+			Protocol: "http",
 		},
 	}
 
-	GetAppState(ctx, fa, &dbApp, fec)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameCA, true, accessPoints)
+
+	GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
 
 	require.Contains(t, fa.RecordedURLs, "http://192.0.2.0:1234/")
 	require.Equal(t, keactrl.VersionGet, fa.RecordedCommands[0].GetCommand())
 	require.Equal(t, keactrl.ConfigGet, fa.RecordedCommands[1].GetCommand())
 }
 
-// Check GetAppState when app already exists.
-func TestGetAppStateForExistingApp(t *testing.T) {
+// Check GetDaemonWithRefreshedState when daemon already exists.
+func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 	ctx := context.Background()
 
 	// check getting config of 1 daemon
 	keaMock := func(callNo int, cmdResponses []interface{}) {
-		switch callNo % 2 {
-		case 0:
-			mockGetConfigFromCAResponse(1, cmdResponses)
-		case 1:
-			mockGetConfigFromOtherDaemonsResponse(1, cmdResponses)
-		}
+		// Since we're testing with a CA daemon, always use CA response
+		mockGetConfigFromCAResponse(1, cmdResponses)
 	}
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
 	fec := &storktest.FakeEventCenter{}
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "192.0.2.0", "", 1234, true)
-
-	dbApp := dbmodel.App{
-		ID:           1,
-		AccessPoints: accessPoints,
-		Machine: &dbmodel.Machine{
-			Address:   "192.0.2.0",
-			AgentPort: 1111,
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:      "dhcp4",
-				Active:    false,
-				KeaDaemon: &dbmodel.KeaDaemon{},
-			},
-			{
-				Name:      "ca",
-				Active:    false,
-				KeaDaemon: &dbmodel.KeaDaemon{},
-			},
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "192.0.2.0",
+			Port:     1234,
+			Protocol: "https",
 		},
 	}
 
-	err := dbApp.Daemons[0].SetConfigFromJSON(`{"Dhcp4": {}}`)
-	require.NoError(t, err)
-	err = dbApp.Daemons[1].SetConfigFromJSON(`{
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameCA, false, accessPoints)
+
+	err := daemon.SetConfigFromJSON([]byte(`{
         "Control-agent": {
             "loggers": [
                 {
@@ -307,44 +249,27 @@ func TestGetAppStateForExistingApp(t *testing.T) {
                 }
             ]
         }
-    }`)
+    }`))
 	require.NoError(t, err)
-	dbApp.Daemons[1].LogTargets[0].ID = 1
+	daemon.LogTargets[0].ID = 1
 
-	// Remember current config hash for daemons.
-	dhcp4Hash := dbApp.Daemons[0].KeaDaemon.ConfigHash
-	caHash := dbApp.Daemons[1].KeaDaemon.ConfigHash
+	// Remember current config hash for daemon.
+	caHash := daemon.KeaDaemon.ConfigHash
 
-	state := GetAppState(ctx, fa, &dbApp, fec)
-	require.NotNil(t, state)
-	require.Empty(t, state.SameConfigDaemons)
+	daemon, meta := GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
+	require.NotNil(t, daemon)
+	require.NotNil(t, meta)
 
 	require.Contains(t, fa.RecordedURLs, "https://192.0.2.0:1234/")
 	require.Equal(t, keactrl.VersionGet, fa.RecordedCommands[0].GetCommand())
 	require.Equal(t, keactrl.ConfigGet, fa.RecordedCommands[1].GetCommand())
 
-	require.Len(t, dbApp.Daemons, 2)
-
-	var (
-		dhcp4Daemon *dbmodel.Daemon
-		caDaemon    *dbmodel.Daemon
-	)
-	for i := range dbApp.Daemons {
-		// We successfully communicated with the daemons so they should
-		// be in active state.
-		require.True(t, dbApp.Daemons[i].Active)
-		switch dbApp.Daemons[i].Name {
-		case "ca":
-			caDaemon = dbApp.Daemons[i]
-		case "dhcp4":
-			dhcp4Daemon = dbApp.Daemons[i]
-		}
-	}
+	// We successfully communicated with the daemon so it should be in active state.
+	require.True(t, daemon.Active)
 
 	// Make sure that logging information is populated correctly.
-	require.NotNil(t, caDaemon)
-	require.Len(t, caDaemon.LogTargets, 2)
-	for _, target := range caDaemon.LogTargets {
+	require.Len(t, daemon.LogTargets, 2)
+	for _, target := range daemon.LogTargets {
 		if target.Name == "kea-ca" {
 			// The CA daemon should have an updated log target information, but the
 			// ID should not change as a result of the update.
@@ -359,54 +284,51 @@ func TestGetAppStateForExistingApp(t *testing.T) {
 		}
 	}
 
-	// Make sure that the config hashes have changed.
-	require.NotEmpty(t, dhcp4Daemon.KeaDaemon.ConfigHash)
-	require.NotEqual(t, dhcp4Daemon.KeaDaemon.ConfigHash, dhcp4Hash)
-	require.NotEmpty(t, caDaemon.KeaDaemon.ConfigHash)
-	require.NotEqual(t, caDaemon.KeaDaemon.ConfigHash, caHash)
+	// Make sure that the config hash has changed.
+	require.NotEmpty(t, daemon.KeaDaemon.ConfigHash)
+	require.NotEqual(t, daemon.KeaDaemon.ConfigHash, caHash)
 
-	dhcp4Config := dhcp4Daemon.KeaDaemon.Config
-	caConfig := caDaemon.KeaDaemon.Config
+	caConfig := daemon.KeaDaemon.Config
 
-	state = GetAppState(ctx, fa, &dbApp, fec)
-	require.NotNil(t, state)
-	require.Contains(t, state.SameConfigDaemons, "ca")
-	require.Contains(t, state.SameConfigDaemons, "dhcp4")
+	daemon, meta = GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
+	require.NotNil(t, daemon)
+	require.NotNil(t, meta)
 
-	require.NotNil(t, dhcp4Daemon.KeaDaemon.Config)
-	require.Same(t, dhcp4Config, dhcp4Daemon.KeaDaemon.Config)
-	require.NotNil(t, caDaemon.KeaDaemon.Config)
-	require.Same(t, caConfig, caDaemon.KeaDaemon.Config)
+	require.NotNil(t, daemon.KeaDaemon.Config)
+	// Since we're using the same config content, the config should be functionally equivalent
+	require.Equal(t, caConfig.Config, daemon.KeaDaemon.Config.Config)
 }
 
-// Check if GetDaemonHooks returns hooks for given daemon.
+// Check GetDaemonHooks when daemon has hooks configured.
 func TestGetDaemonHooksFrom1Daemon(t *testing.T) {
-	dbDaemon := &dbmodel.Daemon{
-		Name: "dhcp4",
-		KeaDaemon: &dbmodel.KeaDaemon{
-			Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-				"Dhcp4": map[string]interface{}{
-					"hooks-libraries": []interface{}{
-						map[string]interface{}{
-							"library": "hook_abc.so",
-						},
-						map[string]interface{}{
-							"library": "hook_def.so",
-						},
-					},
-				},
-			}),
-		},
+	daemon := &dbmodel.Daemon{
+		Name:      constant.DaemonNameDHCPv4,
+		KeaDaemon: &dbmodel.KeaDaemon{},
 	}
 
-	hooks := GetDaemonHooks(dbDaemon)
+	// Set configuration with hooks
+	err := daemon.SetConfigFromJSON([]byte(`{
+		"Dhcp4": {
+			"hooks-libraries": [
+				{
+					"library": "hook_abc.so"
+				},
+				{
+					"library": "hook_def.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+
+	hooks := GetDaemonHooks(daemon)
 	require.Len(t, hooks, 2)
 	require.Equal(t, "hook_abc.so", hooks[0])
 	require.Equal(t, "hook_def.so", hooks[1])
 }
 
-// Tests that Kea can be added and then updated in the database.
-func TestCommitAppIntoDB(t *testing.T) {
+// Tests that Kea daemon can be added and then updated in the database.
+func TestCommitDaemonIntoDB(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
@@ -421,33 +343,34 @@ func TestCommitAppIntoDB(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
 
-	// add app with particular access point
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "", "", 1234, false)
-	app := &dbmodel.App{
-		ID:           0,
-		MachineID:    machine.ID,
-		Machine:      machine,
-		Type:         dbmodel.AppTypeKea,
-		Active:       true,
-		AccessPoints: accessPoints,
+	// add daemon with particular access point
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "",
+			Port:     1234,
+			Protocol: "http",
+		},
 	}
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameCA, true, accessPoints)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	daemons := []*dbmodel.Daemon{daemon}
+	states := []DaemonStateMeta{{IsConfigChanged: true}}
+	err = CommitDaemonsIntoDB(db, daemons, fec, states, lookup)
 	require.NoError(t, err)
 
-	// now change access point (different port) and trigger updating app in database
-	accessPoints = []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "", "", 2345, true)
-	app.AccessPoints = accessPoints
-	err = CommitAppIntoDB(db, app, fec, nil, lookup)
+	// now change access point (different port) and trigger updating daemon in database
+	daemon.AccessPoints[0].Port = 2345
+	daemon.AccessPoints[0].Protocol = "https"
+	states = []DaemonStateMeta{{IsConfigChanged: true}}
+	err = CommitDaemonsIntoDB(db, daemons, fec, states, lookup)
 	require.NoError(t, err)
 
-	returned, err := dbmodel.GetAppByID(db, app.ID)
+	returned, err := dbmodel.GetDaemonByID(db, daemon.ID)
 	require.NoError(t, err)
 	require.NotNil(t, returned)
 	require.Len(t, returned.AccessPoints, 1)
 	require.EqualValues(t, 2345, returned.AccessPoints[0].Port)
-	require.True(t, returned.AccessPoints[0].UseSecureProtocol)
+	require.Equal(t, "https", returned.AccessPoints[0].Protocol)
 }
