@@ -1,13 +1,14 @@
 package kea
 
 import (
+	"encoding/json"
 	"testing"
 
 	require "github.com/stretchr/testify/require"
 
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	keadata "isc.org/stork/daemondata/kea"
-	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -15,8 +16,8 @@ import (
 
 // Generates a success mock response to commands fetching a single
 // DHCPv4 lease.
-func mockLease4Get(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLease4Get(callNo int, responses []any) {
+	bytes := []byte(`
         {
             "result": 0,
             "text": "Lease found",
@@ -34,15 +35,14 @@ func mockLease4Get(callNo int, responses []interface{}) {
                 "user-context": { "ISC": { "client-classes": [ "ALL", "HA_primary", "UNKNOWN" ] }}
             }
         }
-    ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4Get, keactrl.DHCPv4)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+    `)
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a success mock response to commands fetching a single
 // DHCPv4 lease with invalid user context data.
-func mockLease4GetInvalidJSON(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLease4GetInvalidJSON(callNo int, responses []any) {
+	bytes := []byte(`
         {
             "result": 0,
             "text": "Lease found",
@@ -60,31 +60,29 @@ func mockLease4GetInvalidJSON(callNo int, responses []interface{}) {
                 "user-context": "invalid"
             }
         }
-    ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4Get, keactrl.DHCPv4)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+    `)
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a response to lease4-get command. The first time it is
 // called it returns an error response. The second time it returns
 // a lease. It is useful to simulate tracking erred communication
 // with selected servers.
-func mockLease4GetFirstCallError(callNo int, responses []interface{}) {
-	var json []byte
+func mockLease4GetFirstCallError(callNo int, responses []any) {
+	var bytes []byte
 	if callNo == 0 {
-		json = []byte(`[
+		bytes = []byte(`[
             {
                 "result": 1,
                 "text": "Lease erred",
                 "arguments": { }
             }
         ]`)
-		command := keactrl.NewCommandBase(keactrl.Lease4Get, keactrl.DHCPv4)
-		_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+		_ = json.Unmarshal(bytes, responses[0])
 		return
 	}
 
-	json = []byte(`[
+	bytes = []byte(`[
         {
             "result": 0,
             "text": "Lease found",
@@ -102,19 +100,17 @@ func mockLease4GetFirstCallError(callNo int, responses []interface{}) {
             }
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4Get, keactrl.DHCPv4)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a success mock response to commands fetching a single
 // DHCPv6 lease by IPv6 address.
-func mockLease6GetByIPAddress(callNo int, responses []interface{}) {
-	json := []byte(`[
-        {
-            "result": 0,
-            "text": "Lease found",
-            "arguments": {
-                "cltt": 12345678,
+func mockLease6GetByIPAddress(callNo int, responses []any) {
+	bytes := []byte(`[{
+        "result": 0,
+        "text": "Lease found",
+        "arguments": {
+            "cltt": 12345678,
                 "duid": "42:42:42:42:42:42:42:42",
                 "fqdn-fwd": false,
                 "fqdn-rev": true,
@@ -131,14 +127,13 @@ func mockLease6GetByIPAddress(callNo int, responses []interface{}) {
             }
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4Get, keactrl.DHCPv4)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a success mock response to commands fetching a single
 // DHCPv6 lease by IPv6 address.
-func mockLease6GetByPrefix(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLease6GetByPrefix(callNo int, responses []any) {
+	bytes := []byte(`[
         {
             "result": 0,
             "text": "Lease found",
@@ -160,14 +155,13 @@ func mockLease6GetByPrefix(callNo int, responses []interface{}) {
             }
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease6Get, keactrl.DHCPv6)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a success mock response to commands fetching a single
 // DHCPv6 lease with invalid user context data.
-func mockLease6GetInvalidJSON(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLease6GetInvalidJSON(callNo int, responses []any) {
+	bytes := []byte(`
         {
             "result": 0,
             "text": "Lease found",
@@ -188,15 +182,13 @@ func mockLease6GetInvalidJSON(callNo int, responses []interface{}) {
                 "user-context": "invalid"
             }
         }
-    ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease6Get, keactrl.DHCPv6)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+    `)
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
-// Generates a success mock response to commands fetching multiple
-// DHCPv4 leases.
-func mockLeases4Get(callNo int, responses []interface{}) {
-	json := []byte(`[
+// Generates a success mock response to commands fetching DHCPv4 lease.
+func mockLeases4Get(callNo int, responses []any) {
+	bytes := []byte(`
         {
             "result": 0,
             "text": "Leases found",
@@ -217,20 +209,16 @@ func mockLeases4Get(callNo int, responses []interface{}) {
                 ]
             }
         }
-    ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4GetByHWAddress, keactrl.DHCPv4)
-
-	for i := range responses {
-		_ = keactrl.UnmarshalResponseList(command, json, responses[i])
-	}
+    `)
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a mock response to lease4-get-by-hw-address and lease4-get-by-client-id
 // combined in a single gRPC command. The first response is successful, the second
 // response indicates an error.
-func mockLeases4GetSecondError(callNo int, responses []interface{}) {
+func mockLeases4GetSecondError(callNo int, responses []any) {
 	// Response to lease4-get-by-hw-address.
-	json := []byte(`[
+	bytes := []byte(`[
         {
             "result": 0,
             "text": "Leases found",
@@ -252,51 +240,45 @@ func mockLeases4GetSecondError(callNo int, responses []interface{}) {
             }
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4GetByHWAddress, keactrl.DHCPv4)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 
 	// Response to lease4-get-by-client-id.
-	json = []byte(`[
+	bytes = []byte(`[
         {
             "result": 1,
             "text": "Leases erred",
             "arguments": { }
         }
     ]`)
-	command = keactrl.NewCommandBase(keactrl.Lease4GetByClientID, keactrl.DHCPv4)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[1])
+	_ = json.Unmarshal(bytes, responses[1])
 }
 
 // Generates a mock empty response to commands fetching DHCPv4 leases.
-func mockLeases4GetEmpty(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLeases4GetEmpty(callNo int, responses []any) {
+	bytes := []byte(`[
         {
             "result": 3,
             "text": "No lease found."
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4Get, keactrl.DHCPv4)
-	for i := range responses {
-		_ = keactrl.UnmarshalResponseList(command, json, responses[i])
-	}
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a mock empty response to commands fetching DHCPv6 leases.
-func mockLeases6GetEmpty(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLeases6GetEmpty(callNo int, responses []any) {
+	bytes := []byte(`[
         {
             "result": 3,
             "text": "No lease found."
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease6Get, keactrl.DHCPv6)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a success mock response to commands fetching multiple
 // DHCPv6 leases.
-func mockLeases6Get(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLeases6Get(callNo int, responses []any) {
+	bytes := []byte(`[
         {
             "result": 0,
             "text": "Leases found",
@@ -336,16 +318,15 @@ func mockLeases6Get(callNo int, responses []interface{}) {
             }
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease6GetByDUID, keactrl.DHCPv6)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates responses to declined leases search. First response comprises
 // two DHCPv4 leases, one in the default state and one in the declined state.
 // Stork should ignore the lease in the default state. The second response
 // contains two declined DHCPv6 leases.
-func mockLeasesGetDeclined(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLeasesGetDeclined(callNo int, responses []any) {
+	bytes := []byte(`[
         {
             "result": 0,
             "text": "Leases found",
@@ -371,10 +352,9 @@ func mockLeasesGetDeclined(callNo int, responses []interface{}) {
             }
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4GetByHWAddress, keactrl.DHCPv4)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 
-	json = []byte(`[
+	bytes = []byte(`[
         {
             "result": 0,
             "text": "Leases found",
@@ -408,21 +388,19 @@ func mockLeasesGetDeclined(callNo int, responses []interface{}) {
             }
         }
     ]`)
-	command = keactrl.NewCommandBase(keactrl.Lease6GetByDUID, keactrl.DHCPv6)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[1])
+	_ = json.Unmarshal(bytes, responses[1])
 }
 
-func mockLeasesGetDeclinedErrors(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLeasesGetDeclinedErrors(callNo int, responses []any) {
+	bytes := []byte(`[
         {
             "result": 1,
             "text": "Leases search erred"
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease4GetByHWAddress, keactrl.DHCPv4)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 
-	json = []byte(`[
+	bytes = []byte(`[
         {
             "result": 0,
             "text": "Leases found",
@@ -444,40 +422,45 @@ func mockLeasesGetDeclinedErrors(callNo int, responses []interface{}) {
             }
         }
     ]`)
-	command = keactrl.NewCommandBase(keactrl.Lease6GetByDUID, keactrl.DHCPv6)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[1])
+	_ = json.Unmarshal(bytes, responses[1])
 }
 
 // Generate an error mock response to a command fetching lease by an IPv6
 // address.
-func mockLease6GetError(callNo int, responses []interface{}) {
-	json := []byte(`[
+func mockLease6GetError(callNo int, responses []any) {
+	bytes := []byte(`[
         {
             "result": 1,
             "text": "Getting an lease erred."
         }
     ]`)
-	command := keactrl.NewCommandBase(keactrl.Lease6Get, keactrl.DHCPv6)
-	_ = keactrl.UnmarshalResponseList(command, json, responses[0])
+	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Test the success scenario in sending lease4-get command to Kea.
 func TestGetLease4ByIPAddress(t *testing.T) {
 	agents := agentcommtest.NewFakeAgents(mockLease4Get, nil)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := &dbmodel.App{
-		ID:           1,
-		AccessPoints: accessPoints,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "",
+		},
 	}
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon.ID = 1
 
-	lease, err := GetLease4ByIPAddress(agents, app, "192.0.2.3")
+	lease, err := GetLease4ByIPAddress(agents, daemon, "192.0.2.3")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, app.ID, lease.AppID)
-	require.NotNil(t, lease.App)
+	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.NotNil(t, lease.Daemon)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.False(t, lease.FqdnFwd)
@@ -505,19 +488,26 @@ func TestGetLease4ByIPAddress(t *testing.T) {
 func TestGetLease6ByIPAddress(t *testing.T) {
 	agents := agentcommtest.NewFakeAgents(mockLease6GetByIPAddress, nil)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := &dbmodel.App{
-		ID:           2,
-		AccessPoints: accessPoints,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "https",
+		},
 	}
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon.ID = 2
 
-	lease, err := GetLease6ByIPAddress(agents, app, "IA_NA", "2001:db8:2::1")
+	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_NA", "2001:db8:2::1")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, app.ID, lease.AppID)
-	require.NotNil(t, lease.App)
+	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.NotNil(t, lease.Daemon)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
 	require.False(t, lease.FqdnFwd)
@@ -548,19 +538,26 @@ func TestGetLease6ByIPAddress(t *testing.T) {
 func TestGetLease6ByPrefix(t *testing.T) {
 	agents := agentcommtest.NewFakeAgents(mockLease6GetByPrefix, nil)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := &dbmodel.App{
-		ID:           3,
-		AccessPoints: accessPoints,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "https",
+		},
 	}
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon.ID = 3
 
-	lease, err := GetLease6ByIPAddress(agents, app, "IA_PD", "2001:db8:0:0:2::")
+	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_PD", "2001:db8:0:0:2::")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, app.ID, lease.AppID)
-	require.NotNil(t, lease.App)
+	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.NotNil(t, lease.Daemon)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
 	require.False(t, lease.FqdnFwd)
@@ -592,13 +589,20 @@ func TestGetLease6ByPrefix(t *testing.T) {
 func TestGetLease4ByIPAddressEmpty(t *testing.T) {
 	agents := agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := &dbmodel.App{
-		AccessPoints: accessPoints,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "",
+		},
 	}
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameDHCPv4, true, accessPoints)
 
-	lease, err := GetLease4ByIPAddress(agents, app, "192.0.2.3")
+	lease, err := GetLease4ByIPAddress(agents, daemon, "192.0.2.3")
 	require.NoError(t, err)
 	require.Nil(t, lease)
 }
@@ -608,190 +612,22 @@ func TestGetLease4ByIPAddressEmpty(t *testing.T) {
 func TestGetLease6ByIPAddressEmpty(t *testing.T) {
 	agents := agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := &dbmodel.App{
-		AccessPoints: accessPoints,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "",
+		},
 	}
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameDHCPv6, true, accessPoints)
 
-	lease, err := GetLease6ByIPAddress(agents, app, "IA_NA", "2001:db8:1::2")
+	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_NA", "2001:db8:1::2")
 	require.NoError(t, err)
 	require.Nil(t, lease)
-}
-
-// Test success scenarios in sending lease4-get-by-hw-address, lease4-get-by-client-id
-// and lease4-get-by-hostname commands to Kea.
-func TestGetLeases4(t *testing.T) {
-	agents := agentcommtest.NewFakeAgents(mockLeases4Get, nil)
-
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := &dbmodel.App{
-		ID:           4,
-		AccessPoints: accessPoints,
-	}
-
-	tests := []struct {
-		name          string
-		function      func(agentcomm.ConnectedAgents, *dbmodel.App, string) ([]dbmodel.Lease, error)
-		propertyValue string
-	}{
-		{
-			name:          "hw-address",
-			function:      GetLeases4ByHWAddress,
-			propertyValue: "08:08:08:08:08:08",
-		},
-		{
-			name:          "client-id",
-			function:      GetLeases4ByClientID,
-			propertyValue: "42:42:42:42:42:42:42:42",
-		},
-		{
-			name:          "hostname",
-			function:      GetLeases4ByHostname,
-			propertyValue: "myhost.example.com.",
-		},
-	}
-
-	for i := range tests {
-		testedFunc := tests[i].function
-		propertyValue := tests[i].propertyValue
-		t.Run(tests[i].name, func(t *testing.T) {
-			leases, err := testedFunc(agents, app, propertyValue)
-			require.NoError(t, err)
-			require.Len(t, leases, 1)
-
-			lease := leases[0]
-			require.EqualValues(t, app.ID, lease.AppID)
-			require.NotNil(t, lease.App)
-			require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
-			require.EqualValues(t, 12345678, lease.CLTT)
-			require.False(t, lease.FqdnFwd)
-			require.True(t, lease.FqdnRev)
-			require.Equal(t, "myhost.example.com.", lease.Hostname)
-			require.Equal(t, "08:08:08:08:08:08", lease.HWAddress)
-			require.Equal(t, "192.0.2.1", lease.IPAddress)
-			require.Zero(t, lease.State)
-			require.EqualValues(t, 44, lease.SubnetID)
-			require.EqualValues(t, 3600, lease.ValidLifetime)
-			require.Nil(t, lease.UserContext)
-		})
-	}
-}
-
-// Test success scenarios in sending lease6-get-by-duid, lease6-get-by-hostname
-// commands to Kea.
-func TestGetLeases6(t *testing.T) {
-	agents := agentcommtest.NewFakeAgents(mockLeases6Get, nil)
-
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := &dbmodel.App{
-		ID:           5,
-		AccessPoints: accessPoints,
-	}
-
-	tests := []struct {
-		name          string
-		function      func(agentcomm.ConnectedAgents, *dbmodel.App, string) ([]dbmodel.Lease, error)
-		propertyValue string
-	}{
-		{
-			name:          "duid",
-			function:      GetLeases6ByDUID,
-			propertyValue: "08:08:08:08:08:08",
-		},
-		{
-			name:          "hostname",
-			function:      GetLeases6ByHostname,
-			propertyValue: "myhost.example.com.",
-		},
-	}
-
-	for i := range tests {
-		testedFunc := tests[i].function
-		propertyValue := tests[i].propertyValue
-		t.Run(tests[i].name, func(t *testing.T) {
-			leases, err := testedFunc(agents, app, propertyValue)
-			require.NoError(t, err)
-			require.Len(t, leases, 2)
-
-			lease := leases[0]
-			require.EqualValues(t, app.ID, lease.AppID)
-			require.NotNil(t, lease.App)
-			require.EqualValues(t, 12345678, lease.CLTT)
-			require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
-			require.False(t, lease.FqdnFwd)
-			require.True(t, lease.FqdnRev)
-			require.Equal(t, "myhost.example.com.", lease.Hostname)
-			require.Equal(t, "08:08:08:08:08:08", lease.HWAddress)
-			require.EqualValues(t, 1, lease.IAID)
-			require.Equal(t, "2001:db8:2::1", lease.IPAddress)
-			require.EqualValues(t, 500, lease.PreferredLifetime)
-			require.Zero(t, lease.State)
-			require.EqualValues(t, 44, lease.SubnetID)
-			require.Equal(t, "IA_NA", lease.Type)
-			require.EqualValues(t, 3600, lease.ValidLifetime)
-			require.Nil(t, lease.UserContext)
-
-			lease = leases[1]
-			require.EqualValues(t, app.ID, lease.AppID)
-			require.NotNil(t, lease.App)
-			require.EqualValues(t, 12345678, lease.CLTT)
-			require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
-			require.False(t, lease.FqdnFwd)
-			require.True(t, lease.FqdnRev)
-			require.Empty(t, lease.Hostname)
-			require.Empty(t, lease.HWAddress)
-			require.EqualValues(t, 1, lease.IAID)
-			require.Equal(t, "2001:db8:0:0:2::", lease.IPAddress)
-			require.EqualValues(t, 500, lease.PreferredLifetime)
-			require.EqualValues(t, 80, lease.PrefixLength)
-			require.Zero(t, lease.State)
-			require.EqualValues(t, 44, lease.SubnetID)
-			require.Equal(t, "IA_PD", lease.Type)
-			require.EqualValues(t, 3600, lease.ValidLifetime)
-			require.Nil(t, lease.UserContext)
-		})
-	}
-}
-
-// Test the scenario in sending lease4-get-by-hw-address command to Kea when
-// no lease is found.
-func TestGetLeases4Empty(t *testing.T) {
-	agents := agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
-
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := &dbmodel.App{
-		AccessPoints: accessPoints,
-	}
-
-	leases, err := GetLeases4ByHWAddress(agents, app, "000000000000")
-	require.NoError(t, err)
-	require.Empty(t, leases)
-
-	// Ensure that MAC address was converted to the format expected by Kea.
-	arguments := agents.RecordedCommands[0].(*keactrl.Command).Arguments
-	require.NotNil(t, arguments)
-	require.Contains(t, arguments.(map[string]interface{}), "hw-address")
-	require.Equal(t, "00:00:00:00:00:00", (arguments.(map[string]interface{}))["hw-address"])
-}
-
-// Test the scenario in sending lease6-get-by-hostname command to Kea when
-// no lease is found.
-func TestGetLeases6Empty(t *testing.T) {
-	agents := agentcommtest.NewFakeAgents(mockLeases6GetEmpty, nil)
-
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := &dbmodel.App{
-		AccessPoints: accessPoints,
-	}
-
-	leases, err := GetLeases6ByHostname(agents, app, "myhost")
-	require.NoError(t, err)
-	require.Empty(t, leases)
 }
 
 // Test sending multiple combined commands when one of the commands fails. The
@@ -800,21 +636,28 @@ func TestGetLeases6Empty(t *testing.T) {
 func TestGetLeasesByPropertiesSecondError(t *testing.T) {
 	agents := agentcommtest.NewFakeAgents(mockLeases4GetSecondError, nil)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := &dbmodel.App{
-		ID:           4,
-		AccessPoints: accessPoints,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "",
+		},
 	}
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon.ID = 4
 
-	leases, warns, err := getLeasesByProperties(agents, app, "42:42:42:42:42:42:42:42", "lease4-get-by-hw-address", "lease4-get-by-client-id")
+	leases, warns, err := getLeasesByProperties(agents, daemon, "42:42:42:42:42:42:42:42", "lease4-get-by-hw-address", "lease4-get-by-client-id")
 	require.NoError(t, err)
 	require.True(t, warns)
 	require.Len(t, leases, 1)
 
 	lease := leases[0]
-	require.EqualValues(t, app.ID, lease.AppID)
-	require.NotNil(t, lease.App)
+	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.NotNil(t, lease.Daemon)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.False(t, lease.FqdnFwd)
@@ -833,19 +676,26 @@ func TestGetLeasesByPropertiesSecondError(t *testing.T) {
 func TestGetLeases4InvalidJSON(t *testing.T) {
 	agents := agentcommtest.NewFakeAgents(mockLease4GetInvalidJSON, nil)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := &dbmodel.App{
-		ID:           1,
-		AccessPoints: accessPoints,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "",
+		},
 	}
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon.ID = 1
 
-	lease, err := GetLease4ByIPAddress(agents, app, "192.0.2.3")
+	lease, err := GetLease4ByIPAddress(agents, daemon, "192.0.2.3")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, app.ID, lease.AppID)
-	require.NotNil(t, lease.App)
+	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.NotNil(t, lease.Daemon)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.False(t, lease.FqdnFwd)
@@ -864,19 +714,26 @@ func TestGetLeases4InvalidJSON(t *testing.T) {
 func TestGetLease6InvalidJSON(t *testing.T) {
 	agents := agentcommtest.NewFakeAgents(mockLease6GetInvalidJSON, nil)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := &dbmodel.App{
-		ID:           2,
-		AccessPoints: accessPoints,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "https",
+		},
 	}
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon.ID = 2
 
-	lease, err := GetLease6ByIPAddress(agents, app, "IA_NA", "2001:db8:2::1")
+	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_NA", "2001:db8:2::1")
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, app.ID, lease.AppID)
-	require.NotNil(t, lease.App)
+	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.NotNil(t, lease.Daemon)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
 	require.False(t, lease.FqdnFwd)
@@ -911,7 +768,7 @@ func TestFindLeases(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	// Add first machine with the Kea app including both DHCPv4 and DHCPv6
+	// Add first machine with the Kea daemons including both DHCPv4 and DHCPv6
 	// daemon with the lease_cmds hooks library loaded.
 	machine1 := &dbmodel.Machine{
 		ID:        0,
@@ -921,47 +778,46 @@ func TestFindLeases(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine1)
 	require.NoError(t, err)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app1 := &dbmodel.App{
-		MachineID:    machine1.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv4,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp4": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp6": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "https",
 		},
 	}
-	_, err = dbmodel.AddApp(db, app1)
+	
+	// Create DHCPv4 daemon
+	daemon1v4 := dbmodel.NewDaemon(machine1, constant.DaemonNameDHCPv4, true, accessPoints)
+	err = daemon1v4.SetConfigFromJSON([]byte(`{
+		"Dhcp4": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon1v4)
+	require.NoError(t, err)
+	
+	// Create DHCPv6 daemon
+	daemon1v6 := dbmodel.NewDaemon(machine1, constant.DaemonNameDHCPv6, true, accessPoints)
+	err = daemon1v6.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon1v6)
 	require.NoError(t, err)
 
-	// Add second machine with the Kea app with lease_cmds hooks library loaded by
+	// Add second machine with the Kea daemon with lease_cmds hooks library loaded by
 	// the DHCPv4 daemon.
 	machine2 := &dbmodel.Machine{
 		ID:        0,
@@ -971,33 +827,31 @@ func TestFindLeases(t *testing.T) {
 	err = dbmodel.AddMachine(db, machine2)
 	require.NoError(t, err)
 
-	accessPoints = []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app2 := &dbmodel.App{
-		MachineID:    machine2.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv4,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp4": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	accessPoints2 := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "",
 		},
 	}
-	_, err = dbmodel.AddApp(db, app2)
+	
+	// Create DHCPv4 daemon for machine2
+	daemon2v4 := dbmodel.NewDaemon(machine2, constant.DaemonNameDHCPv4, true, accessPoints2)
+	err = daemon2v4.SetConfigFromJSON([]byte(`{
+		"Dhcp4": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon2v4)
 	require.NoError(t, err)
 
-	// Add third machine with the Kea app with lease_cmds hooks library loaded by
+	// Add third machine with the Kea daemon with lease_cmds hooks library loaded by
 	// the DHCPv6 daemon.
 	machine3 := &dbmodel.Machine{
 		ID:        0,
@@ -1007,38 +861,36 @@ func TestFindLeases(t *testing.T) {
 	err = dbmodel.AddMachine(db, machine3)
 	require.NoError(t, err)
 
-	accessPoints = []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app3 := &dbmodel.App{
-		MachineID:    machine3.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp6": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	accessPoints3 := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "",
 		},
 	}
-	_, err = dbmodel.AddApp(db, app3)
+	
+	// Create DHCPv6 daemon for machine3
+	daemon3v6 := dbmodel.NewDaemon(machine3, constant.DaemonNameDHCPv6, true, accessPoints3)
+	err = daemon3v6.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon3v6)
 	require.NoError(t, err)
 
 	agents := agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
 
 	//  Find lease by IPv4 address.
-	_, erredApps, err := FindLeases(db, agents, "192.0.2.3")
+	_, erredDaemons, err := FindLeases(db, agents, "192.0.2.3")
 	require.NoError(t, err)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 
 	// It should have sent lease4-get command to first and second Kea.
 	require.Len(t, agents.RecordedCommands, 2)
@@ -1048,11 +900,11 @@ func TestFindLeases(t *testing.T) {
 	agents = agentcommtest.NewFakeAgents(mockLease4GetFirstCallError, nil)
 
 	// Test the case when one of the servers returns an error.
-	_, erredApps, err = FindLeases(db, agents, "192.0.2.3")
+	_, erredDaemons, err = FindLeases(db, agents, "192.0.2.3")
 	require.NoError(t, err)
-	require.Len(t, erredApps, 1)
-	require.NotNil(t, erredApps[0])
-	require.EqualValues(t, app1.ID, erredApps[0].ID)
+	require.Len(t, erredDaemons, 1)
+	require.NotNil(t, erredDaemons[0])
+	require.EqualValues(t, daemon1v4.ID, erredDaemons[0].ID)
 
 	// It should have sent lease4-get command to first and second Kea.
 	require.Len(t, agents.RecordedCommands, 2)
@@ -1062,9 +914,9 @@ func TestFindLeases(t *testing.T) {
 	agents = agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
 
 	// Find lease by IPv6 address.
-	_, erredApps, err = FindLeases(db, agents, "2001:db8:1::")
+	_, erredDaemons, err = FindLeases(db, agents, "2001:db8:1::")
 	require.NoError(t, err)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 
 	// It should have sent lease6-get command to first and third Kea.
 	// The commands are duplicated because we need to send one for
@@ -1078,9 +930,9 @@ func TestFindLeases(t *testing.T) {
 	agents = agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
 
 	// Find lease by identifier.
-	_, erredApps, err = FindLeases(db, agents, "010203040506")
+	_, erredDaemons, err = FindLeases(db, agents, "010203040506")
 	require.NoError(t, err)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 
 	// It should have sent commands to fetch a lease by HW address or client
 	// id to first two servers, and a command to fetch a lease by DUID to two
@@ -1103,9 +955,9 @@ func TestFindLeases(t *testing.T) {
 	agents = agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
 
 	// Find lease by hostname.
-	_, erredApps, err = FindLeases(db, agents, "myhost")
+	_, erredDaemons, err = FindLeases(db, agents, "myhost")
 	require.NoError(t, err)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 
 	// It should have sent a command to fetch a lease by hostname to both DHCPv4
 	// and DHCPv6 servers.
@@ -1131,80 +983,64 @@ func TestFindLeasesTooShortDUID(t *testing.T) {
 	}
 	_ = dbmodel.AddMachine(db, machine)
 
-	appOld := &dbmodel.App{
-		MachineID: machine.ID,
-		Type:      dbmodel.AppTypeKea,
-		Meta: dbmodel.AppMeta{
-			Version: "2.0.2",
-		},
-		AccessPoints: []*dbmodel.AccessPoint{
-			{
-				Type:      dbmodel.AccessPointControl,
-				Address:   "localhost",
-				Port:      8000,
-				MachineID: machine.ID,
-			},
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp4": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	accessPointsOld := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "",
 		},
 	}
-	_, _ = dbmodel.AddApp(db, appOld)
+	
+	// Create old version daemon (2.0.2)
+	daemonOld := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPointsOld)
+	daemonOld.Version = "2.0.2"
+	err := daemonOld.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemonOld)
+	require.NoError(t, err)
 
-	appModern := &dbmodel.App{
-		MachineID: machine.ID,
-		Type:      dbmodel.AppTypeKea,
-		Meta: dbmodel.AppMeta{
-			Version: "2.7.2",
-		},
-		AccessPoints: []*dbmodel.AccessPoint{
-			{
-				Type:      dbmodel.AccessPointControl,
-				Address:   "localhost",
-				Port:      8001,
-				MachineID: machine.ID,
-			},
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp4": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	accessPointsModern := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8001,
+			Protocol: "",
 		},
 	}
-	_, _ = dbmodel.AddApp(db, appModern)
+	
+	// Create modern version daemon (2.7.2)
+	daemonModern := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPointsModern)
+	daemonModern.Version = "2.7.2"
+	err = daemonModern.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemonModern)
+	require.NoError(t, err)
 
 	agents := agentcommtest.NewFakeAgents(mockLeases6GetEmpty, nil)
 
 	// Act
-	_, erredApps, err := FindLeases(db, agents, "0102")
+	_, erredDaemons, err := FindLeases(db, agents, "0102")
 
 	// Assert
 	require.NoError(t, err)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 
 	require.Len(t, agents.RecordedCommands, 2)
 	require.Equal(t, keactrl.Lease6GetByDUID, agents.RecordedCommands[0].GetCommand())
@@ -1222,7 +1058,7 @@ func TestFindDeclinedLeases(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	// Add a machine with the Kea app including both DHCPv4 and DHCPv6
+	// Add a machine with the Kea daemons including both DHCPv4 and DHCPv6
 	// daemon with the lease_cmds hooks library loaded.
 	machine := &dbmodel.Machine{
 		ID:        0,
@@ -1232,61 +1068,60 @@ func TestFindDeclinedLeases(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := &dbmodel.App{
-		MachineID:    machine.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv4,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp4": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp6": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "https",
 		},
 	}
-	_, err = dbmodel.AddApp(db, app)
+	
+	// Create DHCPv4 daemon
+	daemon4 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	err = daemon4.SetConfigFromJSON([]byte(`{
+		"Dhcp4": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon4)
+	require.NoError(t, err)
+	
+	// Create DHCPv6 daemon
+	daemon6 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPoints)
+	err = daemon6.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)
 
 	// Simulate Kea returning 4 leases, one in the default state and three
 	// in the declined state.
 	agents := agentcommtest.NewFakeAgents(mockLeasesGetDeclined, nil)
 
-	leases, erredApps, err := FindDeclinedLeases(db, agents)
+	leases, erredDaemons, err := FindDeclinedLeases(db, agents)
 	require.NoError(t, err)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 
 	// One lease should be ignored and three returned.
 	require.Len(t, leases, 3)
 
 	// Basic checks if expected leases were returned.
 	for i, ipAddress := range []string{"192.0.2.2", "2001:db8:2::1", "2001:db8:2::2"} {
-		require.EqualValues(t, app.ID, leases[i].AppID)
-		require.NotNil(t, leases[i].App)
+		require.EqualValues(t, daemon4.ID, leases[i].DaemonId)
+		require.NotNil(t, leases[i].Daemon)
 		require.Equal(t, ipAddress, leases[i].IPAddress)
 		require.EqualValues(t, keadata.LeaseStateDeclined, leases[i].State)
 	}
@@ -1309,12 +1144,12 @@ func TestFindDeclinedLeases(t *testing.T) {
 	require.Contains(t, arguments.(map[string]interface{}), "duid")
 	require.Equal(t, "00:00:00", (arguments.(map[string]interface{}))["duid"])
 
-	// Simulate an error in the first response. The app returning an error should
+	// Simulate an error in the first response. The daemon returning an error should
 	// be recorded, but the DHCPv6 lease should still be returned.
 	agents = agentcommtest.NewFakeAgents(mockLeasesGetDeclinedErrors, nil)
-	leases, erredApps, err = FindDeclinedLeases(db, agents)
+	leases, erredDaemons, err = FindDeclinedLeases(db, agents)
 	require.NoError(t, err)
-	require.Len(t, erredApps, 1)
+	require.Len(t, erredDaemons, 1)
 	require.Len(t, leases, 1)
 }
 
@@ -1324,7 +1159,7 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	// Add a machine with the Kea app including both DHCPv4 and DHCPv6
+	// Add a machine with the Kea daemons including both DHCPv4 and DHCPv6
 	// daemon with the lease_cmds hooks library loaded.
 	machine := &dbmodel.Machine{
 		ID:        0,
@@ -1334,64 +1169,62 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app := &dbmodel.App{
-		MachineID:    machine.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Meta: dbmodel.AppMeta{
-			Version: "2.3.7",
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv4,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp4": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp6": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "https",
 		},
 	}
-	_, err = dbmodel.AddApp(db, app)
+	
+	// Create DHCPv4 daemon with version 2.3.7
+	daemon4 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon4.Version = "2.3.7"
+	err = daemon4.SetConfigFromJSON([]byte(`{
+		"Dhcp4": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon4)
+	require.NoError(t, err)
+	
+	// Create DHCPv6 daemon with version 2.3.7
+	daemon6 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon6.Version = "2.3.7"
+	err = daemon6.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)
 
 	// Simulate Kea returning 4 leases, one in the default state and three
 	// in the declined state.
 	agents := agentcommtest.NewFakeAgents(mockLeasesGetDeclined, nil)
 
-	leases, erredApps, err := FindDeclinedLeases(db, agents)
+	leases, erredDaemons, err := FindDeclinedLeases(db, agents)
 	require.NoError(t, err)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 
 	// One lease should be ignored and three returned.
 	require.Len(t, leases, 3)
 
 	// Basic checks if expected leases were returned.
 	for i, ipAddress := range []string{"192.0.2.2", "2001:db8:2::1", "2001:db8:2::2"} {
-		require.EqualValues(t, app.ID, leases[i].AppID)
-		require.NotNil(t, leases[i].App)
+		require.EqualValues(t, daemon4.ID, leases[i].DaemonId)
+		require.NotNil(t, leases[i].Daemon)
 		require.Equal(t, ipAddress, leases[i].IPAddress)
 		require.EqualValues(t, keadata.LeaseStateDeclined, leases[i].State)
 	}
@@ -1414,12 +1247,12 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 	require.Contains(t, arguments.(map[string]interface{}), "duid")
 	require.Equal(t, "0", (arguments.(map[string]interface{}))["duid"])
 
-	// Simulate an error in the first response. The app returning an error should
+	// Simulate an error in the first response. The daemon returning an error should
 	// be recorded, but the DHCPv6 lease should still be returned.
 	agents = agentcommtest.NewFakeAgents(mockLeasesGetDeclinedErrors, nil)
-	leases, erredApps, err = FindDeclinedLeases(db, agents)
+	leases, erredDaemons, err = FindDeclinedLeases(db, agents)
 	require.NoError(t, err)
-	require.Len(t, erredApps, 1)
+	require.Len(t, erredDaemons, 1)
 	require.Len(t, leases, 1)
 }
 
@@ -1429,7 +1262,7 @@ func TestFindDeclinedLeasesNoLeaseCmds(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	// Add a machine with the Kea app including both DHCPv4 and DHCPv6
+	// Add a machine with the Kea daemons including both DHCPv4 and DHCPv6
 	// daemon without the lease_cmds hooks library loaded.
 	machine := &dbmodel.Machine{
 		ID:        0,
@@ -1439,39 +1272,38 @@ func TestFindDeclinedLeasesNoLeaseCmds(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	accessPoints := []*dbmodel.AccessPoint{}
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "localhost", "", 8000, false)
-	app := &dbmodel.App{
-		MachineID:    machine.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv4,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp4": map[string]interface{}{},
-					}),
-				},
-			},
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp6": map[string]interface{}{},
-					}),
-				},
-			},
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "http",
 		},
 	}
-	_, err = dbmodel.AddApp(db, app)
+	
+	// Create DHCPv4 daemon without lease_cmds hooks
+	daemon4 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	err = daemon4.SetConfigFromJSON([]byte(`{
+		"Dhcp4": {}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon4)
+	require.NoError(t, err)
+	
+	// Create DHCPv6 daemon without lease_cmds hooks
+	daemon6 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPoints)
+	err = daemon6.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)
 
 	agents := agentcommtest.NewFakeAgents(mockLeasesGetDeclined, nil)
 
-	leases, erredApps, err := FindDeclinedLeases(db, agents)
+	leases, erredDaemons, err := FindDeclinedLeases(db, agents)
 	require.NoError(t, err)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 	require.Empty(t, leases)
 }
 
@@ -1496,74 +1328,65 @@ func TestFindLeasesByHostID(t *testing.T) {
 	err = dbmodel.AddMachine(db, machine2)
 	require.NoError(t, err)
 
-	// Create Kea apps with lease_cmds hooks library loaded.
-	accessPoints1 := []*dbmodel.AccessPoint{}
-	accessPoints1 = dbmodel.AppendAccessPoint(accessPoints1, dbmodel.AccessPointControl, "localhost", "", 8000, true)
-	app1 := dbmodel.App{
-		MachineID:    machine1.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints1,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp6": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	// Create DHCPv6 daemon on machine1 with lease_cmds hooks library loaded.
+	accessPoints1 := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Protocol: "https",
 		},
 	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app1)
+	daemon1 := dbmodel.NewDaemon(machine1, constant.DaemonNameDHCPv6, true, accessPoints1)
+	err = daemon1.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	// Create Kea apps with lease_cmds hooks library loaded.
-	accessPoints2 := []*dbmodel.AccessPoint{}
-	accessPoints2 = dbmodel.AppendAccessPoint(accessPoints2, dbmodel.AccessPointControl, "localhost", "", 8001, false)
-	app2 := dbmodel.App{
-		MachineID:    machine2.ID,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: accessPoints2,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: dbmodel.DaemonNameDHCPv4,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp4": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
-			{
-				Name: dbmodel.DaemonNameDHCPv6,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: dbmodel.NewKeaConfig(&map[string]interface{}{
-						"Dhcp6": map[string]interface{}{
-							"hooks-libraries": []interface{}{
-								map[string]interface{}{
-									"library": "libdhcp_lease_cmds.so",
-								},
-							},
-						},
-					}),
-				},
-			},
+	// Create DHCPv4 and DHCPv6 daemons on machine2 with lease_cmds hooks library loaded.
+	accessPoints2 := []*dbmodel.AccessPoint{
+		{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8001,
+			Protocol: "http",
 		},
 	}
-	// Add the app to the database.
-	_, err = dbmodel.AddApp(db, &app2)
+	
+	daemon2v4 := dbmodel.NewDaemon(machine2, constant.DaemonNameDHCPv4, true, accessPoints2)
+	err = daemon2v4.SetConfigFromJSON([]byte(`{
+		"Dhcp4": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon2v4)
+	require.NoError(t, err)
+	
+	daemon2v6 := dbmodel.NewDaemon(machine2, constant.DaemonNameDHCPv6, true, accessPoints2)
+	err = daemon2v6.SetConfigFromJSON([]byte(`{
+		"Dhcp6": {
+			"hooks-libraries": [
+				{
+					"library": "libdhcp_lease_cmds.so"
+				}
+			]
+		}
+	}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon2v6)
 	require.NoError(t, err)
 
 	host := dbmodel.Host{
@@ -1579,7 +1402,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 		},
 		LocalHosts: []dbmodel.LocalHost{
 			{
-				DaemonID:   app1.Daemons[0].ID,
+				DaemonID:   daemon1.ID,
 				DataSource: dbmodel.HostDataSourceConfig,
 				IPReservations: []dbmodel.IPReservation{
 					{
@@ -1594,7 +1417,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 				},
 			},
 			{
-				DaemonID:   app2.Daemons[1].ID,
+				DaemonID:   daemon2v6.ID,
 				DataSource: dbmodel.HostDataSourceConfig,
 				IPReservations: []dbmodel.IPReservation{
 					{
@@ -1614,17 +1437,17 @@ func TestFindLeasesByHostID(t *testing.T) {
 	require.NoError(t, err)
 
 	// Expecting the following commands and responses:
-	// - lease6-get (by address) to app1 - returning empty response
-	// - lease6-get (by prefix) to app1  - returning the lease 2001:db8:0:0:2::"
-	// - lease4-get to app2 - returning the lease 192.0.2.1
-	// - lease6-get (by address) to app2 - returning empty response
-	// - lease6-get (by prefix) to app2 - returning empty response
+	// - lease6-get (by address) to daemon1 - returning empty response
+	// - lease6-get (by prefix) to daemon1  - returning the lease 2001:db8:0:0:2::"
+	// - lease4-get to daemon2v4 - returning the lease 192.0.2.1
+	// - lease6-get (by address) to daemon2v6 - returning empty response
+	// - lease6-get (by prefix) to daemon2v6 - returning empty response
 	agents := agentcommtest.NewKeaFakeAgents(mockLeases6GetEmpty, mockLease6GetByPrefix, mockLease4Get, mockLeases6GetEmpty)
 
-	leases, conflicts, erredApps, err := FindLeasesByHostID(db, agents, host.ID)
+	leases, conflicts, erredDaemons, err := FindLeasesByHostID(db, agents, host.ID)
 	require.NoError(t, err)
 	require.Empty(t, conflicts)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 	require.Len(t, leases, 2)
 	require.EqualValues(t, 1, leases[0].ID)
 	require.Equal(t, "2001:db8:0:0:2::", leases[0].IPAddress)
@@ -1633,46 +1456,46 @@ func TestFindLeasesByHostID(t *testing.T) {
 	require.Len(t, agents.RecordedCommands, 5)
 
 	// Expecting the following commands and responses:
-	// - lease6-get (by address) to app1 - returning the lease 2001:db8:2::1
-	// - lease6-get (by prefix) to app1  - returning empty response
-	// - lease4-get to app2 - returning empty response
-	// - lease6-get (by address) to app2 - returning empty response
-	// - lease6-get (by prefix) to app2 - returning empty response
+	// - lease6-get (by address) to daemon1 - returning the lease 2001:db8:2::1
+	// - lease6-get (by prefix) to daemon1  - returning empty response
+	// - lease4-get to daemon2v4 - returning empty response
+	// - lease6-get (by address) to daemon2v6 - returning empty response
+	// - lease6-get (by prefix) to daemon2v6 - returning empty response
 	agents = agentcommtest.NewKeaFakeAgents(mockLease6GetByIPAddress, mockLeases6GetEmpty, mockLeases4GetEmpty, mockLeases6GetEmpty)
 
-	leases, conflicts, erredApps, err = FindLeasesByHostID(db, agents, host.ID)
+	leases, conflicts, erredDaemons, err = FindLeasesByHostID(db, agents, host.ID)
 	require.NoError(t, err)
 	require.Empty(t, conflicts)
-	require.Empty(t, erredApps)
+	require.Empty(t, erredDaemons)
 	require.Len(t, leases, 1)
 	require.EqualValues(t, 1, leases[0].ID)
 	require.Equal(t, "2001:db8:2::1", leases[0].IPAddress)
 	require.Len(t, agents.RecordedCommands, 5)
 
 	// Expecting the following commands and responses:
-	// - lease6-get (by address) to app1 - returning an error
-	// - lease4-get to app2 - returning the lease 192.0.2.1
-	// - lease6-get (by address) to app2 - returning the lease 2001:db8:2::1
-	// - lease6-get (by prefix) to app2 - returning the lease 2001:db8:0:0:2::
+	// - lease6-get (by address) to daemon1 - returning an error
+	// - lease4-get to daemon2v4 - returning the lease 192.0.2.1
+	// - lease6-get (by address) to daemon2v6 - returning the lease 2001:db8:2::1
+	// - lease6-get (by prefix) to daemon2v6 - returning the lease 2001:db8:0:0:2::
 	agents = agentcommtest.NewKeaFakeAgents(mockLease6GetError, mockLease4Get, mockLease6GetByIPAddress, mockLease6GetByPrefix)
 
-	leases, conflicts, erredApps, err = FindLeasesByHostID(db, agents, host.ID)
+	leases, conflicts, erredDaemons, err = FindLeasesByHostID(db, agents, host.ID)
 	require.NoError(t, err)
 	require.Empty(t, conflicts)
-	require.Len(t, erredApps, 1)
+	require.Len(t, erredDaemons, 1)
 	require.Len(t, leases, 3)
 	require.Len(t, agents.RecordedCommands, 4)
 
 	// Expecting the following commands and responses:
-	// - lease6-get (by address) to app1 - returning an error
-	// - lease4-get to app2 - returning an error
-	// - lease6-get (by address) to app2 - returning an error
+	// - lease6-get (by address) to daemon1 - returning an error
+	// - lease4-get to daemon2v4 - returning an error
+	// - lease6-get (by address) to daemon2v6 - returning an error
 	agents = agentcommtest.NewKeaFakeAgents(mockLease6GetError)
 
-	leases, conflicts, erredApps, err = FindLeasesByHostID(db, agents, host.ID)
+	leases, conflicts, erredDaemons, err = FindLeasesByHostID(db, agents, host.ID)
 	require.NoError(t, err)
 	require.Empty(t, conflicts)
-	require.Len(t, erredApps, 2)
+	require.Len(t, erredDaemons, 2)
 	require.Empty(t, leases)
 	require.Len(t, agents.RecordedCommands, 3)
 }
