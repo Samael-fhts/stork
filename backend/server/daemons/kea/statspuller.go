@@ -419,11 +419,11 @@ func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error
 	}
 
 	// Process the response.
-	return statsPuller.processDaemonResponses(daemon, cmd, response)
+	return statsPuller.processDaemonResponse(daemon, response)
 }
 
 // Processes a single daemon response.
-func (statsPuller *StatsPuller) processDaemonResponses(daemon *dbmodel.Daemon, cmd *keactrl.Command, response *keactrl.StatisticGetAllResponse) error {
+func (statsPuller *StatsPuller) processDaemonResponse(daemon *dbmodel.Daemon, response *keactrl.StatisticGetAllResponse) error {
 	// Lease statistic processing needs daemon's local subnets
 	subnets, err := dbmodel.GetDaemonLocalSubnets(statsPuller.DB, daemon.ID)
 	if err != nil {

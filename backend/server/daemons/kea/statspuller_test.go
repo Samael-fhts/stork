@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constant"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -24,9 +25,7 @@ func createKeaMock(t *testing.T, jsonFactory func(callNo int) (jsons []string)) 
 	return func(callNo int, cmdResponses []interface{}) {
 		jsons := jsonFactory(callNo)
 		// DHCPv4
-		daemons := []keactrl.DaemonName{keactrl.DHCPv4}
-		command := keactrl.NewCommandBase(keactrl.StatisticGetAll, daemons...)
-		err := keactrl.UnmarshalResponseList(command, []byte(jsons[0]), cmdResponses[0])
+		err := json.Unmarshal([]byte(jsons[0]), cmdResponses[0])
 		require.NoError(t, err)
 
 		if len(cmdResponses) < 2 {
@@ -34,9 +33,7 @@ func createKeaMock(t *testing.T, jsonFactory func(callNo int) (jsons []string)) 
 		}
 
 		// DHCPv6
-		daemons = []keactrl.DaemonName{keactrl.DHCPv6}
-		command = keactrl.NewCommandBase(keactrl.StatisticGetAll, daemons...)
-		err = keactrl.UnmarshalResponseList(command, []byte(jsons[1]), cmdResponses[1])
+		err = json.Unmarshal([]byte(jsons[1]), cmdResponses[1])
 		require.NoError(t, err)
 	}
 }
@@ -357,7 +354,7 @@ func verifyStandardLocalSubnetsStatistics(t *testing.T, db *pg.DB) {
 			return sn.PrefixPools[i].KeaParameters.PoolID < sn.PrefixPools[j].KeaParameters.PoolID
 		})
 
-		shift := (sn.Daemon.AppID - 1) * 100
+		shift := (sn.Daemon.MachineID - 1) * 100
 		totalShift := shift * 2
 		switch sn.LocalSubnetID {
 		case 10:
@@ -457,9 +454,9 @@ func verifyStandardLocalSubnetsStatistics(t *testing.T, db *pg.DB) {
 
 	for _, daemon := range daemons {
 		switch daemon.Name {
-		case dbmodel.DaemonNameDHCPv4:
+		case constant.DaemonNameDHCPv4:
 			v4Daemons++
-		case dbmodel.DaemonNameDHCPv6:
+		case constant.DaemonNameDHCPv6:
 			v6Daemons++
 		default:
 		}
@@ -493,7 +490,7 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 	_ = dbmodel.InitializeSettings(db, 0)
-	_ = createAppWithSubnets(t, db, 0, "", "")
+	_ = createDaemonsWithSubnets(t, db, 0, "", "")
 
 	// prepare fake agents
 	keaMock := createKeaMock(t, func(callNo int) (jsons []string) {
@@ -540,18 +537,18 @@ func checkStatsPullerPullStats(t *testing.T, statsFormat string) {
 
 	// prepare apps with subnets and local subnets
 	v4Config, v6Config := createDhcpConfigs()
-	app := createAppWithSubnets(t, db, 0, v4Config, v6Config)
+	daemons := createDaemonsWithSubnets(t, db, 0, v4Config, v6Config)
 
 	keaMock := createStandardKeaMock(t, statsFormat == "1.6")
 
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	for i := range app.Daemons {
-		sharedNetworks, subnets, err := detectDaemonNetworks(db, app.Daemons[i], lookup)
+	for i := range daemons {
+		sharedNetworks, subnets, err := detectDaemonNetworks(db, daemons[i], lookup)
 		require.NoError(t, err)
 		_, err = dbmodel.CommitNetworksIntoDB(db, sharedNetworks, subnets)
 		require.NoError(t, err)
-		hosts, err := detectGlobalHostsFromConfig(db, app.Daemons[i], lookup)
+		hosts, err := detectGlobalHostsFromConfig(db, daemons[i], lookup)
 		require.NoError(t, err)
 		err = dbmodel.CommitGlobalHostsIntoDB(db, hosts)
 		require.NoError(t, err)
@@ -689,7 +686,13 @@ func getHATestConfigWithSubnets(rootName, thisServerName, mode string, peerNames
 	if rootName == "Dhcp6" {
 		subnetsConfigRaw = dhcp6
 	}
-	subnetsConfig, _ := dbmodel.NewKeaConfigFromJSON(subnetsConfigRaw)
+
+	// Create a temporary daemon to use SetConfigFromJSON
+	tempDaemon := &dbmodel.Daemon{
+		KeaDaemon: &dbmodel.KeaDaemon{},
+	}
+	_ = tempDaemon.SetConfigFromJSON([]byte(subnetsConfigRaw))
+	subnetsConfig := tempDaemon.KeaDaemon.Config
 
 	// We are now going to insert hook libraries from one config into another config.
 	// We insert the map of hook libraries into the Raw field of the subnetsConfig
@@ -700,10 +703,12 @@ func getHATestConfigWithSubnets(rootName, thisServerName, mode string, peerNames
 	// configuration, and it will also be a good time to refactor these tests. We should
 	// have a cleaner way to generate various configs than merging two maps together.
 	// This code comes from the old Stork days, though.
-	haHooks := (haConfig.Raw)[rootName].(map[string]interface{})["hooks-libraries"].([]interface{})
-	subnetHooks := (subnetsConfig.Raw)[rootName].(map[string]interface{})["hooks-libraries"].([]interface{})
+	haRawConfig, _ := haConfig.GetRawConfig()
+	subnetsRawConfig, _ := subnetsConfig.GetRawConfig()
+	haHooks := haRawConfig[rootName].(map[string]interface{})["hooks-libraries"].([]interface{})
+	subnetHooks := subnetsRawConfig[rootName].(map[string]interface{})["hooks-libraries"].([]interface{})
 	subnetHooks = append(subnetHooks, haHooks...)
-	(subnetsConfig.Raw)[rootName].(map[string]interface{})["hooks-libraries"] = subnetHooks
+	subnetsRawConfig[rootName].(map[string]interface{})["hooks-libraries"] = subnetHooks
 
 	// Repack the new configuration, so the changes are populated to the parsed
 	// data structures and not only reside in the Raw field.
@@ -727,7 +732,7 @@ func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Servi
 
 	daemons := []*dbmodel.Daemon{}
 
-	// Add machine and app for the primary server.
+	// Add machine and daemon for the primary server.
 	m := &dbmodel.Machine{
 		ID:        0,
 		Address:   "primary",
@@ -735,44 +740,30 @@ func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Servi
 	}
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
-	app := dbmodel.App{
-		MachineID: m.ID,
-		Type:      dbmodel.AppTypeKea,
-		AccessPoints: []*dbmodel.AccessPoint{
-			{
-				Type:              dbmodel.AccessPointControl,
-				Address:           "192.0.2.33",
-				Port:              8000,
-				Key:               "",
-				UseSecureProtocol: true,
-			},
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				Active: true,
-				Name:   "dhcp4",
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getHATestConfigWithSubnets("Dhcp4", "server1", "load-balancing",
-						"server1", "server2", "server4"),
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
-			{
-				Active: true,
-				Name:   "dhcp6",
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getHATestConfigWithSubnets("Dhcp6", "server1", "hot-standby",
-						"server1", "server2"),
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
+
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "192.0.2.33",
+			Port:     8000,
+			Key:      "",
+			Protocol: "https",
 		},
 	}
 
-	_, err = dbmodel.AddApp(db, &app)
+	daemon4 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon4.KeaDaemon.Config = getHATestConfigWithSubnets("Dhcp4", "server1", "load-balancing",
+		"server1", "server2", "server4")
+	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
+	daemons = append(daemons, daemon4)
 
-	daemons = append(daemons, app.Daemons...)
+	daemon6 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon6.KeaDaemon.Config = getHATestConfigWithSubnets("Dhcp6", "server1", "hot-standby",
+		"server1", "server2")
+	err = dbmodel.AddDaemon(db, daemon6)
+	require.NoError(t, err)
+	daemons = append(daemons, daemon6)
 
 	// Add the secondary machine.
 	m = &dbmodel.Machine{
@@ -783,45 +774,31 @@ func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Servi
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	app = dbmodel.App{
-		MachineID: m.ID,
-		Type:      dbmodel.AppTypeKea,
-		AccessPoints: []*dbmodel.AccessPoint{
-			{
-				Type:              dbmodel.AccessPointControl,
-				Address:           "192.0.2.66",
-				Key:               "",
-				Port:              8000,
-				UseSecureProtocol: false,
-			},
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				Active: true,
-				Name:   "dhcp4",
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getHATestConfigWithSubnets("Dhcp4", "server2", "load-balancing",
-						"server1", "server2", "server4"),
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
-			{
-				Active: true,
-				Name:   "dhcp6",
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getHATestConfigWithSubnets("Dhcp6", "server2", "hot-standby",
-						"server1", "server2"),
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
+	accessPoints2 := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "192.0.2.66",
+			Port:     8000,
+			Key:      "",
+			Protocol: "http",
 		},
 	}
-	_, err = dbmodel.AddApp(db, &app)
+
+	daemon4_2 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints2)
+	daemon4_2.KeaDaemon.Config = getHATestConfigWithSubnets("Dhcp4", "server2", "load-balancing",
+		"server1", "server2", "server4")
+	err = dbmodel.AddDaemon(db, daemon4_2)
 	require.NoError(t, err)
+	daemons = append(daemons, daemon4_2)
 
-	daemons = append(daemons, app.Daemons...)
+	daemon6_2 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints2)
+	daemon6_2.KeaDaemon.Config = getHATestConfigWithSubnets("Dhcp6", "server2", "hot-standby",
+		"server1", "server2")
+	err = dbmodel.AddDaemon(db, daemon6_2)
+	require.NoError(t, err)
+	daemons = append(daemons, daemon6_2)
 
-	// Add machine and app for the DHCPv4 backup server.
+	// Add machine and daemon for the DHCPv4 backup server.
 	m = &dbmodel.Machine{
 		ID:        0,
 		Address:   "backup1",
@@ -830,34 +807,23 @@ func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Servi
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	app = dbmodel.App{
-		MachineID: m.ID,
-		Type:      dbmodel.AppTypeKea,
-		AccessPoints: []*dbmodel.AccessPoint{
-			{
-				Type:              dbmodel.AccessPointControl,
-				Address:           "192.0.2.133",
-				Key:               "",
-				Port:              8000,
-				UseSecureProtocol: false,
-			},
-		},
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name:   "dhcp4",
-				Active: true,
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getHATestConfigWithSubnets("Dhcp4", "server4", "load-balancing",
-						"server1", "server2", "server4"),
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
+	accessPoints3 := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "192.0.2.133",
+			Key:      "",
+			Port:     8000,
+			Protocol: "http",
 		},
 	}
-	_, err = dbmodel.AddApp(db, &app)
+
+	daemonBackup := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints3)
+	daemonBackup.KeaDaemon.Config = getHATestConfigWithSubnets("Dhcp4", "server4", "load-balancing",
+		"server1", "server2", "server4")
+	err = dbmodel.AddDaemon(db, daemonBackup)
 	require.NoError(t, err)
 
-	daemons = append(daemons, app.Daemons...)
+	daemons = append(daemons, daemonBackup)
 
 	// Detect HA services
 	for _, daemon := range daemons {
@@ -1074,7 +1040,7 @@ func TestStatsPullerPullStatsHAPairNotInitializedYet(t *testing.T) {
 	for _, command := range fa.RecordedCommands {
 		daemons := command.GetDaemonsList()
 		require.Len(t, daemons, 1)
-		require.Contains(t, []string{dbmodel.DaemonNameDHCPv4, dbmodel.DaemonNameDHCPv6}, daemons[0])
+		require.Contains(t, []constant.DaemonName{constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6}, daemons[0])
 	}
 
 	verifyCountingStatisticsFromPrimary(t, db)
@@ -1219,22 +1185,26 @@ func TestProcessAppResponsesForResponseWithBigNumbers(t *testing.T) {
 	machine := &dbmodel.Machine{Address: "localhost", AgentPort: 8080}
 	_ = dbmodel.AddMachine(db, machine)
 
-	app := &dbmodel.App{
-		MachineID: machine.ID,
-		Type:      dbmodel.AppTypeKea,
-		Active:    true,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp6", true),
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8080,
+			Key:      "",
+			Protocol: "http",
 		},
 	}
-	daemons, _ := dbmodel.AddApp(db, app)
+
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPoints)
+	err = dbmodel.AddDaemon(db, daemon)
+	require.NoError(t, err)
 
 	for i := 1; i <= 10; i++ {
 		subnet := &dbmodel.Subnet{
 			Prefix: fmt.Sprintf("3001:%d::/48", i),
 			LocalSubnets: []*dbmodel.LocalSubnet{
 				{
-					DaemonID:      daemons[0].ID,
+					DaemonID:      daemon.ID,
 					LocalSubnetID: int64(i),
 				},
 			},
@@ -1258,10 +1228,7 @@ func TestProcessAppResponsesForResponseWithBigNumbers(t *testing.T) {
 	}
 
 	// Act
-	err = puller.processAppResponses(
-		app, []*keactrl.Command{keactrl.NewCommandBase(keactrl.StatisticGetAll)},
-		daemons, []keactrl.StatisticGetAllResponseItem{response[0]},
-	)
+	err = puller.processDaemonResponse(daemon, &response)
 
 	// Assert
 	require.NoError(t, err)
@@ -1296,46 +1263,4 @@ func TestProcessAppResponsesForResponseWithBigNumbers(t *testing.T) {
 	require.Equal(t, uint64(0), stats["cumulative-assigned-nas"])
 	require.Equal(t, uint64(0), stats["assigned-nas"])
 	require.Equal(t, uint64(0), stats["declined-addresses"])
-}
-
-// Test that an error is returned when the number of responses does not match
-// the number of commands.
-func TestProcessAppResponsesWithDifferentNumberOfResponses(t *testing.T) {
-	// Arrange
-	puller := &StatsPuller{}
-
-	responses := []keactrl.StatisticGetAllResponseItem{{}, {}}
-	commandsCases := [][]*keactrl.Command{
-		// More responses than commands.
-		{keactrl.NewCommandBase(keactrl.StatisticGetAll)},
-		// More commands than responses.
-		{
-			keactrl.NewCommandBase(keactrl.StatisticGetAll),
-			keactrl.NewCommandBase(keactrl.StatisticGetAll),
-			keactrl.NewCommandBase(keactrl.StatisticGetAll),
-		},
-	}
-	caseLabels := []string{
-		"More responses than commands", "More commands than responses",
-	}
-
-	for i, label := range caseLabels {
-		t.Run(label, func(t *testing.T) {
-			commands := commandsCases[i]
-
-			// Act
-			err := puller.processAppResponses(
-				nil, commands, nil, responses,
-			)
-
-			// Assert
-			require.ErrorContains(
-				t, err,
-				fmt.Sprintf(
-					"number of commands (%d) does not match number of responses (%d)",
-					len(commands), len(responses),
-				),
-			)
-		})
-	}
 }
