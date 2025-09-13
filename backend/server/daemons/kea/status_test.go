@@ -6,11 +6,12 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
-	keactrl "isc.org/stork/daemonctrl/kea"
+	"isc.org/stork/daemonctrl/constant"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
-	dbmodeltest "isc.org/stork/server/database/model/test"
 	dbtest "isc.org/stork/server/database/test"
 	storktest "isc.org/stork/server/test/dbmodel"
 )
@@ -96,11 +97,10 @@ func getHATestConfig(rootName, thisServerName, mode string, peerNames ...string)
 // Generates a response to the status-get command including two status
 // structures, one for DHCPv4 and one for DHCPv6.
 func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
-	command := keactrl.NewCommandBase(keactrl.StatusGet, keactrl.DHCPv4, keactrl.DHCPv6)
-	var json string
+	var bytes string
 	switch callNo {
 	case 0:
-		json = `[{
+		bytes = `[{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -123,8 +123,9 @@ func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
                         }
                     }
               }
-         },
-         {
+         }]`
+	case 1:
+		bytes = `[{
              "result": 0,
              "text": "Everything is fine",
              "arguments": {
@@ -148,8 +149,8 @@ func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
                      }
                }
           }]`
-	default:
-		json = `[{
+	case 2:
+		bytes = `[{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -176,20 +177,50 @@ func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
          {
              "result": 1,
              "text": "Unable to communicate"
-          }]`
+         }]`
+	case 3:
+		bytes = `[{
+            "result": 0,
+            "text": "Everything is fine",
+            "arguments": {
+                "pid": 1234,
+                "uptime": 3024,
+                "reload": 1111,
+                "ha-servers":
+                    {
+                        "local": {
+                            "role": "primary",
+                            "scopes": [ "server1", "server2" ],
+                            "state": "partner-down"
+                        },
+                        "remote": {
+                            "age": 0,
+                            "in-touch": false,
+                            "role": "secondary",
+                            "last-scopes": [ ],
+                            "last-state": "unavailable"
+                        }
+                    }
+              }
+         },
+         {
+             "result": 1,
+             "text": "Unable to communicate"
+         }]`
 	}
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
+	err = errors.WithStack(err)
+	log.WithError(err).Error("unmarshal error")
 }
 
 // Generates a response to the status-get command including two status
 // structures, one for DHCPv4 and one for DHCPv6. Format supported by
 // Kea 1.7.8 onwards.
 func mockGetStatusWithHA178(callNo int, cmdResponses []interface{}) {
-	command := keactrl.NewCommandBase(keactrl.StatusGet, keactrl.DHCPv4, keactrl.DHCPv6)
-	var json string
+	var bytes string
 	switch callNo {
 	case 0:
-		json = `[{
+		bytes = `[{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -221,8 +252,9 @@ func mockGetStatusWithHA178(callNo int, cmdResponses []interface{}) {
                         }
                     }
                ]
-         }},
-         {
+         }}]`
+	case 1:
+		bytes = `[{
              "result": 0,
              "text": "Everything is fine",
              "arguments": {
@@ -255,8 +287,8 @@ func mockGetStatusWithHA178(callNo int, cmdResponses []interface{}) {
                       }
                  ]
           }}]`
-	default:
-		json = `[{
+	case 2:
+		bytes = `[{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -288,23 +320,25 @@ func mockGetStatusWithHA178(callNo int, cmdResponses []interface{}) {
                            }
                     }
                ]
-         }},
-         {
+         }}]`
+	case 3:
+		bytes = `[{
              "result": 1,
              "text": "Unable to communicate"
          }]`
 	}
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
+	err = errors.WithStack(err)
+	log.WithError(err).Error("unmarshal error")
 }
 
 // Generates a response to the status-get command for a server that has two
 // HA relationships.
 func mockGetStatusWithHAHub(callNo int, cmdResponses []any) {
-	command := keactrl.NewCommandBase(keactrl.StatusGet, keactrl.DHCPv4)
-	var json string
+	var bytes string
 	switch callNo {
 	case 0:
-		json = `[{
+		bytes = `[{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -354,7 +388,7 @@ func mockGetStatusWithHAHub(callNo int, cmdResponses []any) {
             }
         }]`
 	default:
-		json = `[{
+		bytes = `[{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -404,14 +438,15 @@ func mockGetStatusWithHAHub(callNo int, cmdResponses []any) {
             }
         }]`
 	}
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
+	err = errors.WithStack(err)
+	log.WithError(err).Error("unmarshal error")
 }
 
 // Generate test response to status-get command including status of the
 // HA pair doing load balancing.
 func mockGetStatusLoadBalancing(callNo int, cmdResponses []interface{}) {
-	command := keactrl.NewCommandBase(keactrl.StatusGet, keactrl.DHCPv4)
-	json := `[
+	bytes := `[
         {
             "result": 0,
             "text": "Everything is fine",
@@ -437,14 +472,15 @@ func mockGetStatusLoadBalancing(callNo int, cmdResponses []interface{}) {
                 }
             }
     ]`
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
+	err = errors.WithStack(err)
+	log.WithError(err).Error("unmarshal error")
 }
 
 // Generate test response to status-get command including status of the
 // HA pair doing load balancing. Format supported by Kea 1.7.8 onwards.
 func mockGetStatusLoadBalancing178(callNo int, cmdResponses []interface{}) {
-	command := keactrl.NewCommandBase(keactrl.StatusGet, keactrl.DHCPv4)
-	json := `[
+	bytes := `[
         {
             "result": 0,
             "text": "Everything is fine",
@@ -480,14 +516,15 @@ func mockGetStatusLoadBalancing178(callNo int, cmdResponses []interface{}) {
             }
         }
     ]`
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
+	err = errors.WithStack(err)
+	log.WithError(err).Error("unmarshal error")
 }
 
 // Generates test response to status-get command lacking a status of the
 // HA pair.
 func mockGetStatusNoHA(callNo int, cmdResponses []interface{}) {
-	command := keactrl.NewCommandBase(keactrl.StatusGet, keactrl.DHCPv4)
-	json := `[
+	bytes := `[
         {
             "result": 0,
             "text": "Everything is fine",
@@ -498,50 +535,54 @@ func mockGetStatusNoHA(callNo int, cmdResponses []interface{}) {
             }
         }
     ]`
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
+	err = errors.WithStack(err)
+	log.WithError(err).Error("unmarshal error")
 }
 
 // Generates test response to status-get command indicating an error and
 // lacking arguments.
 func mockGetStatusError(callNo int, cmdResponses []interface{}) {
-	command := keactrl.NewCommandBase(keactrl.StatusGet, keactrl.DHCPv4)
-	json := `[
+	bytes := `[
         {
             "result": 1,
             "text": "unable to communicate with the daemon"
         }
     ]`
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
+	err = errors.WithStack(err)
+	log.WithError(err).Error("unmarshal error")
 }
 
 // Test status-get command when HA status is returned.
 func TestGetDHCPStatus(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(mockGetStatusLoadBalancing, nil)
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "", "", 1234, false)
-
-	app := dbmodel.App{
-		AccessPoints: accessPoints,
-		Machine: &dbmodel.Machine{
-			Address:   "192.0.2.0",
-			AgentPort: 1111,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "",
+			Port:     1234,
+			Key:      "",
+			Protocol: "http",
 		},
 	}
 
-	appStatus, err := getDHCPStatus(context.Background(), fa, &app)
+	machine := &dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}
+
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+
+	status, err := getDHCPStatus(context.Background(), fa, daemon)
 	require.NoError(t, err)
-	require.NotNil(t, appStatus)
-
-	require.Len(t, appStatus, 1)
-
-	status := appStatus[0]
+	require.NotNil(t, status)
 
 	// Common fields must be always present.
 	require.EqualValues(t, 1234, status.Pid)
 	require.EqualValues(t, 3024, status.Uptime)
 	require.EqualValues(t, 1111, status.Reload)
-	require.Equal(t, "dhcp4", status.Daemon)
 
 	// HA status should have been returned.
 	require.NotNil(t, status.HAServers)
@@ -568,30 +609,31 @@ func TestGetDHCPStatus(t *testing.T) {
 func TestGetDHCPStatus178(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(mockGetStatusLoadBalancing178, nil)
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "", "", 1234, true)
-
-	app := dbmodel.App{
-		AccessPoints: accessPoints,
-		Machine: &dbmodel.Machine{
-			Address:   "192.0.2.0",
-			AgentPort: 1111,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "",
+			Port:     1234,
+			Key:      "",
+			Protocol: "https",
 		},
 	}
 
-	appStatus, err := getDHCPStatus(context.Background(), fa, &app)
+	machine := &dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}
+
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+
+	status, err := getDHCPStatus(context.Background(), fa, daemon)
 	require.NoError(t, err)
-	require.NotNil(t, appStatus)
-
-	require.Len(t, appStatus, 1)
-
-	status := appStatus[0]
+	require.NotNil(t, status)
 
 	// Common fields must be always present.
 	require.EqualValues(t, 1234, status.Pid)
 	require.EqualValues(t, 3024, status.Uptime)
 	require.EqualValues(t, 1111, status.Reload)
-	require.Equal(t, "dhcp4", status.Daemon)
 
 	// The HA status should be returned in the high-availability argument.
 	require.Nil(t, status.HAServers)
@@ -627,24 +669,26 @@ func TestGetDHCPStatus178(t *testing.T) {
 func TestGetDHCPStatusNoHA(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(mockGetStatusNoHA, nil)
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "", "", 1234, false)
-
-	app := dbmodel.App{
-		AccessPoints: accessPoints,
-		Machine: &dbmodel.Machine{
-			Address:   "192.0.2.0",
-			AgentPort: 1111,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "",
+			Port:     1234,
+			Key:      "",
+			Protocol: "http",
 		},
 	}
 
-	appStatus, err := getDHCPStatus(context.Background(), fa, &app)
+	machine := &dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}
+
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+
+	status, err := getDHCPStatus(context.Background(), fa, daemon)
 	require.NoError(t, err)
-	require.NotNil(t, appStatus)
-
-	require.Len(t, appStatus, 1)
-
-	status := appStatus[0]
+	require.NotNil(t, status)
 
 	// Common fields must be always present.
 	require.EqualValues(t, 1234, status.Pid)
@@ -661,22 +705,26 @@ func TestGetDHCPStatusNoHA(t *testing.T) {
 func TestGetDHCPStatusError(t *testing.T) {
 	fa := agentcommtest.NewFakeAgents(mockGetStatusError, nil)
 
-	var accessPoints []*dbmodel.AccessPoint
-	accessPoints = dbmodel.AppendAccessPoint(accessPoints, dbmodel.AccessPointControl, "", "", 1234, true)
-
-	app := dbmodel.App{
-		AccessPoints: accessPoints,
-		Machine: &dbmodel.Machine{
-			Address:   "192.0.2.0",
-			AgentPort: 1111,
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "",
+			Port:     1234,
+			Key:      "",
+			Protocol: "https",
 		},
 	}
 
-	appStatus, err := getDHCPStatus(context.Background(), fa, &app)
-	require.NoError(t, err)
-	require.NotNil(t, appStatus)
+	machine := &dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}
 
-	require.Empty(t, appStatus)
+	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+
+	status, err := getDHCPStatus(context.Background(), fa, daemon)
+	require.NoError(t, err)
+	require.Nil(t, status)
 }
 
 // Test that new instance of the puller for fetching HA services status can
@@ -704,8 +752,6 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	fec := &storktest.FakeEventCenter{}
-
 	// Add a machine.
 	m := &dbmodel.Machine{
 		Address:   "localhost",
@@ -714,41 +760,38 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Add Kea application to the machine
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "", "", 1234, false)
-	keaApp := &dbmodel.App{
-		ID:           0,
-		MachineID:    m.ID,
-		Machine:      m,
-		Type:         dbmodel.AppTypeKea,
-		Active:       true,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Name: "dhcp4",
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getHATestConfig("Dhcp4", "server1", "load-balancing",
-						"server1", "server2", "server4"),
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
-			{
-				Name: "dhcp6",
-				KeaDaemon: &dbmodel.KeaDaemon{
-					Config: getHATestConfig("Dhcp6", "server3", "hot-standby",
-						"server1", "server3", "server4"),
-					KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-				},
-			},
+	// Add Kea daemons to the machine
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "",
+			Port:     1234,
+			Key:      "",
+			Protocol: "http",
 		},
 	}
 
-	// This call, apart from adding the app to the machine, will also associate the
-	// app with the HA services.
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	// Create DHCPv4 daemon
+	daemon4 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon4.KeaDaemon.Config = getHATestConfig("Dhcp4", "server1", "load-balancing",
+		"server1", "server2", "server4")
+	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
+
+	// Create DHCPv6 daemon
+	daemon6 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon6.KeaDaemon.Config = getHATestConfig("Dhcp6", "server3", "hot-standby",
+		"server1", "server3", "server4")
+	err = dbmodel.AddDaemon(db, daemon6)
+	require.NoError(t, err)
+
+	// Commit services for the daemons
+	daemons := []*dbmodel.Daemon{daemon4, daemon6}
+	for _, d := range daemons {
+		// Detect services from the daemon configuration
+		_, err = DetectHAServices(db, d)
+		require.NoError(t, err)
+	}
 
 	// The puller requires fetch interval to be present in the database.
 	err = dbmodel.InitializeSettings(db, 0)
@@ -782,8 +825,8 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	// The first one is the DHCPv4 service.
 	service := services[0]
 	require.NotNil(t, service.HAService)
-	// Our app has the primary role in this service.
-	require.EqualValues(t, keaApp.Daemons[0].ID, service.HAService.PrimaryID)
+	// Our daemon has the primary role in this service.
+	require.EqualValues(t, daemon4.ID, service.HAService.PrimaryID)
 	// The status should have been collected for primary and secondary.
 	require.False(t, service.HAService.PrimaryStatusCollectedAt.IsZero())
 	require.False(t, service.HAService.SecondaryStatusCollectedAt.IsZero())
@@ -816,7 +859,7 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	service = services[1]
 
 	require.NotNil(t, service.HAService)
-	require.EqualValues(t, keaApp.Daemons[1].ID, service.HAService.SecondaryID)
+	require.EqualValues(t, daemon6.ID, service.HAService.SecondaryID)
 	// The status should have been collected for standby and primary.
 	require.False(t, service.HAService.PrimaryStatusCollectedAt.IsZero())
 	require.False(t, service.HAService.SecondaryStatusCollectedAt.IsZero())
@@ -853,7 +896,7 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	// Validate the values of the DHCPv4 service.
 	service = services[0]
 	require.NotNil(t, service.HAService)
-	require.EqualValues(t, keaApp.ID, service.HAService.PrimaryID)
+	require.EqualValues(t, daemon4.ID, service.HAService.PrimaryID)
 	require.False(t, service.HAService.PrimaryStatusCollectedAt.IsZero())
 	require.False(t, service.HAService.SecondaryStatusCollectedAt.IsZero())
 
@@ -886,7 +929,7 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	// returns a different state for this server.
 	service = services[1]
 	require.NotNil(t, service.HAService)
-	require.EqualValues(t, keaApp.Daemons[1].ID, service.HAService.SecondaryID)
+	require.EqualValues(t, daemon6.ID, service.HAService.SecondaryID)
 	require.False(t, service.HAService.PrimaryStatusCollectedAt.IsZero())
 	require.False(t, service.HAService.SecondaryStatusCollectedAt.IsZero())
 	require.True(t, service.HAService.SecondaryStatusCollectedAt.After(service.HAService.PrimaryStatusCollectedAt))
@@ -923,17 +966,30 @@ func TestPullHAStatusHub(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
+	// Create the hub
+	m := &dbmodel.Machine{
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	err := dbmodel.AddMachine(db, m)
+	require.NoError(t, err)
+
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "",
+			Port:     1234,
+			Key:      "",
+			Protocol: "http",
+		},
+	}
+
+	dhcp4 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+
 	fec := &storktest.FakeEventCenter{}
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
-	// Create the hub
-	kea, err := dbmodeltest.NewKea(db)
-	require.NoError(t, err)
-
-	dhcp4, err := kea.NewKeaDHCPv4Server()
-	require.NoError(t, err)
-
-	err = dhcp4.Configure(`{
+	configData := []byte(`{
         "Dhcp4": {
             "hooks-libraries": [
                 {
@@ -979,12 +1035,13 @@ func TestPullHAStatusHub(t *testing.T) {
         }
     }`)
 
+	err = dhcp4.SetConfigFromJSON(configData)
 	require.NoError(t, err)
 
-	keaApp, err := dhcp4.GetKea()
+	err = dbmodel.AddDaemon(db, dhcp4)
 	require.NoError(t, err)
 
-	err = CommitAppIntoDB(db, keaApp, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{dhcp4}, fec, nil, lookup)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)
