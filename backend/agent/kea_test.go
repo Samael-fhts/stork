@@ -154,7 +154,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 		Reply(200).
 		JSON(caResponse)
 
-	dhcpResponsesJSON := `[
+	dhcpV4ResponsesJSON := `[
         {
             "result": 0,
             "arguments": {
@@ -170,7 +170,19 @@ func TestKeaAllowedLogs(t *testing.T) {
                     ]
                 }
             }
-        },
+        }
+	]`
+	dhcpV4Responses := make([]map[string]interface{}, 1)
+	err = json.Unmarshal([]byte(dhcpV4ResponsesJSON), &dhcpV4Responses)
+	require.NoError(t, err)
+	gock.New("https://localhost:45634").
+		MatchHeader("Content-Type", "application/json").
+		JSON(map[string]any{"command": "config-get", "service": []string{"dhcp4"}}).
+		Post("/").
+		Reply(200).
+		JSON(dhcpV4Responses)
+
+	dhcpV6ResponsesJSON := `[
         {
             "result": 0,
             "arguments": {
@@ -188,27 +200,43 @@ func TestKeaAllowedLogs(t *testing.T) {
             }
         }
     ]`
-	dhcpResponses := make([]map[string]interface{}, 2)
-	err = json.Unmarshal([]byte(dhcpResponsesJSON), &dhcpResponses)
+	dhcpV6Responses := make([]map[string]interface{}, 1)
+	err = json.Unmarshal([]byte(dhcpV6ResponsesJSON), &dhcpV6Responses)
 	require.NoError(t, err)
-
-	// The config-get command sent to the daemons behind CA should return
-	// configurations of the DHCPv4 and DHCPv6 daemons.
+	require.NoError(t, err)
 	gock.New("https://localhost:45634").
 		MatchHeader("Content-Type", "application/json").
-		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
+		JSON(map[string]any{"command": "config-get", "service": []string{"dhcp6"}}).
 		Post("/").
 		Reply(200).
-		JSON(dhcpResponses)
+		JSON(dhcpV6Responses)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
-	daemon := &KeaDaemon{
-		daemon: daemon{
-			Name:         constant.DaemonNameCA,
-			AccessPoints: []AccessPoint{accessPoint},
+	connector := newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient})
+
+	monitor := &monitor{daemons: []Daemon{
+		&KeaDaemon{
+			daemon: daemon{
+				Name:         constant.DaemonNameCA,
+				AccessPoints: []AccessPoint{accessPoint},
+			},
+			connector: connector,
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
-	}
+		&KeaDaemon{
+			daemon: daemon{
+				Name:         constant.DaemonNameDHCPv4,
+				AccessPoints: []AccessPoint{accessPoint},
+			},
+			connector: connector,
+		},
+		&KeaDaemon{
+			daemon: daemon{
+				Name:         constant.DaemonNameDHCPv6,
+				AccessPoints: []AccessPoint{accessPoint},
+			},
+			connector: connector,
+		},
+	}}
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -217,7 +245,8 @@ func TestKeaAllowedLogs(t *testing.T) {
 	// One from CA, one from DHCPv4 and one from DHCPv6.
 	agentManager.EXPECT().AllowLog(gomock.Any()).Times(3)
 
-	err = daemon.Evaluate(agentManager)
+	monitor.evaluateDaemons(agentManager)
+
 	require.NoError(t, err)
 }
 
@@ -265,7 +294,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 		Reply(200).
 		JSON(caResponse)
 
-	dhcpResponsesJSON := `[
+	dhcpV4ResponsesJSON := `[
         {
             "result": 0,
             "arguments": {
@@ -281,7 +310,19 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
                     ]
                 }
             }
-        },
+        }
+	]`
+	dhcpV4Response := make([]map[string]interface{}, 1)
+	err = json.Unmarshal([]byte(dhcpV4ResponsesJSON), &dhcpV4Response)
+	require.NoError(t, err)
+	gock.New("https://localhost:45634").
+		MatchHeader("Content-Type", "application/json").
+		JSON(map[string]any{"command": "config-get", "service": []string{"dhcp4"}}).
+		Post("/").
+		Reply(200).
+		JSON(dhcpV4Response)
+
+	dhcpV6ResponsesJSON := `[
         {
             "result": 0,
             "arguments": {
@@ -299,27 +340,42 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
             }
         }
     ]`
-	dhcpResponses := make([]map[string]interface{}, 2)
-	err = json.Unmarshal([]byte(dhcpResponsesJSON), &dhcpResponses)
+	dhcpV6Response := make([]map[string]interface{}, 1)
+	err = json.Unmarshal([]byte(dhcpV6ResponsesJSON), &dhcpV6Response)
 	require.NoError(t, err)
-
-	// The config-get command sent to the daemons behind CA should return
-	// configurations of the DHCPv4 and DHCPv6 daemons.
 	gock.New("https://localhost:45634").
 		MatchHeader("Content-Type", "application/json").
-		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
+		JSON(map[string]any{"command": "config-get", "service": []string{"dhcp6"}}).
 		Post("/").
 		Reply(200).
-		JSON(dhcpResponses)
+		JSON(dhcpV6Response)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
-	daemon := &KeaDaemon{
-		daemon: daemon{
-			Name:         constant.DaemonNameCA,
-			AccessPoints: []AccessPoint{accessPoint},
+	connector := newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient})
+
+	monitor := &monitor{daemons: []Daemon{
+		&KeaDaemon{
+			daemon: daemon{
+				Name:         constant.DaemonNameCA,
+				AccessPoints: []AccessPoint{accessPoint},
+			},
+			connector: connector,
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
-	}
+		&KeaDaemon{
+			daemon: daemon{
+				Name:         constant.DaemonNameDHCPv4,
+				AccessPoints: []AccessPoint{accessPoint},
+			},
+			connector: connector,
+		},
+		&KeaDaemon{
+			daemon: daemon{
+				Name:         constant.DaemonNameDHCPv6,
+				AccessPoints: []AccessPoint{accessPoint},
+			},
+			connector: connector,
+		},
+	}}
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
@@ -328,7 +384,8 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	// One from CA, one from DHCPv4 and one from DHCPv6.
 	agentManager.EXPECT().AllowLog(gomock.Any()).Times(3)
 
-	err = daemon.Evaluate(agentManager)
+	monitor.evaluateDaemons(agentManager)
+
 	require.NoError(t, err)
 }
 
