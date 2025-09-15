@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
 	dumppkg "isc.org/stork/server/dumper/dump"
@@ -44,8 +44,8 @@ func initDatabase(db *pg.DB) *dbmodel.Machine {
 	}
 
 	// Create daemons
-	daemon1 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints1)
-	daemon2 := dbmodel.NewDaemon(m, constant.DaemonNameBind9, true, accessPoints2)
+	daemon1 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints1)
+	daemon2 := dbmodel.NewDaemon(m, daemonname.Bind9, true, accessPoints2)
 	daemon2.Version = "1.0.0"
 	daemon2.LogTargets = []*dbmodel.LogTarget{
 		{
@@ -123,9 +123,9 @@ func TestMachineDumpExecute(t *testing.T) {
 	// have to iterate over them.
 	for _, daemon := range machine.Daemons {
 		switch daemon.Name {
-		case constant.DaemonNameDHCPv4:
+		case daemonname.DHCPv4:
 			require.NotNil(t, daemon.KeaDaemon.Config)
-		case constant.DaemonNameBind9:
+		case daemonname.Bind9:
 			require.Len(t, daemon.LogTargets, 2)
 		}
 	}
@@ -148,7 +148,7 @@ func TestMachineDumpExecuteHideSecrets(t *testing.T) {
 	for _, daemon := range machine.Daemons {
 		// Daemons can be returned out of order from the database, so we
 		// have to iterate over them.
-		if daemon.Name == constant.DaemonNameDHCPv4 {
+		if daemon.Name == daemonname.DHCPv4 {
 			config, _ := daemon.KeaDaemon.Config.GetRawConfig()
 			secret := (config["Dhcp4"]).(map[string]interface{})["secret"]
 			require.Nil(t, secret)

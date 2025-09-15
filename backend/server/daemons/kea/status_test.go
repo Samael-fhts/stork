@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -573,7 +573,7 @@ func TestGetDHCPStatus(t *testing.T) {
 		AgentPort: 1111,
 	}
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 
 	status, err := getDHCPStatus(context.Background(), fa, daemon)
 	require.NoError(t, err)
@@ -624,7 +624,7 @@ func TestGetDHCPStatus178(t *testing.T) {
 		AgentPort: 1111,
 	}
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 
 	status, err := getDHCPStatus(context.Background(), fa, daemon)
 	require.NoError(t, err)
@@ -684,7 +684,7 @@ func TestGetDHCPStatusNoHA(t *testing.T) {
 		AgentPort: 1111,
 	}
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 
 	status, err := getDHCPStatus(context.Background(), fa, daemon)
 	require.NoError(t, err)
@@ -720,7 +720,7 @@ func TestGetDHCPStatusError(t *testing.T) {
 		AgentPort: 1111,
 	}
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 
 	status, err := getDHCPStatus(context.Background(), fa, daemon)
 	require.NoError(t, err)
@@ -772,14 +772,14 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	}
 
 	// Create DHCPv4 daemon
-	daemon4 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 	daemon4.KeaDaemon.Config = getHATestConfig("Dhcp4", "server1", "load-balancing",
 		"server1", "server2", "server4")
 	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
 
 	// Create DHCPv6 daemon
-	daemon6 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, accessPoints)
 	daemon6.KeaDaemon.Config = getHATestConfig("Dhcp6", "server3", "hot-standby",
 		"server1", "server3", "server4")
 	err = dbmodel.AddDaemon(db, daemon6)
@@ -984,7 +984,7 @@ func TestPullHAStatusHub(t *testing.T) {
 		},
 	}
 
-	dhcp4 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+	dhcp4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 
 	fec := &storktest.FakeEventCenter{}
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()

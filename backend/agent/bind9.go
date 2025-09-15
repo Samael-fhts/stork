@@ -13,7 +13,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	bind9config "isc.org/stork/daemoncfg/bind9"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	storkutil "isc.org/stork/util"
 )
 
@@ -720,7 +720,7 @@ func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, e
 	// prepare final BIND 9 daemon
 	daemon := &Bind9Daemon{
 		daemon: daemon{
-			Name:         constant.DaemonNameBind9,
+			Name:         daemonname.Bind9,
 			AccessPoints: accessPoints,
 		},
 		rndcClient:    rndcClient,

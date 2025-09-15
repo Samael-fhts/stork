@@ -17,7 +17,7 @@ import (
 
 	agentapi "isc.org/stork/api"
 	"isc.org/stork/daemoncfg/dnsconfig"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
@@ -49,7 +49,7 @@ type ControlledDaemon interface {
 	GetControlAccessPoint() (string, int64, string, string, error)
 	GetStatisticsAccessPoint() (string, int64, string, string, error)
 	GetMachineTag() dbmodel.MachineTag
-	GetName() constant.DaemonName
+	GetName() daemonname.Name
 }
 
 // An interface to a machine that can receive commands from Stork.
@@ -61,7 +61,7 @@ type ControlledMachine interface {
 // The daemon entry detected by an agent. It unambiguously indicates the
 // daemon location.
 type Daemon struct {
-	Name         constant.DaemonName
+	Name         daemonname.Name
 	AccessPoints []AccessPoint
 	Machine      dbmodel.MachineTag
 }
@@ -70,7 +70,7 @@ type Daemon struct {
 var _ ControlledDaemon = (*Daemon)(nil)
 
 // Return the name of the daemon.
-func (d *Daemon) GetName() constant.DaemonName {
+func (d *Daemon) GetName() daemonname.Name {
 	return d.Name
 }
 
@@ -202,16 +202,16 @@ func (agents *connectedAgentsImpl) checkBind9CommState(stats *CommStatsBind9, ac
 // Holds the communication states of the Kea daemons returned
 // by the checkKeaCommState function.
 type keaCommState struct {
-	states map[constant.KeaDaemonName]CommErrorTransition
+	states map[daemonname.Name]CommErrorTransition
 	// Contains an item for each command. If the command was successful, the
 	// item is nil.
-	errors map[constant.KeaDaemonName][]error
+	errors map[daemonname.Name][]error
 }
 
 // Appends a new error.
-func (s *keaCommState) appendError(daemon constant.KeaDaemonName, err error) {
+func (s *keaCommState) appendError(daemon daemonname.Name, err error) {
 	if s.errors == nil {
-		s.errors = make(map[constant.KeaDaemonName][]error)
+		s.errors = make(map[daemonname.Name][]error)
 	}
 	if s.errors[daemon] == nil {
 		s.errors[daemon] = make([]error, 0)
@@ -220,7 +220,7 @@ func (s *keaCommState) appendError(daemon constant.KeaDaemonName, err error) {
 }
 
 // Returns number of errors recorded for a daemon.
-func (s *keaCommState) getErrorCount(daemon constant.KeaDaemonName) int {
+func (s *keaCommState) getErrorCount(daemon daemonname.Name) int {
 	if s.errors == nil {
 		return 0
 	}
@@ -237,7 +237,7 @@ func (s *keaCommState) getErrorCount(daemon constant.KeaDaemonName) int {
 }
 
 // Returns errors recorded for a daemon.
-func (s *keaCommState) getErrors(daemon constant.KeaDaemonName) []error {
+func (s *keaCommState) getErrors(daemon daemonname.Name) []error {
 	if s.errors == nil {
 		return nil
 	}
@@ -245,15 +245,15 @@ func (s *keaCommState) getErrors(daemon constant.KeaDaemonName) []error {
 }
 
 // Sets state for a daemon.
-func (s *keaCommState) setState(daemon constant.KeaDaemonName, state CommErrorTransition) {
+func (s *keaCommState) setState(daemon daemonname.Name, state CommErrorTransition) {
 	if s.states == nil {
-		s.states = make(map[constant.KeaDaemonName]CommErrorTransition)
+		s.states = make(map[daemonname.Name]CommErrorTransition)
 	}
 	s.states[daemon] = state
 }
 
 // Gets state for a daemon.
-func (s *keaCommState) getState(daemon constant.KeaDaemonName) CommErrorTransition {
+func (s *keaCommState) getState(daemon daemonname.Name) CommErrorTransition {
 	if s.states == nil {
 		return CommErrorNone
 	}
@@ -270,7 +270,7 @@ func (s *keaCommState) getState(daemon constant.KeaDaemonName) CommErrorTransiti
 // communication states for each of the daemons.
 func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, commands []keactrl.SerializableCommand, resp *agentapi.ForwardToKeaOverHTTPRsp) keaCommState {
 	var state keaCommState
-	uniqueDaemons := make(map[constant.KeaDaemonName]struct{})
+	uniqueDaemons := make(map[daemonname.Name]struct{})
 
 	// Get all responses from the Kea server.
 	for idx, daemonResponse := range resp.GetKeaResponses() {
@@ -409,18 +409,18 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 	for _, app := range grpcState.Apps {
 		var accessPoints []AccessPoint
 
-		var daemonName constant.DaemonName
+		var daemonName daemonname.Name
 		switch app.Type {
 		case "kea":
 			// For backward compatibility, if the daemon name is "kea", assume
 			// it is CA. This value was used in Stork agents prior 2.3.1.
-			daemonName = constant.DaemonNameCA
+			daemonName = daemonname.CA
 		case "bind9":
 			// For backward compatibility, if the daemon name is "bind9", assume
 			// it is BIND9. This value was used in Stork agents prior 2.3.
-			daemonName = constant.DaemonNameBind9
+			daemonName = daemonname.Bind9
 		default:
-			daemonName = constant.DaemonName(app.Type)
+			daemonName = daemonname.Name(app.Type)
 		}
 
 		for _, point := range app.AccessPoints {
@@ -434,7 +434,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 			if point.Protocol == "" {
 				// For backward compatibility, if the protocol is not set,
 				// assume HTTP or HTTPS based on the UseSecureProtocol flag.
-				if daemonName == constant.DaemonNameBind9 && point.Type == AccessPointControl {
+				if daemonName == daemonname.Bind9 && point.Type == AccessPointControl {
 					accessPoint.Protocol = "rndc"
 				} else if point.UseSecureProtocol {
 					accessPoint.Protocol = "https"
@@ -804,7 +804,7 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 		daemons := cmd.GetDaemonsList()
 		if len(daemons) != 1 {
 			return nil, errors.Errorf("expected a single daemon in the command %s, got %d", cmd.GetCommand(), len(daemons))
-		} else if daemons[0].ToDaemonName() != daemon.GetName() {
+		} else if daemons[0] != daemon.GetName() {
 			return nil, errors.Errorf("expected daemon %s in the command %s, got %s", daemon.GetName(), cmd.GetCommand(), daemons[0])
 		}
 
@@ -875,10 +875,7 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 	keaCommState := agents.checkKeaCommState(stats.GetKeaStats(), commands, response)
 
 	// Save Control Agent Errors.
-	daemonName, err := daemon.GetName().ToKeaDaemonName()
-	if err != nil {
-		return nil, err
-	}
+	daemonName := daemon.GetName()
 	cmdsErrors := keaCommState.getErrors(daemonName)
 	result.CmdsErrors = cmdsErrors
 	state := keaCommState.getState(daemonName)

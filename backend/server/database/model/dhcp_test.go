@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbops "isc.org/stork/server/database"
 )
 
@@ -115,14 +115,14 @@ func addTestSubnetDaemons(t *testing.T, db *dbops.PgDB) (daemons []*Daemon) {
 		}
 
 		// Create DHCPv4 daemon
-		daemon4 := NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+		daemon4 := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 		daemon4.KeaDaemon.Config = getTestConfigWithIPv4Subnets(t)
 		err = AddDaemon(db, daemon4)
 		require.NoError(t, err)
 		daemons = append(daemons, daemon4)
 
 		// Create DHCPv6 daemon
-		daemon6 := NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints)
+		daemon6 := NewDaemon(m, daemonname.DHCPv6, true, accessPoints)
 		daemon6.KeaDaemon.Config = getTestConfigWithIPv6Subnets(t)
 		err = AddDaemon(db, daemon6)
 		require.NoError(t, err)

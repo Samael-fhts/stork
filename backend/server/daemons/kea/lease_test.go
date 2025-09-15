@@ -6,7 +6,7 @@ import (
 
 	require "github.com/stretchr/testify/require"
 
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	keadata "isc.org/stork/daemondata/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
@@ -443,16 +443,16 @@ func TestGetLease4ByIPAddress(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "",
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameDHCPv4, true, accessPoints)
+	}, daemonname.DHCPv4, true, accessPoints)
 	daemon.ID = 1
 
 	lease, err := GetLease4ByIPAddress(agents, daemon, "192.0.2.3")
@@ -490,16 +490,16 @@ func TestGetLease6ByIPAddress(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "https",
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameDHCPv6, true, accessPoints)
+	}, daemonname.DHCPv6, true, accessPoints)
 	daemon.ID = 2
 
 	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_NA", "2001:db8:2::1")
@@ -540,16 +540,16 @@ func TestGetLease6ByPrefix(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "https",
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameDHCPv6, true, accessPoints)
+	}, daemonname.DHCPv6, true, accessPoints)
 	daemon.ID = 3
 
 	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_PD", "2001:db8:0:0:2::")
@@ -591,16 +591,16 @@ func TestGetLease4ByIPAddressEmpty(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "",
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameDHCPv4, true, accessPoints)
+	}, daemonname.DHCPv4, true, accessPoints)
 
 	lease, err := GetLease4ByIPAddress(agents, daemon, "192.0.2.3")
 	require.NoError(t, err)
@@ -614,16 +614,16 @@ func TestGetLease6ByIPAddressEmpty(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "",
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameDHCPv6, true, accessPoints)
+	}, daemonname.DHCPv6, true, accessPoints)
 
 	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_NA", "2001:db8:1::2")
 	require.NoError(t, err)
@@ -638,16 +638,16 @@ func TestGetLeasesByPropertiesSecondError(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "",
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameDHCPv4, true, accessPoints)
+	}, daemonname.DHCPv4, true, accessPoints)
 	daemon.ID = 4
 
 	leases, warns, err := getLeasesByProperties(agents, daemon, "42:42:42:42:42:42:42:42", "lease4-get-by-hw-address", "lease4-get-by-client-id")
@@ -678,16 +678,16 @@ func TestGetLeases4InvalidJSON(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "",
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameDHCPv4, true, accessPoints)
+	}, daemonname.DHCPv4, true, accessPoints)
 	daemon.ID = 1
 
 	lease, err := GetLease4ByIPAddress(agents, daemon, "192.0.2.3")
@@ -716,16 +716,16 @@ func TestGetLease6InvalidJSON(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "https",
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameDHCPv6, true, accessPoints)
+	}, daemonname.DHCPv6, true, accessPoints)
 	daemon.ID = 2
 
 	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_NA", "2001:db8:2::1")
@@ -780,15 +780,15 @@ func TestFindLeases(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "https",
 		},
 	}
-	
+
 	// Create DHCPv4 daemon
-	daemon1v4 := dbmodel.NewDaemon(machine1, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon1v4 := dbmodel.NewDaemon(machine1, daemonname.DHCPv4, true, accessPoints)
 	err = daemon1v4.SetConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
@@ -801,9 +801,9 @@ func TestFindLeases(t *testing.T) {
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon1v4)
 	require.NoError(t, err)
-	
+
 	// Create DHCPv6 daemon
-	daemon1v6 := dbmodel.NewDaemon(machine1, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon1v6 := dbmodel.NewDaemon(machine1, daemonname.DHCPv6, true, accessPoints)
 	err = daemon1v6.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
@@ -829,15 +829,15 @@ func TestFindLeases(t *testing.T) {
 
 	accessPoints2 := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "",
 		},
 	}
-	
+
 	// Create DHCPv4 daemon for machine2
-	daemon2v4 := dbmodel.NewDaemon(machine2, constant.DaemonNameDHCPv4, true, accessPoints2)
+	daemon2v4 := dbmodel.NewDaemon(machine2, daemonname.DHCPv4, true, accessPoints2)
 	err = daemon2v4.SetConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
@@ -863,15 +863,15 @@ func TestFindLeases(t *testing.T) {
 
 	accessPoints3 := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "",
 		},
 	}
-	
+
 	// Create DHCPv6 daemon for machine3
-	daemon3v6 := dbmodel.NewDaemon(machine3, constant.DaemonNameDHCPv6, true, accessPoints3)
+	daemon3v6 := dbmodel.NewDaemon(machine3, daemonname.DHCPv6, true, accessPoints3)
 	err = daemon3v6.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
@@ -985,15 +985,15 @@ func TestFindLeasesTooShortDUID(t *testing.T) {
 
 	accessPointsOld := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "",
 		},
 	}
-	
+
 	// Create old version daemon (2.0.2)
-	daemonOld := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPointsOld)
+	daemonOld := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPointsOld)
 	daemonOld.Version = "2.0.2"
 	err := daemonOld.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {
@@ -1010,15 +1010,15 @@ func TestFindLeasesTooShortDUID(t *testing.T) {
 
 	accessPointsModern := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8001,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8001,
 			Protocol: "",
 		},
 	}
-	
+
 	// Create modern version daemon (2.7.2)
-	daemonModern := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPointsModern)
+	daemonModern := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPointsModern)
 	daemonModern.Version = "2.7.2"
 	err = daemonModern.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {
@@ -1070,15 +1070,15 @@ func TestFindDeclinedLeases(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "https",
 		},
 	}
-	
+
 	// Create DHCPv4 daemon
-	daemon4 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 	err = daemon4.SetConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
@@ -1091,9 +1091,9 @@ func TestFindDeclinedLeases(t *testing.T) {
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
-	
+
 	// Create DHCPv6 daemon
-	daemon6 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon6 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPoints)
 	err = daemon6.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
@@ -1171,15 +1171,15 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "https",
 		},
 	}
-	
+
 	// Create DHCPv4 daemon with version 2.3.7
-	daemon4 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 	daemon4.Version = "2.3.7"
 	err = daemon4.SetConfigFromJSON([]byte(`{
 		"Dhcp4": {
@@ -1193,9 +1193,9 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
-	
+
 	// Create DHCPv6 daemon with version 2.3.7
-	daemon6 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon6 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPoints)
 	daemon6.Version = "2.3.7"
 	err = daemon6.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {
@@ -1274,24 +1274,24 @@ func TestFindDeclinedLeasesNoLeaseCmds(t *testing.T) {
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "http",
 		},
 	}
-	
+
 	// Create DHCPv4 daemon without lease_cmds hooks
-	daemon4 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 	err = daemon4.SetConfigFromJSON([]byte(`{
 		"Dhcp4": {}
 	}`))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
-	
+
 	// Create DHCPv6 daemon without lease_cmds hooks
-	daemon6 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPoints)
+	daemon6 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPoints)
 	err = daemon6.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {}
 	}`))
@@ -1331,13 +1331,13 @@ func TestFindLeasesByHostID(t *testing.T) {
 	// Create DHCPv6 daemon on machine1 with lease_cmds hooks library loaded.
 	accessPoints1 := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8000,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
 			Protocol: "https",
 		},
 	}
-	daemon1 := dbmodel.NewDaemon(machine1, constant.DaemonNameDHCPv6, true, accessPoints1)
+	daemon1 := dbmodel.NewDaemon(machine1, daemonname.DHCPv6, true, accessPoints1)
 	err = daemon1.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
@@ -1354,14 +1354,14 @@ func TestFindLeasesByHostID(t *testing.T) {
 	// Create DHCPv4 and DHCPv6 daemons on machine2 with lease_cmds hooks library loaded.
 	accessPoints2 := []*dbmodel.AccessPoint{
 		{
-			Type:    dbmodel.AccessPointControl,
-			Address: "localhost",
-			Port:    8001,
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8001,
 			Protocol: "http",
 		},
 	}
-	
-	daemon2v4 := dbmodel.NewDaemon(machine2, constant.DaemonNameDHCPv4, true, accessPoints2)
+
+	daemon2v4 := dbmodel.NewDaemon(machine2, daemonname.DHCPv4, true, accessPoints2)
 	err = daemon2v4.SetConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
@@ -1374,8 +1374,8 @@ func TestFindLeasesByHostID(t *testing.T) {
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon2v4)
 	require.NoError(t, err)
-	
-	daemon2v6 := dbmodel.NewDaemon(machine2, constant.DaemonNameDHCPv6, true, accessPoints2)
+
+	daemon2v6 := dbmodel.NewDaemon(machine2, daemonname.DHCPv6, true, accessPoints2)
 	err = daemon2v6.SetConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [

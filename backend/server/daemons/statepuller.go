@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/configreview"
 	"isc.org/stork/server/daemons/bind9"
@@ -219,7 +219,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 		var additionalDaemons []*agentcomm.Daemon
 
 		for _, daemon := range state.Daemons {
-			if daemon.Name != constant.DaemonNameCA {
+			if daemon.Name != daemonname.CA {
 				continue
 			}
 
@@ -232,12 +232,12 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 
 			daemonNames := config.GetManagementControlSockets().GetManagedDaemonNames()
 			for _, name := range daemonNames {
-				if name == constant.KeaDaemonNameCA {
+				if name == daemonname.CA {
 					continue
 				}
 
 				additionalDaemons = append(additionalDaemons, &agentcomm.Daemon{
-					Name: name.ToDaemonName(),
+					Name: name,
 					// Communication with this daemon is done through the Kea CA.
 					AccessPoints: daemon.AccessPoints,
 					Machine:      daemon.Machine,
@@ -294,11 +294,11 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 	existingDaemonsByType := make(map[string][]*dbmodel.Daemon)
 	for _, daemon := range existingDaemons {
 		switch daemon.Name {
-		case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameCA, constant.DaemonNameD2:
+		case daemonname.DHCPv4, daemonname.DHCPv6, daemonname.CA, daemonname.D2:
 			existingDaemonsByType["kea"] = append(existingDaemonsByType["kea"], &daemon)
-		case constant.DaemonNameBind9:
+		case daemonname.Bind9:
 			existingDaemonsByType["bind9"] = append(existingDaemonsByType["bind9"], &daemon)
-		case constant.DaemonNamePDNS:
+		case daemonname.PDNS:
 			existingDaemonsByType["pdns"] = append(existingDaemonsByType["pdns"], &daemon)
 		default:
 			log.Warnf("Unknown daemon type %s", daemon.Name)

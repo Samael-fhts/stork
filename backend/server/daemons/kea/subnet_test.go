@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -40,7 +40,7 @@ func createDaemonsWithSubnets(t *testing.T, db *dbops.PgDB, index int64, v4Confi
 				Port:    8000 + index*2,
 			},
 		}
-		daemon4 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+		daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 		err = daemon4.SetConfigFromJSON([]byte(v4Config))
 		require.NoError(t, err)
 		daemons = append(daemons, daemon4)
@@ -55,7 +55,7 @@ func createDaemonsWithSubnets(t *testing.T, db *dbops.PgDB, index int64, v4Confi
 				Port:    8001 + index*2,
 			},
 		}
-		daemon6 := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints)
+		daemon6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, accessPoints)
 		err = daemon6.SetConfigFromJSON([]byte(v6Config))
 		require.NoError(t, err)
 		daemons = append(daemons, daemon6)
@@ -338,7 +338,7 @@ func TestCommitAppSameConfigs(t *testing.T) {
 	// Indicate that the configuration for a DHCPv4 daemon hasn't changed.
 	state := []DaemonStateMeta{
 		{}, // DHCPv4 daemon - no changes
-		{}, // DHCPv6 daemon - no changes  
+		{}, // DHCPv6 daemon - no changes
 	}
 	daemons := createDaemonsWithSubnets(t, db, 0, v4Config, v6Config)
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()

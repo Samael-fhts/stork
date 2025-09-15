@@ -5,7 +5,7 @@ import (
 	"time"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -24,11 +24,11 @@ func TestConfigReport(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add two daemons to the machine.
-	daemon1 := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon1 := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := NewDaemon(machine, constant.DaemonNameDHCPv6, true, []*AccessPoint{})
+	daemon2 := NewDaemon(machine, daemonname.DHCPv6, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon2)
 	require.NoError(t, err)
 

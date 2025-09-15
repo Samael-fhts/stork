@@ -20,7 +20,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"isc.org/stork"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	storkutil "isc.org/stork/util"
 )
 
@@ -825,7 +825,7 @@ func (pbe *PromBind9Exporter) Start() {
 		collectors.ProcessCollectorOpts{
 			PidFn: func() (int, error) {
 				for _, d := range pbe.Monitor.GetDaemons() {
-					if d.GetName() == constant.DaemonNameBind9 {
+					if d.GetName() == daemonname.Bind9 {
 						daemonBIND9 := d.(*Bind9Daemon)
 						pid := daemonBIND9.pid
 						return int(pid), nil
@@ -1186,7 +1186,7 @@ func (pbe *PromBind9Exporter) collectStats() error {
 	daemons := pbe.Monitor.GetDaemons()
 DAEMON_LOOP:
 	for _, daemon := range daemons {
-		if daemon.GetName() != constant.DaemonNameBind9 {
+		if daemon.GetName() != daemonname.Bind9 {
 			// ignore non-bind9 daemons
 			continue
 		}

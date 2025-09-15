@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -32,7 +32,7 @@ func TestGetDaemonState(t *testing.T) {
 		AgentPort: 1111,
 	}
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:     dbmodel.AccessPointControl,
 			Address:  "127.0.0.1",
@@ -111,7 +111,7 @@ func TestGetDaemonState(t *testing.T) {
 
 	require.NotNil(t, daemon.Bind9Daemon)
 	require.True(t, daemon.Active)
-	require.Equal(t, constant.DaemonNameBind9, daemon.Name)
+	require.Equal(t, daemonname.Bind9, daemon.Name)
 	require.Equal(t, "9.9.9", daemon.Version)
 	reloadedAt, _ := time.Parse(namedLongDateFormat, "Mon, 03 Feb 2020 14:39:36 GMT")
 	require.Equal(t, reloadedAt, daemon.ReloadedAt)
@@ -159,7 +159,7 @@ func TestCommitDaemonIntoDB(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "",

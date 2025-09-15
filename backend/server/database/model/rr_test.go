@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"isc.org/stork/daemoncfg/dnsconfig"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -25,7 +25,7 @@ func TestAddGetDeleteLocalZoneRRs(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon.
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -36,7 +36,7 @@ func TestEvent(t *testing.T) {
 	err = AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 	require.NotZero(t, daemon.ID)

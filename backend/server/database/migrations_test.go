@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/daemons/kea"
 	dbops "isc.org/stork/server/database"
 	"isc.org/stork/server/database/maintenance"
@@ -404,7 +404,7 @@ func TestMigrationFrom57To58DifferentHostData(t *testing.T) {
 			Protocol: "https",
 		}}
 
-		daemon := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+		daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 		_ = daemon.SetConfigFromJSON([]byte(`{
 			"Dhcp4": {
 				"client-classes": [

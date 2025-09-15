@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	dbops "isc.org/stork/server/database"
@@ -372,12 +372,11 @@ func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error
 	if daemon.KeaDaemon == nil || !daemon.Active {
 		return nil
 	}
-	if daemon.Name != constant.DaemonNameDHCPv4 && daemon.Name != constant.DaemonNameDHCPv6 {
+	if daemon.Name != daemonname.DHCPv4 && daemon.Name != daemonname.DHCPv6 {
 		return nil
 	}
 
-	daemonName, _ := daemon.Name.ToKeaDaemonName()
-	cmd := keactrl.NewCommandBase(keactrl.StatisticGetAll, daemonName)
+	cmd := keactrl.NewCommandBase(keactrl.StatisticGetAll, daemon.Name)
 	response := &keactrl.StatisticGetAllResponse{}
 
 	// Forward commands to Kea.
@@ -410,7 +409,7 @@ func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error
 	// because code handling the global statistics expects the IPv4 and
 	// IPv6 statistics to have unique names. So we need to rename the
 	// statistic name in the response.
-	if daemon.Name == constant.DaemonNameDHCPv6 {
+	if daemon.Name == daemonname.DHCPv6 {
 		for _, sample := range response.Arguments {
 			if sample.Name == "declined-addresses" {
 				sample.Name = "declined-nas"

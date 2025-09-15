@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	pdnsdata "isc.org/stork/daemondata/pdns"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -39,7 +39,7 @@ func TestGetDaemonState(t *testing.T) {
 		AgentPort: 1111,
 	}
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNamePDNS, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.PDNS, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "127.0.0.1",
@@ -75,7 +75,7 @@ func TestGetDaemonStateUpdateDaemon(t *testing.T) {
 		AgentPort: 1111,
 	}
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNamePDNS, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.PDNS, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "127.0.0.1",
@@ -126,7 +126,7 @@ func TestGetDaemonStateError(t *testing.T) {
 		AgentPort: 1111,
 	}
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNamePDNS, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.PDNS, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "127.0.0.1",
@@ -158,7 +158,7 @@ func TestCommitDaemonIntoDB(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNamePDNS, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.PDNS, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "",

@@ -20,7 +20,7 @@ import (
 
 	"isc.org/stork"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/pki"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/certs"
@@ -1139,11 +1139,10 @@ func (r *RestAPI) daemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.AnyDaemon {
 	apiDaemon.Daemon.AgentCommErrors = agentErrors
 
 	switch dbDaemon.Name {
-	case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameCA, constant.DaemonNameD2:
+	case daemonname.DHCPv4, daemonname.DHCPv6, daemonname.CA, daemonname.D2:
 		if agentStatsWrapper != nil {
-			daemonName, _ := dbDaemon.Name.ToKeaDaemonName()
 			stats := agentStatsWrapper.GetStats().GetKeaStats()
-			apiDaemon.ControlCommErrors = stats.GetErrorCount(daemonName)
+			apiDaemon.ControlCommErrors = stats.GetErrorCount(dbDaemon.Name)
 		}
 
 		files, backends := getKeaStorages(dbDaemon.KeaDaemon.Config)
@@ -1164,7 +1163,7 @@ func (r *RestAPI) daemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.AnyDaemon {
 			Files:      files,
 			Backends:   backends,
 		}
-	case constant.DaemonNameBind9:
+	case daemonname.Bind9:
 		if dbDaemon.Bind9Daemon == nil {
 			log.Warnf("BIND9 daemon %d does not have Bind9Daemon details", dbDaemon.ID)
 			return apiDaemon
@@ -1204,7 +1203,7 @@ func (r *RestAPI) daemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.AnyDaemon {
 			apiDaemon.Daemon.ControlCommErrors = stats.GetErrorCount(dbmodel.AccessPointControl)
 			apiDaemon.Bind9DaemonDetails.StatsCommErrors = stats.GetErrorCount(dbmodel.AccessPointStatistics)
 		}
-	case constant.DaemonNamePDNS:
+	case daemonname.PDNS:
 		if dbDaemon.PDNSDaemon == nil {
 			log.Warnf("PowerDNS daemon %d does not have PDNSDaemon details", dbDaemon.ID)
 			return apiDaemon
@@ -1248,7 +1247,7 @@ func (r *RestAPI) keaDaemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.KeaDaemon
 	}
 }
 
-func (r *RestAPI) getDaemons(offset, limit int64, filterText *string, sortField string, sortDir dbmodel.SortDirEnum, daemonNames ...constant.DaemonName) (*models.Daemons, error) {
+func (r *RestAPI) getDaemons(offset, limit int64, filterText *string, sortField string, sortDir dbmodel.SortDirEnum, daemonNames ...daemonname.Name) (*models.Daemons, error) {
 	dbDaemons, total, err := dbmodel.GetDaemonsByPage(r.DB, offset, limit, filterText, sortField, sortDir, daemonNames...)
 	if err != nil {
 		return nil, err
@@ -1276,9 +1275,17 @@ func (r *RestAPI) GetDaemons(ctx context.Context, params services.GetDaemonsPara
 		limit = *params.Limit
 	}
 
-	var daemonNames []constant.DaemonName
+	var daemonNames []daemonname.Name
 	for _, daemonName := range params.Daemons {
-		daemonNames = append(daemonNames, constant.DaemonName(daemonName))
+		daemonName, err := daemonname.Parse(daemonName)
+		if err != nil {
+			msg := fmt.Sprintf("Bad daemon name filter: %s", daemonName)
+			rsp := services.NewGetDaemonsDefault(http.StatusBadRequest).WithPayload(&models.APIError{
+				Message: &msg,
+			})
+			return rsp
+		}
+		daemonNames = append(daemonNames, daemonName)
 	}
 	daemons, err := r.getDaemons(start, limit, params.Text, "", dbmodel.SortDirAny, daemonNames...)
 	if err != nil {
@@ -1348,7 +1355,7 @@ func (r *RestAPI) GetDaemonsWithCommunicationIssues(ctx context.Context, params 
 
 		if apiDaemon.Daemon.AgentCommErrors > 0 || apiDaemon.Daemon.ControlCommErrors > 0 {
 			daemons = append(daemons, apiDaemon)
-		} else if dbDaemon.Name == constant.DaemonNameBind9 && apiDaemon.Bind9DaemonDetails.StatsCommErrors > 0 {
+		} else if dbDaemon.Name == daemonname.Bind9 && apiDaemon.Bind9DaemonDetails.StatsCommErrors > 0 {
 			// Bind9 daemon has a separate stats communication error counter.
 			daemons = append(daemons, apiDaemon)
 		}
@@ -1541,7 +1548,7 @@ func (r *RestAPI) GetDaemonServicesStatus(ctx context.Context, params services.G
 
 	// If this is Kea DHCP daemon, get the Kea DHCP servers status which possibly
 	// includes HA status.
-	if dbDaemon.Name == constant.DaemonNameDHCPv4 || dbDaemon.Name == constant.DaemonNameDHCPv6 {
+	if dbDaemon.Name == daemonname.DHCPv4 || dbDaemon.Name == daemonname.DHCPv6 {
 		servicesStatus = getKeaServicesStatus(r.DB, dbDaemon)
 		if servicesStatus == nil {
 			msg := fmt.Sprintf("Cannot get status of daemon with ID %d", dbDaemon.ID)
@@ -1578,12 +1585,12 @@ func (r *RestAPI) GetDaemonsStats(ctx context.Context, params services.GetDaemon
 	}
 	for _, dbDaemon := range dbDaemons {
 		switch dbDaemon.Name {
-		case constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6:
+		case daemonname.DHCPv4, daemonname.DHCPv6:
 			daemonsStats.DhcpDaemonsTotal++
 			if !dbDaemon.Active {
 				daemonsStats.DhcpDaemonsNotOk++
 			}
-		case constant.DaemonNameBind9, constant.DaemonNamePDNS:
+		case daemonname.Bind9, daemonname.PDNS:
 			daemonsStats.DNSDaemonsTotal++
 			if !dbDaemon.Active {
 				daemonsStats.DNSDaemonsNotOk++

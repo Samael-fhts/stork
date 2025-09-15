@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	bind9config "isc.org/stork/daemoncfg/bind9"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
 )
@@ -330,7 +330,7 @@ func TestDetectBind9Step1ProcessCmdLine(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
@@ -368,7 +368,7 @@ func TestDetectBind9ChrootStep1ProcessCmdLine(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
@@ -408,7 +408,7 @@ func TestDetectBind9Step2ExplicitPath(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, confPath, bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
@@ -450,7 +450,7 @@ func TestDetectBind9ChrootStep2ExplicitPath(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, fullConfPath, bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
@@ -525,7 +525,7 @@ func TestDetectBind9Step3BindVOutput(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
@@ -568,7 +568,7 @@ func TestDetectBind9ChrootStep3BindVOutput(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, "", bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)
@@ -623,7 +623,7 @@ func TestDetectBind9Step4TypicalLocations(t *testing.T) {
 			// Assert
 			require.NoError(t, err)
 			require.NotNil(t, daemon)
-			require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+			require.Equal(t, daemonname.Bind9, daemon.GetName())
 			require.Len(t, daemon.GetAccessPoints(), 1)
 			point := daemon.GetAccessPoints()[0]
 			require.Equal(t, AccessPointControl, point.Type)
@@ -677,7 +677,7 @@ func TestDetectBind9ChrootStep4TypicalLocations(t *testing.T) {
 			// Assert
 			require.NoError(t, err)
 			require.NotNil(t, daemon)
-			require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+			require.Equal(t, daemonname.Bind9, daemon.GetName())
 			require.Len(t, daemon.GetAccessPoints(), 1)
 			point := daemon.GetAccessPoints()[0]
 			require.Equal(t, AccessPointControl, point.Type)
@@ -740,7 +740,7 @@ func TestDetectBind9DetectOrder(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, config2Path, bind9config.NewParser())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	point := daemon.GetAccessPoints()[0]
 	require.Equal(t, AccessPointControl, point.Type)

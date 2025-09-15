@@ -8,7 +8,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	require "github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbtest "isc.org/stork/server/database/test"
 	storktest "isc.org/stork/server/test"
@@ -78,7 +78,7 @@ func TestNewSharedNetworkFromKea(t *testing.T) {
 			},
 		},
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv6, true, nil)
+	daemon := NewDaemon(machine, daemonname.DHCPv6, true, nil)
 	lookup := NewDHCPOptionDefinitionLookup()
 	parsedNetwork, err := NewSharedNetworkFromKea(network, 6, daemon, HostDataSourceConfig, lookup)
 	require.NoError(t, err)
@@ -150,7 +150,7 @@ func TestNewSubnetFromKea(t *testing.T) {
 		},
 	}
 
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv6, true, nil)
+	daemon := NewDaemon(machine, daemonname.DHCPv6, true, nil)
 	daemon.ID = 234
 	lookup := NewDHCPOptionDefinitionLookup()
 	parsedSubnet, err := NewSubnetFromKea(&keaSubnet, daemon, HostDataSourceConfig, lookup)
@@ -201,7 +201,7 @@ func TestNewSubnetFromKeaWithInvalidPrefix(t *testing.T) {
 			Subnet: "invalid",
 		},
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, nil)
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 
 	// Act
@@ -222,7 +222,7 @@ func TestNewSubnetFromKeaWithDefaultIPv4PrefixMask(t *testing.T) {
 			Subnet: "10.42.42.42",
 		},
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, nil)
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 
 	// Act
@@ -243,7 +243,7 @@ func TestNewSubnetFromKeaWithDefaultIPv6PrefixMask(t *testing.T) {
 			Subnet: "fe80::42",
 		},
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv6, true, nil)
+	daemon := NewDaemon(machine, daemonname.DHCPv6, true, nil)
 	daemon.ID = 42
 
 	// Act
@@ -264,7 +264,7 @@ func TestNewSubnetFromKeaWithNonCanonicalIPv4Prefix(t *testing.T) {
 			Subnet: "10.42.42.42/8",
 		},
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, nil)
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 
 	// Act
@@ -285,7 +285,7 @@ func TestNewSubnetFromKeaWithNonCanonicalIPv6Prefix(t *testing.T) {
 			Subnet: "2001:db8:1::42/64",
 		},
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv6, true, nil)
+	daemon := NewDaemon(machine, daemonname.DHCPv6, true, nil)
 	daemon.ID = 42
 
 	// Act
@@ -513,7 +513,7 @@ func TestStoreHugeKeaConfigInDatabase(t *testing.T) {
 	require.NoError(t, err)
 
 	configJson, _ := json.Marshal(keaConfig)
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, nil)
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, nil)
 	err = daemon.SetConfigFromJSON(configJson)
 	require.NoError(t, err)
 
@@ -536,7 +536,7 @@ func TestStoreNilValueInDatabase(t *testing.T) {
 		AgentPort: 3000,
 	}
 	_ = AddMachine(db, machine)
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	daemon.KeaDaemon.Config = nil
 
 	_ = AddDaemon(db, daemon)

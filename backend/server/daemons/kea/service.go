@@ -41,10 +41,7 @@ func DetectHAServices(dbi dbops.DBI, daemon *dbmodel.Daemon) ([]dbmodel.Service,
 		dbServices []dbmodel.Service
 		services   []dbmodel.Service
 	)
-	haType, err := daemon.Name.ToKeaDHCPDaemonName()
-	if err != nil {
-		return []dbmodel.Service{}, errors.WithMessage(err, "failed to convert daemon name to HA type")
-	}
+	haType := daemon.Name
 
 	for _, relationship := range relationships {
 		// Make sure that all required parameters are set.

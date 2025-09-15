@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -46,7 +46,7 @@ func TestGetAccessPointByID(t *testing.T) {
 	_ = AddMachine(db, machine)
 	daemon := &Daemon{
 		MachineID: machine.ID,
-		Name:      constant.DaemonNameBind9,
+		Name:      daemonname.Bind9,
 		AccessPoints: []*AccessPoint{{
 			Type:     AccessPointControl,
 			Address:  "127.0.0.1",

@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	dnsconfig "isc.org/stork/daemoncfg/dnsconfig"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	bind9stats "isc.org/stork/daemondata/bind9stats"
 	agentcomm "isc.org/stork/server/agentcomm"
 	appstest "isc.org/stork/server/daemons/test"
@@ -148,7 +148,7 @@ func TestFetchZonesInventoryBusyError(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -220,7 +220,7 @@ func TestFetchZonesInventoryNotInitedError(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -293,7 +293,7 @@ func TestFetchZonesInventoryOtherError(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -368,7 +368,7 @@ func TestFetchZonesInventoryDeleteLocalZonesError(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -442,7 +442,7 @@ func TestFetchZones(t *testing.T) {
 		err := dbmodel.AddMachine(db, machine)
 		require.NoError(t, err)
 
-		daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+		daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 			{
 				Type:    dbmodel.AccessPointControl,
 				Address: "localhost",
@@ -561,7 +561,7 @@ func TestFetchZonesMultipleTimes(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -685,7 +685,7 @@ func TestFetchRepeatedZones(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -776,7 +776,7 @@ func TestGetZoneRRs(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -951,7 +951,7 @@ func TestGetZoneRRsNoZone(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -1005,7 +1005,7 @@ func TestGetZoneRRsAnotherRequestInProgress(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{})
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{})
 	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -1110,7 +1110,7 @@ func TestGetZoneRRsAnotherRequestInProgressDifferentZone(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon1 := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon1 := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -1120,7 +1120,7 @@ func TestGetZoneRRsAnotherRequestInProgressDifferentZone(t *testing.T) {
 	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon2 := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -1308,7 +1308,7 @@ func TestZoneRRsCacheWithEarlyReturn(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -1404,7 +1404,7 @@ func TestZoneRRsCacheDatabaseError(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",

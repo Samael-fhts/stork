@@ -10,7 +10,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
@@ -175,7 +175,7 @@ func TestApplyGlobalParametersUpdate(t *testing.T) {
 	daemons := []dbmodel.Daemon{
 		{
 			ID:   1,
-			Name: constant.DaemonNameDHCPv4,
+			Name: daemonname.DHCPv4,
 			KeaDaemon: &dbmodel.KeaDaemon{
 				Config: keaConfig,
 			},
@@ -189,7 +189,7 @@ func TestApplyGlobalParametersUpdate(t *testing.T) {
 		},
 		{
 			ID:   2,
-			Name: constant.DaemonNameDHCPv4,
+			Name: daemonname.DHCPv4,
 			KeaDaemon: &dbmodel.KeaDaemon{
 				Config: keaConfig,
 			},
@@ -455,7 +455,7 @@ func TestApplyHostAdd(t *testing.T) {
 				DaemonID: 1,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -469,7 +469,7 @@ func TestApplyHostAdd(t *testing.T) {
 				DaemonID: 2,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -581,7 +581,7 @@ func TestCommitHostAdd(t *testing.T) {
 				DaemonID: daemons[0].ID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:     dbmodel.AccessPointControl,
@@ -597,7 +597,7 @@ func TestCommitHostAdd(t *testing.T) {
 				DaemonID: daemons[1].ID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:     dbmodel.AccessPointControl,
@@ -693,7 +693,7 @@ func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 				DaemonID: 1,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -707,7 +707,7 @@ func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 				DaemonID: 2,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -783,7 +783,7 @@ func TestApplyHostUpdate(t *testing.T) {
 				DaemonID: 1,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -801,7 +801,7 @@ func TestApplyHostUpdate(t *testing.T) {
 				DaemonID: 2,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -819,7 +819,7 @@ func TestApplyHostUpdate(t *testing.T) {
 				DaemonID: 2,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -869,7 +869,7 @@ func TestApplyHostUpdate(t *testing.T) {
 				DaemonID: 1,
 				Hostname: "foo.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -887,7 +887,7 @@ func TestApplyHostUpdate(t *testing.T) {
 				DaemonID: 2,
 				Hostname: "foo.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -1012,7 +1012,7 @@ func TestCommitHostUpdate(t *testing.T) {
 				DaemonID: daemons[0].ID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:     dbmodel.AccessPointControl,
@@ -1028,7 +1028,7 @@ func TestCommitHostUpdate(t *testing.T) {
 				DaemonID: daemons[1].ID,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:     dbmodel.AccessPointControl,
@@ -1159,7 +1159,7 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 				DaemonID: 1,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -1173,7 +1173,7 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 				DaemonID: 2,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -1267,7 +1267,7 @@ func TestApplyHostDelete(t *testing.T) {
 				DaemonID: 1,
 				Hostname: "cool.example.org",
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -1281,7 +1281,7 @@ func TestApplyHostDelete(t *testing.T) {
 			{
 				DaemonID: 2,
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -1457,7 +1457,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 			{
 				DaemonID: 1,
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -1470,7 +1470,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 			{
 				DaemonID: 2,
 				Daemon: &dbmodel.Daemon{
-					Name:    constant.DaemonNameDHCPv4,
+					Name:    daemonname.DHCPv4,
 					Version: "2.5.0",
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
@@ -1484,7 +1484,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 			{
 				DaemonID: 4,
 				Daemon: &dbmodel.Daemon{
-					Name:    constant.DaemonNameDHCPv4,
+					Name:    daemonname.DHCPv4,
 					Version: "2.6.0",
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
@@ -1504,7 +1504,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 					{
 						DaemonID: 1,
 						Daemon: &dbmodel.Daemon{
-							Name: constant.DaemonNameDHCPv4,
+							Name: daemonname.DHCPv4,
 							AccessPoints: []*dbmodel.AccessPoint{
 								{
 									Type:    dbmodel.AccessPointControl,
@@ -1523,7 +1523,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 					{
 						DaemonID: 2,
 						Daemon: &dbmodel.Daemon{
-							Name:    constant.DaemonNameDHCPv4,
+							Name:    daemonname.DHCPv4,
 							Version: "2.5.0",
 							AccessPoints: []*dbmodel.AccessPoint{
 								{
@@ -1543,7 +1543,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 					{
 						DaemonID: 4,
 						Daemon: &dbmodel.Daemon{
-							Name:    constant.DaemonNameDHCPv4,
+							Name:    daemonname.DHCPv4,
 							Version: "2.6.0",
 							AccessPoints: []*dbmodel.AccessPoint{
 								{
@@ -1946,7 +1946,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 			{
 				DaemonID: 1,
 				Daemon: &dbmodel.Daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
 							Type:    dbmodel.AccessPointControl,
@@ -1959,7 +1959,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 			{
 				DaemonID: 2,
 				Daemon: &dbmodel.Daemon{
-					Name:    constant.DaemonNameDHCPv4,
+					Name:    daemonname.DHCPv4,
 					Version: "2.5.0",
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
@@ -1973,7 +1973,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 			{
 				DaemonID: 3,
 				Daemon: &dbmodel.Daemon{
-					Name:    constant.DaemonNameDHCPv4,
+					Name:    daemonname.DHCPv4,
 					Version: "2.6.0",
 					AccessPoints: []*dbmodel.AccessPoint{
 						{
@@ -1994,7 +1994,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 						LocalSubnetID: 11,
 						DaemonID:      1,
 						Daemon: &dbmodel.Daemon{
-							Name: constant.DaemonNameDHCPv4,
+							Name: daemonname.DHCPv4,
 							AccessPoints: []*dbmodel.AccessPoint{
 								{
 									Type:    dbmodel.AccessPointControl,
@@ -2014,7 +2014,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 						LocalSubnetID: 11,
 						DaemonID:      2,
 						Daemon: &dbmodel.Daemon{
-							Name:    constant.DaemonNameDHCPv4,
+							Name:    daemonname.DHCPv4,
 							Version: "2.5.0",
 							AccessPoints: []*dbmodel.AccessPoint{
 								{
@@ -2035,7 +2035,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 						LocalSubnetID: 11,
 						DaemonID:      3,
 						Daemon: &dbmodel.Daemon{
-							Name:    constant.DaemonNameDHCPv4,
+							Name:    daemonname.DHCPv4,
 							Version: "2.6.0",
 							AccessPoints: []*dbmodel.AccessPoint{
 								{

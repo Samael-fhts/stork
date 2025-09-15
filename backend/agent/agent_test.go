@@ -28,7 +28,7 @@ import (
 
 	"isc.org/stork"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
 	"isc.org/stork/hooks"
@@ -77,14 +77,14 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 		Daemons: []Daemon{
 			&KeaDaemon{
 				daemon: daemon{
-					Name:         constant.DaemonNameDHCPv4,
+					Name:         daemonname.DHCPv4,
 					AccessPoints: []AccessPoint{keaAccessPoint},
 				},
 				connector: newKeaConnector(keaAccessPoint, httpClientConfig),
 			},
 			&Bind9Daemon{
 				daemon: daemon{
-					Name: constant.DaemonNameBind9,
+					Name: daemonname.Bind9,
 					AccessPoints: []AccessPoint{{
 						Type:     AccessPointControl,
 						Address:  "localhost",
@@ -208,7 +208,7 @@ func TestGetState(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameDHCPv4,
+			Name: daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "1.2.3.1",
@@ -237,7 +237,7 @@ func TestGetState(t *testing.T) {
 
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name:         constant.DaemonNameBind9,
+			Name:         daemonname.Bind9,
 			AccessPoints: accessPoints,
 		},
 	})
@@ -571,7 +571,7 @@ func TestForwardRndcCommandSuccess(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -634,7 +634,7 @@ func TestForwardRndcCommandError(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -695,7 +695,7 @@ func TestForwardRndcCommandEmpty(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1080,7 +1080,7 @@ func TestReceiveZonesFilterByView(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1155,7 +1155,7 @@ func TestReceiveZonesPDNS(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1242,7 +1242,7 @@ func TestReceiveRPZZones(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1323,7 +1323,7 @@ func TestReceiveZonesFilterByLoadedAfter(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1388,7 +1388,7 @@ func TestReceiveZonesFilterLowerBound(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1443,7 +1443,7 @@ func TestReceiveZonesNilZoneInventory(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1481,7 +1481,7 @@ func TestReceiveZonesUnsupportedApp(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameDHCPv4,
+			Name: daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1542,7 +1542,7 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1628,7 +1628,7 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1741,7 +1741,7 @@ func TestReceiveZoneRRs(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1840,7 +1840,7 @@ func TestReceiveZoneRRsPowerDNS(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1891,7 +1891,7 @@ func TestReceiveZoneRRsNilZoneInventory(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -1963,7 +1963,7 @@ func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -2056,7 +2056,7 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
@@ -2131,7 +2131,7 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "localhost",
@@ -2200,7 +2200,7 @@ func TestGetPowerDNSServerInfoNoAPIKey(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "localhost",
@@ -2249,7 +2249,7 @@ func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "localhost",
@@ -2311,7 +2311,7 @@ func TestGetPowerDNSServerInfoStatisticsErrorResponse(t *testing.T) {
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 			AccessPoints: []AccessPoint{{
 				Type:     AccessPointControl,
 				Address:  "localhost",

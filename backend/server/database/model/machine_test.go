@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -101,7 +101,7 @@ func TestGetMachineByAddress(t *testing.T) {
 	require.NoError(t, err)
 
 	// add daemon
-	d := NewDaemon(m2, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	d := NewDaemon(m2, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -152,7 +152,7 @@ func TestGetMachineByID(t *testing.T) {
 	require.NoError(t, err)
 
 	// add daemon
-	d := NewDaemon(m2, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	d := NewDaemon(m2, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "dns.example.",
@@ -175,7 +175,7 @@ func TestGetMachineByID(t *testing.T) {
 	require.Equal(t, "dns.example.", m.Daemons[0].AccessPoints[0].Address)
 	require.EqualValues(t, 953, m.Daemons[0].AccessPoints[0].Port)
 	require.Equal(t, "abcd", m.Daemons[0].AccessPoints[0].Key)
-	require.Equal(t, constant.DaemonNameDHCPv4, m.Daemons[0].Name)
+	require.Equal(t, daemonname.DHCPv4, m.Daemons[0].Name)
 	require.True(t, m.LastVisitedAt.IsZero())
 
 	// delete machine
@@ -202,7 +202,7 @@ func TestGetMachineByIDWithRelations(t *testing.T) {
 	}
 	_ = AddMachine(db, m)
 
-	daemonKea := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	daemonKea := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "dns.example.",
@@ -229,7 +229,7 @@ func TestGetMachineByIDWithRelations(t *testing.T) {
 	err = AddDaemon(db, daemonKea)
 	require.NoError(t, err)
 
-	daemonBind9 := NewDaemon(m, constant.DaemonNameBind9, true, []*AccessPoint{})
+	daemonBind9 := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
 	err = AddDaemon(db, daemonBind9)
 
 	service := &Service{
@@ -340,7 +340,7 @@ func TestGetMachineByAddressAndAccessPointPort(t *testing.T) {
 	m1 := &Machine{Address: "fe80::1", AgentPort: 8080}
 	_ = AddMachine(db, m1)
 
-	d1 := NewDaemon(m1, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	d1 := NewDaemon(m1, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "fe80::1",
@@ -349,7 +349,7 @@ func TestGetMachineByAddressAndAccessPointPort(t *testing.T) {
 	})
 	_ = AddDaemon(db, d1)
 
-	d2 := NewDaemon(m1, constant.DaemonNameDHCPv6, true, []*AccessPoint{
+	d2 := NewDaemon(m1, daemonname.DHCPv6, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "127.0.0.1",
@@ -361,7 +361,7 @@ func TestGetMachineByAddressAndAccessPointPort(t *testing.T) {
 	m2 := &Machine{Address: "fe80::1:1", AgentPort: 8090}
 	_ = AddMachine(db, m2)
 
-	d3 := NewDaemon(m2, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	d3 := NewDaemon(m2, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "fe80::1:2",
@@ -389,7 +389,7 @@ func TestGetMachineByAddressAndAccessPointPortFilterByType(t *testing.T) {
 	m1 := &Machine{Address: "fe80::1", AgentPort: 8080}
 	_ = AddMachine(db, m1)
 
-	d1 := NewDaemon(m1, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	d1 := NewDaemon(m1, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "127.0.0.1",
@@ -398,7 +398,7 @@ func TestGetMachineByAddressAndAccessPointPortFilterByType(t *testing.T) {
 	})
 	_ = AddDaemon(db, d1)
 
-	d2 := NewDaemon(m1, constant.DaemonNameDHCPv6, true, []*AccessPoint{
+	d2 := NewDaemon(m1, daemonname.DHCPv6, true, []*AccessPoint{
 		{
 			Type:    AccessPointStatistics,
 			Address: "127.0.0.1",
@@ -472,7 +472,7 @@ func TestGetMachinesByPageBasic(t *testing.T) {
 		require.NoError(t, err)
 
 		// add daemon
-		d := NewDaemon(m, constant.DaemonNameBind9, true, []*AccessPoint{
+		d := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "localhost",
@@ -690,7 +690,7 @@ func TestDeleteMachineWithDaemons(t *testing.T) {
 	require.NoError(t, err)
 
 	// add daemon
-	d := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	d := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, d)
 	require.NoError(t, err)
 	daemonID := d.ID
@@ -725,7 +725,7 @@ func TestDeleteMachineWithEmptyConfigReport(t *testing.T) {
 	}
 	_ = AddMachine(db, machine)
 
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err := AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -759,7 +759,7 @@ func TestDeleteMachineWithConfigReport(t *testing.T) {
 	}
 	_ = AddMachine(db, machine)
 
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err := AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -796,7 +796,7 @@ func TestDeleteMachineWithKeaDaemonOrphans(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon.
-	daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -875,7 +875,7 @@ func TestDeleteMachineWithBind9DaemonOrphans(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon.
-	daemon := NewDaemon(m, constant.DaemonNameBind9, true, []*AccessPoint{})
+	daemon := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -956,7 +956,7 @@ func TestGetAllMachines(t *testing.T) {
 		err := AddMachine(db, m)
 		require.NoError(t, err)
 
-		d := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+		d := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "localhost",
@@ -1049,7 +1049,7 @@ func TestGetAllMachinesNoRelations(t *testing.T) {
 		err := AddMachine(db, m)
 		require.NoError(t, err)
 
-		d := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+		d := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "localhost",

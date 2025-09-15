@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
@@ -474,10 +474,10 @@ func TestConfiguredDaemonNames(t *testing.T) {
 	names := sockets.GetManagedDaemonNames()
 	require.Len(t, names, 4)
 
-	require.Contains(t, names, constant.KeaDaemonNameDHCPv4)
-	require.Contains(t, names, constant.KeaDaemonNameDHCPv6)
-	require.Contains(t, names, constant.KeaDaemonNameD2)
-	require.Contains(t, names, constant.KeaDaemonNameNetConf)
+	require.Contains(t, names, daemonname.DHCPv4)
+	require.Contains(t, names, daemonname.DHCPv6)
+	require.Contains(t, names, daemonname.D2)
+	require.Contains(t, names, daemonname.NetConf)
 
 	// Reduce the number of configured sockets.
 	configStr = `{
@@ -507,8 +507,8 @@ func TestConfiguredDaemonNames(t *testing.T) {
 	names = sockets.GetManagedDaemonNames()
 	require.Len(t, names, 2)
 
-	require.Contains(t, names, constant.KeaDaemonNameDHCPv4)
-	require.Contains(t, names, constant.KeaDaemonNameD2)
+	require.Contains(t, names, daemonname.DHCPv4)
+	require.Contains(t, names, daemonname.D2)
 }
 
 // Test that all database connections configurations are parsed and returned

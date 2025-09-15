@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 )
 
@@ -46,7 +46,7 @@ func TestKeaInterceptorAsyncHandle(t *testing.T) {
 
 	// Simulate sending config-get command to the DHCPv4 and DHCPv6
 	// server.
-	command := *keactrl.NewCommandBase(keactrl.ConfigGet, constant.KeaDaemonNameDHCPv4)
+	command := *keactrl.NewCommandBase(keactrl.ConfigGet, daemonname.DHCPv4)
 	response := keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 0,
@@ -58,7 +58,7 @@ func TestKeaInterceptorAsyncHandle(t *testing.T) {
 	interceptor.asyncHandle(nil, command, response)
 	require.Equal(t, "config-get", commandInvoked)
 
-	command = *keactrl.NewCommandBase(keactrl.ConfigGet, constant.KeaDaemonNameDHCPv6)
+	command = *keactrl.NewCommandBase(keactrl.ConfigGet, daemonname.DHCPv6)
 	response = keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 1,
@@ -81,7 +81,7 @@ func TestKeaInterceptorAsyncHandle(t *testing.T) {
 
 	// Make sure that we can invoke different callback when using different
 	// command.
-	command = *keactrl.NewCommandBase(keactrl.Subnet4Get, constant.KeaDaemonNameDHCPv4)
+	command = *keactrl.NewCommandBase(keactrl.Subnet4Get, daemonname.DHCPv4)
 	interceptor.asyncHandle(nil, command, response)
 	require.Equal(t, "subnet4-get", commandInvoked)
 }
@@ -98,7 +98,7 @@ func TestKeaInterceptorAsyncHandleControlAgent(t *testing.T) {
 	}, "config-get")
 
 	// Simulate sending command to the Control Agent.
-	command := *keactrl.NewCommandBase(keactrl.ConfigGet, constant.KeaDaemonNameDHCPv4)
+	command := *keactrl.NewCommandBase(keactrl.ConfigGet, daemonname.DHCPv4)
 	response := keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 1,
@@ -134,7 +134,7 @@ func TestKeaInterceptorMultipleAsyncHandlers(t *testing.T) {
 	}, "config-get")
 
 	// Send the command matching the handlers.
-	command := *keactrl.NewCommandBase(keactrl.ConfigGet, constant.KeaDaemonNameDHCPv4)
+	command := *keactrl.NewCommandBase(keactrl.ConfigGet, daemonname.DHCPv4)
 	response := keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 0,
@@ -175,7 +175,7 @@ func TestKeaInterceptorSyncHandleExecute(t *testing.T) {
 		return nil
 	}, "foobar")
 
-	command := *keactrl.NewCommandBase(keactrl.CommandName("foobar"), constant.KeaDaemonNameDHCPv4)
+	command := *keactrl.NewCommandBase(keactrl.CommandName("foobar"), daemonname.DHCPv4)
 	response := keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 0,
@@ -210,7 +210,7 @@ func TestKeaInterceptorMultipleSyncHandlesExecute(t *testing.T) {
 		return nil
 	}, "foobar")
 
-	command := *keactrl.NewCommandBase(keactrl.CommandName("foobar"), constant.KeaDaemonNameDHCPv4)
+	command := *keactrl.NewCommandBase(keactrl.CommandName("foobar"), daemonname.DHCPv4)
 	response := keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 0,
@@ -238,7 +238,7 @@ func TestKeaInterceptorSyncHandleRewriteResponse(t *testing.T) {
 		return nil
 	}, "foobar")
 
-	command := *keactrl.NewCommandBase(keactrl.CommandName("foobar"), constant.KeaDaemonNameDHCPv4)
+	command := *keactrl.NewCommandBase(keactrl.CommandName("foobar"), daemonname.DHCPv4)
 	inResponse := keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 0,
@@ -274,7 +274,7 @@ func TestKeaInterceptorSyncHandleReturnError(t *testing.T) {
 		return nil
 	}, "foobar")
 
-	command := *keactrl.NewCommandBase(keactrl.CommandName("foobar"), constant.KeaDaemonNameDHCPv4)
+	command := *keactrl.NewCommandBase(keactrl.CommandName("foobar"), daemonname.DHCPv4)
 	inResponse := keactrl.Response{
 		ResponseHeader: keactrl.ResponseHeader{
 			Result: 0,

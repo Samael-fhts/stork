@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
@@ -246,14 +246,14 @@ func rpsTestAddMachine(t *testing.T, db *dbops.PgDB, dhcp4Active bool, dhcp6Acti
 	daemonV4 := &dbmodel.Daemon{
 		ID:           0,
 		MachineID:    m.ID,
-		Name:         constant.DaemonNameDHCPv4,
+		Name:         daemonname.DHCPv4,
 		Active:       true,
 		AccessPoints: accessPoints,
 	}
 
 	daemonV6 := &dbmodel.Daemon{
 		Active: dhcp6Active,
-		Name:   constant.DaemonNameDHCPv6,
+		Name:   daemonname.DHCPv6,
 		KeaDaemon: &dbmodel.KeaDaemon{
 			KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
 		},

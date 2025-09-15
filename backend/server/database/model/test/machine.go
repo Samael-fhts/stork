@@ -5,7 +5,7 @@ import (
 	"math/rand"
 
 	"github.com/go-pg/pg/v10"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbmodel "isc.org/stork/server/database/model"
 )
 
@@ -42,7 +42,7 @@ func NewMachine(db *pg.DB) (*Machine, error) {
 }
 
 // Creates new Kea app instance in the machine.
-func (machine *Machine) newKeaDaemon(name constant.DaemonName) (*KeaServer, error) {
+func (machine *Machine) newKeaDaemon(name daemonname.Name) (*KeaServer, error) {
 	ap := []*dbmodel.AccessPoint{{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "localhost",
@@ -72,10 +72,10 @@ func (machine *Machine) newKeaDaemon(name constant.DaemonName) (*KeaServer, erro
 
 // Creates DHCOPv4 server instance for the Kea app.
 func (m *Machine) NewKeaDHCPv4Server() (*KeaServer, error) {
-	return m.newKeaDaemon(constant.DaemonNameDHCPv4)
+	return m.newKeaDaemon(daemonname.DHCPv4)
 }
 
 // Creates DHCPv6 server instance for the Kea app.
 func (m *Machine) NewKeaDHCPv6Server() (*KeaServer, error) {
-	return m.newKeaDaemon(constant.DaemonNameDHCPv6)
+	return m.newKeaDaemon(daemonname.DHCPv6)
 }

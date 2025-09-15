@@ -9,7 +9,7 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/dnsop"
@@ -30,10 +30,10 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 		limit = int(*params.Limit)
 	}
 
-	var dnsDaemonName *constant.DNSDaemonName
+	var daemonName *daemonname.Name
 	if params.DaemonName != nil {
-		daemonName, err := constant.ParseDaemonName(*params.DaemonName)
-		if err != nil {
+		paramDaemonName, err := daemonname.Parse(*params.DaemonName)
+		if err != nil || !paramDaemonName.IsDNS() {
 			msg := "Invalid daemon name"
 			log.WithError(err).Error(msg)
 			rsp := dns.NewGetZonesDefault(http.StatusBadRequest).WithPayload(&models.APIError{
@@ -41,7 +41,6 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 			})
 			return rsp
 		}
-		paramsDNSDaemonName, err := daemonName.ToDNSDaemonName()
 		if err != nil {
 			msg := "Daemon name is not a DNS daemon"
 			log.WithError(err).Error(msg)
@@ -50,13 +49,13 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 			})
 			return rsp
 		}
-		dnsDaemonName = &paramsDNSDaemonName
+		daemonName = &paramDaemonName
 	}
 
 	// Apply paging parameters and zone-specific filters.
 	filter := &dbmodel.GetZonesFilter{
 		DaemonID:   params.DaemonID,
-		DaemonName: dnsDaemonName,
+		DaemonName: daemonName,
 		Class:      params.Class,
 		RPZ:        params.Rpz,
 		Serial:     params.Serial,

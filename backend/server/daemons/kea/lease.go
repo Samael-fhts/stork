@@ -8,7 +8,7 @@ import (
 	errors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	keadata "isc.org/stork/daemondata/kea"
 	"isc.org/stork/server/agentcomm"
@@ -67,7 +67,7 @@ func validateGetLeasesResponse(commandName keactrl.CommandName, result keactrl.R
 // If the lease is found, the pointer to it is returned. If the lease does not
 // exist, a nil pointer and nil error are returned.
 func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, ipAddress string) (lease *dbmodel.Lease, err error) {
-	command := keactrl.NewCommandLease4Get(ipAddress, constant.KeaDaemonNameDHCPv4)
+	command := keactrl.NewCommandLease4Get(ipAddress, daemonname.DHCPv4)
 	var response Lease4GetResponse
 	ctx := context.Background()
 	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{command}, &response)
@@ -167,12 +167,8 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, daemon *dbmodel.Dae
 		default:
 			continue
 		}
-		daemonName, err := daemon.GetName().ToKeaDaemonName()
-		if err != nil {
-			return leases, false, err
-		}
 
-		command := keactrl.NewCommandBase(commandName, daemonName).
+		command := keactrl.NewCommandBase(commandName, daemon.Name).
 			WithArgument(propertyName, sentPropertyValue)
 		commands = append(commands, command)
 	}
@@ -291,7 +287,7 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 
 		switch queryType {
 		case ipv4:
-			if daemon.Name != constant.DaemonNameDHCPv4 {
+			if daemon.Name != daemonname.DHCPv4 {
 				// This is not a DHCPv4 daemon, so skip it.
 				continue
 			}
@@ -304,7 +300,7 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 				leases = append(leases, *lease)
 			}
 		case ipv6:
-			if daemon.Name != constant.DaemonNameDHCPv6 {
+			if daemon.Name != daemonname.DHCPv6 {
 				// This is not a DHCPv6 daemon, so skip it.
 				continue
 			}
@@ -340,17 +336,17 @@ func FindLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents, text string) (
 
 			switch queryType {
 			case identifier:
-				if daemon.Name == constant.DaemonNameDHCPv4 {
+				if daemon.Name == daemonname.DHCPv4 {
 					commands = append(commands, "lease4-get-by-hw-address", "lease4-get-by-client-id")
 				}
-				if daemon.Name == constant.DaemonNameDHCPv6 {
+				if daemon.Name == daemonname.DHCPv6 {
 					commands = append(commands, "lease6-get-by-duid")
 				}
 			default:
-				if daemon.Name == constant.DaemonNameDHCPv4 {
+				if daemon.Name == daemonname.DHCPv4 {
 					commands = append(commands, "lease4-get-by-hostname")
 				}
-				if daemon.Name == constant.DaemonNameDHCPv6 {
+				if daemon.Name == daemonname.DHCPv6 {
 					commands = append(commands, "lease6-get-by-hostname")
 				}
 			}
@@ -402,10 +398,10 @@ func FindDeclinedLeases(db *dbops.PgDB, agents agentcomm.ConnectedAgents) (lease
 		}
 
 		var commands []keactrl.CommandName
-		if daemon.Name == constant.DaemonNameDHCPv4 {
+		if daemon.Name == daemonname.DHCPv4 {
 			commands = append(commands, "lease4-get-by-hw-address")
 		}
-		if daemon.Name == constant.DaemonNameDHCPv6 {
+		if daemon.Name == daemonname.DHCPv6 {
 			commands = append(commands, "lease6-get-by-duid")
 		}
 

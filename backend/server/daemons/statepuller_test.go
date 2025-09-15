@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
@@ -56,7 +56,7 @@ func TestStatePullerPullData(t *testing.T) {
 		AgentVersion: "2.4.0",
 		Daemons: []*agentcomm.Daemon{
 			{
-				Name: constant.DaemonNameDHCPv4,
+				Name: daemonname.DHCPv4,
 				// access point is changing from 1.1.1.1 to 1.2.3.4
 				AccessPoints: []agentcomm.AccessPoint{{
 					Type:    dbmodel.AccessPointControl,
@@ -65,7 +65,7 @@ func TestStatePullerPullData(t *testing.T) {
 				}},
 			},
 			{
-				Name: constant.DaemonNameBind9,
+				Name: daemonname.Bind9,
 				AccessPoints: []agentcomm.AccessPoint{{
 					Type:    dbmodel.AccessPointControl,
 					Address: "1.2.3.4",
@@ -74,7 +74,7 @@ func TestStatePullerPullData(t *testing.T) {
 				}},
 			},
 			{
-				Name: constant.DaemonNamePDNS,
+				Name: daemonname.PDNS,
 				AccessPoints: []agentcomm.AccessPoint{{
 					Type:    dbmodel.AccessPointControl,
 					Address: "1.2.3.4",
@@ -102,7 +102,7 @@ func TestStatePullerPullData(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, 0, m.ID)
 
-	d := dbmodel.NewDaemon(m, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{{
+	d := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{{
 		Type:    dbmodel.AccessPointControl,
 		Address: "1.1.1.1",
 		Port:    1234,
@@ -140,7 +140,7 @@ func TestStatePullerPullData(t *testing.T) {
 
 	var keaDaemon dbmodel.Daemon
 	for _, daemon := range daemons {
-		if daemon.Name == constant.DaemonNameDHCPv4 {
+		if daemon.Name == daemonname.DHCPv4 {
 			keaDaemon = daemon
 		}
 	}
@@ -189,7 +189,7 @@ func TestDaemonCompare(t *testing.T) {
 // have changed.
 func TestConditionallyBeginKeaConfigReviews(t *testing.T) {
 
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{})
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{})
 	err := daemon.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)
 	state := kea.DaemonStateMeta{IsConfigChanged: true}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -19,11 +19,11 @@ import (
 func createReviewContext(t *testing.T, db *dbops.PgDB, configStr string, keaVersion string) *ReviewContext {
 	// Configuration must contain one of the keywords that identify the
 	// daemon type.
-	daemonName := constant.DaemonNameDHCPv4
+	daemonName := daemonname.DHCPv4
 	if strings.Contains(configStr, "Dhcp6") {
-		daemonName = constant.DaemonNameDHCPv6
+		daemonName = daemonname.DHCPv6
 	} else if strings.Contains(configStr, "Control-agent") {
-		daemonName = constant.DaemonNameCA
+		daemonName = daemonname.CA
 	}
 
 	// Create the daemon instance and the context.
@@ -53,10 +53,10 @@ func createReviewContext(t *testing.T, db *dbops.PgDB, configStr string, keaVers
 // requires a machine, daemon and subnet which are also added by this function.
 func createHostInDatabase(t *testing.T, db *dbops.PgDB, configStr, subnetPrefix string, reservationAddress ...string) {
 	// Detect whether we're dealing with DHCPv4 or DHCPv6.
-	daemonName := constant.DaemonNameDHCPv4
+	daemonName := daemonname.DHCPv4
 	parsedPrefix := storkutil.ParseIP(subnetPrefix)
 	if parsedPrefix != nil && parsedPrefix.Protocol == storkutil.IPv6 {
-		daemonName = constant.DaemonNameDHCPv6
+		daemonName = daemonname.DHCPv6
 	}
 	// Create the machine.
 	machine := &dbmodel.Machine{
@@ -2163,7 +2163,7 @@ func TestFindOverlapsExceedLimitOnContainingSubnets(t *testing.T) {
 // Test that error is generated for non-DHCP daemon.
 func TestSubnetsOverlappingReportErrorForNonDHCPDaemon(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameBind9, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.Bind9, true, nil)
 	ctx := newReviewContext(nil, daemon, Triggers{ManualRun},
 		func(i int64, err error) {})
 
@@ -2178,7 +2178,7 @@ func TestSubnetsOverlappingReportErrorForNonDHCPDaemon(t *testing.T) {
 // Test that report is nil for non-overlapping subnets.
 func TestSubnetsOverlappingReportForNonOverlappingSubnets(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	_ = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
             "subnet4": []
@@ -2198,7 +2198,7 @@ func TestSubnetsOverlappingReportForNonOverlappingSubnets(t *testing.T) {
 // Test that report has a proper content for a single overlap.
 func TestSubnetsOverlappingReportForSingleOverlap(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 	_ = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
@@ -2231,7 +2231,7 @@ func TestSubnetsOverlappingReportForSingleOverlap(t *testing.T) {
 // Test that report has a proper content for a single overlap and subnets without IDs.
 func TestSubnetsOverlappingReportForSingleOverlapAndNoSubnetIDs(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 	_ = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
@@ -2263,7 +2263,7 @@ func TestSubnetsOverlappingReportForSingleOverlapAndNoSubnetIDs(t *testing.T) {
 // Test that report has a proper content for a multiple overlaps.
 func TestSubnetsOverlappingReportForMultipleOverlap(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 
 	var subnetsConfig []interface{}
@@ -2300,7 +2300,7 @@ func TestSubnetsOverlappingReportForMultipleOverlap(t *testing.T) {
 // node.
 func TestSubnetsOverlappingForMissingSubnetNode(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	_ = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": { }
     }`))
@@ -2318,7 +2318,7 @@ func TestSubnetsOverlappingForMissingSubnetNode(t *testing.T) {
 // Test that shared networks are processed by the overlapping checker.
 func TestSubnetsOverlappingForSharedNetworks(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 	_ = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
@@ -2416,7 +2416,7 @@ func TestIsCanonicalPrefixForInvalidPrefixes(t *testing.T) {
 // Test that the canonical prefixes checker generates an expected report.
 func TestCanonicalPrefixes(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 	_ = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
@@ -2469,7 +2469,7 @@ func TestCanonicalPrefixes(t *testing.T) {
 // Test that the canonical prefixes report is not generated if all prefixes are valid.
 func TestCanonicalPrefixesForValidPrefixes(t *testing.T) {
 	// Arrange
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 	_ = daemon.SetConfigFromJSON([]byte(`{
         "Dhcp4": {
@@ -2880,7 +2880,7 @@ func TestHighAvailabilityDedicatedPortsCheckerPortCollisionWithCA(t *testing.T) 
 
 	failoverDaemon := &dbmodel.Daemon{
 		MachineID: failoverMachine.ID,
-		Name:      constant.DaemonNameCA,
+		Name:      daemonname.CA,
 		AccessPoints: []*dbmodel.AccessPoint{
 			{
 				Type:    dbmodel.AccessPointControl,
@@ -3075,7 +3075,7 @@ func TestHighAvailabilityDedicatedPortsCheckerCorrectConfiguration(t *testing.T)
 
 	failoverDaemon := &dbmodel.Daemon{
 		MachineID: failoverMachine.ID,
-		Name:      constant.DaemonNameCA,
+		Name:      daemonname.CA,
 		AccessPoints: []*dbmodel.AccessPoint{
 			{
 				Type:    dbmodel.AccessPointControl,
@@ -3145,7 +3145,7 @@ func TestHighAvailabilityDedicatedPortsCheckerCorrectConfigurationMultipleRelati
 
 	failoverDaemon := &dbmodel.Daemon{
 		MachineID: failoverMachine.ID,
-		Name:      constant.DaemonNameCA,
+		Name:      daemonname.CA,
 		AccessPoints: []*dbmodel.AccessPoint{
 			{
 				Type:    dbmodel.AccessPointControl,
@@ -3229,7 +3229,7 @@ func TestHighAvailabilityDedicatedPortsCheckerLocalPeer(t *testing.T) {
 
 	failoverDaemon := &dbmodel.Daemon{
 		MachineID: machine.ID,
-		Name:      constant.DaemonNameCA,
+		Name:      daemonname.CA,
 		AccessPoints: []*dbmodel.AccessPoint{
 			{
 				Type:    dbmodel.AccessPointControl,
@@ -4781,7 +4781,7 @@ func BenchmarkReservationsOutOfPoolConfig(b *testing.B) {
 		b.Fatalf("failed to marshal configuration map: %+v", err)
 	}
 
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	_ = daemon.SetConfigFromJSON(configBytes)
 
 	// The benchmark starts here.
@@ -4816,7 +4816,7 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 	// Create the app.
 	daemon := &dbmodel.Daemon{
 		MachineID: machine.ID,
-		Name:      constant.DaemonNameDHCPv4,
+		Name:      daemonname.DHCPv4,
 		Active:    true,
 	}
 
@@ -4896,7 +4896,7 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 		b.Fatalf("failed to marshal configuration map: %+v", err)
 	}
 
-	daemon = dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon = dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	err = daemon.SetConfigFromJSON(configBytes)
 	if err != nil {
 		b.Fatalf("failed to set config: %+v", err)

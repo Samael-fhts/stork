@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 	storkutil "isc.org/stork/util"
 )
@@ -91,7 +91,7 @@ func TestAddZoneInventoryState(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -140,7 +140,7 @@ func TestAddZoneInventoryStateOverride(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -208,7 +208,7 @@ func TestGetZoneInventoryStates(t *testing.T) {
 		err := AddMachine(db, machine)
 		require.NoError(t, err)
 
-		daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "localhost",

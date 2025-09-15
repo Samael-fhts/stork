@@ -14,7 +14,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbtest "isc.org/stork/server/database/test"
 	storkutil "isc.org/stork/util"
@@ -894,7 +894,7 @@ func TestCommitNetworksIntoDB(t *testing.T) {
 	require.NoError(t, err)
 
 	// Creates new daemon. Its configuration doesn't matter in this test.
-	daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	daemon := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -1611,7 +1611,7 @@ func BenchmarkAddDaemonToSubnet(b *testing.B) {
 	}
 	err := AddMachine(db, machine)
 	require.NoError(b, err)
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",

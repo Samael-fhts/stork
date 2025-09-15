@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbtest "isc.org/stork/server/database/test"
 	storkutil "isc.org/stork/util"
@@ -187,7 +187,7 @@ func TestAddAndGetSharedNetwork(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -258,7 +258,7 @@ func TestGetSharedNetworkWithRelations(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 

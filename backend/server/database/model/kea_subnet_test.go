@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -31,7 +31,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			Key:     "",
 		},
 	}
-	d4 := NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+	d4 := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 	configRaw := &map[string]interface{}{
 		"Dhcp4": map[string]interface{}{
 			"subnet4": []map[string]interface{}{{
@@ -173,7 +173,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			Key:     "",
 		},
 	}
-	d6 := NewDaemon(m, constant.DaemonNameDHCPv6, true, accessPoints6)
+	d6 := NewDaemon(m, daemonname.DHCPv6, true, accessPoints6)
 	configRaw = &map[string]interface{}{
 		"Dhcp6": map[string]interface{}{
 			"subnet6": []map[string]interface{}{{
@@ -233,7 +233,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 	require.NoError(t, err)
 
 	// Kea daemon with DHCPv4 and DHCPv6 subnets.
-	d46v4 := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	d46v4 := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "",
@@ -259,7 +259,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 	err = AddDaemon(db, d46v4)
 	require.NoError(t, err)
 
-	d46v6 := NewDaemon(m, constant.DaemonNameDHCPv6, true, []*AccessPoint{
+	d46v6 := NewDaemon(m, daemonname.DHCPv6, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "",
@@ -547,7 +547,7 @@ func TestGetSubnetsByPageNoSubnets(t *testing.T) {
 			Key:     "",
 		},
 	}
-	d4 := NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+	d4 := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 	configRaw := &map[string]interface{}{
 		"Dhcp4": &map[string]interface{}{},
 	}
@@ -579,7 +579,7 @@ func TestGetSharedNetworksByPageBasic(t *testing.T) {
 	require.NoError(t, err)
 
 	// add daemon with dhcp4 to machine
-	d4 := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+	d4 := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "",
@@ -676,7 +676,7 @@ func TestGetSharedNetworksByPageBasic(t *testing.T) {
 	require.NoError(t, err)
 
 	// add daemon with dhcp6 to machine
-	d6 := NewDaemon(m, constant.DaemonNameDHCPv6, true, []*AccessPoint{
+	d6 := NewDaemon(m, daemonname.DHCPv6, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "",

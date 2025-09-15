@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
 )
@@ -52,7 +52,7 @@ func TestGracefulShutdown(t *testing.T) {
 	require.NotNil(t, dispatcher)
 
 	// We will simulate reviews for all daemon types.
-	daemonNames := []constant.DaemonName{constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameCA, constant.DaemonNameD2, constant.DaemonNameBind9}
+	daemonNames := []daemonname.Name{daemonname.DHCPv4, daemonname.DHCPv6, daemonname.CA, daemonname.D2, daemonname.Bind9}
 	// Selectors must correspond to the daemons above.
 	selectors := []DispatchGroupSelector{
 		KeaDHCPv4Daemon,
@@ -142,7 +142,7 @@ func TestPopulateKeaReports(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add daemons with configurations.
-	daemon1 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
+	daemon1 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -154,7 +154,7 @@ func TestPopulateKeaReports(t *testing.T) {
 	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, []*dbmodel.AccessPoint{
+	daemon2 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -274,7 +274,7 @@ func TestPopulateBind9Reports(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon with BIND9.
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -344,7 +344,7 @@ func TestReviewInProgress(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon with BIND9.
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -439,7 +439,7 @@ func TestCascadeReview(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add daemons with configurations.
-	daemon1 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
+	daemon1 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -451,7 +451,7 @@ func TestCascadeReview(t *testing.T) {
 	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := dbmodel.NewDaemon(machine, constant.DaemonNameCA, true, []*dbmodel.AccessPoint{
+	daemon2 := dbmodel.NewDaemon(machine, daemonname.CA, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -565,7 +565,7 @@ func TestTriggers(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add daemons with configurations.
-	daemon1 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
+	daemon1 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -577,7 +577,7 @@ func TestTriggers(t *testing.T) {
 	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, []*dbmodel.AccessPoint{
+	daemon2 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -790,8 +790,8 @@ func TestGetCheckersMetadata(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	daemon1 := &dbmodel.Daemon{ID: 1, Name: constant.DaemonNameDHCPv4}
-	daemon2 := &dbmodel.Daemon{ID: 2, Name: constant.DaemonNameBind9}
+	daemon1 := &dbmodel.Daemon{ID: 1, Name: daemonname.DHCPv4}
+	daemon2 := &dbmodel.Daemon{ID: 2, Name: daemonname.Bind9}
 	daemon3 := &dbmodel.Daemon{ID: 3, Name: "unknown"}
 	dispatcher := NewDispatcher(db)
 	dispatcher.RegisterChecker(KeaDHCPDaemon, "foo", Triggers{ManualRun, ConfigModified}, nil)
@@ -868,7 +868,7 @@ func TestLoadAndValidateCheckerState(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, machine)
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -927,7 +927,7 @@ func TestBeginReviewForDaemonWithAllCheckersDisabled(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, machine)
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -969,7 +969,7 @@ func TestBeginReviewForDaemonWithSomeCheckersDisabled(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, machine)
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{
 		{
 			Type:    dbmodel.AccessPointControl,
 			Address: "localhost",
@@ -1012,7 +1012,7 @@ func TestSetCheckerStateToInvalidValue(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	daemon := &dbmodel.Daemon{ID: 1, Name: constant.DaemonNameDHCPv4}
+	daemon := &dbmodel.Daemon{ID: 1, Name: daemonname.DHCPv4}
 	dispatcher := NewDispatcher(db)
 	dispatcher.RegisterChecker(KeaDHCPDaemon, "foo", Triggers{ManualRun, ConfigModified}, nil)
 

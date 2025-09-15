@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -164,7 +164,7 @@ func TestGetDaemonStateWith1Daemon(t *testing.T) {
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameCA, true, accessPoints)
+	}, daemonname.CA, true, accessPoints)
 
 	GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
 
@@ -200,7 +200,7 @@ func TestGetDaemonStateWith2Daemons(t *testing.T) {
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameCA, true, accessPoints)
+	}, daemonname.CA, true, accessPoints)
 
 	GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
 
@@ -233,7 +233,7 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
-	}, constant.DaemonNameCA, false, accessPoints)
+	}, daemonname.CA, false, accessPoints)
 
 	err := daemon.SetConfigFromJSON([]byte(`{
         "Control-agent": {
@@ -302,7 +302,7 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 // Check GetDaemonHooks when daemon has hooks configured.
 func TestGetDaemonHooksFrom1Daemon(t *testing.T) {
 	daemon := &dbmodel.Daemon{
-		Name:      constant.DaemonNameDHCPv4,
+		Name:      daemonname.DHCPv4,
 		KeaDaemon: &dbmodel.KeaDaemon{},
 	}
 
@@ -352,7 +352,7 @@ func TestCommitDaemonIntoDB(t *testing.T) {
 			Protocol: "http",
 		},
 	}
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameCA, true, accessPoints)
+	daemon := dbmodel.NewDaemon(machine, daemonname.CA, true, accessPoints)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 	daemons := []*dbmodel.Daemon{daemon}

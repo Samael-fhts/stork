@@ -17,7 +17,7 @@ import (
 
 	bind9config "isc.org/stork/daemoncfg/bind9"
 	pdnsconfig "isc.org/stork/daemoncfg/pdns"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/testutil"
 )
 
@@ -74,7 +74,7 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 	daemons := []Daemon{
 		&KeaDaemon{
 			daemon: daemon{
-				Name: constant.DaemonNameCA,
+				Name: daemonname.CA,
 				AccessPoints: []AccessPoint{
 					{
 						Type:     AccessPointControl,
@@ -87,7 +87,7 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 		},
 		&Bind9Daemon{
 			daemon: daemon{
-				Name: constant.DaemonNameBind9,
+				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{
 					{
 						Type:     AccessPointControl,
@@ -121,7 +121,7 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 		defer wg.Done()
 		daemon := m.GetDaemonByAccessPoint(AccessPointControl, "1.2.3.1", 1234)
 		require.NotNil(t, daemon)
-		require.EqualValues(t, constant.DaemonNameCA, daemon.GetName())
+		require.EqualValues(t, daemonname.CA, daemon.GetName())
 	}()
 	ret := <-m.(*monitor).requests
 	ret <- daemons
@@ -133,7 +133,7 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 		defer wg.Done()
 		daemon := m.GetDaemonByAccessPoint(AccessPointControl, "2.3.4.4", 2345)
 		require.NotNil(t, daemon)
-		require.EqualValues(t, constant.DaemonNameBind9, daemon.GetName())
+		require.EqualValues(t, daemonname.Bind9, daemon.GetName())
 	}()
 	ret = <-m.(*monitor).requests
 	ret <- daemons
@@ -300,9 +300,9 @@ func TestDetectDaemons(t *testing.T) {
 
 	// Assert
 	require.Len(t, daemons, 3)
-	require.Equal(t, constant.DaemonNameCA, daemons[0].GetName())
-	require.Equal(t, constant.DaemonNameBind9, daemons[1].GetName())
-	require.Equal(t, constant.DaemonNamePDNS, daemons[2].GetName())
+	require.Equal(t, daemonname.CA, daemons[0].GetName())
+	require.Equal(t, daemonname.Bind9, daemons[1].GetName())
+	require.Equal(t, daemonname.PDNS, daemons[2].GetName())
 
 	// Detect tha apps again. The zone inventory should be preserved.
 	monitor.detectDaemons()
@@ -444,7 +444,7 @@ func TestDetectDaemonsContinueOnNotAvailableCommandLine(t *testing.T) {
 
 	// Assert
 	require.Len(t, monitor.daemons, 1)
-	require.Equal(t, constant.DaemonNameBind9, monitor.daemons[0].GetName())
+	require.Equal(t, daemonname.Bind9, monitor.daemons[0].GetName())
 }
 
 // Test that the processes for which the current working directory cannot be
@@ -489,7 +489,7 @@ func TestDetectDaemonsSkipOnNotAvailableCwd(t *testing.T) {
 
 	// Assert
 	require.Len(t, monitor.daemons, 1)
-	require.Equal(t, constant.DaemonNameBind9, monitor.daemons[0].GetName())
+	require.Equal(t, daemonname.Bind9, monitor.daemons[0].GetName())
 }
 
 // The monitor periodically searches for the Kea/Bind9 instances. Usually, at
@@ -531,7 +531,7 @@ func TestDetectAllowedLogsKeaUnreachable(t *testing.T) {
 	bind9StatsClient := NewBind9StatsClient()
 	monitor.daemons = append(monitor.daemons, &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameCA,
+			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
 				{
 					Type:    AccessPointControl,
@@ -574,7 +574,7 @@ func TestDetectBind9DaemonAbsPath(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, "", parser)
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 2)
 	point := daemon.GetAccessPoint(AccessPointControl)
 	require.Equal(t, AccessPointControl, point.Type)
@@ -605,7 +605,7 @@ func TestDetectBind9DaemonRelativePath(t *testing.T) {
 	daemon, err := detectBind9Daemon(process, executor, "", parser)
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.GetName())
+	require.Equal(t, daemonname.Bind9, daemon.GetName())
 }
 
 // Check PowerDNS daemon detection when its conf file is absolute path.
@@ -624,7 +624,7 @@ func TestDetectPowerDNSDaemonAbsPath(t *testing.T) {
 	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	point := daemon.GetAccessPoint(AccessPointControl)
 	require.Equal(t, AccessPointControl, point.Type)
@@ -648,7 +648,7 @@ func TestDetectPowerDNSDaemonRelativePath(t *testing.T) {
 	daemon, err := detectPowerDNSDaemon(process, parser)
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 }
 
 // Creates a basic Kea configuration file.
@@ -702,7 +702,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 		keaDaemon, ok := daemons[0].(*KeaDaemon)
 		require.True(t, ok)
 		require.NotNil(t, keaDaemon)
-		require.Equal(t, constant.DaemonNameCA, keaDaemon.GetName())
+		require.Equal(t, daemonname.CA, keaDaemon.GetName())
 		require.Len(t, keaDaemon.GetAccessPoints(), 1)
 		ctrlPoint := keaDaemon.GetAccessPoint(AccessPointControl)
 		require.Equal(t, AccessPointControl, ctrlPoint.Type)
@@ -771,7 +771,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 func TestGetAccessPoint(t *testing.T) {
 	bind9Daemon := &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			AccessPoints: []AccessPoint{
 				{
 					Type:    AccessPointControl,
@@ -791,7 +791,7 @@ func TestGetAccessPoint(t *testing.T) {
 
 	keaDaemon := &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameCA,
+			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
 				{
 					Type:    AccessPointControl,
@@ -851,7 +851,7 @@ func TestDaemonEqual(t *testing.T) {
 	// Arrange
 	daemon1 := &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameCA,
+			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
 				{Type: AccessPointControl, Address: "localhost", Port: 1234},
 			},
@@ -859,7 +859,7 @@ func TestDaemonEqual(t *testing.T) {
 	}
 	daemon2 := &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameCA,
+			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
 				{Type: AccessPointControl, Address: "localhost", Port: 1234},
 			},
@@ -867,7 +867,7 @@ func TestDaemonEqual(t *testing.T) {
 	}
 	daemon3 := &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameDHCPv4,
+			Name: daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{
 				{Type: AccessPointControl, Address: "localhost", Port: 1234},
 			},
@@ -875,7 +875,7 @@ func TestDaemonEqual(t *testing.T) {
 	}
 	daemon4 := &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameCA,
+			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
 				{
 					Type: AccessPointControl, Address: "localhost", Port: 1235,
@@ -886,7 +886,7 @@ func TestDaemonEqual(t *testing.T) {
 	}
 	daemon5 := &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameCA,
+			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
 				{Type: AccessPointControl, Address: "localhost", Port: 1234},
 				{Type: AccessPointStatistics, Address: "localhost", Port: 1235},
@@ -933,14 +933,14 @@ func TestPopulateZoneInventories(t *testing.T) {
 
 	daemon0 := &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 		},
 		zoneInventory: nil,
 	}
 	zi1 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
 	daemon1 := &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 		},
 		zoneInventory: zi1,
 	}
@@ -948,20 +948,20 @@ func TestPopulateZoneInventories(t *testing.T) {
 	zi2 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
 	daemon2 := &Bind9Daemon{
 		daemon: daemon{
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 		},
 		zoneInventory: zi2,
 	}
 	zi3 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
 	daemon3 := &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 		},
 		zoneInventory: zi3,
 	}
 	daemon4 := &KeaDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNameCA,
+			Name: daemonname.CA,
 		},
 		connector: newKeaConnector(AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634}, HTTPClientConfig{}),
 	}

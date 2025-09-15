@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbmodel "isc.org/stork/server/database/model"
 )
 
@@ -25,17 +25,17 @@ func TestIncreaseKeaErrorCount(t *testing.T) {
 	stats := NewAgentStats()
 	keaStats := stats.GetKeaStats()
 	require.NotNil(t, keaStats)
-	require.Zero(t, keaStats.GetErrorCount(constant.KeaDaemonNameCA))
-	require.Zero(t, keaStats.GetErrorCount(constant.KeaDaemonNameDHCPv4))
-	keaStats.IncreaseErrorCount(constant.KeaDaemonNameCA)
-	require.EqualValues(t, 1, keaStats.GetErrorCount(constant.KeaDaemonNameCA))
-	require.Zero(t, keaStats.GetErrorCount(constant.KeaDaemonNameDHCPv4))
-	keaStats.IncreaseErrorCount(constant.KeaDaemonNameCA)
-	require.EqualValues(t, 2, keaStats.GetErrorCount(constant.KeaDaemonNameCA))
-	require.Zero(t, keaStats.GetErrorCount(constant.KeaDaemonNameDHCPv4))
-	keaStats.IncreaseErrorCount(constant.KeaDaemonNameDHCPv4)
-	require.EqualValues(t, 2, keaStats.GetErrorCount(constant.KeaDaemonNameCA))
-	require.EqualValues(t, 1, keaStats.GetErrorCount(constant.KeaDaemonNameDHCPv4))
+	require.Zero(t, keaStats.GetErrorCount(daemonname.CA))
+	require.Zero(t, keaStats.GetErrorCount(daemonname.DHCPv4))
+	keaStats.IncreaseErrorCount(daemonname.CA)
+	require.EqualValues(t, 1, keaStats.GetErrorCount(daemonname.CA))
+	require.Zero(t, keaStats.GetErrorCount(daemonname.DHCPv4))
+	keaStats.IncreaseErrorCount(daemonname.CA)
+	require.EqualValues(t, 2, keaStats.GetErrorCount(daemonname.CA))
+	require.Zero(t, keaStats.GetErrorCount(daemonname.DHCPv4))
+	keaStats.IncreaseErrorCount(daemonname.DHCPv4)
+	require.EqualValues(t, 2, keaStats.GetErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, keaStats.GetErrorCount(daemonname.DHCPv4))
 }
 
 // Test updating an error count for a daemon and tracking the communication
@@ -44,10 +44,10 @@ func TestUpdateKeaErrorCount(t *testing.T) {
 	stats := NewAgentStats()
 	keaStats := stats.GetKeaStats()
 	require.NotNil(t, keaStats)
-	require.Equal(t, CommErrorNone, keaStats.UpdateErrorCount(constant.KeaDaemonNameCA, 0))
-	require.Equal(t, CommErrorNew, keaStats.UpdateErrorCount(constant.KeaDaemonNameCA, 2))
-	require.Equal(t, CommErrorContinued, keaStats.UpdateErrorCount(constant.KeaDaemonNameCA, 3))
-	require.Equal(t, CommErrorReset, keaStats.UpdateErrorCount(constant.KeaDaemonNameCA, 0))
+	require.Equal(t, CommErrorNone, keaStats.UpdateErrorCount(daemonname.CA, 0))
+	require.Equal(t, CommErrorNew, keaStats.UpdateErrorCount(daemonname.CA, 2))
+	require.Equal(t, CommErrorContinued, keaStats.UpdateErrorCount(daemonname.CA, 3))
+	require.Equal(t, CommErrorReset, keaStats.UpdateErrorCount(daemonname.CA, 0))
 }
 
 // Test increasing an error count for a selected BIND 9 channel type by 1.
@@ -144,9 +144,9 @@ func TestGetKeaCommErrorStats(t *testing.T) {
 	stats := NewAgentStats()
 	keaStats := stats.GetKeaStats()
 	require.NotNil(t, keaStats)
-	require.EqualValues(t, 1, keaStats.IncreaseErrorCount(constant.KeaDaemonNameCA))
-	require.EqualValues(t, 1, stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameCA))
-	require.Zero(t, stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
+	require.EqualValues(t, 1, keaStats.IncreaseErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, stats.GetKeaStats().GetErrorCount(daemonname.CA))
+	require.Zero(t, stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
 }
 
 // Test returning BIND 9 communication error stats for a selected app by ID.

@@ -4,12 +4,12 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 )
 
 // Tests lease4-get command.
 func TestNewCommandLease4Get(t *testing.T) {
-	command := NewCommandLease4Get("192.0.2.1", constant.KeaDaemonNameDHCPv4)
+	command := NewCommandLease4Get("192.0.2.1", daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
 	bytes, err := command.Marshal()
@@ -26,7 +26,7 @@ func TestNewCommandLease4Get(t *testing.T) {
 
 // Tests lease6-get command.
 func TestNewCommandLease6Get(t *testing.T) {
-	command := NewCommandLease6Get(LeaseTypeNA, "2001:db8:1::1", constant.KeaDaemonNameDHCPv6)
+	command := NewCommandLease6Get(LeaseTypeNA, "2001:db8:1::1", daemonname.DHCPv6)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
 	bytes, err := command.Marshal()

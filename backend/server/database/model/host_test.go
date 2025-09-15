@@ -8,7 +8,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbtest "isc.org/stork/server/database/test"
 	storkutil "isc.org/stork/util"
@@ -73,14 +73,14 @@ func addMachineDaemonsAndSubnets(t *testing.T, db *pg.DB) []*Daemon {
 		}
 
 		// Create DHCPv4 daemon
-		daemon4 := NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+		daemon4 := NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 		daemon4.KeaDaemon.Config = getTestConfigWithIPv4Subnets(t)
 		err = AddDaemon(db, daemon4)
 		require.NoError(t, err)
 		daemons = append(daemons, daemon4)
 
 		// Create DHCPv6 daemon
-		daemon6 := NewDaemon(machine, constant.DaemonNameDHCPv6, true, accessPoints)
+		daemon6 := NewDaemon(machine, daemonname.DHCPv6, true, accessPoints)
 		daemon6.KeaDaemon.Config = getTestConfigWithIPv6Subnets(t)
 		err = AddDaemon(db, daemon6)
 		require.NoError(t, err)

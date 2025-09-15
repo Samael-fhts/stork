@@ -12,7 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 )
 
@@ -22,7 +22,7 @@ func newFakeMonitorWithDefaults(interceptor func(client *http.Client)) *FakeMoni
 		Daemons: []Daemon{
 			&KeaDaemon{
 				daemon: daemon{
-					Name: constant.DaemonNameDHCPv4,
+					Name: daemonname.DHCPv4,
 					AccessPoints: []AccessPoint{{
 						Type:     AccessPointControl,
 						Address:  "0.1.2.3",
@@ -39,7 +39,7 @@ func newFakeMonitorWithDefaults(interceptor func(client *http.Client)) *FakeMoni
 			},
 			&KeaDaemon{
 				daemon: daemon{
-					Name: constant.DaemonNameDHCPv6,
+					Name: daemonname.DHCPv6,
 					AccessPoints: []AccessPoint{{
 						Type:     AccessPointControl,
 						Address:  "0.1.2.3",

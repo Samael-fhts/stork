@@ -9,7 +9,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 )
 
 //go:embed testdata/bind9-prom-server-stats.json
@@ -39,7 +39,7 @@ func (fdm *PromFakeBind9DaemonMonitor) GetDaemons() []Daemon {
 	}
 	bd := &Bind9Daemon{
 		daemon: daemon{
-			Name:         constant.DaemonNameBind9,
+			Name:         daemonname.Bind9,
 			AccessPoints: accessPoints,
 		},
 		rndcClient: nil,

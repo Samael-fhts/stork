@@ -10,7 +10,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/miekg/dns"
 	"github.com/pkg/errors"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbops "isc.org/stork/server/database"
 	storkutil "isc.org/stork/util"
 )
@@ -91,7 +91,7 @@ type GetZonesFilter struct {
 	// Filter by an explicit daemon ID.
 	DaemonID *int64
 	// Filter by DNS daemon name (e.g., "bind9").
-	DaemonName *constant.DNSDaemonName
+	DaemonName *daemonname.Name
 	// Filter by class (typically, IN).
 	Class *string
 	// Filter by lower bound zone.

@@ -7,7 +7,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -21,21 +21,21 @@ func TestNewKeaDaemon(t *testing.T) {
 	}
 
 	// Create the daemon with active flag set to true.
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	require.NotNil(t, daemon)
 	require.NotNil(t, daemon.KeaDaemon)
 	require.NotNil(t, daemon.KeaDaemon.KeaDHCPDaemon)
 	require.Nil(t, daemon.Bind9Daemon)
-	require.Equal(t, constant.DaemonNameDHCPv4, daemon.Name)
+	require.Equal(t, daemonname.DHCPv4, daemon.Name)
 	require.True(t, daemon.Active)
 
 	// Create the non DHCP daemon.
-	daemon = NewDaemon(machine, constant.DaemonNameCA, false, []*AccessPoint{})
+	daemon = NewDaemon(machine, daemonname.CA, false, []*AccessPoint{})
 	require.NotNil(t, daemon)
 	require.NotNil(t, daemon.KeaDaemon)
 	require.Nil(t, daemon.KeaDaemon.KeaDHCPDaemon)
 	require.Nil(t, daemon.Bind9Daemon)
-	require.Equal(t, constant.DaemonNameCA, daemon.Name)
+	require.Equal(t, daemonname.CA, daemon.Name)
 	require.False(t, daemon.Active)
 }
 
@@ -48,11 +48,11 @@ func TestNewBind9Daemon(t *testing.T) {
 		AgentPort: 8080,
 	}
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{})
 	require.NotNil(t, daemon)
 	require.NotNil(t, daemon.Bind9Daemon)
 	require.Nil(t, daemon.KeaDaemon)
-	require.Equal(t, constant.DaemonNameBind9, daemon.Name)
+	require.Equal(t, daemonname.Bind9, daemon.Name)
 	require.True(t, daemon.Active)
 }
 
@@ -71,7 +71,7 @@ func TestUpdateKeaDHCPDaemon(t *testing.T) {
 	require.NotZero(t, m.ID)
 
 	// Create and add daemon
-	daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 	require.NotZero(t, daemon.ID)
@@ -83,7 +83,7 @@ func TestUpdateKeaDHCPDaemon(t *testing.T) {
 	// Reset the creation time to ensure it is not modified during the update.
 	daemon.CreatedAt = time.Time{}
 	daemon.Pid = 123
-	daemon.Name = constant.DaemonNameDHCPv6
+	daemon.Name = daemonname.DHCPv6
 	daemon.Active = false
 	daemon.Version = "2.0.0"
 	err = daemon.SetConfigFromJSON([]byte(`{
@@ -105,7 +105,7 @@ func TestUpdateKeaDHCPDaemon(t *testing.T) {
 
 	require.Equal(t, createdAt, updatedDaemon.CreatedAt)
 	require.EqualValues(t, 123, updatedDaemon.Pid)
-	require.Equal(t, constant.DaemonNameDHCPv6, updatedDaemon.Name)
+	require.Equal(t, daemonname.DHCPv6, updatedDaemon.Name)
 	require.False(t, updatedDaemon.Active)
 	require.Equal(t, "2.0.0", updatedDaemon.Version)
 	require.NotNil(t, updatedDaemon.KeaDaemon)
@@ -130,7 +130,7 @@ func TestUpdateBind9Daemon(t *testing.T) {
 	require.NotZero(t, m.ID)
 
 	// Create and add daemon
-	daemon := NewDaemon(m, constant.DaemonNameBind9, true, []*AccessPoint{})
+	daemon := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 	require.NotZero(t, daemon.ID)
@@ -149,7 +149,7 @@ func TestUpdateBind9Daemon(t *testing.T) {
 	require.NotNil(t, updatedDaemon)
 
 	require.EqualValues(t, 123, updatedDaemon.Pid)
-	require.Equal(t, constant.DaemonNameBind9, updatedDaemon.Name)
+	require.Equal(t, daemonname.Bind9, updatedDaemon.Name)
 	require.False(t, updatedDaemon.Active)
 	require.Equal(t, "9.20", updatedDaemon.Version)
 	require.NotNil(t, updatedDaemon.Bind9Daemon)
@@ -165,7 +165,7 @@ func TestGetHAOverview(t *testing.T) {
 		Address:   "localhost",
 		AgentPort: 8080,
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	daemon.ID = 1
 	daemon.Services = []*Service{
 		{
@@ -240,7 +240,7 @@ func TestGetDaemonByID(t *testing.T) {
 			Key:     "",
 		},
 	}
-	daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 
 	// Set initial configuration with one logger.
 	err = daemon.SetConfigFromJSON([]byte(`{
@@ -307,7 +307,7 @@ func TestGetDaemonsByIDs(t *testing.T) {
 	}
 
 	var daemons []*Daemon
-	for _, daemonName := range []constant.DaemonName{constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameD2, constant.DaemonNameCA} {
+	for _, daemonName := range []daemonname.Name{daemonname.DHCPv4, daemonname.DHCPv6, daemonname.D2, daemonname.CA} {
 		daemon := NewDaemon(m, daemonName, true, accessPoints)
 		err = AddDaemon(db, daemon)
 		require.NoError(t, err)
@@ -360,7 +360,7 @@ func TestGetKeaDHCPDaemons(t *testing.T) {
 		Key:     "",
 	}}
 
-	daemonNames := []constant.DaemonName{constant.DaemonNameDHCPv4, constant.DaemonNameDHCPv6, constant.DaemonNameCA, constant.DaemonNameD2}
+	daemonNames := []daemonname.Name{daemonname.DHCPv4, daemonname.DHCPv6, daemonname.CA, daemonname.D2}
 	for _, dn := range daemonNames {
 		daemon := NewDaemon(m, dn, true, accessPoints)
 		err = AddDaemon(db, daemon)
@@ -368,7 +368,7 @@ func TestGetKeaDHCPDaemons(t *testing.T) {
 	}
 
 	// Add named daemon.
-	daemon := NewDaemon(m, constant.DaemonNameBind9, true, accessPoints)
+	daemon := NewDaemon(m, daemonname.Bind9, true, accessPoints)
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -378,7 +378,7 @@ func TestGetKeaDHCPDaemons(t *testing.T) {
 	require.Len(t, daemons, 2)
 
 	// Validate returned daemons.
-	names := []constant.DaemonName{}
+	names := []daemonname.Name{}
 	for _, d := range daemons {
 		names = append(names, d.Name)
 		require.NotNil(t, d.Machine)
@@ -386,8 +386,8 @@ func TestGetKeaDHCPDaemons(t *testing.T) {
 		require.Equal(t, d.ID, d.KeaDaemon.DaemonID)
 		require.NotNil(t, d.KeaDaemon.KeaDHCPDaemon)
 	}
-	require.Contains(t, names, constant.DaemonNameDHCPv4)
-	require.Contains(t, names, constant.DaemonNameDHCPv6)
+	require.Contains(t, names, daemonname.DHCPv4)
+	require.Contains(t, names, daemonname.DHCPv6)
 }
 
 // Test selecting BIND9 daemon by ID for update which should result in locking
@@ -424,7 +424,7 @@ func TestGetBind9DaemonsForUpdate(t *testing.T) {
 	require.NotZero(t, m.ID)
 
 	// Create a daemon.
-	daemon := NewDaemon(m, constant.DaemonNameBind9, true, []*AccessPoint{})
+	daemon := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 	require.NotZero(t, daemon.ID)
@@ -533,12 +533,12 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 	require.NotZero(t, m.ID)
 
 	// Create daemons.
-	daemon1 := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon1 := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
 	daemon1.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	err = AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := NewDaemon(m, constant.DaemonNameDHCPv6, true, []*AccessPoint{})
+	daemon2 := NewDaemon(m, daemonname.DHCPv6, true, []*AccessPoint{})
 	daemon2.SetConfigFromJSON([]byte(`{"Dhcp6": { }}`))
 	err = AddDaemon(db, daemon2)
 	require.NoError(t, err)
@@ -630,7 +630,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 		Address:   "localhost",
 		AgentPort: 8080,
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 
 	// Set initial configuration with one logger.
 	err := daemon.SetConfigFromJSON([]byte(`{
@@ -764,7 +764,7 @@ func TestSetConfigFromJSONWithHash(t *testing.T) {
 		Address:   "localhost",
 		AgentPort: 8080,
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 
 	// Set initial configuration with one logger.
 	err := daemon.SetConfigFromJSON([]byte(`{
@@ -795,7 +795,7 @@ func TestSetConfig(t *testing.T) {
 		Address:   "localhost",
 		AgentPort: 8080,
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 
 	err := daemon.SetConfigFromJSON([]byte(`{"Dhcp4": {}}`))
 	require.NoError(t, err)
@@ -813,7 +813,7 @@ func TestShallowCopyKeaDaemon(t *testing.T) {
 		AgentPort: 8080,
 	}
 	// Create Daemon instance with not nil KeaDaemon.
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	copy := ShallowCopyKeaDaemon(daemon)
 	require.NotNil(t, copy)
 	require.NotNil(t, copy.KeaDaemon)
@@ -845,7 +845,7 @@ func TestGetLocalSubnetID(t *testing.T) {
 		Key:      "",
 		Protocol: "http",
 	}}
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, accessPoints)
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 	err := daemon.SetConfigFromJSON([]byte(`{
 		"Dhcp4": {
             "subnet4": [
@@ -873,12 +873,12 @@ func TestDaemonTag(t *testing.T) {
 	}
 	daemon := Daemon{
 		ID:        1,
-		Name:      constant.DaemonNameDHCPv4,
+		Name:      daemonname.DHCPv4,
 		MachineID: 2,
 		Machine:   machine,
 	}
 	require.EqualValues(t, 1, daemon.GetID())
-	require.Equal(t, constant.DaemonNameDHCPv4, daemon.GetName())
+	require.Equal(t, daemonname.DHCPv4, daemon.GetName())
 	require.EqualValues(t, 2, daemon.GetMachineID())
 }
 
@@ -889,12 +889,12 @@ func TestDaemonTagMachineTag(t *testing.T) {
 		Address:   "localhost",
 		AgentPort: 8080,
 	}
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{})
 	daemon.ID = 24
 	var daemonTag DaemonTag = daemon
 	require.EqualValues(t, 24, daemonTag.GetID())
 	require.EqualValues(t, 42, daemonTag.GetMachineID())
-	require.Equal(t, constant.DaemonNameBind9, daemonTag.GetName())
+	require.Equal(t, daemonname.Bind9, daemonTag.GetName())
 }
 
 // Test that the machine ID is not nil if the machine reference is not set.
@@ -922,12 +922,12 @@ func TestDeleteKeaDaemonConfigHashes(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
 
-	daemon1 := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon1 := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	daemon1.KeaDaemon.ConfigHash = "1234"
 	err = AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := NewDaemon(machine, constant.DaemonNameDHCPv6, true, []*AccessPoint{})
+	daemon2 := NewDaemon(machine, daemonname.DHCPv6, true, []*AccessPoint{})
 	daemon2.KeaDaemon.ConfigHash = "2345"
 	err = AddDaemon(db, daemon2)
 	require.NoError(t, err)
@@ -960,7 +960,7 @@ func TestGetRpsStatsAsFloats(t *testing.T) {
 	require.NotZero(t, m.ID)
 
 	// Create and add daemon
-	daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 	require.NotZero(t, daemon.ID)

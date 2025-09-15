@@ -5,7 +5,7 @@ import (
 
 	require "github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	storkutil "isc.org/stork/util"
 )
 
@@ -14,7 +14,7 @@ func TestNewCommandNetwork4Add(t *testing.T) {
 	command := NewCommandNetwork4Add(&keaconfig.SharedNetwork4{
 		Name:          "foo",
 		Authoritative: storkutil.Ptr(true),
-	}, constant.KeaDaemonNameDHCPv4)
+	}, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
 	bytes, err := command.Marshal()
@@ -38,7 +38,7 @@ func TestNewCommandNetwork6Add(t *testing.T) {
 	command := NewCommandNetwork6Add(&keaconfig.SharedNetwork6{
 		Name:        "foo",
 		PDAllocator: storkutil.Ptr("flq"),
-	}, constant.KeaDaemonNameDHCPv6)
+	}, daemonname.DHCPv6)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
 	bytes, err := command.Marshal()
@@ -62,7 +62,7 @@ func TestNewCommandNetwork4Del(t *testing.T) {
 	command := NewCommandNetwork4Del(&keaconfig.SubnetCmdsDeletedSharedNetwork{
 		Name:          "foo",
 		SubnetsAction: keaconfig.SharedNetworkSubnetsActionDelete,
-	}, constant.KeaDaemonNameDHCPv4)
+	}, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
 	bytes, err := command.Marshal()
@@ -82,7 +82,7 @@ func TestNewCommandNetwork6Del(t *testing.T) {
 	command := NewCommandNetwork6Del(&keaconfig.SubnetCmdsDeletedSharedNetwork{
 		Name:          "foo",
 		SubnetsAction: keaconfig.SharedNetworkSubnetsActionKeep,
-	}, constant.KeaDaemonNameDHCPv6)
+	}, daemonname.DHCPv6)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
 	bytes, err := command.Marshal()
@@ -99,7 +99,7 @@ func TestNewCommandNetwork6Del(t *testing.T) {
 
 // Tests network4-subnet-add command.
 func TestNewCommandNetwork4SubnetAdd(t *testing.T) {
-	command := NewCommandNetwork4SubnetAdd("foo", 123, constant.KeaDaemonNameDHCPv4)
+	command := NewCommandNetwork4SubnetAdd("foo", 123, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -115,7 +115,7 @@ func TestNewCommandNetwork4SubnetAdd(t *testing.T) {
 
 // Tests network6-subnet-add command.
 func TestNewCommandNetwork6SubnetAdd(t *testing.T) {
-	command := NewCommandNetwork6SubnetAdd("foo", 123, constant.KeaDaemonNameDHCPv6)
+	command := NewCommandNetwork6SubnetAdd("foo", 123, daemonname.DHCPv6)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -131,7 +131,7 @@ func TestNewCommandNetwork6SubnetAdd(t *testing.T) {
 
 // Tests network4-subnet-del command.
 func TestNewCommandNetwork4SubnetDel(t *testing.T) {
-	command := NewCommandNetwork4SubnetDel("foo", 123, constant.KeaDaemonNameDHCPv4)
+	command := NewCommandNetwork4SubnetDel("foo", 123, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestNewCommandNetwork4SubnetDel(t *testing.T) {
 
 // Tests network6-subnet-del command.
 func TestNewCommandNetwork6SubnetDel(t *testing.T) {
-	command := NewCommandNetwork6SubnetDel("foo", 123, constant.KeaDaemonNameDHCPv6)
+	command := NewCommandNetwork6SubnetDel("foo", 123, daemonname.DHCPv6)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -163,7 +163,7 @@ func TestNewCommandNetwork6SubnetDel(t *testing.T) {
 
 // Tests network4-subnet-del command.
 func TestNewCommandNetworkSubnetDelFamily4(t *testing.T) {
-	command := NewCommandNetworkSubnetDel(4, "foo", 123, constant.KeaDaemonNameDHCPv4)
+	command := NewCommandNetworkSubnetDel(4, "foo", 123, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -182,7 +182,7 @@ func TestNewCommandNetworkSubnetDelFamily6(t *testing.T) {
 	// The network6-subnet-del command should be returned for different families.
 	families := []int{6, 1, 0}
 	for _, family := range families {
-		command := NewCommandNetworkSubnetDel(family, "foo", 123, constant.KeaDaemonNameDHCPv6)
+		command := NewCommandNetworkSubnetDel(family, "foo", 123, daemonname.DHCPv6)
 		require.NotNil(t, command)
 		bytes, err := command.Marshal()
 		require.NoError(t, err)
@@ -204,7 +204,7 @@ func TestNewCommandSubnet4Add(t *testing.T) {
 			ID:     2,
 			Subnet: "192.0.2.0/24",
 		},
-	}, constant.KeaDaemonNameDHCPv4)
+	}, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -229,7 +229,7 @@ func TestNewCommandSubnet6Add(t *testing.T) {
 			ID:     2,
 			Subnet: "2001:db8:1::/64",
 		},
-	}, constant.KeaDaemonNameDHCPv6)
+	}, daemonname.DHCPv6)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -251,7 +251,7 @@ func TestNewCommandSubnet6Add(t *testing.T) {
 func TestNewCommandSubnet4Del(t *testing.T) {
 	command := NewCommandSubnet4Del(&keaconfig.SubnetCmdsDeletedSubnet{
 		ID: 2,
-	}, constant.KeaDaemonNameDHCPv4)
+	}, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -268,7 +268,7 @@ func TestNewCommandSubnet4Del(t *testing.T) {
 func TestNewCommandSubnet6Del(t *testing.T) {
 	command := NewCommandSubnet6Del(&keaconfig.SubnetCmdsDeletedSubnet{
 		ID: 4,
-	}, constant.KeaDaemonNameDHCPv6)
+	}, daemonname.DHCPv6)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -285,7 +285,7 @@ func TestNewCommandSubnet6Del(t *testing.T) {
 func TestNewCommandSubnetDelFamily4(t *testing.T) {
 	command := NewCommandSubnetDel(4, &keaconfig.SubnetCmdsDeletedSubnet{
 		ID: 2,
-	}, constant.KeaDaemonNameDHCPv4)
+	}, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -305,7 +305,7 @@ func TestNewCommandSubnetDelFamily6(t *testing.T) {
 	for _, family := range families {
 		command := NewCommandSubnetDel(family, &keaconfig.SubnetCmdsDeletedSubnet{
 			ID: 4,
-		}, constant.KeaDaemonNameDHCPv6)
+		}, daemonname.DHCPv6)
 		require.NotNil(t, command)
 		bytes, err := command.Marshal()
 		require.NoError(t, err)
@@ -326,7 +326,7 @@ func TestNewCommandSubnet4Update(t *testing.T) {
 			ID:     2,
 			Subnet: "192.0.2.0/24",
 		},
-	}, constant.KeaDaemonNameDHCPv4)
+	}, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -351,7 +351,7 @@ func TestNewCommandSubnet6Update(t *testing.T) {
 			ID:     2,
 			Subnet: "2001:db8:1::/64",
 		},
-	}, constant.KeaDaemonNameDHCPv6)
+	}, daemonname.DHCPv6)
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
 	require.NoError(t, err)

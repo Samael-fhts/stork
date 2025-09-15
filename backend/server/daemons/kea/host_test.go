@@ -9,7 +9,7 @@ import (
 
 	require "github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/configreview"
@@ -465,7 +465,7 @@ func testHost(t *testing.T, reservation interface{}, identifier string, address 
 		host *dbmodel.Host
 		err  error
 	)
-	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, constant.DaemonNameDHCPv4, true, nil)
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	if r, ok := reservation.(keaconfig.Reservation); ok {
 		host, err = dbmodel.NewHostFromKeaConfigReservation(r, daemon, dbmodel.HostDataSourceConfig, dbmodel.NewDHCPOptionDefinitionLookup())
 		require.NoError(t, err)

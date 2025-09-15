@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -102,7 +102,7 @@ func TestStatsPullerPullStats(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine1.ID)
 
-	daemon1 := dbmodel.NewDaemon(machine1, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon1 := dbmodel.NewDaemon(machine1, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:     dbmodel.AccessPointControl,
 			Address:  "127.0.0.1",
@@ -130,7 +130,7 @@ func TestStatsPullerPullStats(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine2.ID)
 
-	daemon2 := dbmodel.NewDaemon(machine2, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon2 := dbmodel.NewDaemon(machine2, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:     dbmodel.AccessPointControl,
 			Address:  "127.0.0.1",
@@ -229,7 +229,7 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, true, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{
 		{
 			Type:     dbmodel.AccessPointControl,
 			Address:  "127.0.0.1",
@@ -298,7 +298,7 @@ func TestStatsPullerPullStatsForPartiallyDetectedDaemon(t *testing.T) {
 	require.NoError(t, err)
 	require.NotZero(t, machine.ID)
 
-	daemon := dbmodel.NewDaemon(machine, constant.DaemonNameBind9, false, []*dbmodel.AccessPoint{
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, false, []*dbmodel.AccessPoint{
 		{
 			Type:     dbmodel.AccessPointControl,
 			Address:  "127.0.0.1",

@@ -18,7 +18,7 @@ import (
 	"google.golang.org/grpc/status"
 	agentapi "isc.org/stork/api"
 	"isc.org/stork/daemoncfg/dnsconfig"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	dbmodel "isc.org/stork/server/database/model"
@@ -165,7 +165,7 @@ func TestGetState(t *testing.T) {
 		AgentVersion: expVer,
 		Apps: []*agentapi.App{
 			{
-				Type:         string(constant.DaemonNameDHCPv4),
+				Type:         string(daemonname.DHCPv4),
 				AccessPoints: makeAccessPoint(AccessPointControl, "1.2.3.4", "", 1234),
 			},
 		},
@@ -182,7 +182,7 @@ func TestGetState(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.Equal(t, expVer, state.AgentVersion)
-	require.Equal(t, constant.DaemonNameDHCPv4, state.Daemons[0].Name)
+	require.Equal(t, daemonname.DHCPv4, state.Daemons[0].Name)
 }
 
 // Test error case for GetState.
@@ -270,12 +270,12 @@ func TestForwardToKeaOverHTTP(t *testing.T) {
 		Return(&rspV6, nil)
 
 	ctx := context.Background()
-	commandV4 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv4)
-	commandV6 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv6)
+	commandV4 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
+	commandV6 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv6)
 	var responseV4 keactrl.Response
 	var responseV6 keactrl.Response
 	dbDaemon := &dbmodel.Daemon{
-		Name: constant.DaemonNameDHCPv4,
+		Name: daemonname.DHCPv4,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -298,7 +298,7 @@ func TestForwardToKeaOverHTTP(t *testing.T) {
 	require.Equal(t, "operation failed", responseV4.Text)
 	require.Nil(t, responseV4.Arguments)
 
-	dbDaemon.Name = constant.DaemonNameDHCPv6
+	dbDaemon.Name = daemonname.DHCPv6
 	cmdsResult, err = agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{commandV6}, &responseV6)
 	require.NoError(t, err)
 	require.NotNil(t, responseV6)
@@ -320,10 +320,10 @@ func TestForwardToKeaOverHTTP(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameCA))
-	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv6))
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameD2))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv6))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.D2))
 }
 
 // Test that two commands can be successfully forwarded to Kea and the response
@@ -374,12 +374,12 @@ func TestForwardToKeaOverHTTPWith2Cmds(t *testing.T) {
 		Return(&rspV6, nil)
 
 	ctx := context.Background()
-	commandV4 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv4)
-	commandV6 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv6)
+	commandV4 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
+	commandV6 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv6)
 	var actualResponseV4 keactrl.Response
 	var actualResponseV6 keactrl.Response
 	dbDaemon := &dbmodel.Daemon{
-		Name: constant.DaemonNameDHCPv4,
+		Name: daemonname.DHCPv4,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -401,7 +401,7 @@ func TestForwardToKeaOverHTTPWith2Cmds(t *testing.T) {
 	require.Equal(t, "operation failed", actualResponseV4.Text)
 	require.Nil(t, actualResponseV4.Arguments)
 
-	dbDaemon.Name = constant.DaemonNameDHCPv6
+	dbDaemon.Name = daemonname.DHCPv6
 	cmdsResult, err = agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{commandV6}, &actualResponseV6)
 	require.NoError(t, err)
 	require.NotNil(t, actualResponseV6)
@@ -421,9 +421,9 @@ func TestForwardToKeaOverHTTPWith2Cmds(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv6))
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameD2))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv6))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.D2))
 }
 
 // Test that the error is returned when the response to the forwarded Kea command
@@ -451,10 +451,10 @@ func TestForwardToKeaOverHTTPInvalidResponse(t *testing.T) {
 		Return(&rsp, nil)
 
 	ctx := context.Background()
-	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv4)
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
 	var actualResponse keactrl.Response
 	dbDaemon := &dbmodel.Daemon{
-		Name: constant.DaemonNameDHCPv4,
+		Name: daemonname.DHCPv4,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -478,10 +478,10 @@ func TestForwardToKeaOverHTTPInvalidResponse(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameCA))
-	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv6))
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameD2))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv6))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.D2))
 }
 
 // Test that the error is returned when the response to the forwarded Kea command
@@ -507,10 +507,10 @@ func TestForwardToKeaOverHTTPBadRequest(t *testing.T) {
 		Return(&rsp, nil)
 
 	ctx := context.Background()
-	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), constant.KeaDaemonNameDHCPv4)
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
 	var actualResponse keactrl.Response
 	dbDaemon := &dbmodel.Daemon{
-		Name: constant.DaemonNameDHCPv4,
+		Name: daemonname.DHCPv4,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -534,10 +534,10 @@ func TestForwardToKeaOverHTTPBadRequest(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameCA))
-	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv4))
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameDHCPv6))
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(constant.KeaDaemonNameD2))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv6))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.D2))
 }
 
 // Test that a statistics request can be successfully forwarded to named
@@ -588,7 +588,7 @@ func TestForwardToNamedStats(t *testing.T) {
 	err := agents.ForwardToNamedStats(ctx,
 		dbmodel.Daemon{
 			ID:   1,
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			Machine: &dbmodel.Machine{
 				Address:   "127.0.0.1",
 				AgentPort: 8080,
@@ -642,7 +642,7 @@ func TestForwardToNamedStatsInvalidResponse(t *testing.T) {
 	err := agents.ForwardToNamedStats(ctx,
 		dbmodel.Daemon{
 			ID:   1,
-			Name: constant.DaemonNameBind9,
+			Name: daemonname.Bind9,
 			Machine: &dbmodel.Machine{
 				Address:   "127.0.0.1",
 				AgentPort: 8080,
@@ -688,7 +688,7 @@ func TestForwardRndcCommand(t *testing.T) {
 
 	ctx := context.Background()
 	dbDaemon := &dbmodel.Daemon{
-		Name: constant.DaemonNameBind9,
+		Name: daemonname.Bind9,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,

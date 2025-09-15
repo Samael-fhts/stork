@@ -16,7 +16,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	storkutil "isc.org/stork/util"
 )
@@ -48,7 +48,7 @@ func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
 	// Stork requires that command has exactly one target daemon.
 	// However, Kea CA expects that if the command is targeted to itself,
 	// the Daemons field must be empty.
-	isCATarget := len(command.Daemons) == 1 && command.Daemons[0] == constant.KeaDaemonNameCA
+	isCATarget := len(command.Daemons) == 1 && command.Daemons[0] == daemonname.CA
 	if isCATarget {
 		command.Daemons = nil
 	}
@@ -59,7 +59,7 @@ func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
 	}
 
 	if isCATarget {
-		command.Daemons = []constant.KeaDaemonName{constant.KeaDaemonNameCA}
+		command.Daemons = []daemonname.Name{daemonname.CA}
 	}
 
 	// Send the command to the Kea server.
@@ -105,15 +105,11 @@ func collectKeaAllowedLogs(config *keaconfig.Config) ([]string, error) {
 
 // Fetches the Kea configuration from the daemon by sending config-get command.
 func (d *KeaDaemon) fetchConfig() (*keaconfig.Config, error) {
-	daemonName, err := d.GetName().ToKeaDaemonName()
-	if err != nil {
-		return nil, err
-	}
 	// Prepare config-get command to be sent to Kea Control Agent.
-	command := keactrl.NewCommandBase(keactrl.ConfigGet, daemonName)
+	command := keactrl.NewCommandBase(keactrl.ConfigGet, d.GetName())
 	// Send the command to Kea.
 	response := keactrl.Response{}
-	err = d.sendCommand(command, &response)
+	err := d.sendCommand(command, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -254,7 +250,7 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 		return nil, errors.WithMessagef(err, "cannot parse Kea version: %s", string(versionRaw))
 	}
 	shouldTunnelViaCA := version.LessThan(storkutil.SemanticVersion{Major: 3, Minor: 0, Patch: 0})
-	if shouldTunnelViaCA && daemonName != constant.DaemonNameCA {
+	if shouldTunnelViaCA && daemonName != daemonname.CA {
 		// For Kea prior to 3.0, only the CA daemon can connect to other daemons.
 		// If the process is not CA, we cannot detect any daemons.
 		return nil, nil
@@ -343,7 +339,7 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 			// Add the detected daemon.
 			managedDaemon := &KeaDaemon{
 				daemon: daemon{
-					Name:         managedDaemonName.ToDaemonName(),
+					Name:         managedDaemonName,
 					AccessPoints: accessPoints,
 				},
 				connector: thisDaemon.connector,

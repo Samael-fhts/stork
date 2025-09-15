@@ -5,7 +5,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -89,7 +89,7 @@ func addTestDaemons(db *pg.DB) (*Daemon, *Daemon, error) {
 			return nil, nil, err
 		}
 
-		daemon := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+		daemon := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
 		err = AddDaemon(db, daemon)
 		if err != nil {
 			return nil, nil, err

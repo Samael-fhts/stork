@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 )
 
 // Kea command name type.
@@ -37,7 +37,7 @@ const (
 
 // Interface to a Kea command that can be marshalled and sent.
 type SerializableCommand interface {
-	GetDaemonsList() []constant.KeaDaemonName
+	GetDaemonsList() []daemonname.Name
 	GetCommand() CommandName
 	Marshal() ([]byte, error)
 }
@@ -45,9 +45,9 @@ type SerializableCommand interface {
 // Represents a command sent to Kea including command name, daemons list
 // (service list in Kea terms) and arguments.
 type Command struct {
-	Command   CommandName              `json:"command"`
-	Daemons   []constant.KeaDaemonName `json:"service,omitempty"`
-	Arguments interface{}              `json:"arguments,omitempty"`
+	Command   CommandName       `json:"command"`
+	Daemons   []daemonname.Name `json:"service,omitempty"`
+	Arguments interface{}       `json:"arguments,omitempty"`
 }
 
 // Common fields in each received Kea response.
@@ -144,7 +144,7 @@ func createOrGetArguments(command *Command) (mapArgs map[string]any) {
 
 // Creates new Kea command from specified command name, daemons list and arguments.
 // The arguments are required to be a map or struct.
-func newCommand(command CommandName, daemon constant.KeaDaemonName, arguments any) *Command {
+func newCommand(command CommandName, daemon daemonname.Name, arguments any) *Command {
 	if len(command) == 0 {
 		return nil
 	}
@@ -164,7 +164,7 @@ func newCommand(command CommandName, daemon constant.KeaDaemonName, arguments an
 
 	cmd := &Command{
 		Command:   command,
-		Daemons:   []constant.KeaDaemonName{daemon},
+		Daemons:   []daemonname.Name{daemon},
 		Arguments: arguments,
 	}
 	return cmd
@@ -182,7 +182,7 @@ func NewCommandFromJSON(jsonCommand string) (*Command, error) {
 }
 
 // Constructs new command with no arguments.
-func NewCommandBase(command CommandName, daemon constant.KeaDaemonName) *Command {
+func NewCommandBase(command CommandName, daemon daemonname.Name) *Command {
 	return newCommand(command, daemon, nil)
 }
 
@@ -221,7 +221,7 @@ func (c Command) GetCommand() CommandName {
 }
 
 // Returns daemon names specified within the command.
-func (c Command) GetDaemonsList() []constant.KeaDaemonName {
+func (c Command) GetDaemonsList() []daemonname.Name {
 	return c.Daemons
 }
 

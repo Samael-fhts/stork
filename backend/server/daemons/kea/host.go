@@ -345,8 +345,7 @@ func (iterator *hostIterator) sendReservationGetPage() ([]keaconfig.Reservation,
 		}
 	}
 	// Prepare the command.
-	daemonName, _ := iterator.daemon.GetName().ToKeaDaemonName()
-	command := keactrl.NewCommandReservationGetPage(subnetID, iterator.sourceIndex, iterator.from, iterator.limit, daemonName)
+	command := keactrl.NewCommandReservationGetPage(subnetID, iterator.sourceIndex, iterator.from, iterator.limit, iterator.daemon.Name)
 	commands := []keactrl.SerializableCommand{command}
 	var response ReservationGetPageResponse
 	ctx := context.Background()

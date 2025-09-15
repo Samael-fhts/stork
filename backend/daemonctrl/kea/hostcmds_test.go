@@ -5,7 +5,7 @@ import (
 
 	require "github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 )
 
 // Tests reservation-add command.
@@ -16,10 +16,10 @@ func TestNewCommandReservationAdd(t *testing.T) {
 			Hostname:  "foo.example.org",
 		},
 		SubnetID: 123,
-	}, constant.KeaDaemonNameDHCPv4)
+	}, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
-	require.Equal(t, constant.KeaDaemonNameDHCPv4, command.Daemons[0])
+	require.Equal(t, daemonname.DHCPv4, command.Daemons[0])
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
 	require.JSONEq(t, `{
@@ -41,10 +41,10 @@ func TestNewCommandReservationDel(t *testing.T) {
 		IdentifierType: "hw-address",
 		Identifier:     "00:01:02:03:04:05",
 		SubnetID:       123,
-	}, constant.KeaDaemonNameDHCPv4)
+	}, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
-	require.Equal(t, constant.KeaDaemonNameDHCPv4, command.Daemons[0])
+	require.Equal(t, daemonname.DHCPv4, command.Daemons[0])
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
 	require.JSONEq(t, `{
@@ -60,10 +60,10 @@ func TestNewCommandReservationDel(t *testing.T) {
 
 // Tests reservation-get-page command when all arguments are specified.
 func TestNewCommandReservationGetPageAllArgs(t *testing.T) {
-	command := NewCommandReservationGetPage(234, 1, 5, 100, constant.KeaDaemonNameDHCPv4)
+	command := NewCommandReservationGetPage(234, 1, 5, 100, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
-	require.Equal(t, constant.KeaDaemonNameDHCPv4, command.Daemons[0])
+	require.Equal(t, daemonname.DHCPv4, command.Daemons[0])
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
 	require.JSONEq(t, `{
@@ -81,10 +81,10 @@ func TestNewCommandReservationGetPageAllArgs(t *testing.T) {
 // Tests reservation-get-page command when mandatory arguments are
 // specified and non-mandatory are zero and not included.
 func TestNewCommandReservationGetPageAllMandatoryArgs(t *testing.T) {
-	command := NewCommandReservationGetPage(234, 0, 0, 100, constant.KeaDaemonNameDHCPv4)
+	command := NewCommandReservationGetPage(234, 0, 0, 100, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Len(t, command.Daemons, 1)
-	require.Equal(t, constant.KeaDaemonNameDHCPv4, command.Daemons[0])
+	require.Equal(t, daemonname.DHCPv4, command.Daemons[0])
 	bytes, err := command.Marshal()
 	require.NoError(t, err)
 	require.JSONEq(t, `{

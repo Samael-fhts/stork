@@ -9,7 +9,7 @@ import (
 	"go.uber.org/mock/gomock"
 	"gopkg.in/h2non/gock.v1"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
@@ -27,12 +27,12 @@ func TestSendCommand(t *testing.T) {
 		Reply(200).
 		JSON([]map[string]int{{"result": 0}})
 
-	command := keactrl.NewCommandBase(keactrl.ListCommands, constant.KeaDaemonNameCA)
+	command := keactrl.NewCommandBase(keactrl.ListCommands, daemonname.CA)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
 	daemon := &KeaDaemon{
 		daemon: daemon{
-			Name:         constant.DaemonNameCA,
+			Name:         daemonname.CA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
 		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
@@ -45,11 +45,11 @@ func TestSendCommand(t *testing.T) {
 // Test the case that the command is not successfully sent to Kea because
 // there is no control access point.
 func TestSendCommandNoAccessPoint(t *testing.T) {
-	command := keactrl.NewCommandBase(keactrl.ListCommands, constant.KeaDaemonNameCA)
+	command := keactrl.NewCommandBase(keactrl.ListCommands, daemonname.CA)
 
 	daemon := &KeaDaemon{
 		daemon: daemon{
-			Name:         constant.DaemonNameDHCPv4,
+			Name:         daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{},
 		},
 		connector: nil,
@@ -73,12 +73,12 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 			{"result": 0, "text": "1.0.0", "arguments": 1},
 		})
 
-	command := keactrl.NewCommandBase(keactrl.VersionGet, constant.KeaDaemonNameDHCPv4)
+	command := keactrl.NewCommandBase(keactrl.VersionGet, daemonname.DHCPv4)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
 	daemon := &KeaDaemon{
 		daemon: daemon{
-			Name:         constant.DaemonNameDHCPv4,
+			Name:         daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
 		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
@@ -97,11 +97,11 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 
 // Test the case when Kea server is unreachable.
 func TestSendCommandNoKea(t *testing.T) {
-	command := keactrl.NewCommandBase(keactrl.ListCommands, constant.KeaDaemonNameCA)
+	command := keactrl.NewCommandBase(keactrl.ListCommands, daemonname.CA)
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
 	daemon := &KeaDaemon{
 		daemon: daemon{
-			Name:         constant.DaemonNameCA,
+			Name:         daemonname.CA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
 		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
@@ -217,21 +217,21 @@ func TestKeaAllowedLogs(t *testing.T) {
 	monitor := &monitor{daemons: []Daemon{
 		&KeaDaemon{
 			daemon: daemon{
-				Name:         constant.DaemonNameCA,
+				Name:         daemonname.CA,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
 		},
 		&KeaDaemon{
 			daemon: daemon{
-				Name:         constant.DaemonNameDHCPv4,
+				Name:         daemonname.DHCPv4,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
 		},
 		&KeaDaemon{
 			daemon: daemon{
-				Name:         constant.DaemonNameDHCPv6,
+				Name:         daemonname.DHCPv6,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
@@ -356,21 +356,21 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	monitor := &monitor{daemons: []Daemon{
 		&KeaDaemon{
 			daemon: daemon{
-				Name:         constant.DaemonNameCA,
+				Name:         daemonname.CA,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
 		},
 		&KeaDaemon{
 			daemon: daemon{
-				Name:         constant.DaemonNameDHCPv4,
+				Name:         daemonname.DHCPv4,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
 		},
 		&KeaDaemon{
 			daemon: daemon{
-				Name:         constant.DaemonNameDHCPv6,
+				Name:         daemonname.DHCPv6,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
@@ -419,7 +419,7 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
 	daemon := &KeaDaemon{
 		daemon: daemon{
-			Name:         constant.DaemonNameCA,
+			Name:         daemonname.CA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
 		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),

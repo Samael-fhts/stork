@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	pdnsconfig "isc.org/stork/daemoncfg/pdns"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 )
 
 //go:generate mockgen -package=agent -destination=pdnsmock_test.go -mock_names=pdnsConfigParser=MockPDNSConfigParser isc.org/stork/agent pdnsConfigParser
@@ -17,10 +17,10 @@ import (
 func TestPowerDNSAppGetBaseApp(t *testing.T) {
 	daemon := &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 		},
 	}
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 }
 
 // Test that the evaluation of the PowerDNS daemon doesn't return any errors.
@@ -71,7 +71,7 @@ func TestDetectPowerDNSDaemon(t *testing.T) {
 	require.NotNil(t, daemon)
 
 	require.IsType(t, &PDNSDaemon{}, daemon)
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
@@ -102,7 +102,7 @@ func TestDetectPowerDNSDaemonNoConfigDir(t *testing.T) {
 	require.NotNil(t, daemon)
 
 	require.IsType(t, &PDNSDaemon{}, daemon)
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
@@ -146,7 +146,7 @@ func TestDetectPowerDNSDaemonCwdError(t *testing.T) {
 	require.NotNil(t, daemon)
 
 	require.IsType(t, &PDNSDaemon{}, daemon)
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
@@ -174,7 +174,7 @@ func TestDetectPowerDNSDaemonChroot(t *testing.T) {
 	require.NotNil(t, daemon)
 
 	require.IsType(t, &PDNSDaemon{}, daemon)
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
@@ -203,7 +203,7 @@ func TestDetectPowerDNSDaemonConfigDir(t *testing.T) {
 	require.NotNil(t, daemon)
 
 	require.IsType(t, &PDNSDaemon{}, daemon)
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
@@ -254,7 +254,7 @@ func TestDetectPowerDNSDaemonDefaultWebserver(t *testing.T) {
 	require.NotNil(t, daemon)
 
 	require.IsType(t, &PDNSDaemon{}, daemon)
-	require.Equal(t, constant.DaemonNamePDNS, daemon.GetName())
+	require.Equal(t, daemonname.PDNS, daemon.GetName())
 	require.Len(t, daemon.GetAccessPoints(), 1)
 	require.Equal(t, AccessPointControl, daemon.GetAccessPoints()[0].Type)
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)

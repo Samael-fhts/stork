@@ -8,7 +8,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
 	pkgerrors "github.com/pkg/errors"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbops "isc.org/stork/server/database"
 )
 
@@ -40,7 +40,7 @@ type DaemonToService struct {
 type HAMode = string
 
 // High Availability type.
-type HAType = constant.KeaDHCPDaemonName
+type HAType = daemonname.Name
 
 // High Availability state.
 type HAState = string

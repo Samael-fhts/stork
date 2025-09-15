@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/configreview"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -188,9 +188,9 @@ func TestBootstrap(t *testing.T) {
 	// Initializes DB.
 	machine := &dbmodel.Machine{Address: "localhost", AgentPort: 8080}
 	_ = dbmodel.AddMachine(db, machine)
-	daemon1 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*dbmodel.AccessPoint{})
+	daemon1 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{})
 	_ = dbmodel.AddDaemon(db, daemon1)
-	daemon2 := dbmodel.NewDaemon(machine, constant.DaemonNameDHCPv6, true, []*dbmodel.AccessPoint{})
+	daemon2 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{})
 	_ = dbmodel.AddDaemon(db, daemon2)
 
 	_ = dbmodel.CommitCheckerPreferences(db, []*dbmodel.ConfigCheckerPreference{

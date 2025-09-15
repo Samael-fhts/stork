@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -30,11 +30,11 @@ func TestConfigReportSharingDaemons(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add two daemons to the machine.
-	daemon1 := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon1 := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := NewDaemon(machine, constant.DaemonNameDHCPv6, true, []*AccessPoint{})
+	daemon2 := NewDaemon(machine, daemonname.DHCPv6, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon2)
 	require.NoError(t, err)
 
@@ -67,8 +67,8 @@ func TestConfigReportSharingDaemons(t *testing.T) {
 	require.Len(t, configReports, 2)
 	require.NotZero(t, configReports[0].DaemonID)
 	require.Len(t, configReports[0].RefDaemons, 2)
-	require.Equal(t, constant.DaemonNameDHCPv4, configReports[0].RefDaemons[0].Name)
-	require.Equal(t, constant.DaemonNameDHCPv6, configReports[0].RefDaemons[1].Name)
+	require.Equal(t, daemonname.DHCPv4, configReports[0].RefDaemons[0].Name)
+	require.Equal(t, daemonname.DHCPv6, configReports[0].RefDaemons[1].Name)
 	require.Equal(t, "Here is the test report for <daemon id=\"1\" name=\"dhcp4\" machineId=\"1\">, <daemon id=\"2\" name=\"dhcp6\" machineId=\"1\"> and {daemon}", *configReports[0].Content)
 	require.Equal(t, "empty", configReports[1].CheckerName)
 	require.Nil(t, configReports[1].Content)
@@ -100,7 +100,7 @@ func TestGetConfigReportsExceptEmpty(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon to the machine.
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -150,11 +150,11 @@ func TestConfigReportDistinctDaemons(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add two daemons to the machine.
-	daemon1 := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon1 := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
-	daemon2 := NewDaemon(machine, constant.DaemonNameDHCPv6, true, []*AccessPoint{})
+	daemon2 := NewDaemon(machine, daemonname.DHCPv6, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon2)
 	require.NoError(t, err)
 
@@ -225,7 +225,7 @@ func TestConfigReportsPaging(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon to the machine.
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -307,7 +307,7 @@ func TestCountConfigReports(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon to the machine.
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -365,7 +365,7 @@ func TestInvalidConfigReport(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon to the machine.
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
@@ -437,7 +437,7 @@ func TestDeleteDaemonWithConfigReview(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add a daemon to the machine.
-	daemon := NewDaemon(machine, constant.DaemonNameDHCPv4, true, []*AccessPoint{})
+	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 

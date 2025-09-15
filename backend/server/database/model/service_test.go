@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbops "isc.org/stork/server/database"
 	dbtest "isc.org/stork/server/database/test"
 	storkutil "isc.org/stork/util"
@@ -135,7 +135,7 @@ func addTestDaemonsForServices(t *testing.T, db dbops.DBI) (daemons []*Daemon) {
 		err := AddMachine(db, m)
 		require.NoError(t, err)
 
-		d1 := NewDaemon(m, constant.DaemonNameDHCPv4, true, []*AccessPoint{
+		d1 := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "cool.example.org",
@@ -145,7 +145,7 @@ func addTestDaemonsForServices(t *testing.T, db dbops.DBI) (daemons []*Daemon) {
 		err = AddDaemon(db, d1)
 		require.NoError(t, err)
 
-		d2 := NewDaemon(m, constant.DaemonNameDHCPv6, true, []*AccessPoint{
+		d2 := NewDaemon(m, daemonname.DHCPv6, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "cool.example.org",
@@ -328,7 +328,7 @@ func TestUpdateService(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, service)
 	require.NotNil(t, service.HAService)
-	require.Equal(t, constant.KeaDHCPDaemonNameDHCPv4, service.HAService.HAType)
+	require.Equal(t, daemonname.DHCPv4, service.HAService.HAType)
 	require.Equal(t, "server1", service.HAService.Relationship)
 	require.Equal(t, "load-balancing", service.HAService.PrimaryLastState)
 	require.Equal(t, "syncing", service.HAService.SecondaryLastState)
@@ -369,7 +369,7 @@ func TestGetServiceById(t *testing.T) {
 	require.NotNil(t, service)
 	require.Len(t, service.Daemons, 5)
 	require.NotNil(t, service.HAService)
-	require.Equal(t, constant.KeaDHCPDaemonNameDHCPv4, service.HAService.HAType)
+	require.Equal(t, daemonname.DHCPv4, service.HAService.HAType)
 	require.Equal(t, service.Daemons[0].ID, service.HAService.PrimaryID)
 	require.Equal(t, service.Daemons[1].ID, service.HAService.SecondaryID)
 	require.Len(t, service.HAService.BackupID, 2)
@@ -465,7 +465,7 @@ func TestGetDaemonWithServices(t *testing.T) {
 	services := addTestServices(t, db)
 	require.GreaterOrEqual(t, len(services), 4)
 
-	daemons, err := GetDaemonsByName(db, constant.DaemonNameDHCPv4)
+	daemons, err := GetDaemonsByName(db, daemonname.DHCPv4)
 	require.NoError(t, err)
 	require.Len(t, daemons, 10)
 
@@ -503,7 +503,7 @@ func TestGetAllServices(t *testing.T) {
 	// Make sure that the HA specific information was returned for the
 	// second service.
 	require.NotNil(t, service.HAService)
-	require.Equal(t, constant.KeaDHCPDaemonNameDHCPv4, service.HAService.HAType)
+	require.Equal(t, daemonname.DHCPv4, service.HAService.HAType)
 
 	service = allServices[2]
 	require.Len(t, service.Daemons, 5)

@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
@@ -63,7 +63,7 @@ func TestAddZonesOverlap(t *testing.T) {
 	// Add two daemons that share zone information.
 	var daemons []*Daemon
 	for i := 0; i < 2; i++ {
-		daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "localhost",
@@ -153,7 +153,7 @@ func TestGetZones(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -370,7 +370,7 @@ func TestGetZonesFilterByRootZone(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -458,7 +458,7 @@ func TestGetZonesWithDaemonIDFilter(t *testing.T) {
 	// Add several daemons.
 	var daemons []*Daemon
 	for i := 0; i < 3; i++ {
-		daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "localhost",
@@ -539,7 +539,7 @@ func TestGetZonesWithDaemonIDFilterOverlappingZones(t *testing.T) {
 	// Add several daemons.
 	var daemons []*Daemon
 	for i := 0; i < 3; i++ {
-		daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "localhost",
@@ -624,7 +624,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	for i := 0; i < 3; i++ {
-		daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
 				Address: "localhost",
@@ -664,7 +664,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 
 	t.Run("filter by daemon name", func(t *testing.T) {
 		filter := &GetZonesFilter{
-			DaemonName: storkutil.Ptr(constant.DNSDaemonNameBind9),
+			DaemonName: storkutil.Ptr(daemonname.Bind9),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
 		require.NoError(t, err)
@@ -676,7 +676,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 
 	t.Run("filter by view", func(t *testing.T) {
 		filter := &GetZonesFilter{
-			DaemonName: storkutil.Ptr(constant.DNSDaemonNameBind9),
+			DaemonName: storkutil.Ptr(daemonname.Bind9),
 			Text:       storkutil.Ptr("ew2"),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -706,7 +706,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 
 	t.Run("combined filtering", func(t *testing.T) {
 		filter := &GetZonesFilter{
-			DaemonName: storkutil.Ptr(constant.DNSDaemonNameBind9),
+			DaemonName: storkutil.Ptr(daemonname.Bind9),
 			Text:       storkutil.Ptr("mple0.org"),
 		}
 		_, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -728,7 +728,7 @@ func TestGetZoneCountStatsByDaemon(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -788,7 +788,7 @@ func TestGetZoneByID(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -839,7 +839,7 @@ func TestDeleteOrphanedZones(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -905,7 +905,7 @@ func TestUpdateLocalZoneRRsTransferAt(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -1025,7 +1025,7 @@ func BenchmarkAddZones(b *testing.B) {
 	}
 
 	// Add a daemon.
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",
@@ -1110,7 +1110,7 @@ func BenchmarkGetZones(b *testing.B) {
 				b.Fatal(err)
 			}
 
-			daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+			daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 				{
 					Type:    AccessPointControl,
 					Address: "localhost",
@@ -1192,7 +1192,7 @@ func BenchmarkGetZonesWithZoneTypeFilter(b *testing.B) {
 				b.Fatal(err)
 			}
 
-			daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+			daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 				{
 					Type:    AccessPointControl,
 					Address: "localhost",
@@ -1276,7 +1276,7 @@ func BenchmarkGetDistinctZoneCount(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	daemon := NewDaemon(machine, constant.DaemonNameBind9, true, []*AccessPoint{
+	daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 		{
 			Type:    AccessPointControl,
 			Address: "localhost",

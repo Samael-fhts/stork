@@ -2,7 +2,7 @@ package keactrl
 
 import (
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 )
 
 const (
@@ -15,6 +15,6 @@ const (
 	VersionGet   CommandName = "version-get"
 )
 
-func NewCommandConfigSet(config *keaconfig.Config, daemonName constant.KeaDaemonName) *Command {
+func NewCommandConfigSet(config *keaconfig.Config, daemonName daemonname.Name) *Command {
 	return NewCommandBase(ConfigSet, daemonName).WithArguments(config)
 }

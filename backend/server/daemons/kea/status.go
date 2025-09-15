@@ -300,11 +300,7 @@ func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (bool, b
 	if status.HAServers == nil && len(status.HA) == 0 {
 		return true, true
 	}
-	haType, err := daemon.Name.ToKeaDHCPDaemonName()
-	if err != nil {
-		log.WithError(err).Errorf("Error occurred while converting daemon name %s to Kea DHCP daemon name", daemon.Name)
-		return true, false
-	}
+	haType := daemon.Name
 
 	// Find the matching service for the returned status.
 	for i := range haServices {
@@ -341,8 +337,7 @@ func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (bool, b
 
 // Sends the status-get command to Kea DHCP servers and returns this status to the caller.
 func getDHCPStatus(ctx context.Context, agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon) (*StatusGetRespArgs, error) {
-	daemonName, _ := daemon.Name.ToKeaDaemonName()
-	cmd := keactrl.NewCommandBase(keactrl.StatusGet, daemonName)
+	cmd := keactrl.NewCommandBase(keactrl.StatusGet, daemon.Name)
 
 	// TODO: hardcoding 2s timeout is a temporary solution. We need better
 	// control over the timeouts.

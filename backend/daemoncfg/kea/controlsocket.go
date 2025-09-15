@@ -1,6 +1,6 @@
 package keaconfig
 
-import "isc.org/stork/daemonctrl/constant"
+import "isc.org/stork/daemonctrl/daemonname"
 
 // A structure representing the configuration of multiple control sockets
 // in the Kea Control Agent. They are used to manage Kea daemons remotely.
@@ -12,22 +12,22 @@ type ManagementControlSockets struct {
 }
 
 // Returns a list of daemons for which management sockets have been configured.
-func (cs *ManagementControlSockets) GetManagedDaemonNames() (names []constant.KeaDaemonName) {
+func (cs *ManagementControlSockets) GetManagedDaemonNames() (names []daemonname.Name) {
 	if cs == nil {
 		return
 	}
 
 	if cs.D2 != nil {
-		names = append(names, constant.KeaDaemonNameD2)
+		names = append(names, daemonname.D2)
 	}
 	if cs.Dhcp4 != nil {
-		names = append(names, constant.KeaDaemonNameDHCPv4)
+		names = append(names, daemonname.DHCPv4)
 	}
 	if cs.Dhcp6 != nil {
-		names = append(names, constant.KeaDaemonNameDHCPv6)
+		names = append(names, daemonname.DHCPv6)
 	}
 	if cs.NetConf != nil {
-		names = append(names, constant.KeaDaemonNameNetConf)
+		names = append(names, daemonname.NetConf)
 	}
 
 	return

@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	pdnsconfig "isc.org/stork/daemoncfg/pdns"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 )
 
 var (
@@ -160,7 +160,7 @@ func detectPowerDNSDaemon(p supportedProcess, parser pdnsConfigParser) (Daemon, 
 	// Create the PowerDNS app.
 	daemon := &PDNSDaemon{
 		daemon: daemon{
-			Name: constant.DaemonNamePDNS,
+			Name: daemonname.PDNS,
 			AccessPoints: []AccessPoint{
 				{
 					Type:    AccessPointControl,

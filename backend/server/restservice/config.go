@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constant"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configreview"
 	"isc.org/stork/server/daemons/kea"
@@ -646,7 +646,7 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 	for i := range params.Request.Configs {
 		receivedConfig := params.Request.Configs[i]
 		var settableConfig *keaconfig.SettableConfig
-		daemonName, err := constant.ParseDaemonName(receivedConfig.DaemonName)
+		daemonName, err := daemonname.Parse(receivedConfig.DaemonName)
 		if err != nil {
 			msg := fmt.Sprintf("Unknown daemon name %s", receivedConfig.DaemonName)
 			log.Error(msg)
@@ -656,13 +656,13 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 			return rsp
 		}
 		switch daemonName {
-		case constant.DaemonNameDHCPv4:
+		case daemonname.DHCPv4:
 			settableConfig = keaconfig.NewSettableDHCPv4Config()
-		case constant.DaemonNameDHCPv6:
+		case daemonname.DHCPv6:
 			settableConfig = keaconfig.NewSettableDHCPv6Config()
-		case constant.DaemonNameD2:
+		case daemonname.D2:
 			settableConfig = keaconfig.NewSettableD2Config()
-		case constant.DaemonNameCA:
+		case daemonname.CA:
 			settableConfig = keaconfig.NewSettableCtrlAgentConfig()
 		default:
 			msg := fmt.Sprintf("Unsupported daemon name %s", receivedConfig.DaemonName)
