@@ -362,7 +362,7 @@ func getCtrlAddressFromBind9Config(text string) (controlAddress string, controlP
 
 			controlKey = getRndcKey(string(txt), "")
 			if controlKey != nil {
-				log.Debugf("Loaded rdnc key %s from the default location (%s)", controlKey.Name, rndcPath)
+				log.Debugf("Loaded RNDC key %s from the default location (%s)", controlKey.Name, rndcPath)
 				break
 			}
 		}

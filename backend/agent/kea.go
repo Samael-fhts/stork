@@ -29,16 +29,6 @@ type KeaDaemon struct {
 	connector keaConnector // to communicate with Kea daemon
 }
 
-// Returns the control access point of the Kea daemon.
-func (d *KeaDaemon) getControlAccessPoint() *AccessPoint {
-	for _, ap := range d.AccessPoints {
-		if ap.Type == AccessPointControl {
-			return &ap
-		}
-	}
-	return nil
-}
-
 // Sends a command to Kea and returns a response.
 func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
 	if d.connector == nil {

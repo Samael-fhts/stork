@@ -233,22 +233,6 @@ func findChangesAndRaiseEvents(daemonOld, daemonNew *dbmodel.Daemon, err error) 
 	}
 }
 
-// Detects a situation that the daemon configuration remains the same after update
-// or raises events about config change otherwise.
-func handleConfigEvent(daemon, oldDaemon *dbmodel.Daemon, events *[]*dbmodel.Event) bool {
-	if daemon.KeaDaemon != nil && oldDaemon.KeaDaemon != nil {
-		if daemon.KeaDaemon.ConfigHash == oldDaemon.KeaDaemon.ConfigHash {
-			return true
-		}
-		// Raise this event only if we're certain that the configuration has
-		// changed based on the comparison of the hash values.
-		text := "Configuration change detected for {daemon}"
-		ev := eventcenter.CreateEvent(dbmodel.EvInfo, text, daemon)
-		*events = append(*events, ev)
-	}
-	return false
-}
-
 // Removes associations between the daemon, shared networks, subnets and hosts.
 func deleteDaemonAssociations(tx *pg.Tx, daemon *dbmodel.Daemon) error {
 	// Remove associations between the daemon and the existing hosts.

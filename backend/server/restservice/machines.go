@@ -56,7 +56,7 @@ func (r *RestAPI) GetVersion(ctx context.Context, params general.GetVersionParam
 }
 
 // Tries to send HTTP GET to STORK_REST_VERSIONS_URL to retrieve versions metadata file containing information about current ISC software versions.
-// If the response to the HTTP request is successful, it tries to unmarshall received data.
+// If the response to the HTTP request is successful, it tries to unmarshal received data.
 // If it succeeds, pointer to the AppsVersions is returned. Non-nil error is returned in case of any fail.
 func (r *RestAPI) getOnlineVersionsJSON() (*models.AppsVersions, error) {
 	url := r.Settings.VersionsURL
@@ -91,7 +91,7 @@ func (r *RestAPI) getOnlineVersionsJSON() (*models.AppsVersions, error) {
 }
 
 // Tries to read versions.json local file containing information about current ISC software versions
-// and then it tries to unmarshall read data.
+// and then it tries to unmarshal read data.
 // If it succeeds, pointer to the AppsVersions is returned. Non-nil error is returned in case of any fail.
 func getOfflineVersionsJSON() (*models.AppsVersions, error) {
 	// Find the location of the JSON file with software versions metadata.
@@ -1092,7 +1092,7 @@ func getKeaStorages(config keaconfig.DatabaseConfig) ([]*models.File, []*models.
 				Filename: keaDatabases.Lease.Name,
 				Filetype: "Lease file",
 				// This is in every file response, but only makes sense for lease files.
-				// Limitations of the subjset of JSON Schema used by OpenAPI 2.0 prevent
+				// Limitations of the subset of JSON Schema used by OpenAPI 2.0 prevent
 				// me from writing an `anyOf` schema that could exclude it from files
 				// where it is not relevant.
 				Persist: persist,

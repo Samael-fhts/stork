@@ -186,33 +186,6 @@ func mockLease6GetInvalidJSON(callNo int, responses []any) {
 	_ = json.Unmarshal(bytes, responses[0])
 }
 
-// Generates a success mock response to commands fetching DHCPv4 lease.
-func mockLeases4Get(callNo int, responses []any) {
-	bytes := []byte(`
-        {
-            "result": 0,
-            "text": "Leases found",
-            "arguments": {
-                "leases": [
-                    {
-                        "client-id": "42:42:42:42:42:42:42:42",
-                        "cltt": 12345678,
-                        "fqdn-fwd": false,
-                        "fqdn-rev": true,
-                        "hostname": "myhost.example.com.",
-                        "hw-address": "08:08:08:08:08:08",
-                        "ip-address": "192.0.2.1",
-                        "state": 0,
-                        "subnet-id": 44,
-                        "valid-lft": 3600
-                    }
-                ]
-            }
-        }
-    `)
-	_ = json.Unmarshal(bytes, responses[0])
-}
-
 // Generates a mock response to lease4-get-by-hw-address and lease4-get-by-client-id
 // combined in a single gRPC command. The first response is successful, the second
 // response indicates an error.
@@ -270,52 +243,6 @@ func mockLeases6GetEmpty(callNo int, responses []any) {
         {
             "result": 3,
             "text": "No lease found."
-        }
-    ]`)
-	_ = json.Unmarshal(bytes, responses[0])
-}
-
-// Generates a success mock response to commands fetching multiple
-// DHCPv6 leases.
-func mockLeases6Get(callNo int, responses []any) {
-	bytes := []byte(`[
-        {
-            "result": 0,
-            "text": "Leases found",
-            "arguments": {
-                "leases": [
-                    {
-                        "cltt": 12345678,
-                        "duid": "42:42:42:42:42:42:42:42",
-                        "fqdn-fwd": false,
-                        "fqdn-rev": true,
-                        "hostname": "myhost.example.com.",
-                        "hw-address": "08:08:08:08:08:08",
-                        "iaid": 1,
-                        "ip-address": "2001:db8:2::1",
-                        "preferred-lft": 500,
-                        "state": 0,
-                        "subnet-id": 44,
-                        "type": "IA_NA",
-                        "valid-lft": 3600
-                    },
-                    {
-                        "cltt": 12345678,
-                        "duid": "42:42:42:42:42:42:42:42",
-                        "fqdn-fwd": false,
-                        "fqdn-rev": true,
-                        "hostname": "",
-                        "iaid": 1,
-                        "ip-address": "2001:db8:0:0:2::",
-                        "preferred-lft": 500,
-                        "prefix-len": 80,
-                        "state": 0,
-                        "subnet-id": 44,
-                        "type": "IA_PD",
-                        "valid-lft": 3600
-                    }
-                ]
-            }
         }
     ]`)
 	_ = json.Unmarshal(bytes, responses[0])

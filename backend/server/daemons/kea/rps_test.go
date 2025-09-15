@@ -247,7 +247,7 @@ func rpsTestAddMachine(t *testing.T, db *dbops.PgDB, dhcp4Active bool, dhcp6Acti
 		ID:           0,
 		MachineID:    m.ID,
 		Name:         daemonname.DHCPv4,
-		Active:       true,
+		Active:       dhcp4Active,
 		AccessPoints: accessPoints,
 	}
 

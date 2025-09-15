@@ -19,7 +19,7 @@ import (
 )
 
 // Returns test Kea configuration JSON including multiple IPv4 subnets.
-func getTestConfigWithIPv4Subnets(t *testing.T, hostCmds bool) []byte {
+func getTestConfigWithIPv4Subnets(hostCmds bool) []byte {
 	configStr := `{
         "Dhcp4": {
             "subnet4": [
@@ -57,7 +57,7 @@ func getTestConfigWithIPv4Subnets(t *testing.T, hostCmds bool) []byte {
 }
 
 // Returns test Kea configuration JSON including one IPv4 subnet.
-func getTestConfigWithOneIPv4Subnet(t *testing.T) []byte {
+func getTestConfigWithOneIPv4Subnet() []byte {
 	configStr := `{
         "Dhcp4": {
             "subnet4": [
@@ -78,7 +78,7 @@ func getTestConfigWithOneIPv4Subnet(t *testing.T) []byte {
 }
 
 // Returns test Kea configuration JSON including one IPv6 subnet.
-func getTestConfigWithOneIPv6Subnet(t *testing.T) []byte {
+func getTestConfigWithOneIPv6Subnet() []byte {
 	configStr := `{
         "Dhcp6": {
             "subnet6": [
@@ -99,7 +99,7 @@ func getTestConfigWithOneIPv6Subnet(t *testing.T) []byte {
 }
 
 // Returns test Kea configuration JSON including multiple IPv6 subnets.
-func getTestConfigWithIPv6Subnets(t *testing.T) []byte {
+func getTestConfigWithIPv6Subnets() []byte {
 	configStr := `{
         "Dhcp6": {
             "subnet6": [
@@ -132,7 +132,7 @@ func getTestConfigWithIPv6Subnets(t *testing.T) []byte {
 }
 
 // Returns test Kea configuration JSON including global host reservations.
-func getTestConfigWithIPv4GlobalHosts(t *testing.T) []byte {
+func getTestConfigWithIPv4GlobalHosts() []byte {
 	configStr := `{
         "Dhcp4": {
             "reservations": [
@@ -159,7 +159,7 @@ func getTestConfigWithIPv4GlobalHosts(t *testing.T) []byte {
 }
 
 // Returns test Kea configuration JSON including global host reservations.
-func getTestConfigWithIPv6GlobalHosts(t *testing.T) []byte {
+func getTestConfigWithIPv6GlobalHosts() []byte {
 	configStr := `{
         "Dhcp6": {
             "reservations": [
@@ -535,7 +535,7 @@ func TestDetectHostsFromConfig(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4GlobalHosts(t))
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4GlobalHosts())
 
 	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
 		{
@@ -544,7 +544,7 @@ func TestDetectHostsFromConfig(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6GlobalHosts(t))
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6GlobalHosts())
 
 	// Add the daemons to the database.
 	err = dbmodel.AddDaemon(db, daemon1)
@@ -632,7 +632,7 @@ func TestDetectHostsSameConfig(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4GlobalHosts(t))
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4GlobalHosts())
 
 	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
 		{
@@ -641,7 +641,7 @@ func TestDetectHostsSameConfig(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6GlobalHosts(t))
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6GlobalHosts())
 
 	// Add the daemons to the database.
 	err = dbmodel.AddDaemon(db, daemon1)
@@ -694,7 +694,7 @@ func TestGetPageFromHostCmds(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(t, true))
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(true))
 
 	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
 		{
@@ -703,7 +703,7 @@ func TestGetPageFromHostCmds(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets(t))
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets())
 
 	// Add the daemons to the database.
 	err = dbmodel.AddDaemon(db, daemon1)
@@ -1206,7 +1206,7 @@ func TestFetchHostsFromHostCmds(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(t, true))
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(true))
 
 	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
 		{
@@ -1215,7 +1215,7 @@ func TestFetchHostsFromHostCmds(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets(t))
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets())
 
 	// Add the daemons to the database.
 	err = dbmodel.AddDaemon(db, daemon1)
@@ -1313,7 +1313,7 @@ func TestPullHostsIntoDB(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(t, true))
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(true))
 
 	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
 		{
@@ -1322,7 +1322,7 @@ func TestPullHostsIntoDB(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets(t))
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets())
 
 	// Add the daemons to the database.
 	err = dbmodel.AddDaemon(db, daemon1)
@@ -1399,7 +1399,7 @@ func TestReduceHostsIntoDB(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv4Subnet(t))
+	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv4Subnet())
 
 	// Add the daemon to the database.
 	err = dbmodel.AddDaemon(db, daemon)
@@ -1473,7 +1473,7 @@ func TestPartialHostsChange(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv4Subnet(t))
+	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv4Subnet())
 
 	// Add the daemon to the database.
 	err = dbmodel.AddDaemon(db, daemon)
@@ -1555,7 +1555,7 @@ func TestSkipPullingHostsIntoDB(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(t, false))
+	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(false))
 
 	daemon2 := dbmodel.NewDaemon(m, "dhcp6", false, []*dbmodel.AccessPoint{
 		{
@@ -1564,7 +1564,7 @@ func TestSkipPullingHostsIntoDB(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets(t))
+	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets())
 
 	// Add the daemons to the database.
 	err = dbmodel.AddDaemon(db, daemon1)
@@ -1663,7 +1663,7 @@ func TestUpdateHost(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv6Subnet(t))
+	_ = daemon.SetConfigFromJSON(getTestConfigWithOneIPv6Subnet())
 
 	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)

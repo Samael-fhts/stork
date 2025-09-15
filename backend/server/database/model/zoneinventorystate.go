@@ -103,7 +103,7 @@ func NewZoneInventoryState(daemonID int64, state *ZoneInventoryStateDetails) *Zo
 	}
 }
 
-// Upsers zone inventory state in a database.
+// Upserts zone inventory state in a database.
 func AddZoneInventoryState(db pg.DBI, state *ZoneInventoryState) error {
 	_, err := db.Model(state).OnConflict("(daemon_id) DO UPDATE").
 		Set("created_at = EXCLUDED.created_at").

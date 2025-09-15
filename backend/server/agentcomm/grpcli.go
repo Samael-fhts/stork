@@ -394,7 +394,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 	}
 
 	// If there was an error in communication with the agent, there is no need
-	// to check the response because it is probably nil anyway. Return an derror.
+	// to check the response because it is probably nil anyway. Return an error.
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to get state from agent %s", addrPort)
 	}

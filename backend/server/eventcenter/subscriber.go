@@ -54,7 +54,7 @@ func getQueryValueAsInt64(name string, values url.Values) (int64, error) {
 }
 
 // Checks if the event should be emitted based on the filtering criteria.
-func (sf subscriberFilters) isInFiter(event *dbmodel.Event) bool {
+func (sf subscriberFilters) isInFilter(event *dbmodel.Event) bool {
 	return (sf.level == 0 || sf.level <= event.Level) &&
 		(sf.MachineID == 0 || event.Relations.MachineID == sf.MachineID) &&
 		(sf.SubnetID == 0 || event.Relations.SubnetID == sf.SubnetID) &&
@@ -173,7 +173,7 @@ func (s *Subscriber) applyFiltersFromQuery(db *dbops.PgDB) (err error) {
 // sent when the returned list is empty.
 func (s *Subscriber) findMatchingEventStreams(event *dbmodel.Event) (streams []dbmodel.SSEStream) {
 	for _, stream := range s.filters.SSEStreams {
-		if stream == dbmodel.SSERegularMessage && (!s.useFilter || s.filters.isInFiter(event)) {
+		if stream == dbmodel.SSERegularMessage && (!s.useFilter || s.filters.isInFilter(event)) {
 			streams = append(streams, dbmodel.SSERegularMessage)
 		} else {
 			for _, eventStream := range event.SSEStreams {

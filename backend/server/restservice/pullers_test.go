@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	apps "isc.org/stork/server/apps"
-	"isc.org/stork/server/apps/bind9"
+	"isc.org/stork/server/daemons/bind9"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
 	"isc.org/stork/server/gen/restapi/operations/settings"

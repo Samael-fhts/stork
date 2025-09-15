@@ -70,7 +70,7 @@ func (machine *Machine) newKeaDaemon(name daemonname.Name) (*KeaServer, error) {
 	}, nil
 }
 
-// Creates DHCOPv4 server instance for the Kea app.
+// Creates DHCPPv4 server instance for the Kea app.
 func (m *Machine) NewKeaDHCPv4Server() (*KeaServer, error) {
 	return m.newKeaDaemon(daemonname.DHCPv4)
 }
