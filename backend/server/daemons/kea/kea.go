@@ -351,10 +351,6 @@ func CommitDaemonsIntoDB(db *dbops.PgDB, daemons []*dbmodel.Daemon, eventCenter 
 			}
 		}
 
-		// Detect and commit changes in the associated entities.
-		networks := make(map[daemonname.Name][]dbmodel.SharedNetwork)
-		subnets := make(map[daemonname.Name][]dbmodel.Subnet)
-		globalHosts := make(map[daemonname.Name][]dbmodel.Host)
 
 		for i, daemon := range daemons {
 			if !states[i].IsConfigChanged {
@@ -375,30 +371,28 @@ func CommitDaemonsIntoDB(db *dbops.PgDB, daemons []*dbmodel.Daemon, eventCenter 
 			// and match them with the existing entries in the database. If some of
 			// the shared networks or subnets do not exist they are instantiated and
 			// returned here.
-			networks[daemon.Name], subnets[daemon.Name], err = detectDaemonNetworks(tx, daemon, lookup)
+			networks, subnets, err := detectDaemonNetworks(tx, daemon, lookup)
 			if err != nil {
 				err = errors.WithMessagef(err, "unable to detect subnets and shared networks for Kea daemon %d", daemon.ID)
 				return err
 			}
 
-			globalHosts[daemon.Name], err = detectGlobalHostsFromConfig(tx, daemon, lookup)
+			globalHosts, err := detectGlobalHostsFromConfig(tx, daemon, lookup)
 			if err != nil {
 				err = errors.WithMessagef(err, "unable to detect global host reservations for Kea daemon %d", daemon.ID)
 				return err
 			}
-		}
 
-		for _, daemon := range daemons {
 			// For the given daemon, iterate over the networks and subnets and update their
 			// global instances accordingly in the database.
-			addedSubnets, err := dbmodel.CommitNetworksIntoDB(tx, networks[daemon.Name], subnets[daemon.Name])
+			addedSubnets, err := dbmodel.CommitNetworksIntoDB(tx, networks, subnets)
 			if err != nil {
 				return err
 			}
 
 			// For the given daemon, iterate over the global hosts and update their instances
 			// in the database or insert them into the database.
-			if err = dbmodel.CommitGlobalHostsIntoDB(tx, globalHosts[daemon.Name]); err != nil {
+			if err = dbmodel.CommitGlobalHostsIntoDB(tx, globalHosts); err != nil {
 				return err
 			}
 

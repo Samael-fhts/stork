@@ -273,7 +273,7 @@ func mockReservationGetPage(callNo int, cmdResponses []interface{}) {
 	}
 
 	// Generate the response with filling in the values as appropriate.
-	bytes := []byte(fmt.Sprintf(`[
+	bytes := []byte(fmt.Sprintf(`
         {
             "result": 0,
             "text": "Hosts found",
@@ -286,7 +286,7 @@ func mockReservationGetPage(callNo int, cmdResponses []interface{}) {
                 }
             }
         }
-    ]`, len(hosts), string(hostsAsJSON), fromValue, sourceIndex))
+    `, len(hosts), string(hostsAsJSON), fromValue, sourceIndex))
 
 	_ = json.Unmarshal(bytes, &cmdResponses[0])
 }
@@ -298,7 +298,7 @@ func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
 	var str string
 	switch callNo {
 	case 1:
-		str = `[
+		str = `
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -320,9 +320,9 @@ func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
                     }
                 }
             }
-        ]`
+        `
 	case 0, 2, 3, 5:
-		str = `[
+		str = `
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -335,9 +335,9 @@ func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
                     }
                 }
             }
-        ]`
+        `
 	case 4:
-		str = `[
+		str = `
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -355,7 +355,7 @@ func mockReservationGetPageReduceHosts(callNo int, cmdResponses []interface{}) {
                     }
                 }
             }
-        ]`
+        `
 	}
 
 	_ = json.Unmarshal([]byte(str), &cmdResponses[0])
@@ -371,7 +371,7 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
 	// No global hosts, third response returns empty response terminating the
 	// process of fetching the hosts. The same for the second iteration.
 	case 0, 3, 4, 7:
-		str = `[
+		str = `
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -384,11 +384,11 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
                     }
                 }
             }
-        ]`
+        `
 	// Two hosts in the first response that don't change in the second
 	// iteration.
 	case 1, 5:
-		str = `[
+		str = `
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -410,10 +410,10 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
                     }
                 }
             }
-        ]`
+        `
 	// One host in the second response that changes in the next iteration.
 	case 2:
-		str = `[
+		str = `
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -431,10 +431,10 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
                     }
                 }
             }
-        ]`
+        `
 	// One host in the second response in the second iteration.
 	case 6:
-		str = `[
+		str = `
             {
                 "result": 0,
                 "text": "Hosts found",
@@ -452,7 +452,7 @@ func mockReservationGetPagePartialChange(callNo int, cmdResponses []interface{})
                     }
                 }
             }
-        ]`
+        `
 	}
 
 	_ = json.Unmarshal([]byte(str), &cmdResponses[0])
@@ -652,7 +652,7 @@ func TestDetectHostsSameConfig(t *testing.T) {
 	// Both configurations are indicated to be the same so the hosts should not
 	// be committed to the database.
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: false}, {IsConfigChanged: false}}, lookup)
 	require.NoError(t, err)
 
 	// Make sure that no hosts have been added.
@@ -661,7 +661,7 @@ func TestDetectHostsSameConfig(t *testing.T) {
 	require.Empty(t, hosts)
 
 	// Indicate that configuration is the same for DHCPv4 but not for DHCPv6.
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: false}, {IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	// The hosts should have been added for the DHCPv6 daemon.
@@ -694,7 +694,8 @@ func TestGetPageFromHostCmds(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(true))
+	err = daemon1.SetConfigFromJSON(getTestConfigWithIPv4Subnets(true))
+	require.NoError(t, err)
 
 	daemon2 := dbmodel.NewDaemon(m, "dhcp6", true, []*dbmodel.AccessPoint{
 		{
@@ -703,7 +704,8 @@ func TestGetPageFromHostCmds(t *testing.T) {
 			Port:    8000,
 		},
 	})
-	_ = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets())
+	err = daemon2.SetConfigFromJSON(getTestConfigWithIPv6Subnets())
+	require.NoError(t, err)
 
 	// Add the daemons to the database.
 	err = dbmodel.AddDaemon(db, daemon1)
@@ -712,7 +714,7 @@ func TestGetPageFromHostCmds(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1224,7 +1226,7 @@ func TestFetchHostsFromHostCmds(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1331,7 +1333,7 @@ func TestPullHostsIntoDB(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1406,7 +1408,7 @@ func TestReduceHostsIntoDB(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	// Create server which returns two hosts at the first attempt and
@@ -1481,7 +1483,7 @@ func TestPartialHostsChange(t *testing.T) {
 
 	fec := &storktest.FakeEventCenter{}
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPagePartialChange, nil)
@@ -1573,7 +1575,7 @@ func TestSkipPullingHostsIntoDB(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1669,7 +1671,7 @@ func TestUpdateHost(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
@@ -1678,7 +1680,7 @@ func TestUpdateHost(t *testing.T) {
 		switch callNo {
 		// Initial data
 		case 1:
-			str = `[
+			str = `
 				{
 					"result": 0,
 					"text": "Hosts found",
@@ -1692,10 +1694,10 @@ func TestUpdateHost(t *testing.T) {
 						]
 					}
 				}
-			]`
+			`
 		// Update hostname
 		case 4:
-			str = `[
+			str = `
 				{
 					"result": 0,
 					"text": "Hosts found",
@@ -1710,10 +1712,10 @@ func TestUpdateHost(t *testing.T) {
 						]
 					}
 				}
-			]`
+			`
 		// Break pulling
 		case 0, 2, 3, 5:
-			str = `[
+			str = `
 				{
 					"result": 0,
 					"text": "Hosts found",
@@ -1726,7 +1728,7 @@ func TestUpdateHost(t *testing.T) {
 						}
 					}
 				}
-			]`
+			`
 		}
 
 		err := json.Unmarshal([]byte(str), cmdResponses[0])

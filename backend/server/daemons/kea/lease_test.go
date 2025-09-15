@@ -71,18 +71,18 @@ func mockLease4GetInvalidJSON(callNo int, responses []any) {
 func mockLease4GetFirstCallError(callNo int, responses []any) {
 	var bytes []byte
 	if callNo == 0 {
-		bytes = []byte(`[
+		bytes = []byte(`
             {
                 "result": 1,
                 "text": "Lease erred",
                 "arguments": { }
             }
-        ]`)
+        `)
 		_ = json.Unmarshal(bytes, responses[0])
 		return
 	}
 
-	bytes = []byte(`[
+	bytes = []byte(`
         {
             "result": 0,
             "text": "Lease found",
@@ -99,14 +99,14 @@ func mockLease4GetFirstCallError(callNo int, responses []any) {
                 "valid-lft": 3600
             }
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a success mock response to commands fetching a single
 // DHCPv6 lease by IPv6 address.
 func mockLease6GetByIPAddress(callNo int, responses []any) {
-	bytes := []byte(`[{
+	bytes := []byte(`{
         "result": 0,
         "text": "Lease found",
         "arguments": {
@@ -126,14 +126,14 @@ func mockLease6GetByIPAddress(callNo int, responses []any) {
                 "user-context": { "ISC": { "client-classes": [ "ALL", "HA_primary", "UNKNOWN" ] }}
             }
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a success mock response to commands fetching a single
 // DHCPv6 lease by IPv6 address.
 func mockLease6GetByPrefix(callNo int, responses []any) {
-	bytes := []byte(`[
+	bytes := []byte(`
         {
             "result": 0,
             "text": "Lease found",
@@ -154,7 +154,7 @@ func mockLease6GetByPrefix(callNo int, responses []any) {
                 "user-context": { "ISC": { "client-classes": [ "ALL", "HA_primary", "UNKNOWN" ] }}
             }
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 }
 
@@ -191,7 +191,7 @@ func mockLease6GetInvalidJSON(callNo int, responses []any) {
 // response indicates an error.
 func mockLeases4GetSecondError(callNo int, responses []any) {
 	// Response to lease4-get-by-hw-address.
-	bytes := []byte(`[
+	bytes := []byte(`
         {
             "result": 0,
             "text": "Leases found",
@@ -212,39 +212,39 @@ func mockLeases4GetSecondError(callNo int, responses []any) {
                 ]
             }
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 
 	// Response to lease4-get-by-client-id.
-	bytes = []byte(`[
+	bytes = []byte(`
         {
             "result": 1,
             "text": "Leases erred",
             "arguments": { }
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[1])
 }
 
 // Generates a mock empty response to commands fetching DHCPv4 leases.
 func mockLeases4GetEmpty(callNo int, responses []any) {
-	bytes := []byte(`[
+	bytes := []byte(`
         {
             "result": 3,
             "text": "No lease found."
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 }
 
 // Generates a mock empty response to commands fetching DHCPv6 leases.
 func mockLeases6GetEmpty(callNo int, responses []any) {
-	bytes := []byte(`[
+	bytes := []byte(`
         {
             "result": 3,
             "text": "No lease found."
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 }
 
@@ -253,7 +253,7 @@ func mockLeases6GetEmpty(callNo int, responses []any) {
 // Stork should ignore the lease in the default state. The second response
 // contains two declined DHCPv6 leases.
 func mockLeasesGetDeclined(callNo int, responses []any) {
-	bytes := []byte(`[
+	bytes := []byte(`
         {
             "result": 0,
             "text": "Leases found",
@@ -278,10 +278,10 @@ func mockLeasesGetDeclined(callNo int, responses []any) {
                 ]
             }
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 
-	bytes = []byte(`[
+	bytes = []byte(`
         {
             "result": 0,
             "text": "Leases found",
@@ -314,20 +314,20 @@ func mockLeasesGetDeclined(callNo int, responses []any) {
                 ]
             }
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[1])
 }
 
 func mockLeasesGetDeclinedErrors(callNo int, responses []any) {
-	bytes := []byte(`[
+	bytes := []byte(`
         {
             "result": 1,
             "text": "Leases search erred"
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 
-	bytes = []byte(`[
+	bytes = []byte(`
         {
             "result": 0,
             "text": "Leases found",
@@ -348,19 +348,19 @@ func mockLeasesGetDeclinedErrors(callNo int, responses []any) {
                 ]
             }
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[1])
 }
 
 // Generate an error mock response to a command fetching lease by an IPv6
 // address.
 func mockLease6GetError(callNo int, responses []any) {
-	bytes := []byte(`[
+	bytes := []byte(`
         {
             "result": 1,
             "text": "Getting an lease erred."
         }
-    ]`)
+    `)
 	_ = json.Unmarshal(bytes, responses[0])
 }
 

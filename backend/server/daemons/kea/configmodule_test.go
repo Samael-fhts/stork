@@ -1168,6 +1168,7 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 						},
 					},
 				},
+				DataSource: dbmodel.HostDataSourceAPI,
 			},
 			{
 				DaemonID: 2,
@@ -1187,12 +1188,12 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 	}
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		json := []byte(`[
+		json := []byte(`
             {
                 "result": 1,
                 "text": "error is error"
             }
-        ]`)
+        `)
 		response := &keactrl.ResponseHeader{}
 		err := response.Unmarshal(json)
 		if err != nil {
@@ -1227,7 +1228,7 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = module.Commit(ctx)
-	require.ErrorContains(t, err, "reservation-del command to kea@192.0.2.1 failed: error status (1) returned by Kea dhcp4 daemon with text: 'error is error'")
+	require.ErrorContains(t, err, "reservation-del command to dhcp4 failed: non-success response result from Kea: 1, text: error is error")
 
 	// Other commands should not be sent in this case.
 	require.Len(t, agents.RecordedCommands, 1)
@@ -1385,8 +1386,8 @@ func TestCommitHostDelete(t *testing.T) {
 
 	// Make sure that the commands were sent to appropriate servers.
 	require.Len(t, agents.RecordedURLs, 2)
-	require.Equal(t, "https://localhost:1234/", agents.RecordedURLs[0])
-	require.Equal(t, "https://localhost:1235/", agents.RecordedURLs[1])
+	require.Equal(t, "https://localhost:8080/", agents.RecordedURLs[0])
+	require.Equal(t, "https://localhost:8081/", agents.RecordedURLs[1])
 
 	// Validate the sent commands.
 	require.Len(t, agents.RecordedCommands, 2)
@@ -1575,7 +1576,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, "shared_network_add", update.Operation)
+	require.Equal(t, config.OperationKeaSharedNetworkAdd, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be seven commands ready to send.
@@ -1673,7 +1674,8 @@ func TestCommitSharedNetworkAdd(t *testing.T) {
 
 	err = CommitDaemonsIntoDB(db,
 		[]*dbmodel.Daemon{daemon1, daemon2},
-		&storktest.FakeEventCenter{}, nil,
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{}, {}},
 		dbmodel.NewDHCPOptionDefinitionLookup(),
 	)
 	require.NoError(t, err)
@@ -1905,7 +1907,8 @@ func TestBeginSharedNetworkUpdate(t *testing.T) {
 
 	err = CommitDaemonsIntoDB(db,
 		[]*dbmodel.Daemon{daemon1, daemon2},
-		&storktest.FakeEventCenter{}, nil,
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
 		dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
@@ -1929,7 +1932,7 @@ func TestBeginSharedNetworkUpdate(t *testing.T) {
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
 	require.Len(t, state.Updates, 1)
-	require.Equal(t, config.OperationKeaHostUpdate, state.Updates[0].Operation)
+	require.Equal(t, config.OperationKeaSharedNetworkUpdate, state.Updates[0].Operation)
 	require.NotNil(t, state.Updates[0].Recipe.SharedNetworkBeforeUpdate)
 	require.Equal(t, "foo", state.Updates[0].Recipe.SharedNetworkBeforeUpdate.Name)
 	require.Len(t, state.Updates[0].Recipe.SharedNetworkBeforeUpdate.LocalSharedNetworks, 2)
@@ -2248,7 +2251,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, "shared_network_update", update.Operation)
+	require.Equal(t, config.OperationKeaSharedNetworkUpdate, update.Operation)
 	require.NotNil(t, update.Recipe)
 	require.NotNil(t, update.Recipe.SharedNetworkBeforeUpdate)
 
@@ -2383,7 +2386,8 @@ func TestCommitSharedNetworkUpdate(t *testing.T) {
 
 	err = CommitDaemonsIntoDB(db,
 		[]*dbmodel.Daemon{daemon1, daemon2},
-		&storktest.FakeEventCenter{}, nil,
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
 		dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
@@ -2502,13 +2506,16 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	defer teardown()
 
 	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		bytes := []byte(`[
+		bytes := []byte(`
 			{
 				"result": 1,
 				"text": "error is error"
 			}
-		]`)
-		_ = json.Unmarshal(bytes, &cmdResponses[0])
+		`)
+		err := json.Unmarshal(bytes, &cmdResponses[0])
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
@@ -2544,7 +2551,7 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	daemon, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -2572,7 +2579,7 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = module.Commit(ctx)
-	require.ErrorContains(t, err, fmt.Sprintf("network4-del command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'error is error'", daemons[0].Name))
+	require.ErrorContains(t, err, "network4-del command to dhcp4 failed: non-success response result from Kea: 1, text: error is error")
 
 	// Other commands should not be sent in this case.
 	require.Len(t, agents.RecordedURLs, 1)
@@ -2642,7 +2649,7 @@ func TestApplySharedNetwork4Delete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -2670,7 +2677,7 @@ func TestApplySharedNetwork4Delete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, "shared_network_delete", update.Operation)
+	require.Equal(t, config.OperationKeaSharedNetworkDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be four commands ready to send.
@@ -2758,7 +2765,7 @@ func TestApplySharedNetwork6Delete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -2786,7 +2793,7 @@ func TestApplySharedNetwork6Delete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, "shared_network_delete", update.Operation)
+	require.Equal(t, config.OperationKeaSharedNetworkDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be two commands ready to send.
@@ -2874,7 +2881,7 @@ func TestCommitSharedNetworkDelete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3037,7 +3044,7 @@ func TestApplySubnetAdd(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, "subnet_add", update.Operation)
+	require.Equal(t, config.OperationKeaSubnetAdd, update.Operation)
 	require.NotNil(t, update.Recipe)
 	require.Nil(t, update.Recipe.SubnetBeforeUpdate)
 
@@ -3133,7 +3140,7 @@ func TestCommitSubnetAdd(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3308,7 +3315,7 @@ func TestBeginSubnetUpdate(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3505,7 +3512,7 @@ func TestApplySubnetUpdate(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, "subnet_update", update.Operation)
+	require.Equal(t, config.OperationKeaSubnetUpdate, update.Operation)
 	require.NotNil(t, update.Recipe)
 	require.NotNil(t, update.Recipe.SubnetBeforeUpdate)
 
@@ -3637,7 +3644,7 @@ func TestCommitSubnetUpdate(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3737,13 +3744,16 @@ func TestCommitSubnetUpdateResponseWithErrorStatus(t *testing.T) {
 	defer teardown()
 
 	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		bytes := []byte(`[
+		bytes := []byte(`
             {
                 "result": 1,
                 "text": "error is error"
             }
-        ]`)
-		_ = json.Unmarshal(bytes, &cmdResponses[0])
+        `)
+		err := json.Unmarshal(bytes, &cmdResponses[0])
+		if err != nil {
+			panic(err)
+		}
 	})
 
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
@@ -3779,7 +3789,7 @@ func TestCommitSubnetUpdateResponseWithErrorStatus(t *testing.T) {
 	daemon, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3807,7 +3817,7 @@ func TestCommitSubnetUpdateResponseWithErrorStatus(t *testing.T) {
 	require.NoError(t, err)
 
 	_, err = module.Commit(ctx)
-	require.ErrorContains(t, err, fmt.Sprintf("subnet4-update command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'error is error'", daemons[0].Name))
+	require.ErrorContains(t, err, "subnet4-update command to dhcp4 failed: non-success response result from Kea: 1, text: error is error")
 
 	// Other commands should not be sent in this case.
 	require.Len(t, agents.RecordedCommands, 1)
@@ -3865,7 +3875,7 @@ func TestApplySubnet4Delete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3893,7 +3903,7 @@ func TestApplySubnet4Delete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, "subnet_delete", update.Operation)
+	require.Equal(t, config.OperationKeaSubnetDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be six commands ready to send.
@@ -3993,7 +4003,7 @@ func TestApplySubnet6Delete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -4021,7 +4031,7 @@ func TestApplySubnet6Delete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, "subnet_delete", update.Operation)
+	require.Equal(t, config.OperationKeaSubnetDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be six commands ready to send.
@@ -4121,7 +4131,7 @@ func TestCommitSubnetDelete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)

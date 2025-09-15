@@ -59,6 +59,7 @@ func (d *LogsDump) Execute() error {
 				errStr = err.Error()
 			}
 
+			daemon.Machine = d.machine
 			app := daemon.GetVirtualApp()
 
 			tail := &models.LogTail{

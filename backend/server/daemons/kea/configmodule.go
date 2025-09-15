@@ -1354,19 +1354,18 @@ func (module *ConfigModule) ApplySubnetUpdate(ctx context.Context, subnet *dbmod
 				break
 			}
 		}
-		daemonName := removedLocalSubnet.Daemon.Name
 		if removedLocalSubnet != nil {
 			if sharedNetworkNameBeforeUpdate != "" {
 				// If the deleted subnet belongs to a shared network we first need to remove
 				// this subnet from a shared network. This is a limitation of Kea 2.6.0.
 				commands = append(commands, ConfigCommand{
-					Command: keactrl.NewCommandNetworkSubnetDel(subnet.GetFamily(), sharedNetworkNameBeforeUpdate, removedLocalSubnet.LocalSubnetID, daemonName),
+					Command: keactrl.NewCommandNetworkSubnetDel(subnet.GetFamily(), sharedNetworkNameBeforeUpdate, removedLocalSubnet.LocalSubnetID, removedLocalSubnet.Daemon.Name),
 					Daemon:  removedLocalSubnet.Daemon,
 				})
 			}
 			// Delete the subnet.
 			commands = append(commands, ConfigCommand{
-				Command: keactrl.NewCommandSubnetDel(subnet.GetFamily(), &keaconfig.SubnetCmdsDeletedSubnet{ID: removedLocalSubnet.LocalSubnetID}, daemonName),
+				Command: keactrl.NewCommandSubnetDel(subnet.GetFamily(), &keaconfig.SubnetCmdsDeletedSubnet{ID: removedLocalSubnet.LocalSubnetID}, removedLocalSubnet.Daemon.Name),
 				Daemon:  removedLocalSubnet.Daemon,
 			})
 			removedLocalSubnets = append(removedLocalSubnets, removedLocalSubnet)

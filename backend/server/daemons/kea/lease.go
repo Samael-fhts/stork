@@ -207,7 +207,7 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, daemon *dbmodel.Dae
 			if err = validateGetLeasesResponse(commands[i].GetCommand(), response.Result, response.Arguments); err != nil {
 				// Log an error and continue. Maybe there is a communication problem
 				// with one daemon, but the other one is still operational.
-				log.Warn(err)
+				log.WithError(err).Warn("Validation of response to command fetching leases failed")
 				warns = true
 			} else {
 				leases = append(leases, response.Arguments.Leases...)
