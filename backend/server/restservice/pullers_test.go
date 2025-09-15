@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	apps "isc.org/stork/server/apps"
-	"isc.org/stork/server/daemons/bind9"
+	"isc.org/stork/server/apps/bind9"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
 	"isc.org/stork/server/gen/restapi/operations/settings"
@@ -25,7 +25,7 @@ func TestGetPullers(t *testing.T) {
 	statePuller, _ := apps.NewStatePuller(db, nil, nil, nil, nil)
 	bind9Puller, _ := bind9.NewStatsPuller(db, nil, nil)
 	pullers := &apps.Pullers{
-		StatePuller:      statePuller,
+		AppsStatePuller:  statePuller,
 		Bind9StatsPuller: bind9Puller,
 	}
 	rapi, _ := NewRestAPI(&rapiSettings, dbSettings, db, pullers)
@@ -55,7 +55,7 @@ func TestGetPuller(t *testing.T) {
 	statePuller, _ := apps.NewStatePuller(db, nil, nil, nil, nil)
 	bind9Puller, _ := bind9.NewStatsPuller(db, nil, nil)
 	pullers := &apps.Pullers{
-		StatePuller:      statePuller,
+		AppsStatePuller:  statePuller,
 		Bind9StatsPuller: bind9Puller,
 	}
 	rapi, _ := NewRestAPI(&rapiSettings, dbSettings, db, pullers)

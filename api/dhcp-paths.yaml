@@ -46,9 +46,9 @@
       parameters:
         - $ref: '#/parameters/paginationStartParam'
         - $ref: '#/parameters/paginationLimitParam'
-        - name: machineId
+        - name: appId
           in: query
-          description: Limit returned list of hosts to these which are served by given machine ID.
+          description: Limit returned list of hosts to these which are served by given app ID.
           type: integer
         - name: subnetId
           in: query
@@ -302,9 +302,9 @@
       parameters:
         - $ref: '#/parameters/paginationStartParam'
         - $ref: '#/parameters/paginationLimitParam'
-        - name: daemonId
+        - name: appId
           in: query
-          description: Limit returned list of subnets to these which are served by given daemon ID.
+          description: Limit returned list of subnets to these which are served by given app ID.
           type: integer
         - name: localSubnetId
           in: query
@@ -549,9 +549,9 @@
       parameters:
         - $ref: '#/parameters/paginationStartParam'
         - $ref: '#/parameters/paginationLimitParam'
-        - name: daemonId
+        - name: appId
           in: query
-          description: Limit returned list of subnets to these which are served by given daemon ID.
+          description: Limit returned list of subnets to these which are served by given app ID.
           type: integer
         - name: dhcpVersion
           in: query

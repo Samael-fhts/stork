@@ -10,9 +10,9 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	keaconfig "isc.org/stork/daemoncfg/kea"
+	keaconfig "isc.org/stork/appcfg/kea"
+	"isc.org/stork/server/apps/kea"
 	"isc.org/stork/server/config"
-	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
 
@@ -102,10 +102,12 @@ func (r *RestAPI) convertSubnetToRestAPI(sn *dbmodel.Subnet) *models.Subnet {
 
 	for _, lsn := range sn.LocalSubnets {
 		localSubnet := &models.LocalSubnet{
+			AppID:            lsn.Daemon.App.ID,
 			DaemonID:         lsn.Daemon.ID,
+			AppName:          lsn.Daemon.App.Name,
 			ID:               lsn.LocalSubnetID,
-			MachineAddress:   lsn.Daemon.Machine.Address,
-			MachineHostname:  lsn.Daemon.Machine.State.Hostname,
+			MachineAddress:   lsn.Daemon.App.Machine.Address,
+			MachineHostname:  lsn.Daemon.App.Machine.State.Hostname,
 			Stats:            lsn.Stats,
 			StatsCollectedAt: convertToOptionalDatetime(lsn.StatsCollectedAt),
 			UserContext:      lsn.UserContext,
@@ -486,7 +488,7 @@ func (r *RestAPI) GetSubnets(ctx context.Context, params dhcp.GetSubnetsParams) 
 
 	// get subnets from db
 	filters := &dbmodel.SubnetsByPageFilters{
-		DaemonID:      params.DaemonID,
+		AppID:         params.AppID,
 		Family:        params.DhcpVersion,
 		Text:          params.Text,
 		LocalSubnetID: params.LocalSubnetID,
@@ -563,7 +565,7 @@ func (r *RestAPI) commonCreateOrUpdateNetworkBegin(ctx context.Context) ([]*mode
 		if daemons[i].KeaDaemon != nil && daemons[i].KeaDaemon.Config != nil {
 			// Filter the daemons with subnet_cmds hook library.
 			if _, _, exists := daemons[i].KeaDaemon.Config.GetHookLibrary("libdhcp_subnet_cmds"); exists {
-				respDaemons = append(respDaemons, r.keaDaemonToRestAPI(&daemons[i]))
+				respDaemons = append(respDaemons, keaDaemonToRestAPI(&daemons[i]))
 			}
 			clientClasses := daemons[i].KeaDaemon.Config.GetClientClasses()
 			for _, c := range clientClasses {

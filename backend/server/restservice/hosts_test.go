@@ -10,12 +10,12 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
-	keactrl "isc.org/stork/daemonctrl/kea"
+	keactrl "isc.org/stork/appctrl/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	apps "isc.org/stork/server/apps"
-	"isc.org/stork/server/daemons/kea"
-	appstest "isc.org/stork/server/daemons/test"
+	"isc.org/stork/server/apps/kea"
+	appstest "isc.org/stork/server/apps/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator"
 	dbmodel "isc.org/stork/server/database/model"
@@ -1730,8 +1730,8 @@ func TestStartHostsMigration(t *testing.T) {
 	hostPuller, err := kea.NewHostsPuller(db, nil, nil, nil)
 	require.NoError(t, err)
 	pullers := &apps.Pullers{
-		KeaHostsPuller: hostPuller,
-		StatePuller:    statePuller,
+		KeaHostsPuller:  hostPuller,
+		AppsStatePuller: statePuller,
 	}
 	require.False(t, statePuller.Paused())
 	require.False(t, hostPuller.Paused())

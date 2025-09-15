@@ -14,14 +14,14 @@ import (
 
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
-	keaconfig "isc.org/stork/daemoncfg/kea"
-	keactrl "isc.org/stork/daemonctrl/kea"
-	"isc.org/stork/daemondata/bind9stats"
-	pdnsdata "isc.org/stork/daemondata/pdns"
+	keaconfig "isc.org/stork/appcfg/kea"
+	keactrl "isc.org/stork/appctrl/kea"
+	"isc.org/stork/appdata/bind9stats"
+	pdnsdata "isc.org/stork/appdata/pdns"
 	"isc.org/stork/pki"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
-	"isc.org/stork/server/daemons/kea"
+	"isc.org/stork/server/apps/kea"
 	"isc.org/stork/server/certs"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
@@ -1761,7 +1761,7 @@ func TestRestGetBind9AppWithQueryStats(t *testing.T) {
 					Stats: dbmodel.Bind9DaemonStats{
 						ZoneCount:          int64(100),
 						AutomaticZoneCount: int64(50),
-						NamedStats: bind9stats.Bind9NamedStats{
+						NamedStats: &bind9stats.Bind9NamedStats{
 							Views: map[string]*bind9stats.Bind9StatsView{
 								"trusted": {
 									Resolver: &bind9stats.Bind9StatsResolver{

@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/server/daemons/kea"
+	keaconfig "isc.org/stork/appcfg/kea"
+	"isc.org/stork/server/apps/kea"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator/entitymigrator"
 	dbmodel "isc.org/stork/server/database/model"
@@ -72,6 +72,8 @@ func (r *RestAPI) convertHostFromRestAPI(dbHost *dbmodel.Host) *models.Host {
 		}
 
 		localHost := models.LocalHost{
+			AppID:          dbLocalHost.Daemon.AppID,
+			AppName:        dbLocalHost.Daemon.App.Name,
 			DaemonID:       dbLocalHost.Daemon.ID,
 			DataSource:     dbLocalHost.DataSource.String(),
 			NextServer:     dbLocalHost.NextServer,
@@ -185,7 +187,7 @@ func (r *RestAPI) GetHosts(ctx context.Context, params dhcp.GetHostsParams) midd
 
 	// Get hosts from DB.
 	filters := dbmodel.HostsByPageFilters{
-		MachineID:        params.MachineID,
+		AppID:            params.AppID,
 		SubnetID:         params.SubnetID,
 		LocalSubnetID:    params.LocalSubnetID,
 		FilterText:       params.Text,
@@ -256,7 +258,7 @@ func (r *RestAPI) commonCreateOrUpdateHostBegin(ctx context.Context) ([]*models.
 		if daemons[i].KeaDaemon != nil && daemons[i].KeaDaemon.Config != nil {
 			// Filter the daemons with host_cmds hook library.
 			if _, _, exists := daemons[i].KeaDaemon.Config.GetHookLibrary("libdhcp_host_cmds"); exists {
-				respDaemons = append(respDaemons, r.keaDaemonToRestAPI(&daemons[i]))
+				respDaemons = append(respDaemons, keaDaemonToRestAPI(&daemons[i]))
 			}
 			clientClasses := daemons[i].KeaDaemon.Config.GetClientClasses()
 			for _, c := range clientClasses {
@@ -338,7 +340,7 @@ func (r *RestAPI) CreateHostBegin(ctx context.Context, params dhcp.CreateHostBeg
 	// Remember the context, i.e. new transaction has been successfully created.
 	_ = r.ConfigManager.RememberContext(cctx, time.Minute*10)
 
-	// Return transaction ID, daemons and subnets to the user.
+	// Return transaction ID, apps and subnets to the user.
 	contents := &models.CreateHostBeginResponse{
 		ID:            cctxID,
 		Daemons:       respDaemons,
@@ -528,7 +530,7 @@ func (r *RestAPI) UpdateHostBegin(ctx context.Context, params dhcp.UpdateHostBeg
 	// Remember the context, i.e. new transaction has been successfully created.
 	_ = r.ConfigManager.RememberContext(cctx, time.Minute*10)
 
-	// Return transaction ID, daemons and subnets to the user.
+	// Return transaction ID, apps and subnets to the user.
 	contents := &models.UpdateHostBeginResponse{
 		ID:            cctxID,
 		Host:          r.convertHostFromRestAPI(host),
@@ -636,7 +638,7 @@ func (r *RestAPI) StartHostsMigration(ctx context.Context, params dhcp.StartHost
 	// Create a new host migrator.
 	migrator := entitymigrator.NewHostMigrator(
 		dbmodel.HostsByPageFilters{
-			MachineID:        params.MachineID,
+			AppID:            params.AppID,
 			SubnetID:         params.SubnetID,
 			LocalSubnetID:    params.LocalSubnetID,
 			FilterText:       params.Text,
@@ -647,7 +649,7 @@ func (r *RestAPI) StartHostsMigration(ctx context.Context, params dhcp.StartHost
 		r.Agents,
 		r.DHCPOptionDefinitionLookup,
 		r.DaemonLocker,
-		r.Pullers.StatePuller, r.Pullers.KeaHostsPuller,
+		r.Pullers.AppsStatePuller, r.Pullers.KeaHostsPuller,
 	)
 	// Start the migration.
 	status, err := r.MigrationService.StartMigration(ctx, migrator)

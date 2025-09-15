@@ -9,7 +9,6 @@ import (
 	"github.com/go-openapi/strfmt"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/dnsop"
@@ -29,45 +28,22 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 	if params.Limit != nil {
 		limit = int(*params.Limit)
 	}
-
-	var daemonName *daemonname.Name
-	if params.DaemonName != nil {
-		paramDaemonName, err := daemonname.Parse(*params.DaemonName)
-		if err != nil || !paramDaemonName.IsDNS() {
-			msg := "Invalid daemon name"
-			log.WithError(err).Error(msg)
-			rsp := dns.NewGetZonesDefault(http.StatusBadRequest).WithPayload(&models.APIError{
-				Message: &msg,
-			})
-			return rsp
-		}
-		if err != nil {
-			msg := "Daemon name is not a DNS daemon"
-			log.WithError(err).Error(msg)
-			rsp := dns.NewGetZonesDefault(http.StatusBadRequest).WithPayload(&models.APIError{
-				Message: &msg,
-			})
-			return rsp
-		}
-		daemonName = &paramDaemonName
-	}
-
 	// Apply paging parameters and zone-specific filters.
 	filter := &dbmodel.GetZonesFilter{
-		DaemonID:   params.DaemonID,
-		DaemonName: daemonName,
-		Class:      params.Class,
-		RPZ:        params.Rpz,
-		Serial:     params.Serial,
-		Text:       params.Text,
-		Offset:     storkutil.Ptr(offset),
-		Limit:      storkutil.Ptr(limit),
+		AppID:   params.AppID,
+		AppType: params.AppType,
+		Class:   params.Class,
+		RPZ:     params.Rpz,
+		Serial:  params.Serial,
+		Text:    params.Text,
+		Offset:  storkutil.Ptr(offset),
+		Limit:   storkutil.Ptr(limit),
 	}
 	for _, zoneType := range params.ZoneType {
 		filter.EnableZoneType(dbmodel.ZoneType(zoneType))
 	}
 	// Get the zones from the database.
-	zones, total, err := dbmodel.GetZones(r.DB, filter)
+	zones, total, err := dbmodel.GetZones(r.DB, filter, dbmodel.ZoneRelationLocalZonesApp)
 	if err != nil {
 		msg := "Failed to get zones from the database"
 		log.WithError(err).Error(msg)
@@ -83,6 +59,8 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 		var restLocalZones []*models.LocalZone
 		for _, localZone := range zone.LocalZones {
 			restLocalZones = append(restLocalZones, &models.LocalZone{
+				AppID:    localZone.Daemon.App.ID,
+				AppName:  localZone.Daemon.App.Name,
 				Class:    localZone.Class,
 				DaemonID: localZone.DaemonID,
 				LoadedAt: strfmt.DateTime(localZone.LoadedAt),
@@ -119,7 +97,7 @@ func (r *RestAPI) GetZonesFetch(ctx context.Context, params dns.GetZonesFetchPar
 		rsp := dns.NewGetZonesFetchAccepted().WithPayload(&payload)
 		return rsp
 	}
-	states, count, err := dbmodel.GetZoneInventoryStates(r.DB)
+	states, count, err := dbmodel.GetZoneInventoryStates(r.DB, dbmodel.ZoneInventoryStateRelationApp)
 	if err != nil {
 		msg := "Failed to get zones fetch states from the database"
 		log.WithError(err).Error(msg)
@@ -135,6 +113,8 @@ func (r *RestAPI) GetZonesFetch(ctx context.Context, params dns.GetZonesFetchPar
 	var restStates []*models.ZoneInventoryState
 	for _, state := range states {
 		restStates = append(restStates, &models.ZoneInventoryState{
+			AppID:              state.Daemon.AppID,
+			AppName:            state.Daemon.App.Name,
 			CreatedAt:          strfmt.DateTime(state.CreatedAt),
 			DaemonID:           state.DaemonID,
 			Error:              state.State.Error,

@@ -166,9 +166,9 @@ definitions:
   principal:
     type: string
 
-  DNSDaemonName:
+  DNSAppType:
     type: string
-    enum: &DNSDAEMONNAME
+    enum: &DNSAPPTYPE
       - bind9
       - pdns
 
@@ -224,18 +224,17 @@ parameters:
     in: query
     description: >-
       Filtering text, e.g. hostname for the machines
-      or version for the daemons.
+      or version for the apps.
     type: string
 
-  dnsDaemonName:
-    name: daemonName
+  dnsAppType:
+    name: appType
     in: query
     description: >-
-      Limit returned list of entities (e.g. zones) to the ones served by
-      daemons of a given name. The daemon should be one of the supported DNS
-      servers.
+      Limit returned list of entities (e.g. zones) to the ones served by app of a
+      given type. The app should be one of the supported DNS servers.
     type: string
-    enum: *DNSDAEMONNAME
+    enum: *DNSAPPTYPE
 
   dnsClass:
     name: class

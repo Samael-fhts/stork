@@ -15,7 +15,7 @@ import (
 	dnslib "github.com/miekg/dns"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
-	dnsconfig "isc.org/stork/daemoncfg/dnsconfig"
+	dnsconfig "isc.org/stork/appcfg/dnsconfig"
 	"isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"

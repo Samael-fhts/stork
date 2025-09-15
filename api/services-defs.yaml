@@ -24,17 +24,20 @@
     type: object
     required:
       - logTargetOutput
-      - daemonId
-      - daemonName
+      - appId
+      - appType
+      - appName
       - contents
     properties:
       logTargetOutput:
         type: string
       machine:
-        $ref: '#/definitions/SimpleMachine'
-      daemonId:
+        $ref: '#/definitions/AppMachine'
+      appId:
         type: integer
-      daemonName:
+      appType:
+        type: string
+      appName:
         type: string
       contents:
         type: array
@@ -151,20 +154,10 @@
         x-nullable: true
       error:
         type: string
-      daemons:
+      apps:
         type: array
         items:
-          $ref: '#/definitions/AnyDaemon'
-
-  Daemons:
-    type: object
-    properties:
-      items:
-        type: array
-        items:
-          $ref: '#/definitions/AnyDaemon'
-      total:
-        type: integer
+          $ref: '#/definitions/App'
 
   Machines:
     type: object
@@ -176,35 +169,7 @@
       total:
         type: integer
 
-  SimpleMachine:
-    type: object
-    properties:
-      id:
-        type: integer
-      address:
-        type: string
-      agentPort:
-        type: integer
-      hostname:
-        type: string
-      agentVersion:
-        type: string
-      daemons:
-        type: array
-        items:
-          $ref: '#/definitions/SimpleDaemon'
-
-  SimpleMachines:
-    type: object
-    properties:
-      items:
-        type: array
-        items:
-          $ref: '#/definitions/SimpleMachine'
-      total:
-        type: integer
-
-  AccessPoint:
+  AppAccessPoint:
      type: object
      properties:
        type:
@@ -213,8 +178,49 @@
          type: string
        port:
          type: integer
-       protocol:
-         type: string
+       useSecureProtocol:
+         type: boolean
+
+  AppBase:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+      accessPoints:
+        type: array
+        items:
+          $ref: '#/definitions/AppAccessPoint'
+      version:
+        type: string
+      machine:
+        $ref: '#/definitions/AppMachine'
+
+  App:
+    type: object
+    properties:
+      id:
+        type: integer
+      name:
+        type: string
+      type:
+        type: string
+      accessPoints:
+        type: array
+        items:
+          $ref: '#/definitions/AppAccessPoint'
+      version:
+        type: string
+      machine:
+        $ref: '#/definitions/AppMachine'
+      details:
+        allOf:
+          - $ref: '#/definitions/AppKea'
+          - $ref: '#/definitions/AppBind9'
+          - $ref: '#/definitions/AppPdns'
 
   KeaDaemonDatabase:
     type: object
@@ -230,38 +236,7 @@
         items:
           type: string
 
-  KeaDaemonConfig:
-    type: object
-    properties:
-      daemonId:
-        type: integer
-      daemonName:
-        type: string
-      daemonVersion:
-        type: string
-      editable:
-        type: boolean
-      config:
-        type: object
-        additionalProperties: true
-      options:
-        $ref: '#/definitions/DHCPOptions'
-
-  Bind9DaemonView:
-    type: object
-    properties:
-      name:
-        type: string
-      queryHitRatio:
-        type: number
-      queryHits:
-        type: integer
-        x-omitempty: false
-      queryMisses:
-        type: integer
-        x-omitempty: false
-
-  Daemon:
+  KeaDaemon:
     type: object
     properties:
       id:
@@ -284,32 +259,6 @@
         type: string
         format: date-time
         x-nullable: true
-      agentCommErrors:
-        type: integer
-      controlCommErrors:
-        type: integer
-      machineId:
-        type: integer
-      machine:
-        $ref: '#/definitions/SimpleMachine'
-      accessPoints:
-        type: array
-        items:
-          $ref: '#/definitions/AccessPoint'
-
-  SimpleDaemon:
-    type: object
-    properties:
-      id:
-        type: integer
-      name:
-        type: string
-      version:
-        type: string
-
-  KeaDaemonDetails:
-    type: object
-    properties:
       hooks:
         type: array
         items:
@@ -322,21 +271,88 @@
         type: array
         items:
           $ref: '#/definitions/KeaDaemonDatabase'
+      agentCommErrors:
+        type: integer
+      caCommErrors:
+        type: integer
+      daemonCommErrors:
+        type: integer
       logTargets:
         type: array
         items:
           $ref: '#/definitions/LogTarget'
-      
-  KeaDaemon:
-    type: object
-    allOf:
-      - $ref: '#/definitions/Daemon'
-      - $ref: '#/definitions/KeaDaemonDetails'
+      app:
+        $ref: '#/definitions/AppBase'
 
-  Bind9DaemonDetails:
+  KeaDaemonConfig:
     type: object
     properties:
-      zoneCount:  
+      daemonId:
+        type: integer
+      daemonName:
+        type: string
+      daemonVersion:
+        type: string
+      appId:
+        type: integer
+      appName:
+        type: string
+      appType:
+        type: string
+      editable:
+        type: boolean
+      config:
+        type: object
+        additionalProperties: true
+      options:
+        $ref: '#/definitions/DHCPOptions'
+
+  AppKea:
+    type: object
+    properties:
+      extendedVersion:
+        type: string
+      daemons:
+        type: array
+        items:
+          $ref: '#/definitions/KeaDaemon'
+
+  Bind9DaemonView:
+    type: object
+    properties:
+      name:
+        type: string
+      queryHitRatio:
+        type: number
+      queryHits:
+        type: integer
+        x-omitempty: false
+      queryMisses:
+        type: integer
+        x-omitempty: false
+
+  Bind9Daemon:
+    type: object
+    properties:
+      id:
+        type: integer
+      pid:
+        type: integer
+      name:
+        type: string
+      active:
+        type: boolean
+      monitored:
+        type: boolean
+      version:
+        type: string
+      uptime:
+        type: integer
+      reloadedAt:
+        type: string
+        format: date-time
+        x-nullable: true
+      zoneCount:
         type: integer
       autoZoneCount:
         type: integer
@@ -344,18 +360,40 @@
         type: array
         items:
           $ref: '#/definitions/Bind9DaemonView'
+      agentCommErrors:
+        type: integer
+      rndcCommErrors:
+        type: integer
       statsCommErrors:
         type: integer
-  
-  Bind9Daemon:
-    type: object
-    allOf:
-      - $ref: '#/definitions/Daemon'
-      - $ref: '#/definitions/Bind9DaemonDetails'
 
-  PdnsDaemonDetails:
+  AppBind9:
     type: object
     properties:
+      daemon:
+        $ref: '#/definitions/Bind9Daemon'
+
+  PdnsDaemon:
+    type: object
+    properties:
+      id:
+        type: integer
+      pid:
+        type: integer
+      name:
+        type: string
+      active:
+        type: boolean
+      monitored:
+        type: boolean
+      version:
+        type: string
+      uptime:
+        type: integer
+      reloadedAt:
+        type: string
+        format: date-time
+        x-nullable: true
       url:
         type: string
       configUrl:
@@ -365,30 +403,42 @@
       autoprimariesUrl:
         type: string
 
-  PdnsDaemon:
-    type: object
-    allOf:
-      - $ref: '#/definitions/Daemon'
-      - $ref: '#/definitions/PdnsDaemonDetails'
-
-  AnyDaemon:
-    type: object
-    allOf:
-      - $ref: '#/definitions/Daemon'
-      - $ref: '#/definitions/KeaDaemonDetails'
-      - $ref: '#/definitions/Bind9DaemonDetails'
-      - $ref: '#/definitions/PdnsDaemonDetails'
-
-  DaemonsStats:
+  AppPdns:
     type: object
     properties:
-      dhcpDaemonsTotal:
+      pdnsDaemon:
+        $ref: '#/definitions/PdnsDaemon'
+
+  AppMachine:
+    type: object
+    properties:
+      id:
         type: integer
-      dhcpDaemonsNotOk:
+      address:
+        type: string
+      hostname:
+        type: string
+
+  Apps:
+    type: object
+    properties:
+      items:
+        type: array
+        items:
+          $ref: '#/definitions/App'
+      total:
         type: integer
-      dnsDaemonsTotal:
+
+  AppsStats:
+    type: object
+    properties:
+      keaAppsTotal:
         type: integer
-      dnsDaemonsNotOk:
+      keaAppsNotOk:
+        type: integer
+      dnsAppsTotal:
+        type: integer
+      dnsAppsNotOk:
         type: integer
 
   KeaHAServerStatus:
@@ -396,7 +446,7 @@
     properties:
       age:
         type: integer
-      daemonId:
+      appId:
         type: integer
       controlAddress:
         type: string

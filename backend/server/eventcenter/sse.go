@@ -33,7 +33,7 @@ func (sb *SSEBroker) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	s := newSubscriber(req.URL, req.RemoteAddr)
 
 	if err := s.applyFiltersFromQuery(sb.db); err != nil {
-		log.WithError(err).Error("Failed to accept new SSE connection because query parameters are invalid")
+		log.Errorf("Failed to accept new SSE connection because query parameters are invalid: %+v", err)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}

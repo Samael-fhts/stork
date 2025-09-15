@@ -12,8 +12,8 @@
     type: object
     required:
       - id
-      - daemonId
-      - daemonName
+      - appId
+      - appName
       - cltt
       - ipAddress
       - state
@@ -22,9 +22,9 @@
     properties:
       id:
         type: integer
-      daemonId:
+      appId:
         type: integer
-      daemonName:
+      appName:
         type: string
       clientId:
         type: string
@@ -59,7 +59,7 @@
       validLifetime:
         type: integer
 
-  LeasesSearchErredDaemon:
+  LeasesSearchErredApp:
     type: object
     required:
       - id
@@ -81,10 +81,10 @@
         type: array
         items:
           type: integer
-      erredDaemons:
+      erredApps:
         type: array
         items:
-          $ref: '#/definitions/LeasesSearchErredDaemon'
+          $ref: '#/definitions/LeasesSearchErredApp'
       total:
         type: integer
 
@@ -150,8 +150,12 @@
   LocalHost:
     type: object
     properties:
+      appId:
+        type: integer
       daemonId:
         type: integer
+      appName:
+        type: string
       dataSource:
         type: string
       clientClasses:
@@ -308,8 +312,12 @@
     properties:
       id:
         type: integer
+      appId:
+        type: integer
       daemonId:
         type: integer
+      appName:
+        type: string
       machineAddress:
         type: string
       machineHostname:
@@ -439,8 +447,12 @@
   LocalSharedNetwork:
     type: object
     properties:
+      appId:
+        type: integer
       daemonId:
         type: integer
+      appName:
+        type: string
       keaConfigSharedNetworkParameters:
           $ref: '#/definitions/KeaConfigSharedNetworkParameters'
 
@@ -626,21 +638,46 @@
 
   DhcpDaemon:
     type: object
-    allOf:
-      - $ref: '#/definitions/Daemon'
-      - properties:
-          rps1:
-            type: number
-            format: float
-          rps2:
-            type: number
-            format: float
-          haEnabled:
-            type: boolean
-          haOverview:
-            type: array
-            items:
-              $ref: '#/definitions/DhcpDaemonHARelationshipOverview'
+    properties:
+      machineId:
+        type: integer
+      machine:
+        type: string
+      appId:
+        type: integer
+      appName:
+        type: string
+      appVersion:
+        type: string
+      name:
+        type: string
+      active:
+        type: boolean
+      monitored:
+        type: boolean
+      rps1:
+        type: number
+        format: float
+      rps2:
+        type: number
+        format: float
+      haEnabled:
+        type: boolean
+      haOverview:
+        type: array
+        items:
+          $ref: '#/definitions/DhcpDaemonHARelationshipOverview'
+      uptime:
+        type: integer
+      agentCommErrors:
+        type: integer
+        format: int64
+      caCommErrors:
+        type: integer
+        format: int64
+      daemonCommErrors:
+        type: integer
+        format: int64
 
   DhcpOverview:
     type: object
