@@ -476,7 +476,7 @@ namespace :systemtestui do
     docker_compose_file_abs     = File.expand_path(File.join(system_tests_dir, "docker-compose.yaml"))
     docker_compose_ui_file_abs  = File.expand_path(File.join(system_tests_dir, "docker-compose.ui.yaml"))
 
-    
+
     desc 'Run docker-compose command for the UI stack'
     task :sh => volume_files + [DOCKER_COMPOSE, "systemtest:setup_version_envvars"] do |t, args|
         if ENV["USE_BUILD_KIT"] != "false"
@@ -484,7 +484,7 @@ namespace :systemtestui do
             ENV["DOCKER_BUILDKIT"]          = "1"
         end
 
-        
+
         ENV["PWD"]  = Dir.pwd
         ENV["IPWD"] = Dir.pwd
         ENV["HOME"] = Dir.pwd
@@ -495,8 +495,8 @@ namespace :systemtestui do
             profiles.append "--profile", "premium"
         end
 
-        
-        project_dir = File.realpath(Dir.pwd)  
+
+        project_dir = File.realpath(Dir.pwd)
 
         sh *DOCKER_COMPOSE,
            "--project-directory", project_dir,
@@ -504,7 +504,7 @@ namespace :systemtestui do
            "-f", docker_compose_file_abs,
            "-f", docker_compose_ui_file_abs,
            *profiles,
-           *args        
+           *args
     end
 
     desc 'Build images needed for UI tests (server only, like your manual flow)'
@@ -526,13 +526,13 @@ namespace :systemtestui do
     desc 'Reset UI stack (alias)'
     task :reset => :down
 
-    
+
     def ui_env
         ENV["STORK_REUSE"]    = ENV["STORK_REUSE"]    || "1"
         ENV["STORK_BASE_URL"] = ENV["STORK_BASE_URL"] || "http://localhost:42080"
     end
 
-    
+
     task :prepare do
         ui_env
         vpy = File.join(".venv","bin","python")
@@ -541,7 +541,7 @@ namespace :systemtestui do
         end
     end
 
-   
+
     desc 'Run Playwright UI tests. Args: pattern, pytest_args'
     task :test, [:pattern, :pytest_args] => [:prepare, :up] do |_, args|
         ui_env
@@ -551,7 +551,7 @@ namespace :systemtestui do
         sh python, "-m", "pytest", pattern, *pytest_args
     end
 
-    
+
     desc 'Debug mode for Playwright tests (headed, slowmo, inspector)'
     task :test_debug, [:pattern, :pytest_args] => [:prepare, :up] do |_, args|
         ui_env
@@ -562,7 +562,7 @@ namespace :systemtestui do
         sh python, "-m", "pytest", pattern, "--headed", "--slowmo=200", *pytest_args
     end
 
-    
+
     desc 'Check /etc/hosts for the UI stack'
     task :check_etchosts do
         unless check_hosts_and_print_hint([docker_compose_file_abs, docker_compose_ui_file_abs])
@@ -570,4 +570,5 @@ namespace :systemtestui do
         end
     end
 end
-  
+
+
