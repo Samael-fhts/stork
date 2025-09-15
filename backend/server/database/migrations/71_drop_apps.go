@@ -75,6 +75,10 @@ func init() {
 
 			-- Drop obsolete tables.
 			DROP TABLE app;
+
+			-- Drop unused tables.
+			DROP TABLE scheduled_config_change;
+
 		`)
 		return err
 	}, func(db migrations.DB) error {
