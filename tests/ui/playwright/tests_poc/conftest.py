@@ -23,7 +23,7 @@ ROOT = TESTS_DIR.parent  # repo root
 COMPOSE_BASE = str(SYSTEM_DIR / "docker-compose.yaml")
 COMPOSE_UI = str(SYSTEM_DIR / "docker-compose.ui.yaml")
 
-PROJECT_NAME = os.getenv("COMPOSE_PROJECT_NAME", os.getenv("STORK_PROJECT", "stork"))
+PROJECT_NAME = os.getenv("COMPOSE_PROJECT_NAME", "stork_tests")
 BASE_URL = os.getenv("STORK_BASE_URL", "http://localhost:42080")
 
 
@@ -179,5 +179,5 @@ def clean_before_each_test(setup):
 
 
 @pytest.fixture(scope="session")
-def stork_base_url():
+def base_url():
     return BASE_URL

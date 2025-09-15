@@ -500,6 +500,7 @@ namespace :systemtestui do
 
         sh *DOCKER_COMPOSE,
            "--project-directory", project_dir,
+           "--project-name", "stork_tests",
            "-f", docker_compose_file_abs,
            "-f", docker_compose_ui_file_abs,
            *profiles,
@@ -512,8 +513,8 @@ namespace :systemtestui do
     end
 
     desc 'Bring up UI stack (postgres, server, agent-kea) without rebuilding'
-    task :up do
-        
+    task :up => [:build] do
+        Rake::Task["systemtestui:sh"].reenable
         Rake::Task["systemtestui:sh"].invoke("up", "-d", "--no-build", "postgres", "server", "agent-kea")
     end
 
@@ -542,7 +543,7 @@ namespace :systemtestui do
 
    
     desc 'Run Playwright UI tests. Args: pattern, pytest_args'
-    task :test, [:pattern, :pytest_args] => [:prepare] do |_, args|
+    task :test, [:pattern, :pytest_args] => [:prepare, :up] do |_, args|
         ui_env
         pattern     = (args[:pattern] && args[:pattern].strip.size > 0) ? args[:pattern] : "tests/ui/playwright"
         pytest_args = (args[:pytest_args] || "").split(/\s+/).reject(&:empty?)
@@ -552,7 +553,7 @@ namespace :systemtestui do
 
     
     desc 'Debug mode for Playwright tests (headed, slowmo, inspector)'
-    task :test_debug, [:pattern, :pytest_args] => [:prepare] do |_, args|
+    task :test_debug, [:pattern, :pytest_args] => [:prepare, :up] do |_, args|
         ui_env
         pattern     = (args[:pattern] && args[:pattern].strip.size > 0) ? args[:pattern] : "tests/ui/playwright"
         pytest_args = (args[:pytest_args] || "").split(/\s+/).reject(&:empty?)
