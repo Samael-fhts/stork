@@ -92,6 +92,8 @@ type GetZonesFilter struct {
 	DaemonID *int64
 	// Filter by DNS daemon name (e.g., "bind9").
 	DaemonName *daemonname.Name
+	// Filter by machine ID.
+	MachineID *int64
 	// Filter by class (typically, IN).
 	Class *string
 	// Filter by lower bound zone.
@@ -261,9 +263,13 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 		q = q.Offset(*filter.Offset)
 	}
 	// Join relations required for filtering.
-	if filter.Serial != nil || filter.Class != nil || filter.Types != nil && filter.Types.IsAnySpecified() || filter.RPZ != nil || filter.DaemonID != nil || filter.DaemonName != nil || filter.Text != nil {
+	if filter.Serial != nil || filter.Class != nil ||
+		filter.Types != nil && filter.Types.IsAnySpecified() ||
+		filter.RPZ != nil || filter.DaemonID != nil ||
+		filter.DaemonName != nil || filter.Text != nil ||
+		filter.MachineID != nil {
 		q = q.Join("JOIN local_zone AS lz").JoinOn("lz.zone_id = zone.id")
-		if filter.DaemonName != nil || filter.Text != nil {
+		if filter.DaemonName != nil || filter.Text != nil || filter.MachineID != nil {
 			q = q.Join("JOIN daemon AS d").JoinOn("d.id = lz.daemon_id")
 		}
 	}
@@ -293,6 +299,10 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 	// Filter by daemon name.
 	if filter.DaemonName != nil {
 		q = q.Where("d.name ILIKE ?", "%"+*filter.DaemonName+"%")
+	}
+	// Filter by machine ID.
+	if filter.MachineID != nil {
+		q = q.Where("d.machine_id = ?", *filter.MachineID)
 	}
 	// Filter by zone name, app name or local zone view using partial matching.
 	if filter.Text != nil {

@@ -9,9 +9,9 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	keaconfig "isc.org/stork/appcfg/kea"
-	"isc.org/stork/server/apps/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/server/config"
+	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/gen/models"
 	dhcp "isc.org/stork/server/gen/restapi/operations/d_h_c_p"
@@ -118,10 +118,11 @@ func (r *RestAPI) convertSharedNetworkToRestAPI(sn *dbmodel.SharedNetwork) *mode
 	}
 
 	for _, lsn := range sn.LocalSharedNetworks {
+		app := lsn.Daemon.GetVirtualApp()
 		localSharedNetwork := &models.LocalSharedNetwork{
-			AppID:    lsn.Daemon.App.ID,
+			AppID:    app.ID,
 			DaemonID: lsn.Daemon.ID,
-			AppName:  lsn.Daemon.App.Name,
+			AppName:  app.Name,
 		}
 		keaParameters := lsn.KeaParameters
 		if keaParameters != nil {

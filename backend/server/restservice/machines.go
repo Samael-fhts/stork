@@ -19,13 +19,14 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"isc.org/stork"
-	keaconfig "isc.org/stork/appcfg/kea"
-	"isc.org/stork/appdata/bind9stats"
+	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemondata/bind9stats"
 	"isc.org/stork/pki"
 	"isc.org/stork/server/agentcomm"
-	"isc.org/stork/server/apps"
-	"isc.org/stork/server/apps/kea"
 	"isc.org/stork/server/certs"
+	"isc.org/stork/server/daemons"
+	"isc.org/stork/server/daemons/kea"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/dumper"
@@ -199,8 +200,15 @@ func (r *RestAPI) GetSoftwareVersions(ctx context.Context, params general.GetSof
 // Convert db machine to rest structure.
 func (r *RestAPI) machineToRestAPI(dbMachine dbmodel.Machine) *models.Machine {
 	apps := []*models.App{}
-	for _, app := range dbMachine.Apps {
-		a := r.appToRestAPI(app)
+	daemonIndex := make(map[int64][]*dbmodel.Daemon)
+
+	for _, dbDaemon := range dbMachine.Daemons {
+		app := dbDaemon.GetVirtualApp()
+		daemonIndex[app.ID] = append(daemonIndex[app.ID], dbDaemon)
+	}
+
+	for _, daemons := range daemonIndex {
+		a := r.appToRestAPI(daemons)
 		apps = append(apps, a)
 	}
 
@@ -235,9 +243,16 @@ func (r *RestAPI) machineToRestAPI(dbMachine dbmodel.Machine) *models.Machine {
 
 // Convert db machine to minimalistic rest structure covering software versions used.
 func (r *RestAPI) machineSwVersionsToRestAPI(dbMachine dbmodel.Machine) *models.Machine {
+	daemonIndex := make(map[int64][]*dbmodel.Daemon)
+	for _, dbDaemon := range dbMachine.Daemons {
+		app := dbDaemon.GetVirtualApp()
+		daemonIndex[app.ID] = append(daemonIndex[app.ID], dbDaemon)
+	}
+
 	apps := []*models.App{}
-	for _, app := range dbMachine.Apps {
-		a := r.appSwVersionsToRestAPI(app)
+	for _, daemons := range daemonIndex {
+		app := daemons[0].GetVirtualApp()
+		a := r.appSwVersionsToRestAPI(app, daemons)
 		apps = append(apps, a)
 	}
 
@@ -273,7 +288,7 @@ func (r *RestAPI) GetMachineState(ctx context.Context, params services.GetMachin
 		return rsp
 	}
 
-	errStr := apps.UpdateMachineAndAppsState(ctx, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
+	errStr := daemons.UpdateMachineAndDaemonsState(ctx, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
 	if errStr != "" {
 		rsp := services.NewGetMachineStateDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &errStr,
@@ -381,7 +396,7 @@ func (r *RestAPI) GetMachinesDirectory(ctx context.Context, params services.GetM
 // Returns a list of all authorized machines' ids and apps versions.
 func (r *RestAPI) GetMachinesAppsVersions(ctx context.Context, params services.GetMachinesAppsVersionsParams) middleware.Responder {
 	authorized := true
-	dbMachines, err := dbmodel.GetAllMachinesSimplified(r.DB, &authorized)
+	dbMachines, err := dbmodel.GetAllMachines(r.DB, &authorized)
 	if err != nil {
 		log.Error(err)
 		msg := "Cannot get machines apps versions from the database"
@@ -664,9 +679,9 @@ func (r *RestAPI) CreateMachine(ctx context.Context, params services.CreateMachi
 	// We can't create new machine and pull machines' states at the same time. This may
 	// put heavy workload on the server and it may also result in conflicts. Temporarily
 	// disable the puller while the new machine is being added.
-	if r.Pullers != nil && r.Pullers.AppsStatePuller != nil {
-		r.Pullers.AppsStatePuller.Pause()
-		defer r.Pullers.AppsStatePuller.Unpause()
+	if r.Pullers != nil && r.Pullers.StatePuller != nil {
+		r.Pullers.StatePuller.Pause()
+		defer r.Pullers.StatePuller.Unpause()
 	}
 
 	if dbMachine == nil {
@@ -775,7 +790,7 @@ func (r *RestAPI) PingMachine(ctx context.Context, params services.PingMachinePa
 	}
 
 	// Communication with an agent established, so get machine's state.
-	errStr := apps.UpdateMachineAndAppsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
+	errStr := daemons.UpdateMachineAndDaemonsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
 	if errStr != "" {
 		rsp := services.NewPingMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &errStr,
@@ -877,7 +892,7 @@ func (r *RestAPI) UpdateMachine(ctx context.Context, params services.UpdateMachi
 	if !prevAuthorized && dbMachine.Authorized {
 		ctx2, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
-		errStr := apps.UpdateMachineAndAppsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
+		errStr := daemons.UpdateMachineAndDaemonsState(ctx2, r.DB, dbMachine, r.Agents, r.EventCenter, r.ReviewDispatcher, r.DHCPOptionDefinitionLookup)
 		if errStr != "" {
 			rsp := services.NewUpdateMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 				Message: &errStr,
@@ -969,7 +984,7 @@ func (r *RestAPI) DeleteMachine(ctx context.Context, params services.DeleteMachi
 		return rsp
 	}
 
-	dbMachine, err := dbmodel.GetMachineByIDWithRelations(r.DB, params.ID, dbmodel.MachineRelationApps)
+	dbMachine, err := dbmodel.GetMachineByIDWithRelations(r.DB, params.ID, dbmodel.MachineRelationDaemons)
 	if err == nil && dbMachine == nil {
 		rsp := services.NewDeleteMachineOK()
 		return rsp
@@ -1124,38 +1139,44 @@ func getKeaStorages(config keaconfig.DatabaseConfig) ([]*models.File, []*models.
 
 // Converts App structure to REST API format, without the data specific to
 // an app type.
-func baseAppToRestAPI(dbApp *dbmodel.App) *models.AppBase {
+func baseAppToRestAPI(virtualApp *dbmodel.VirtualApp, daemons []*dbmodel.Daemon) *models.AppBase {
+	firstDaemon := daemons[0]
+
 	app := &models.AppBase{
-		ID:      dbApp.ID,
-		Name:    dbApp.Name,
-		Type:    dbApp.Type.String(),
-		Version: dbApp.Meta.Version,
+		ID:      virtualApp.ID,
+		Name:    virtualApp.Name,
+		Type:    string(virtualApp.Type),
+		Version: firstDaemon.Version,
 		Machine: &models.AppMachine{
-			ID: dbApp.MachineID,
+			ID: firstDaemon.MachineID,
 		},
 	}
-	if dbApp.Machine != nil {
-		app.Machine.Address = dbApp.Machine.Address
-		app.Machine.Hostname = dbApp.Machine.State.Hostname
+	if firstDaemon.Machine != nil {
+		app.Machine.Address = firstDaemon.Machine.Address
+		app.Machine.Hostname = firstDaemon.Machine.State.Hostname
 	}
 
 	var accessPoints []*models.AppAccessPoint
-	for _, point := range dbApp.AccessPoints {
+	for _, point := range firstDaemon.AccessPoints {
 		accessPoints = append(accessPoints, &models.AppAccessPoint{
 			Type:              point.Type,
 			Address:           point.Address,
 			Port:              point.Port,
-			UseSecureProtocol: point.UseSecureProtocol,
+			UseSecureProtocol: point.Protocol == "https",
 		})
 	}
 	app.AccessPoints = accessPoints
 	return app
 }
 
-// Converts App structure to REST API format, with the data specific to
+// Converts the daemons to legacy REST API app format, with the data specific to
 // an app type (including daemons).
-func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
-	baseApp := baseAppToRestAPI(dbApp)
+// It expects that all daemons belong to the same virtual app.
+func (r *RestAPI) appToRestAPI(daemons []*dbmodel.Daemon) *models.App {
+	firstDaemon := daemons[0]
+	virtualApp := firstDaemon.GetVirtualApp()
+
+	baseApp := baseAppToRestAPI(virtualApp, daemons)
 	app := &models.App{
 		AccessPoints: baseApp.AccessPoints,
 		ID:           baseApp.ID,
@@ -1166,56 +1187,51 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 	}
 
 	agentErrors := int64(0)
-	var agentStats *agentcomm.AgentCommStatsWrapper
-	if dbApp.Machine != nil {
-		agentStats = r.Agents.GetConnectedAgentStatsWrapper(dbApp.Machine.Address, dbApp.Machine.AgentPort)
+	var agentStats *agentcomm.CommStatsWrapper
+
+	if firstDaemon.Machine != nil {
+		agentStats = r.Agents.GetConnectedAgentStatsWrapper(firstDaemon.Machine.Address, firstDaemon.Machine.AgentPort)
 		if agentStats != nil {
 			defer agentStats.Close()
-			agentErrors = agentStats.GetStats().GetTotalErrorCount()
+			agentErrors = agentStats.GetStats().GetTotalAgentErrorCount()
 		}
 	}
 
-	switch dbApp.Type {
-	case dbmodel.AppTypeKea:
-		var keaStats *agentcomm.KeaAppCommErrorStats
+	switch virtualApp.Type {
+	case dbmodel.VirtualAppTypeKea:
+		var keaStats *agentcomm.CommStatsKea
 		if agentStats != nil {
-			keaStats = agentStats.GetStats().GetKeaCommErrorStats(app.ID)
+			keaStats = agentStats.GetStats().GetKeaStats()
 		}
+
 		keaDaemons := []*models.KeaDaemon{}
-		for _, d := range dbApp.Daemons {
+		for _, d := range daemons {
 			dmn := keaDaemonToRestAPI(d)
 			dmn.AgentCommErrors = agentErrors
 			if keaStats != nil {
-				dmn.CaCommErrors = keaStats.GetErrorCount(agentcomm.KeaDaemonCA)
-				dmn.DaemonCommErrors = keaStats.GetErrorCount(agentcomm.GetKeaDaemonTypeFromName(d.Name))
+				dmn.CaCommErrors = keaStats.GetErrorCount(daemonname.CA)
+				dmn.DaemonCommErrors = keaStats.GetErrorCount(d.Name)
 			}
 			keaDaemons = append(keaDaemons, dmn)
 		}
 
 		app.Details = appDetails{
 			models.AppKea{
-				ExtendedVersion: dbApp.Meta.ExtendedVersion,
+				ExtendedVersion: firstDaemon.ExtendedVersion,
 				Daemons:         keaDaemons,
 			},
 			models.AppBind9{},
 			models.AppPdns{},
 		}
-	case dbmodel.AppTypeBind9:
-		if len(dbApp.Daemons) == 0 {
-			// The BIND9 daemon is missing when the Stork Agent detects that the
-			// BIND9 daemon is running, but there are problems with fetching its
-			// configuration (e.g., cannot call the named-checkconf -v command).
-			// In this case, the application entry is created but no daemon.
-			break
-		}
+	case dbmodel.VirtualAppTypeBind9:
 		// The BIND9 app has always one daemon.
-		bind9Daemon := bind9DaemonToRestAPI(dbApp.Daemons[0])
+		bind9Daemon := bind9DaemonToRestAPI(firstDaemon)
 		bind9Daemon.AgentCommErrors = agentErrors
 
 		if agentStats != nil {
-			bind9Errors := agentStats.GetStats().GetBind9CommErrorStats(app.ID)
-			bind9Daemon.RndcCommErrors = bind9Errors.GetErrorCount(agentcomm.Bind9ChannelRNDC)
-			bind9Daemon.StatsCommErrors = bind9Errors.GetErrorCount(agentcomm.Bind9ChannelStats)
+			bind9Errors := agentStats.GetStats().GetBind9Stats()
+			bind9Daemon.RndcCommErrors = bind9Errors.GetErrorCount(dbmodel.AccessPointControl)
+			bind9Daemon.StatsCommErrors = bind9Errors.GetErrorCount(dbmodel.AccessPointStatistics)
 		}
 
 		app.Details = appDetails{
@@ -1227,12 +1243,9 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 			},
 			models.AppPdns{},
 		}
-	case dbmodel.AppTypePDNS:
-		if len(dbApp.Daemons) == 0 {
-			break
-		}
+	case dbmodel.VirtualAppTypePDNS:
 		// The PowerDNS app has always one daemon.
-		pdnsDaemon := pdnsDaemonToRestAPI(dbApp.Daemons[0])
+		pdnsDaemon := pdnsDaemonToRestAPI(firstDaemon)
 		app.Details = appDetails{
 			models.AppKea{},
 			models.AppBind9{},
@@ -1245,8 +1258,8 @@ func (r *RestAPI) appToRestAPI(dbApp *dbmodel.App) *models.App {
 }
 
 // Converts db App structure to minimalistic REST API format covering software versions used.
-func (r *RestAPI) appSwVersionsToRestAPI(dbApp *dbmodel.App) *models.App {
-	baseApp := baseAppToRestAPI(dbApp)
+func (r *RestAPI) appSwVersionsToRestAPI(virtualApp *dbmodel.VirtualApp, daemons []*dbmodel.Daemon) *models.App {
+	baseApp := baseAppToRestAPI(virtualApp, daemons)
 	app := &models.App{
 		ID:      baseApp.ID,
 		Name:    baseApp.Name,
@@ -1254,9 +1267,9 @@ func (r *RestAPI) appSwVersionsToRestAPI(dbApp *dbmodel.App) *models.App {
 		Version: baseApp.Version,
 	}
 
-	if dbApp.Type == dbmodel.AppTypeKea {
+	if virtualApp.Type == dbmodel.VirtualAppTypeKea {
 		keaDaemons := []*models.KeaDaemon{}
-		for _, d := range dbApp.Daemons {
+		for _, d := range daemons {
 			dmn := keaDaemonSwVersionsToRestAPI(d)
 			keaDaemons = append(keaDaemons, dmn)
 		}
@@ -1278,7 +1291,7 @@ func keaDaemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.KeaDaemon {
 	daemon := &models.KeaDaemon{
 		ID:              dbDaemon.ID,
 		Pid:             int64(dbDaemon.Pid),
-		Name:            dbDaemon.Name,
+		Name:            string(dbDaemon.Name),
 		Active:          dbDaemon.Active,
 		Monitored:       dbDaemon.Monitored,
 		Version:         dbDaemon.Version,
@@ -1292,8 +1305,8 @@ func keaDaemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.KeaDaemon {
 	}
 
 	// Daemon can include App information (depending on the database query).
-	if dbDaemon.App != nil {
-		daemon.App = baseAppToRestAPI(dbDaemon.App)
+	if dbDaemon.Machine != nil {
+		daemon.App = baseAppToRestAPI(dbDaemon.GetVirtualApp(), []*dbmodel.Daemon{dbDaemon})
 	}
 
 	// Get hooks.
@@ -1323,7 +1336,7 @@ func keaDaemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.KeaDaemon {
 func keaDaemonSwVersionsToRestAPI(dbDaemon *dbmodel.Daemon) *models.KeaDaemon {
 	daemon := &models.KeaDaemon{
 		ID:      dbDaemon.ID,
-		Name:    dbDaemon.Name,
+		Name:    string(dbDaemon.Name),
 		Active:  dbDaemon.Active,
 		Version: dbDaemon.Version,
 	}
@@ -1333,38 +1346,36 @@ func keaDaemonSwVersionsToRestAPI(dbDaemon *dbmodel.Daemon) *models.KeaDaemon {
 
 // Converts BIND9 daemon to REST API format.
 func bind9DaemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.Bind9Daemon {
-	var namedStats *bind9stats.Bind9NamedStats
+	var namedStats bind9stats.Bind9NamedStats
 	if dbDaemon.Bind9Daemon != nil {
 		namedStats = dbDaemon.Bind9Daemon.Stats.NamedStats
 	}
 	var views []*models.Bind9DaemonView
-	if namedStats != nil {
-		for name, view := range namedStats.Views {
-			queryHits := view.Resolver.CacheStats["QueryHits"]
-			queryMisses := view.Resolver.CacheStats["QueryMisses"]
-			queryTotal := float64(queryHits) + float64(queryMisses)
-			var queryHitRatio float64
-			if queryTotal > 0 {
-				queryHitRatio = float64(queryHits) / queryTotal
-			}
-			views = append(views, &models.Bind9DaemonView{
-				Name:          name,
-				QueryHits:     queryHits,
-				QueryMisses:   queryMisses,
-				QueryHitRatio: queryHitRatio,
-			})
+	for name, view := range namedStats.Views {
+		queryHits := view.Resolver.CacheStats["QueryHits"]
+		queryMisses := view.Resolver.CacheStats["QueryMisses"]
+		queryTotal := float64(queryHits) + float64(queryMisses)
+		var queryHitRatio float64
+		if queryTotal > 0 {
+			queryHitRatio = float64(queryHits) / queryTotal
 		}
-		// Sort views by name. Otherwise they will be returned in the random
-		// order of a map.
-		sort.Slice(views, func(i, j int) bool {
-			return views[i].Name < views[j].Name
+		views = append(views, &models.Bind9DaemonView{
+			Name:          name,
+			QueryHits:     queryHits,
+			QueryMisses:   queryMisses,
+			QueryHitRatio: queryHitRatio,
 		})
 	}
+	// Sort views by name. Otherwise they will be returned in the random
+	// order of a map.
+	sort.Slice(views, func(i, j int) bool {
+		return views[i].Name < views[j].Name
+	})
 
 	bind9Daemon := &models.Bind9Daemon{
 		ID:         dbDaemon.ID,
 		Pid:        int64(dbDaemon.Pid),
-		Name:       dbDaemon.Name,
+		Name:       string(dbDaemon.Name),
 		Active:     dbDaemon.Active,
 		Monitored:  dbDaemon.Monitored,
 		Version:    dbDaemon.Version,
@@ -1385,7 +1396,7 @@ func pdnsDaemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.PdnsDaemon {
 	daemon := &models.PdnsDaemon{
 		ID:         dbDaemon.ID,
 		Pid:        int64(dbDaemon.Pid),
-		Name:       dbDaemon.Name,
+		Name:       string(dbDaemon.Name),
 		Active:     dbDaemon.Active,
 		Monitored:  dbDaemon.Monitored,
 		Version:    dbDaemon.Version,
@@ -1401,17 +1412,35 @@ func pdnsDaemonToRestAPI(dbDaemon *dbmodel.Daemon) *models.PdnsDaemon {
 	return daemon
 }
 
-func (r *RestAPI) getApps(offset, limit int64, filterText *string, sortField string, sortDir dbmodel.SortDirEnum, appTypes ...dbmodel.AppType) (*models.Apps, error) {
-	dbApps, total, err := dbmodel.GetAppsByPage(r.DB, offset, limit, filterText, sortField, sortDir, appTypes...)
+func (r *RestAPI) getApps(offset, limit int64, filterText *string, sortField string, sortDir dbmodel.SortDirEnum, appTypes ...dbmodel.VirtualAppType) (*models.Apps, error) {
+	var daemonNames []daemonname.Name
+	for _, appType := range appTypes {
+		switch appType {
+		case dbmodel.VirtualAppTypeKea:
+			daemonNames = append(daemonNames, daemonname.CA, daemonname.DHCPv4, daemonname.DHCPv6, daemonname.NetConf)
+		case dbmodel.VirtualAppTypeBind9:
+			daemonNames = append(daemonNames, daemonname.Bind9)
+		case dbmodel.VirtualAppTypePDNS:
+			daemonNames = append(daemonNames, daemonname.PDNS)
+		}
+	}
+
+	dbDaemons, total, err := dbmodel.GetDaemonsByPage(r.DB, offset, limit, filterText, sortField, sortDir, daemonNames...)
 	if err != nil {
 		return nil, err
 	}
 	apps := &models.Apps{
 		Total: total,
 	}
-	for _, dbA := range dbApps {
-		app := dbA
-		a := r.appToRestAPI(&app)
+
+	appIndex := make(map[int64][]*dbmodel.Daemon)
+	for _, dbDaemon := range dbDaemons {
+		app := dbDaemon.GetVirtualApp()
+		appIndex[app.ID] = append(appIndex[app.ID], &dbDaemon)
+	}
+
+	for _, daemons := range appIndex {
+		a := r.appToRestAPI(daemons)
 		apps.Items = append(apps.Items, a)
 	}
 	return apps, nil
@@ -1437,9 +1466,9 @@ func (r *RestAPI) GetApps(ctx context.Context, params services.GetAppsParams) mi
 		"apps":  params.Apps,
 	}).Info("query apps")
 
-	var appTypes []dbmodel.AppType
+	var appTypes []dbmodel.VirtualAppType
 	for _, appType := range params.Apps {
-		appTypes = append(appTypes, dbmodel.AppType(appType))
+		appTypes = append(appTypes, dbmodel.VirtualAppType(appType))
 	}
 	apps, err := r.getApps(start, limit, params.Text, "", dbmodel.SortDirAny, appTypes...)
 	if err != nil {
@@ -1458,7 +1487,7 @@ func (r *RestAPI) GetApps(ctx context.Context, params services.GetAppsParams) mi
 // drop down list with available apps or to validate user's input against apps' names
 // available in the system.
 func (r *RestAPI) GetAppsDirectory(ctx context.Context, params services.GetAppsDirectoryParams) middleware.Responder {
-	dbApps, err := dbmodel.GetAllApps(r.DB, false)
+	dbDaemons, err := dbmodel.GetAllDaemons(r.DB)
 	if err != nil {
 		log.Error(err)
 		msg := "Cannot get apps directory from the database"
@@ -1468,13 +1497,19 @@ func (r *RestAPI) GetAppsDirectory(ctx context.Context, params services.GetAppsD
 		return rsp
 	}
 
-	apps := &models.Apps{
-		Total: int64(len(dbApps)),
+	appIndex := make(map[int64]*dbmodel.VirtualApp)
+	for _, dbDaemon := range dbDaemons {
+		app := dbDaemon.GetVirtualApp()
+		appIndex[app.ID] = app
 	}
-	for i := range dbApps {
+
+	apps := &models.Apps{
+		Total: int64(len(appIndex)),
+	}
+	for _, app := range appIndex {
 		app := models.App{
-			ID:   dbApps[i].ID,
-			Name: dbApps[i].Name,
+			ID:   app.ID,
+			Name: app.Name,
 		}
 		apps.Items = append(apps.Items, &app)
 	}
@@ -1486,8 +1521,8 @@ func (r *RestAPI) GetAppsDirectory(ctx context.Context, params services.GetAppsD
 // Returns a list of apps for which the server discovered some communication problems.
 // It includes a lack of communication with the agent or the daemons behind it.
 func (r *RestAPI) GetAppsWithCommunicationIssues(ctx context.Context, params services.GetAppsWithCommunicationIssuesParams) middleware.Responder {
-	// Get all apps with a minimal set of relations.
-	dbApps, err := dbmodel.GetAllAppsWithRelations(r.DB, dbmodel.AppRelationMachine, dbmodel.AppRelationAccessPoints, dbmodel.AppRelationDaemons)
+	// Get all daemons with a minimal set of relations.
+	dbDaemons, err := dbmodel.GetAllDaemonsWithRelations(r.DB, dbmodel.DaemonRelationMachine, dbmodel.DaemonRelationAccessPoints)
 	if err != nil {
 		msg := "Cannot get apps from the database"
 		log.WithError(err).Error(msg)
@@ -1496,10 +1531,17 @@ func (r *RestAPI) GetAppsWithCommunicationIssues(ctx context.Context, params ser
 		})
 		return rsp
 	}
+
+	daemonIndex := make(map[int64][]*dbmodel.Daemon)
+	for _, dbDaemon := range dbDaemons {
+		app := dbDaemon.GetVirtualApp()
+		daemonIndex[app.ID] = append(daemonIndex[app.ID], &dbDaemon)
+	}
+
 	apps := []*models.App{}
-	for i := range dbApps {
+	for _, dbDaemons := range daemonIndex {
 		// Convert the apps to the REST API format.
-		app := r.appToRestAPI(&dbApps[i])
+		app := r.appToRestAPI(dbDaemons)
 		// Is it a BIND9 daemon?
 		daemon := app.Details.Daemon
 		// Append the app to the list if there is any kind of communication issue.
@@ -1526,40 +1568,40 @@ func (r *RestAPI) GetAppsWithCommunicationIssues(ctx context.Context, params ser
 
 // Returns an application for a given ID or HTTP 404 status if it's missing.
 func (r *RestAPI) GetApp(ctx context.Context, params services.GetAppParams) middleware.Responder {
-	dbApp, err := dbmodel.GetAppByID(r.DB, params.ID)
+	dbDaemons, err := dbmodel.GetDaemonsByVirtualAppID(r.DB, params.ID)
 	if err != nil {
 		msg := fmt.Sprintf("Cannot get app with ID %d from db", params.ID)
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetAppDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
 		return rsp
-	}
-	if dbApp == nil {
-		msg := fmt.Sprintf("Cannot find app with ID %d", params.ID)
+	} else if len(dbDaemons) == 0 {
+		msg := fmt.Sprintf("App with ID %d not found", params.ID)
 		rsp := services.NewGetAppDefault(http.StatusNotFound).WithPayload(&models.APIError{
 			Message: &msg,
 		})
 		return rsp
 	}
 
-	var a *models.App
-	if dbApp.Type == dbmodel.AppTypeBind9 || dbApp.Type == dbmodel.AppTypeKea || dbApp.Type == dbmodel.AppTypePDNS {
-		a = r.appToRestAPI(dbApp)
-	}
+	a := r.appToRestAPI(dbDaemons)
+
 	rsp := services.NewGetAppOK().WithPayload(a)
 	return rsp
 }
 
 // Gets current status of services for a given Kea application.
-func getKeaServicesStatus(db *dbops.PgDB, app *dbmodel.App) *models.ServicesStatus {
+func getKeaServicesStatus(db *dbops.PgDB, app *dbmodel.VirtualApp, daemons []*dbmodel.Daemon) *models.ServicesStatus {
 	servicesStatus := &models.ServicesStatus{}
 
-	keaServices, err := dbmodel.GetDetailedServicesByAppID(db, app.ID)
-	if err != nil {
-		log.Error(err)
-
-		return nil
+	var keaServices []dbmodel.Service
+	for _, d := range daemons {
+		daemonServices, err := dbmodel.GetDetailedServicesByDaemonID(db, d.ID)
+		if err != nil {
+			log.WithError(err).Error("cannot get kea services from db")
+			return nil
+		}
+		keaServices = append(keaServices, daemonServices...)
 	}
 
 	for _, s := range keaServices {
@@ -1568,7 +1610,7 @@ func getKeaServicesStatus(db *dbops.PgDB, app *dbmodel.App) *models.ServicesStat
 		}
 		ha := s.HAService
 		keaStatus := models.KeaStatus{
-			Daemon: ha.HAType,
+			Daemon: string(ha.HAType),
 		}
 		secondaryRole := "secondary"
 		if ha.HAMode == dbmodel.HAModeHotStandby {
@@ -1603,19 +1645,20 @@ func getKeaServicesStatus(db *dbops.PgDB, app *dbmodel.App) *models.ServicesStat
 		controlAddress := make([]string, 2)
 		appID := make([]int64, 2)
 		for i := range s.Daemons {
+			app := s.Daemons[i].GetVirtualApp()
 			switch s.Daemons[i].ID {
 			case ha.PrimaryID:
-				ap, _ := s.Daemons[i].App.GetAccessPoint("control")
+				ap, _ := s.Daemons[i].GetAccessPoint(dbmodel.AccessPointControl)
 				if ap != nil {
 					controlAddress[0] = ap.Address
 				}
-				appID[0] = s.Daemons[i].App.ID
+				appID[0] = app.ID
 			case ha.SecondaryID:
-				ap, _ := s.Daemons[i].App.GetAccessPoint("control")
+				ap, _ := s.Daemons[i].GetAccessPoint(dbmodel.AccessPointControl)
 				if ap != nil {
 					controlAddress[1] = ap.Address
 				}
-				appID[1] = s.Daemons[i].App.ID
+				appID[1] = app.ID
 			}
 		}
 		// Get the communication state value.
@@ -1689,17 +1732,17 @@ func getKeaServicesStatus(db *dbops.PgDB, app *dbmodel.App) *models.ServicesStat
 
 // Gets current status of services which the given application is associated with.
 func (r *RestAPI) GetAppServicesStatus(ctx context.Context, params services.GetAppServicesStatusParams) middleware.Responder {
-	dbApp, err := dbmodel.GetAppByID(r.DB, params.ID)
+	dbDaemons, err := dbmodel.GetDaemonsByVirtualAppID(r.DB, params.ID)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get app with ID %d from the database", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetAppServicesStatusDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
 		return rsp
 	}
 
-	if dbApp == nil {
+	if len(dbDaemons) == 0 {
 		msg := fmt.Sprintf("Cannot find app with ID %d", params.ID)
 		log.Warn(msg)
 		rsp := services.NewGetAppDefault(http.StatusNotFound).WithPayload(&models.APIError{
@@ -1710,12 +1753,14 @@ func (r *RestAPI) GetAppServicesStatus(ctx context.Context, params services.GetA
 
 	var servicesStatus *models.ServicesStatus
 
+	virtualApp := dbDaemons[0].GetVirtualApp()
+
 	// If this is Kea application, get the Kea DHCP servers status which possibly
 	// includes HA status.
-	if dbApp.Type == dbmodel.AppTypeKea {
-		servicesStatus = getKeaServicesStatus(r.DB, dbApp)
+	if virtualApp.Type == dbmodel.VirtualAppTypeKea {
+		servicesStatus = getKeaServicesStatus(r.DB, virtualApp, dbDaemons)
 		if servicesStatus == nil {
-			msg := fmt.Sprintf("Cannot get status of app with ID %d", dbApp.ID)
+			msg := fmt.Sprintf("Cannot get status of app with ID %d", virtualApp.ID)
 			rsp := services.NewGetAppServicesStatusDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 				Message: &msg,
 			})
@@ -1733,10 +1778,10 @@ func (r *RestAPI) GetAppServicesStatus(ctx context.Context, params services.GetA
 func (r *RestAPI) GetAppsStats(ctx context.Context, params services.GetAppsStatsParams) middleware.Responder {
 	// The second argument indicates that only basic information about the apps
 	// should be returned, i.e. the information stored in the app table.
-	dbApps, err := dbmodel.GetAllApps(r.DB, false)
+	dbDaemons, err := dbmodel.GetAllDaemons(r.DB)
 	if err != nil {
-		log.Error(err)
-		msg := "Cannot get all apps from db"
+		msg := "Cannot get all daemons from db"
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetAppsStatsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1749,16 +1794,16 @@ func (r *RestAPI) GetAppsStats(ctx context.Context, params services.GetAppsStats
 		DNSAppsTotal: 0,
 		DNSAppsNotOk: 0,
 	}
-	for _, dbApp := range dbApps {
-		switch dbApp.Type {
-		case dbmodel.AppTypeKea:
+	for _, dbDaemon := range dbDaemons {
+		switch dbDaemon.GetVirtualApp().Type {
+		case dbmodel.VirtualAppTypeKea:
 			appsStats.KeaAppsTotal++
-			if !dbApp.Active {
+			if !dbDaemon.Active {
 				appsStats.KeaAppsNotOk++
 			}
-		case dbmodel.AppTypeBind9, dbmodel.AppTypePDNS:
+		case dbmodel.VirtualAppTypeBind9, dbmodel.VirtualAppTypePDNS:
 			appsStats.DNSAppsTotal++
-			if !dbApp.Active {
+			if !dbDaemon.Active {
 				appsStats.DNSAppsNotOk++
 			}
 		}
@@ -1776,8 +1821,8 @@ func (r *RestAPI) GetDhcpOverview(ctx context.Context, params dhcp.GetDhcpOvervi
 
 	subnets4, err := r.getSubnets(0, 5, filters, "addr_utilization", dbmodel.SortDirDesc)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot get IPv4 subnets from db"
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetDhcpOverviewDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1787,8 +1832,8 @@ func (r *RestAPI) GetDhcpOverview(ctx context.Context, params dhcp.GetDhcpOvervi
 	filters.SetIPv6Family()
 	subnets6, err := r.getSubnets(0, 5, filters, "addr_utilization", dbmodel.SortDirDesc)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot get IPv6 subnets from db"
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetDhcpOverviewDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1798,8 +1843,8 @@ func (r *RestAPI) GetDhcpOverview(ctx context.Context, params dhcp.GetDhcpOvervi
 	// get list of mostly utilized shared networks
 	sharedNetworks4, err := r.getSharedNetworks(0, 5, 0, 4, nil, "addr_utilization", dbmodel.SortDirDesc)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot get IPv4 shared networks from db"
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetDhcpOverviewDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1808,8 +1853,8 @@ func (r *RestAPI) GetDhcpOverview(ctx context.Context, params dhcp.GetDhcpOvervi
 
 	sharedNetworks6, err := r.getSharedNetworks(0, 5, 0, 6, nil, "addr_utilization", dbmodel.SortDirDesc)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot get IPv6 shared networks from db"
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetDhcpOverviewDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1819,8 +1864,8 @@ func (r *RestAPI) GetDhcpOverview(ctx context.Context, params dhcp.GetDhcpOvervi
 	// get dhcp statistics
 	stats, err := dbmodel.GetAllStats(r.DB)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot get statistics from db"
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetDhcpOverviewDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1841,10 +1886,10 @@ func (r *RestAPI) GetDhcpOverview(ctx context.Context, params dhcp.GetDhcpOvervi
 	}
 
 	// get kea apps and daemons statuses
-	dbApps, err := dbmodel.GetAppsByType(r.DB, dbmodel.AppTypeKea)
+	dbDaemons, err := dbmodel.GetDaemonsByName(r.DB, daemonname.DHCPv4, daemonname.DHCPv6)
 	if err != nil {
-		log.Error(err)
-		msg := "Cannot get statistics from db"
+		msg := "Cannot get DHCP daemons from db"
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetDhcpOverviewDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1852,70 +1897,66 @@ func (r *RestAPI) GetDhcpOverview(ctx context.Context, params dhcp.GetDhcpOvervi
 	}
 
 	var dhcpDaemons []*models.DhcpDaemon
-	for _, dbApp := range dbApps {
-		for _, dbDaemon := range dbApp.Daemons {
-			if !strings.HasPrefix(dbDaemon.Name, "dhcp") {
-				continue
-			}
-			if !dbDaemon.Monitored {
-				// do not show not monitored daemons (ie. show only monitored services)
-				continue
-			}
-			// todo: Currently Kea supports only one HA relationship per daemon.
-			// Until we extend Kea to support multiple relationships per daemon
-			// or integrate ISC DHCP with Stork, the number of HA states returned
-			// will be 0 or 1. Therefore, we take the first HA state if it exists
-			// and return it over the REST API.
-			var (
-				haEnabled               bool
-				haRelationshipOverviews []*models.DhcpDaemonHARelationshipOverview
-				haState                 string
-				haFailureAt             *strfmt.DateTime
-			)
-			if overview := dbDaemon.GetHAOverview(); len(overview) > 0 {
-				haEnabled = true
-				for i := range overview {
-					haState = overview[i].State
-					if !overview[0].LastFailureAt.IsZero() {
-						haFailureAt = convertToOptionalDatetime(overview[0].LastFailureAt)
-					}
-					haRelationshipOverviews = append(haRelationshipOverviews, &models.DhcpDaemonHARelationshipOverview{
-						HaState:     haState,
-						HaFailureAt: haFailureAt,
-					})
-				}
-			}
-			agentErrors := int64(0)
-			caErrors := int64(0)
-			daemonErrors := int64(0)
-			agentStats := r.Agents.GetConnectedAgentStatsWrapper(dbApp.Machine.Address, dbApp.Machine.AgentPort)
-			if agentStats != nil {
-				defer agentStats.Close()
-				agentErrors = agentStats.GetStats().GetTotalErrorCount()
-				keaErrors := agentStats.GetStats().GetKeaCommErrorStats(dbApp.ID)
-				caErrors = keaErrors.GetErrorCount(agentcomm.KeaDaemonCA)
-				daemonErrors = keaErrors.GetErrorCount(agentcomm.GetKeaDaemonTypeFromName(dbDaemon.Name))
-			}
-			daemon := &models.DhcpDaemon{
-				MachineID:        dbApp.MachineID,
-				Machine:          dbApp.Machine.State.Hostname,
-				AppVersion:       dbApp.Meta.Version,
-				AppID:            dbApp.ID,
-				AppName:          dbApp.Name,
-				Name:             dbDaemon.Name,
-				Active:           dbDaemon.Active,
-				Monitored:        dbDaemon.Monitored,
-				Rps1:             dbDaemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS1,
-				Rps2:             dbDaemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS2,
-				HaEnabled:        haEnabled,
-				HaOverview:       haRelationshipOverviews,
-				Uptime:           dbDaemon.Uptime,
-				AgentCommErrors:  agentErrors,
-				CaCommErrors:     caErrors,
-				DaemonCommErrors: daemonErrors,
-			}
-			dhcpDaemons = append(dhcpDaemons, daemon)
+	for _, dbDaemon := range dbDaemons {
+		if !dbDaemon.Monitored {
+			// do not show not monitored daemons (ie. show only monitored services)
+			continue
 		}
+		// TODO: Currently Kea supports only one HA relationship per daemon.
+		// Until we extend Kea to support multiple relationships per daemon
+		// or integrate ISC DHCP with Stork, the number of HA states returned
+		// will be 0 or 1. Therefore, we take the first HA state if it exists
+		// and return it over the REST API.
+		var (
+			haEnabled               bool
+			haRelationshipOverviews []*models.DhcpDaemonHARelationshipOverview
+			haState                 string
+			haFailureAt             *strfmt.DateTime
+		)
+		if overview := dbDaemon.GetHAOverview(); len(overview) > 0 {
+			haEnabled = true
+			for i := range overview {
+				haState = overview[i].State
+				if !overview[0].LastFailureAt.IsZero() {
+					haFailureAt = convertToOptionalDatetime(overview[0].LastFailureAt)
+				}
+				haRelationshipOverviews = append(haRelationshipOverviews, &models.DhcpDaemonHARelationshipOverview{
+					HaState:     haState,
+					HaFailureAt: haFailureAt,
+				})
+			}
+		}
+		agentErrors := int64(0)
+		caErrors := int64(0)
+		daemonErrors := int64(0)
+		agentStats := r.Agents.GetConnectedAgentStatsWrapper(dbDaemon.Machine.Address, dbDaemon.Machine.AgentPort)
+		if agentStats != nil {
+			defer agentStats.Close()
+			agentErrors = agentStats.GetStats().GetTotalAgentErrorCount()
+			keaErrors := agentStats.GetStats().GetKeaStats()
+			caErrors = keaErrors.GetErrorCount(daemonname.CA)
+			daemonErrors = keaErrors.GetErrorCount(dbDaemon.Name)
+		}
+		app := dbDaemon.GetVirtualApp()
+		daemon := &models.DhcpDaemon{
+			MachineID:        dbDaemon.MachineID,
+			Machine:          dbDaemon.Machine.State.Hostname,
+			AppVersion:       dbDaemon.Version,
+			AppID:            app.ID,
+			AppName:          app.Name,
+			Name:             string(dbDaemon.Name),
+			Active:           dbDaemon.Active,
+			Monitored:        dbDaemon.Monitored,
+			Rps1:             dbDaemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS1,
+			Rps2:             dbDaemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS2,
+			HaEnabled:        haEnabled,
+			HaOverview:       haRelationshipOverviews,
+			Uptime:           dbDaemon.Uptime,
+			AgentCommErrors:  agentErrors,
+			CaCommErrors:     caErrors,
+			DaemonCommErrors: daemonErrors,
+		}
+		dhcpDaemons = append(dhcpDaemons, daemon)
 	}
 
 	// combine gathered information
@@ -1969,9 +2010,9 @@ func (r *RestAPI) UpdateDaemon(ctx context.Context, params services.UpdateDaemon
 
 	if oldMonitored != params.Daemon.Monitored {
 		if params.Daemon.Monitored {
-			r.EventCenter.AddInfoEvent("{user} enabled monitoring {daemon}", dbUser, dbDaemon, dbDaemon.App, dbDaemon.App.Machine)
+			r.EventCenter.AddInfoEvent("{user} enabled monitoring {daemon}", dbUser, dbDaemon, dbDaemon.Machine)
 		} else {
-			r.EventCenter.AddWarningEvent("{user} disabled monitoring {daemon}", dbUser, dbDaemon, dbDaemon.App, dbDaemon.App.Machine)
+			r.EventCenter.AddWarningEvent("{user} disabled monitoring {daemon}", dbUser, dbDaemon, dbDaemon.Machine)
 		}
 	}
 
@@ -1979,51 +2020,12 @@ func (r *RestAPI) UpdateDaemon(ctx context.Context, params services.UpdateDaemon
 	return rsp
 }
 
-// Rename an app. The request must contain two parameters: app ID and new app name. The app
-// is renamed in the database. If the name is invalid or the given app does not exist,
-// an error is returned.
+// Rename an app. Unsupported.
 func (r *RestAPI) RenameApp(ctx context.Context, params services.RenameAppParams) middleware.Responder {
-	// Sanity check if the caller provided a nil or empty string.
-	appName := ""
-	if params.NewAppName.Name != nil {
-		appName = strings.TrimSpace(*params.NewAppName.Name)
-	}
-	if len(appName) == 0 {
-		msg := fmt.Sprintf("Unable to rename app with ID %d to an empty string", params.ID)
-		log.Warn(msg)
-		rsp := services.NewRenameAppDefault(http.StatusBadRequest).WithPayload(&models.APIError{
-			Message: &msg,
-		})
-		return rsp
-	}
-	// Try to rename the app.
-	oldApp, err := dbmodel.RenameApp(r.DB, params.ID, appName)
-	if err != nil {
-		msg := fmt.Sprintf("Unable to rename app with ID %d to %s", params.ID, appName)
-		log.Warnf("%s: %s", msg, err)
-		rsp := services.NewRenameAppDefault(http.StatusBadRequest).WithPayload(&models.APIError{
-			Message: &msg,
-		})
-		return rsp
-	}
-
-	// Create an event. It will contain an old and new app name.
-	newApp := &dbmodel.App{
-		ID:        params.ID,
-		Name:      appName,
-		Type:      oldApp.Type,
-		MachineID: oldApp.MachineID,
-	}
-	machine := &dbmodel.Machine{
-		ID: oldApp.MachineID,
-	}
-	r.EventCenter.AddInfoEvent(fmt.Sprintf("{app} renamed from %s", oldApp.Name), newApp, machine)
-
-	log.Infof("App %s successfully renamed to %s", oldApp.Name, newApp.Name)
-
-	// Rename was ok.
-	rsp := services.NewRenameAppOK()
-	return rsp
+	msg := "Unable to rename app - this feature is no longer supported"
+	return services.NewRenameAppDefault(http.StatusServiceUnavailable).WithPayload(&models.APIError{
+		Message: &msg,
+	})
 }
 
 // Returns the authentication key assigned to the given access point.

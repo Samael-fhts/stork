@@ -654,6 +654,7 @@ func GetGlobalSubnets(dbi dbops.DBI, family int) ([]Subnet, error) {
 
 // Container for values filtering subnets fetched by page.
 type SubnetsByPageFilters struct {
+	MachineID     *int64
 	DaemonID      *int64
 	LocalSubnetID *int64
 	Family        *int64
@@ -688,15 +689,19 @@ func GetSubnetsByPage(dbi dbops.DBI, offset, limit int64, filters *SubnetsByPage
 	subnets := []Subnet{}
 	q := dbi.Model(&subnets).Distinct()
 
-	if filters.DaemonID != nil || filters.LocalSubnetID != nil || filters.Text != nil {
+	if filters.DaemonID != nil || filters.LocalSubnetID != nil || filters.MachineID != nil || filters.Text != nil {
 		q = q.Join("INNER JOIN local_subnet AS ls ON subnet.id = ls.subnet_id")
+		if filters.MachineID != nil {
+			q = q.Join("INNER JOIN daemon AS d ON ls.daemon_id = d.id")
+			q = q.Where("d.machine_id = ?", *filters.MachineID)
+		}
 	}
 	// Pools are also required when trying to filter by text.
 	if filters.Text != nil {
 		q = q.Join("LEFT JOIN address_pool AS ap ON ls.id = ap.local_subnet_id")
 	}
 	// Include pools, shared network the subnets belong to, local subnet info
-	// and the associated apps in the results.
+	// and the associated daemons in the results.
 	q = q.Relation("SharedNetwork").
 		Relation("LocalSubnets.AddressPools", func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("address_pool.id ASC"), nil

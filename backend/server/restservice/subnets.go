@@ -10,9 +10,9 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	keaconfig "isc.org/stork/appcfg/kea"
-	"isc.org/stork/server/apps/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/server/config"
+	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
 
@@ -101,13 +101,15 @@ func (r *RestAPI) convertSubnetToRestAPI(sn *dbmodel.Subnet) *models.Subnet {
 	}
 
 	for _, lsn := range sn.LocalSubnets {
+		app := lsn.Daemon.GetVirtualApp()
+
 		localSubnet := &models.LocalSubnet{
-			AppID:            lsn.Daemon.App.ID,
+			AppID:            app.ID,
 			DaemonID:         lsn.Daemon.ID,
-			AppName:          lsn.Daemon.App.Name,
+			AppName:          app.Name,
 			ID:               lsn.LocalSubnetID,
-			MachineAddress:   lsn.Daemon.App.Machine.Address,
-			MachineHostname:  lsn.Daemon.App.Machine.State.Hostname,
+			MachineAddress:   lsn.Daemon.Machine.Address,
+			MachineHostname:  lsn.Daemon.Machine.State.Hostname,
 			Stats:            lsn.Stats,
 			StatsCollectedAt: convertToOptionalDatetime(lsn.StatsCollectedAt),
 			UserContext:      lsn.UserContext,
@@ -486,9 +488,25 @@ func (r *RestAPI) GetSubnets(ctx context.Context, params dhcp.GetSubnetsParams) 
 		limit = *params.Limit
 	}
 
+	var machineID *int64
+	if params.AppID != nil {
+		daemons, err := dbmodel.GetDaemonsByVirtualAppID(r.DB, *params.AppID)
+		if err != nil {
+			msg := fmt.Sprintf("Cannot get daemons for app ID %d", *params.AppID)
+			log.WithError(err).Error(msg)
+			rsp := dhcp.NewGetSubnetsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
+				Message: &msg,
+			})
+			return rsp
+		}
+		if len(daemons) != 0 {
+			machineID = &daemons[0].MachineID
+		}
+	}
+
 	// get subnets from db
 	filters := &dbmodel.SubnetsByPageFilters{
-		AppID:         params.AppID,
+		MachineID:     machineID,
 		Family:        params.DhcpVersion,
 		Text:          params.Text,
 		LocalSubnetID: params.LocalSubnetID,

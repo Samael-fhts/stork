@@ -59,15 +59,17 @@ func (d *LogsDump) Execute() error {
 				errStr = err.Error()
 			}
 
+			app := daemon.GetVirtualApp()
+
 			tail := &models.LogTail{
-				Machine: &models.SimpleMachine{
-					ID:        d.machine.ID,
-					Address:   d.machine.Address,
-					AgentPort: d.machine.AgentPort,
-					Hostname:  d.machine.State.Hostname,
+				Machine: &models.AppMachine{
+					ID:       d.machine.ID,
+					Address:  d.machine.Address,
+					Hostname: d.machine.State.Hostname,
 				},
-				DaemonID:        storkutil.Ptr(daemon.ID),
-				DaemonName:      storkutil.Ptr(string(daemon.Name)),
+				AppID:           storkutil.Ptr(app.ID),
+				AppName:         storkutil.Ptr(app.Name),
+				AppType:         storkutil.Ptr(string(app.Type)),
 				LogTargetOutput: storkutil.Ptr(logTarget.Output),
 				Contents:        contents,
 				Error:           errStr,

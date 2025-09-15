@@ -27,7 +27,6 @@ func TestNewSubscriber(t *testing.T) {
 	require.False(t, subscriber.useFilter)
 	require.Equal(t, dbmodel.EvInfo, subscriber.filters.level)
 	require.Zero(t, subscriber.filters.MachineID)
-	require.Zero(t, subscriber.filters.AppID)
 	require.Zero(t, subscriber.filters.SubnetID)
 	require.Zero(t, subscriber.filters.DaemonID)
 	require.Zero(t, subscriber.filters.UserID)

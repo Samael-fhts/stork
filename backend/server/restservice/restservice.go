@@ -26,9 +26,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/netutil"
 
-	keaconfig "isc.org/stork/appcfg/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/server/agentcomm"
-	"isc.org/stork/server/apps"
+	"isc.org/stork/server/daemons"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator"
 	"isc.org/stork/server/configreview"
@@ -72,7 +72,7 @@ type RestAPI struct {
 	DB                         *dbops.PgDB
 	SessionManager             *dbsession.SessionMgr
 	EventCenter                eventcenter.EventCenter
-	Pullers                    *apps.Pullers
+	Pullers                    *daemons.Pullers
 	ReviewDispatcher           configreview.Dispatcher
 	MetricsCollector           metrics.Collector
 	ConfigManager              config.Manager
@@ -202,8 +202,8 @@ func NewRestAPI(args ...interface{}) (*RestAPI, error) {
 			api.DB = arg.(*pg.DB)
 			continue
 		}
-		if argType.AssignableTo(reflect.TypeOf((*apps.Pullers)(nil))) {
-			api.Pullers = arg.(*apps.Pullers)
+		if argType.AssignableTo(reflect.TypeOf((*daemons.Pullers)(nil))) {
+			api.Pullers = arg.(*daemons.Pullers)
 			continue
 		}
 		if argType.AssignableTo(reflect.TypeOf((*RestAPISettings)(nil))) {

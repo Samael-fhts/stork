@@ -11,10 +11,11 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	keaconfig "isc.org/stork/appcfg/kea"
-	"isc.org/stork/server/apps/kea"
+	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configreview"
+	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"
 	"isc.org/stork/server/gen/models"
 	dhcp "isc.org/stork/server/gen/restapi/operations/d_h_c_p"
@@ -85,12 +86,14 @@ func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemon
 		}
 	}
 
+	app := dbDaemon.GetVirtualApp()
+
 	rsp := services.NewGetDaemonConfigOK().WithPayload(&models.KeaDaemonConfig{
 		DaemonID:   dbDaemon.GetID(),
-		AppID:      dbDaemon.App.GetID(),
-		AppName:    dbDaemon.App.GetName(),
-		AppType:    dbDaemon.GetAppType().String(),
-		DaemonName: dbDaemon.GetName(),
+		AppID:      app.ID,
+		AppName:    app.Name,
+		AppType:    string(app.Type),
+		DaemonName: string(dbDaemon.Name),
 		Editable:   dbDaemon.Monitored && dbDaemon.Active,
 		Config:     dbDaemon.KeaDaemon.Config,
 		Options:    options,
@@ -600,12 +603,13 @@ func (r *RestAPI) UpdateKeaGlobalParametersBegin(ctx context.Context, params dhc
 			}
 		}
 
+		app := daemon.GetVirtualApp()
 		configs = append(configs, &models.KeaDaemonConfig{
-			AppID:         daemon.GetAppID(),
-			AppName:       daemon.App.GetName(),
-			AppType:       "kea",
+			AppID:         app.ID,
+			AppName:       app.Name,
+			AppType:       string(app.Type),
 			DaemonID:      daemon.ID,
-			DaemonName:    daemon.Name,
+			DaemonName:    string(daemon.Name),
 			DaemonVersion: daemon.Version,
 			Config:        daemon.KeaDaemon.Config,
 			Options:       options,
@@ -650,12 +654,23 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 	for i := range params.Request.Configs {
 		receivedConfig := params.Request.Configs[i]
 		var settableConfig *keaconfig.SettableConfig
-		switch receivedConfig.DaemonName {
-		case dbmodel.DaemonNameDHCPv4:
+
+		daemonName, err := daemonname.Parse(receivedConfig.DaemonName)
+		if err != nil {
+			msg := "Problem with parsing daemon name"
+			log.WithError(err).Error(msg)
+			rsp := dhcp.NewUpdateKeaGlobalParametersSubmitDefault(http.StatusBadRequest).WithPayload(&models.APIError{
+				Message: &msg,
+			})
+			return rsp
+		}
+
+		switch daemonName {
+		case daemonname.DHCPv4:
 			settableConfig = keaconfig.NewSettableDHCPv4Config()
-		case dbmodel.DaemonNameDHCPv6:
+		case daemonname.DHCPv6:
 			settableConfig = keaconfig.NewSettableDHCPv6Config()
-		case dbmodel.DaemonNameD2:
+		case daemonname.D2:
 			settableConfig = keaconfig.NewSettableD2Config()
 		default:
 			settableConfig = keaconfig.NewSettableCtrlAgentConfig()
