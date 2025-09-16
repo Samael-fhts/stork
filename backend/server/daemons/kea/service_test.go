@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/daemonname"
 	dbmodel "isc.org/stork/server/database/model"
 	dbmodeltest "isc.org/stork/server/database/model/test"
 	dbtest "isc.org/stork/server/database/test"
@@ -96,7 +97,7 @@ func TestDetectHAServices(t *testing.T) {
 	detected, err := DetectHAServices(db, daemon4)
 	require.NoError(t, err)
 	services = append(services, detected...)
-	
+
 	detected, err = DetectHAServices(db, daemon6)
 	require.NoError(t, err)
 	services = append(services, detected...)
@@ -107,7 +108,7 @@ func TestDetectHAServices(t *testing.T) {
 	// Check the DHCPv4 service first.
 	require.True(t, services[0].IsNew())
 	require.NotNil(t, services[0].HAService)
-	require.Equal(t, "dhcp4", services[0].HAService.HAType)
+	require.Equal(t, daemonname.DHCPv4, services[0].HAService.HAType)
 	require.Equal(t, "load-balancing", services[0].HAService.HAMode)
 	require.Equal(t, "server2", services[0].HAService.Relationship)
 	require.Zero(t, services[0].HAService.PrimaryID)
@@ -121,7 +122,7 @@ func TestDetectHAServices(t *testing.T) {
 	// Check the DHCPv6 service.
 	require.True(t, services[1].IsNew())
 	require.NotNil(t, services[1].HAService)
-	require.Equal(t, "dhcp6", services[1].HAService.HAType)
+	require.Equal(t, daemonname.DHCPv6, services[1].HAService.HAType)
 	require.Equal(t, "hot-standby", services[1].HAService.HAMode)
 	require.Equal(t, "server2", services[0].HAService.Relationship)
 	require.Zero(t, services[1].HAService.PrimaryID)
@@ -147,7 +148,7 @@ func TestDetectHAServices(t *testing.T) {
 	detected, err = DetectHAServices(db, daemon4)
 	require.NoError(t, err)
 	services = append(services, detected...)
-	
+
 	detected, err = DetectHAServices(db, daemon6)
 	require.NoError(t, err)
 	services = append(services, detected...)
@@ -155,14 +156,14 @@ func TestDetectHAServices(t *testing.T) {
 
 	// This is no longer a new service.
 	require.False(t, services[0].IsNew())
-	require.Equal(t, "dhcp4", services[0].HAService.HAType)
+	require.Equal(t, daemonname.DHCPv4, services[0].HAService.HAType)
 	require.Equal(t, "load-balancing", services[0].HAService.HAMode)
 	require.Zero(t, services[0].HAService.PrimaryID)
 	require.Equal(t, daemon4.ID, services[0].HAService.SecondaryID)
 	require.Empty(t, services[0].HAService.BackupID)
 
 	require.False(t, services[1].IsNew())
-	require.Equal(t, "dhcp6", services[1].HAService.HAType)
+	require.Equal(t, daemonname.DHCPv6, services[1].HAService.HAType)
 	require.Equal(t, "hot-standby", services[1].HAService.HAMode)
 	require.Zero(t, services[1].HAService.PrimaryID)
 	require.Equal(t, daemon6.ID, services[1].HAService.SecondaryID)
@@ -220,7 +221,7 @@ func TestDetectHAServices(t *testing.T) {
 	require.Len(t, services, 1)
 	require.False(t, services[0].IsNew())
 	require.NotNil(t, services[0].HAService)
-	require.Equal(t, "dhcp4", services[0].HAService.HAType)
+	require.Equal(t, daemonname.DHCPv4, services[0].HAService.HAType)
 	require.Equal(t, "load-balancing", services[0].HAService.HAMode)
 	require.Zero(t, services[0].HAService.PrimaryID)
 	require.NotZero(t, services[0].HAService.SecondaryID)
@@ -320,14 +321,14 @@ func TestDetectHAServices(t *testing.T) {
 	detected, err = DetectHAServices(db, daemonPrimary4)
 	require.NoError(t, err)
 	services = append(services, detected...)
-	
+
 	detected, err = DetectHAServices(db, daemonPrimary6)
 	require.NoError(t, err)
 	services = append(services, detected...)
 	require.Len(t, services, 2)
 	require.False(t, services[0].IsNew())
 	require.NotNil(t, services[0].HAService)
-	require.Equal(t, "dhcp4", services[0].HAService.HAType)
+	require.Equal(t, daemonname.DHCPv4, services[0].HAService.HAType)
 	require.Equal(t, "load-balancing", services[0].HAService.HAMode)
 	require.Equal(t, daemonPrimary4.ID, services[0].HAService.PrimaryID)
 	require.NotZero(t, services[0].HAService.SecondaryID)
@@ -335,7 +336,7 @@ func TestDetectHAServices(t *testing.T) {
 
 	require.False(t, services[1].IsNew())
 	require.NotNil(t, services[1].HAService)
-	require.Equal(t, "dhcp6", services[1].HAService.HAType)
+	require.Equal(t, daemonname.DHCPv6, services[1].HAService.HAType)
 	require.Equal(t, "hot-standby", services[1].HAService.HAMode)
 	require.Equal(t, daemonPrimary6.ID, services[1].HAService.PrimaryID)
 	require.NotZero(t, services[1].HAService.SecondaryID)
@@ -420,7 +421,7 @@ func TestDetectHAServices(t *testing.T) {
 		require.Len(t, services, 1)
 		require.False(t, services[0].IsNew())
 		require.NotNil(t, services[0].HAService)
-		require.Equal(t, "dhcp4", services[0].HAService.HAType)
+		require.Equal(t, daemonname.DHCPv4, services[0].HAService.HAType)
 		require.Equal(t, "load-balancing", services[0].HAService.HAMode)
 		require.NotZero(t, services[0].HAService.PrimaryID)
 		require.NotZero(t, services[0].HAService.SecondaryID)
@@ -544,7 +545,7 @@ func TestReduceHAServices(t *testing.T) {
 
 	// This call, apart from adding the daemon to the machine, will also associate the
 	// daemon with the HA services.
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	err = dhcp4.Configure(`{
@@ -586,7 +587,7 @@ func TestReduceHAServices(t *testing.T) {
 	daemon, err = dhcp4.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	// Make sure that new service has been created.
@@ -642,7 +643,7 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	daemon, err := dhcp4.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)
@@ -707,7 +708,7 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	daemonHub, err := dhcp4Hub.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemonHub}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemonHub}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	services, err = dbmodel.GetDetailedAllServices(db)
@@ -759,7 +760,7 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	daemonBranch, err := dhcp4Branch.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemonBranch}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemonBranch}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	services, err = dbmodel.GetDetailedAllServices(db)
@@ -816,7 +817,7 @@ func TestDetectHAServicesErrors(t *testing.T) {
 	daemon, err := dhcp4.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)
@@ -833,12 +834,12 @@ func TestDetectHAServicesErrors(t *testing.T) {
 	t.Run("no HA hook library", func(t *testing.T) {
 		dhcp4NoHA, err := dbmodeltest.NewKeaDHCPv4Server(db)
 		require.NoError(t, err)
-		
+
 		err = dhcp4NoHA.Configure(`{
 			"Dhcp4": {}
 		}`)
 		require.NoError(t, err)
-		
+
 		daemonNoHA, err := dhcp4NoHA.GetDaemon()
 		require.NoError(t, err)
 
@@ -850,7 +851,7 @@ func TestDetectHAServicesErrors(t *testing.T) {
 	t.Run("invalid HA configuration", func(t *testing.T) {
 		dhcp4Invalid, err := dbmodeltest.NewKeaDHCPv4Server(db)
 		require.NoError(t, err)
-		
+
 		err = dhcp4Invalid.Configure(`{
 			"Dhcp4": {
 				"hooks-libraries": [
@@ -877,10 +878,10 @@ func TestDetectHAServicesErrors(t *testing.T) {
 			}
 		}`)
 		require.NoError(t, err)
-		
+
 		daemonInvalid, err := dhcp4Invalid.GetDaemon()
 		require.NoError(t, err)
-		
+
 		services, err := DetectHAServices(db, daemonInvalid)
 		require.Error(t, err)
 		require.Empty(t, services)
@@ -889,7 +890,7 @@ func TestDetectHAServicesErrors(t *testing.T) {
 	t.Run("no matching peer", func(t *testing.T) {
 		dhcp4NoMatch, err := dbmodeltest.NewKeaDHCPv4Server(db)
 		require.NoError(t, err)
-		
+
 		err = dhcp4NoMatch.Configure(`{
 			"Dhcp4": {
 				"hooks-libraries": [
@@ -918,10 +919,10 @@ func TestDetectHAServicesErrors(t *testing.T) {
 			}
 		}`)
 		require.NoError(t, err)
-		
+
 		daemonNoMatch, err := dhcp4NoMatch.GetDaemon()
 		require.NoError(t, err)
-		
+
 		services, err := DetectHAServices(db, daemonNoMatch)
 		require.Error(t, err)
 		require.Empty(t, services)
