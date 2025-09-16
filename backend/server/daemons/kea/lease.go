@@ -525,11 +525,16 @@ func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID
 			// Determine if this is IPv4 or IPv6 lease.
 			switch parsedIP.Protocol {
 			case storkutil.IPv4:
+				if daemon.Name != daemonname.DHCPv4 {
+					// This is not a DHCPv4 daemon, so skip it.
+					continue
+				}
+
 				if !dhcp4Error {
 					lease, err := GetLease4ByIPAddress(agents, daemon, parsedIP.NetworkPrefix)
 					if err != nil {
 						dhcp4Error = true
-						log.Warn(err)
+						log.WithError(err).Warn("failed to get lease by IPv4 address from Kea")
 					} else if lease != nil {
 						lease.ID = currentLeaseID
 						currentLeaseID++
@@ -537,6 +542,11 @@ func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID
 					}
 				}
 			case storkutil.IPv6:
+				if daemon.Name != daemonname.DHCPv6 {
+					// This is not a DHCPv6 daemon, so skip it.
+					continue
+				}
+
 				if !dhcp6Error {
 					// These commands distinguish between IA_NA and IA_PD. A caller
 					// must specify the lease type.
@@ -547,7 +557,7 @@ func FindLeasesByHostID(db *dbops.PgDB, agents agentcomm.ConnectedAgents, hostID
 					lease, err := GetLease6ByIPAddress(agents, daemon, leaseType, parsedIP.NetworkPrefix)
 					if err != nil {
 						dhcp6Error = true
-						log.Warn(err)
+						log.WithError(err).Warn("failed to get lease by IPv6 address from Kea")
 					} else if lease != nil {
 						lease.ID = currentLeaseID
 						currentLeaseID++

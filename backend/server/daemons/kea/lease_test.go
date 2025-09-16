@@ -234,7 +234,10 @@ func mockLeases4GetEmpty(callNo int, responses []any) {
             "text": "No lease found."
         }
     `)
-	_ = json.Unmarshal(bytes, responses[0])
+
+	for _, response := range responses {
+		_ = json.Unmarshal(bytes, response)
+	}
 }
 
 // Generates a mock empty response to commands fetching DHCPv6 leases.
@@ -253,35 +256,37 @@ func mockLeases6GetEmpty(callNo int, responses []any) {
 // Stork should ignore the lease in the default state. The second response
 // contains two declined DHCPv6 leases.
 func mockLeasesGetDeclined(callNo int, responses []any) {
-	bytes := []byte(`
-        {
-            "result": 0,
-            "text": "Leases found",
-            "arguments": {
-                "leases": [
-                    {
-                        "cltt": 12345678,
-                        "hw-address": "",
-                        "ip-address": "192.0.2.1",
-                        "state": 0,
-                        "subnet-id": 44,
-                        "valid-lft": 3600
-                    },
-                    {
-                        "cltt": 12345678,
-                        "hw-address": "",
-                        "ip-address": "192.0.2.2",
-                        "state": 1,
-                        "subnet-id": 44,
-                        "valid-lft": 3600
-                    }
-                ]
-            }
-        }
-    `)
-	_ = json.Unmarshal(bytes, responses[0])
-
-	bytes = []byte(`
+	switch callNo {
+	case 0:
+		bytes := []byte(`
+			{
+				"result": 0,
+				"text": "Leases found",
+				"arguments": {
+					"leases": [
+						{
+							"cltt": 12345678,
+							"hw-address": "",
+							"ip-address": "192.0.2.1",
+							"state": 0,
+							"subnet-id": 44,
+							"valid-lft": 3600
+						},
+						{
+							"cltt": 12345678,
+							"hw-address": "",
+							"ip-address": "192.0.2.2",
+							"state": 1,
+							"subnet-id": 44,
+							"valid-lft": 3600
+						}
+					]
+				}
+			}
+		`)
+		_ = json.Unmarshal(bytes, responses[0])
+	case 1:
+		bytes := []byte(`
         {
             "result": 0,
             "text": "Leases found",
@@ -315,19 +320,22 @@ func mockLeasesGetDeclined(callNo int, responses []any) {
             }
         }
     `)
-	_ = json.Unmarshal(bytes, responses[1])
+		_ = json.Unmarshal(bytes, responses[0])
+	}
 }
 
 func mockLeasesGetDeclinedErrors(callNo int, responses []any) {
-	bytes := []byte(`
-        {
-            "result": 1,
-            "text": "Leases search erred"
-        }
-    `)
-	_ = json.Unmarshal(bytes, responses[0])
-
-	bytes = []byte(`
+	switch callNo {
+	case 0:
+		bytes := []byte(`
+			{
+				"result": 1,
+				"text": "Leases search erred"
+			}
+		`)
+		_ = json.Unmarshal(bytes, responses[0])
+	case 1:
+		bytes := []byte(`
         {
             "result": 0,
             "text": "Leases found",
@@ -349,7 +357,8 @@ func mockLeasesGetDeclinedErrors(callNo int, responses []any) {
             }
         }
     `)
-	_ = json.Unmarshal(bytes, responses[1])
+		_ = json.Unmarshal(bytes, responses[0])
+	}
 }
 
 // Generate an error mock response to a command fetching lease by an IPv6
@@ -1047,7 +1056,12 @@ func TestFindDeclinedLeases(t *testing.T) {
 
 	// Basic checks if expected leases were returned.
 	for i, ipAddress := range []string{"192.0.2.2", "2001:db8:2::1", "2001:db8:2::2"} {
-		require.EqualValues(t, daemon4.ID, leases[i].DaemonId)
+		expectedDaemon := daemon4
+		if i > 0 {
+			expectedDaemon = daemon6
+		}
+
+		require.EqualValues(t, expectedDaemon.ID, leases[i].DaemonId)
 		require.NotNil(t, leases[i].Daemon)
 		require.Equal(t, ipAddress, leases[i].IPAddress)
 		require.EqualValues(t, keadata.LeaseStateDeclined, leases[i].State)
@@ -1150,7 +1164,12 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 
 	// Basic checks if expected leases were returned.
 	for i, ipAddress := range []string{"192.0.2.2", "2001:db8:2::1", "2001:db8:2::2"} {
-		require.EqualValues(t, daemon4.ID, leases[i].DaemonId)
+		expectedDaemon := daemon4
+		if i > 0 {
+			expectedDaemon = daemon6
+		}
+
+		require.EqualValues(t, expectedDaemon.ID, leases[i].DaemonId)
 		require.NotNil(t, leases[i].Daemon)
 		require.Equal(t, ipAddress, leases[i].IPAddress)
 		require.EqualValues(t, keadata.LeaseStateDeclined, leases[i].State)
@@ -1422,7 +1441,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 	leases, conflicts, erredDaemons, err = FindLeasesByHostID(db, agents, host.ID)
 	require.NoError(t, err)
 	require.Empty(t, conflicts)
-	require.Len(t, erredDaemons, 2)
+	require.Len(t, erredDaemons, 3)
 	require.Empty(t, leases)
 	require.Len(t, agents.RecordedCommands, 3)
 }
