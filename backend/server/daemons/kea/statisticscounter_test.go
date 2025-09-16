@@ -592,7 +592,7 @@ func TestCounterAddEmptySubnet(t *testing.T) {
 // Test that the counter add extra IPv4 and IPv6 addresses, and delegated prefixes.
 func TestCounterRealKeaResponse(t *testing.T) {
 	// Arrange
-	statisticGetAll4ResponseRaw := `[{
+	statisticGetAll4ResponseRaw := `{
 		"result": 0,
 		"arguments": {
 			"subnet[10].total-addresses": [[256, "2025-04-22 17:59:15.328731"]],
@@ -604,9 +604,9 @@ func TestCounterRealKeaResponse(t *testing.T) {
 			"subnet[20].assigned-addresses": [[2038, "2025-04-22 17:59:15.328731"]],
 			"subnet[20].declined-addresses": [[4, "2025-04-22 17:59:15.328731"]]
 		}
-	}]`
+	}`
 
-	statisticGetAll6ResponseRaw := `[{
+	statisticGetAll6ResponseRaw := `{
 		"result": 0,
 		"arguments": {
 			"subnet[30].total-nas": [[4096, "2025-04-22 17:59:15.328731"]],
@@ -631,9 +631,9 @@ func TestCounterRealKeaResponse(t *testing.T) {
 			"subnet[50].cumulative-assigned-pds": [[15, "2025-04-22 17:59:15.328731"]],
 			"subnet[50].assigned-pds": [[15, "2025-04-22 17:59:15.328731"]]
 		}
-	}]`
+	}`
 
-	statisticGetAll6MaxResponseRaw := `[{
+	statisticGetAll6MaxResponseRaw := `{
 		"result": 0,
 		"arguments": {
 			"subnet[60].total-nas": [[-1, "2018-05-04 15:03:37.000000"]],
@@ -644,7 +644,7 @@ func TestCounterRealKeaResponse(t *testing.T) {
 			"subnet[60].cumulative-assigned-pds": [[-1, "2018-05-04 15:03:37.000000"]],
 			"subnet[60].assigned-pds": [[-1, "2018-05-04 15:03:37.000000"]]
 		}
-	}]`
+	}`
 
 	statResponses := []string{
 		statisticGetAll4ResponseRaw,
