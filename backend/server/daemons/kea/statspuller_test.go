@@ -16,6 +16,7 @@ import (
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
+	storkutil "isc.org/stork/util"
 )
 
 // Prepares the Kea mock. It accepts list of serialized JSON responses in order:
@@ -51,11 +52,13 @@ func createStandardKeaMock(t *testing.T, oldStatsFormat bool) func(callNo int, c
 	}
 
 	return createKeaMock(t, func(callNo int) (jsons []string) {
-		shift := int64(callNo * 100)
+		shift := int64(callNo / 2 * 100)
 		totalShift := shift * 2
 
-		return []string{
-			fmt.Sprintf(`[{
+		switch callNo % 2 {
+		case 0:
+			return []string{
+				fmt.Sprintf(`{
 				"result": 0,
 				"arguments": {
 					"subnet[10].%[1]s": [ [ %[4]d, "2019-07-30 10:13:00.000000" ] ],
@@ -74,25 +77,27 @@ func createStandardKeaMock(t *testing.T, oldStatsFormat bool) func(callNo int, c
 					"subnet[20].pool[1].%[2]s": [ [ %[14]d, "2019-07-30 10:13:00.000000" ] ],
 					"subnet[20].pool[1].%[3]s": [ [ %[15]d, "2019-07-30 10:13:00.000000" ] ],
 					"pkt4-ack-sent": [ [ 44, "2019-07-30 10:13:00.000000" ] ]
-				}
-			}]`,
-				// Labels.
-				// 1.               2.                  3.
-				statistic4Names[0], statistic4Names[1], statistic4Names[2],
-				// Subnet 10 (and pool 0).
-				// 4.           5.         6.
-				256+totalShift, 111+shift, 0+shift,
-				// Subnet 20.
-				// 7.            8.          9.
-				4098+totalShift, 2034+shift, 4+shift,
-				// Pool 0 in subnet 20.
-				// 10.         11.      12.
-				10+totalShift, 4+shift, 2+shift,
-				// Pool 1 in subnet 20.
-				// 13. 14.  15.
-				4088, 2030, 2,
-			),
-			fmt.Sprintf(`[{
+					}}`,
+					// Labels.
+					// 1.               2.                  3.
+					statistic4Names[0], statistic4Names[1], statistic4Names[2],
+					// Subnet 10 (and pool 0).
+					// 4.           5.         6.
+					256+totalShift, 111+shift, 0+shift,
+					// Subnet 20.
+					// 7.            8.          9.
+					4098+totalShift, 2034+shift, 4+shift,
+					// Pool 0 in subnet 20.
+					// 10.         11.      12.
+					10+totalShift, 4+shift, 2+shift,
+					// Pool 1 in subnet 20.
+					// 13. 14.  15.
+					4088, 2030, 2,
+				),
+			}
+		case 1:
+			return []string{
+				fmt.Sprintf(`{
 				"result": 0,
 				"arguments": {
 					"subnet[30].total-nas": [ [ %[1]d, "2019-07-30 10:13:00.000000" ] ],
@@ -141,27 +146,29 @@ func createStandardKeaMock(t *testing.T, oldStatsFormat bool) func(callNo int, c
 					"subnet[50].pd-pool[1].total-pds": [ [ %[29]d, "2019-07-30 10:13:00.000000" ] ],
 					"subnet[50].pd-pool[1].assigned-pds": [ [ %[30]d, "2019-07-30 10:13:00.000000" ] ],
 					"pkt6-reply-sent": [ [ 66, "2019-07-30 10:13:00.000000" ] ]
-				}
-			}]`,
-				// Subnet 30.
-				// 1.            2.          3.       4.            5.
-				4096+totalShift, 2400+shift, 3+shift, 0+totalShift, 0+shift,
-				// Subnet 40.
-				// 6.         7.       8.       9.               10.
-				0+totalShift, 0+shift, 0+shift, 1048+totalShift, 233+shift,
-				// Subnet 50.
-				// 11.          12.       13.       14.              15.
-				256+totalShift, 60+shift, 10+shift, 1048+totalShift, 35+shift,
-				// Subnet 60.
-				// 16. 17.                 18. 19. 20.
-				-1, "9223372036854775807", 0, -2, -3,
-				// Address pool 0 and PD pool 0 in subnet 50.
-				// 21.         22.      23.      24.            25.
-				20+totalShift, 8+shift, 4+shift, 40+totalShift, 20+shift,
-				// Address pool 1 and PD pool 1 in subnet 50.
-				// 26.         27.      28.      29.            30.
-				234, 50, 0, 1008, 5,
-			),
+					}}`,
+					// Subnet 30.
+					// 1.            2.          3.       4.            5.
+					4096+totalShift, 2400+shift, 3+shift, 0+totalShift, 0+shift,
+					// Subnet 40.
+					// 6.         7.       8.       9.               10.
+					0+totalShift, 0+shift, 0+shift, 1048+totalShift, 233+shift,
+					// Subnet 50.
+					// 11.          12.       13.       14.              15.
+					256+totalShift, 60+shift, 10+shift, 1048+totalShift, 35+shift,
+					// Subnet 60.
+					// 16. 17.                 18. 19. 20.
+					-1, "9223372036854775807", 0, -2, -3,
+					// Address pool 0 and PD pool 0 in subnet 50.
+					// 21.         22.      23.      24.            25.
+					20+totalShift, 8+shift, 4+shift, 40+totalShift, 20+shift,
+					// Address pool 1 and PD pool 1 in subnet 50.
+					// 26.         27.      28.      29.            30.
+					234, 50, 0, 1008, 5,
+				),
+			}
+		default:
+			return nil
 		}
 	})
 }
@@ -470,7 +477,7 @@ func TestStatsPullerBasic(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, nil)
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 
 	// Act
@@ -489,23 +496,29 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
-	_ = createDaemonsWithSubnets(t, db, 0, "", "")
+	_ = dbmodel.InitializeSettings(db, storkutil.Ptr(int64(0)))
+	_ = createDaemonsWithSubnets(t, db, 0, `{ "Dhcp4": {} }`, `{ "Dhcp6": {} }`)
 
 	// prepare fake agents
 	keaMock := createKeaMock(t, func(callNo int) (jsons []string) {
-		return []string{
-			// simulate empty response
-			`[{
+		switch callNo {
+		case 0:
+			return []string{`{
 				"result": 0, "text": "Everything is fine",
 				"arguments": {
 					"pkt4-ack-sent": [ [ 0, "2019-07-30 10:13:00.000000" ] ]
 				}
-			}]`,
-			// simulate an error is returned from Kea
-			`[{
+			}`}
+		case 1:
+			return []string{
+				// simulate an error is returned from Kea
+				`{
 				"result": 1, "text": "error occurred"
-			}]`,
+			}`,
+			}
+		default:
+			require.FailNow(t, "unexpected call number")
+			return nil
 		}
 	})
 
@@ -532,7 +545,7 @@ func checkStatsPullerPullStats(t *testing.T, statsFormat string) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, storkutil.Ptr(int64(0)))
 	_ = dbmodel.InitializeStats(db)
 
 	// prepare apps with subnets and local subnets
@@ -724,7 +737,7 @@ func getHATestConfigWithSubnets(rootName, thisServerName, mode string, peerNames
 // configured in hot-standby mode.
 func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Service, hotStandby *dbmodel.Service) {
 	// Initialize database
-	err := dbmodel.InitializeSettings(db, 0)
+	err := dbmodel.InitializeSettings(db, nil)
 	require.NoError(t, err)
 
 	err = dbmodel.InitializeStats(db)
@@ -1173,7 +1186,7 @@ func TestProcessAppResponsesForResponseWithBigNumbers(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, storkutil.Ptr(int64(0)))
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	puller, _ := NewStatsPuller(db, fa)
 

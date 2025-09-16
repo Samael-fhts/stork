@@ -537,7 +537,7 @@ func TestMigration59DeleteUnusedMetricsInterval(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	dbmodel.InitializeSettings(db, 0)
+	dbmodel.InitializeSettings(db, nil)
 
 	// Act
 	_, _, errDown := dbops.Migrate(db, "down", "58")
@@ -577,7 +577,7 @@ func TestMigration55LocalHostInDatabaseAndConfig(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	dbmodel.InitializeSettings(db, 0)
+	dbmodel.InitializeSettings(db, nil)
 
 	// Prepare a configuration.
 	server, _ := dbmodeltest.NewKeaDHCPv4Server(db)

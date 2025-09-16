@@ -47,9 +47,9 @@ type HookDirectorySettings struct {
 type GeneralSettings struct {
 	EnvironmentFileSettings
 	HookDirectorySettings
-	Version               bool  `short:"v" long:"version" description:"Show software version"`
-	EnableMetricsEndpoint bool  `short:"m" long:"metrics" description:"Enable Prometheus /metrics endpoint (no auth)" env:"STORK_SERVER_ENABLE_METRICS"`
-	InitialPullerInterval int64 `long:"initial-puller-interval" description:"Initial interval used by pullers fetching data from Kea; if not provided the recommended values for each puller are used" env:"STORK_SERVER_INITIAL_PULLER_INTERVAL"`
+	Version               bool   `short:"v" long:"version" description:"Show software version"`
+	EnableMetricsEndpoint bool   `short:"m" long:"metrics" description:"Enable Prometheus /metrics endpoint (no auth)" env:"STORK_SERVER_ENABLE_METRICS"`
+	InitialPullerInterval *int64 `long:"initial-puller-interval" description:"Initial interval used by pullers fetching data from Kea; if not provided the recommended values for each puller are used" env:"STORK_SERVER_INITIAL_PULLER_INTERVAL"`
 }
 
 // Groups all Stork settings.

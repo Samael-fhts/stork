@@ -734,7 +734,7 @@ func TestNewHAStatusPuller(t *testing.T) {
 	defer teardown()
 
 	// The puller requires fetch interval to be present in the database.
-	err := dbmodel.InitializeSettings(db, 0)
+	err := dbmodel.InitializeSettings(db, nil)
 	require.NoError(t, err)
 
 	puller, err := NewHAStatusPuller(db, nil)
@@ -794,7 +794,7 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	}
 
 	// The puller requires fetch interval to be present in the database.
-	err = dbmodel.InitializeSettings(db, 0)
+	err = dbmodel.InitializeSettings(db, nil)
 	require.NoError(t, err)
 
 	var fa *agentcommtest.FakeAgents
@@ -1049,7 +1049,7 @@ func TestPullHAStatusHub(t *testing.T) {
 	require.Len(t, services, 2)
 
 	// The puller requires fetch interval to be present in the database.
-	err = dbmodel.InitializeSettings(db, 0)
+	err = dbmodel.InitializeSettings(db, nil)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockGetStatusWithHAHub, nil)

@@ -15,7 +15,7 @@ func TestNewPeriodicPuller(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, nil)
 	_ = dbmodel.SetSettingInt(db, "kea_hosts_puller_interval", 1)
 	agents := NewConnectedAgents(nil, nil, nil, nil, nil)
 	defer agents.Shutdown()
@@ -37,7 +37,7 @@ func TestReadIntervalFromDatabase(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, nil)
 	_ = dbmodel.SetSettingInt(db, "kea_hosts_puller_interval", 1)
 
 	puller, _ := NewPeriodicPuller(db, nil, "test puller", "kea_hosts_puller_interval",
@@ -63,7 +63,7 @@ func TestExecutePullerWhileDatabaseIsDown(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, nil)
 	_ = dbmodel.SetSettingInt(db, "kea_hosts_puller_interval", 1)
 
 	var callCount atomic.Uint64
@@ -103,7 +103,7 @@ func TestGetIntervalName(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, nil)
 	puller, _ := NewPeriodicPuller(db, nil, "test puller", "kea_hosts_puller_interval",
 		func() error { return nil })
 	defer puller.Shutdown()
@@ -120,7 +120,7 @@ func TestPullerSavesLastExecutionTime(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, nil)
 	_ = dbmodel.SetSettingInt(db, "kea_hosts_puller_interval", 1)
 
 	var pullTimeWrapper atomic.Value
@@ -154,7 +154,7 @@ func TestPullerSavesLastInvokedTime(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, nil)
 	_ = dbmodel.SetSettingInt(db, "kea_hosts_puller_interval", 1)
 
 	var pullTimeWrapper atomic.Value

@@ -65,12 +65,12 @@ func (statsPuller *StatsPuller) pullStats() error {
 		err := statsPuller.getStatsFromDaemon(&daemon)
 		if err != nil {
 			lastErr = err
-			log.Errorf("Error occurred while getting stats from daemon %d: %+v", daemon.ID, err)
+			log.WithError(err).Errorf("Error occurred while getting stats from daemon %d", daemon.ID)
 		} else {
 			daemonsOkCnt++
 		}
 	}
-	log.Printf("Completed pulling lease stats from Kea daemons: %d/%d succeeded", daemonsOkCnt, len(daemons))
+	log.Infof("Completed pulling lease stats from Kea daemons: %d/%d succeeded", daemonsOkCnt, len(daemons))
 
 	// estimate addresses utilization for subnets
 	subnets, err := dbmodel.GetSubnetsWithLocalSubnets(statsPuller.DB)
@@ -134,8 +134,8 @@ func (statsPuller *StatsPuller) pullStats() error {
 		)
 		if err != nil {
 			lastErr = err
-			log.Errorf("Cannot update utilization (%.3f, %.3f) in subnet %d: %s",
-				su.GetAddressUtilization(), su.GetDelegatedPrefixUtilization(), sn.ID, err)
+			log.WithError(err).Errorf("Cannot update utilization (%.3f, %.3f) in subnet %d",
+				su.GetAddressUtilization(), su.GetDelegatedPrefixUtilization(), sn.ID)
 			continue
 		}
 	}
@@ -147,8 +147,8 @@ func (statsPuller *StatsPuller) pullStats() error {
 		)
 		if err != nil {
 			lastErr = err
-			log.Errorf("Cannot update utilization (%.3f, %.3f) in shared network %d: %s",
-				u.GetAddressUtilization(), u.GetDelegatedPrefixUtilization(), sharedNetworkID, err)
+			log.WithError(err).Errorf("Cannot update utilization (%.3f, %.3f) in shared network %d",
+				u.GetAddressUtilization(), u.GetDelegatedPrefixUtilization(), sharedNetworkID)
 			continue
 		}
 	}
@@ -351,9 +351,9 @@ func (statsPuller *StatsPuller) storePoolStats(
 
 				err := pool.UpdateStats(statsPuller.DB, stats)
 				if err != nil {
-					log.Errorf(
-						"Problem updating Kea stats for address pool ID %d, daemon ID %d: %s",
-						statPoolID, daemon.ID, err.Error(),
+					log.WithError(err).Errorf(
+						"Problem updating Kea stats for address pool ID %d, daemon ID %d",
+						statPoolID, daemon.ID,
 					)
 					lastErr = err
 				}

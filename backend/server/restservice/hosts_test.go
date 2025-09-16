@@ -1718,7 +1718,7 @@ func TestStartHostsMigration(t *testing.T) {
 	// Arrange
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, 0)
+	_ = dbmodel.InitializeSettings(db, nil)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
