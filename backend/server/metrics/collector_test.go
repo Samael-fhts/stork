@@ -68,7 +68,7 @@ func TestCollectorConstruct(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, nil)
+	_ = dbmodel.InitializeSettings(db, 0)
 
 	// Act
 	collector, err := NewCollector(NewDatabaseMetricsSource(db))

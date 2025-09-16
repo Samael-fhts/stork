@@ -29,7 +29,7 @@ func TestSettings(t *testing.T) {
 	ctx := context.Background()
 
 	// Initialize global settings.
-	err = dbmodel.InitializeSettings(db, nil)
+	err = dbmodel.InitializeSettings(db, 0)
 	require.NoError(t, err)
 
 	// Get all settings.

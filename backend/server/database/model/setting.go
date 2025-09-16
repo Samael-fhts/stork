@@ -38,13 +38,13 @@ type Setting struct {
 // and it will be automatically added to db here in this function.
 // You can provide the interval used to initialize the database settings for
 // pullers. Specify zero to use default values.
-func InitializeSettings(db *pg.DB, initialPullerInterval *int64) error {
+func InitializeSettings(db *pg.DB, initialPullerInterval int64) error {
 	// Init puller intervals.
 	longInterval := "60"
 	mediumInterval := "30"
 
-	if initialPullerInterval != nil {
-		interval := fmt.Sprint(*initialPullerInterval)
+	if initialPullerInterval != 0 {
+		interval := fmt.Sprint(initialPullerInterval)
 		longInterval = interval
 		mediumInterval = interval
 	}

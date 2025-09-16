@@ -3317,7 +3317,7 @@ func TestGetMachineDumpOK(t *testing.T) {
 	// Database init
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, nil)
+	_ = dbmodel.InitializeSettings(db, 0)
 	m := &dbmodel.Machine{
 		Address:   "localhost",
 		AgentPort: 8080,
@@ -3352,7 +3352,7 @@ func TestGetMachineDumpReturnsTarball(t *testing.T) {
 	// Database init
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, nil)
+	_ = dbmodel.InitializeSettings(db, 0)
 	m := &dbmodel.Machine{
 		Address:   "localhost",
 		AgentPort: 8080,
@@ -3389,7 +3389,7 @@ func TestGetMachineDumpNotExists(t *testing.T) {
 	// Database init
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, nil)
+	_ = dbmodel.InitializeSettings(db, 0)
 	// REST init
 	settings := RestAPISettings{}
 	fa := agentcommtest.NewFakeAgents(nil, nil)
@@ -3421,7 +3421,7 @@ func TestGetMachineDumpReturnsExpectedFilename(t *testing.T) {
 	// Database init
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, nil)
+	_ = dbmodel.InitializeSettings(db, 0)
 	m := &dbmodel.Machine{
 		ID:        42,
 		Address:   "localhost",
@@ -3998,7 +3998,7 @@ func TestGetSoftwareVersionsOffline(t *testing.T) {
 
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	dbmodel.InitializeSettings(db, nil)
+	dbmodel.InitializeSettings(db, 0)
 
 	settings := &RestAPISettings{VersionsURL: "foobar"}
 	rapi, _ := NewRestAPI(settings, dbSettings, db)
@@ -4151,7 +4151,7 @@ func TestGetSoftwareVersionsOnline(t *testing.T) {
 
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	dbmodel.InitializeSettings(db, nil)
+	dbmodel.InitializeSettings(db, 0)
 
 	settings := &RestAPISettings{VersionsURL: ts.URL}
 	rapi, _ := NewRestAPI(settings, dbSettings, db)
@@ -4307,7 +4307,7 @@ func TestGetSoftwareVersionsOnlineDisabled(t *testing.T) {
 
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	dbmodel.InitializeSettings(db, nil)
+	dbmodel.InitializeSettings(db, 0)
 	err := dbmodel.SetSettingBool(db, "enable_online_software_versions", false)
 	require.NoError(t, err)
 
@@ -4399,7 +4399,7 @@ func TestGetSoftwareVersionsSomeValuesEmpty(t *testing.T) {
 
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	dbmodel.InitializeSettings(db, nil)
+	dbmodel.InitializeSettings(db, 0)
 	err := dbmodel.SetSettingBool(db, "enable_online_software_versions", false)
 	require.NoError(t, err)
 

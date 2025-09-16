@@ -100,7 +100,7 @@ func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
 	var bytes string
 	switch callNo {
 	case 0:
-		bytes = `[{
+		bytes = `{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -123,9 +123,9 @@ func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
                         }
                     }
               }
-         }]`
+         }`
 	case 1:
-		bytes = `[{
+		bytes = `{
              "result": 0,
              "text": "Everything is fine",
              "arguments": {
@@ -148,9 +148,9 @@ func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
                          }
                      }
                }
-          }]`
+          }`
 	case 2:
-		bytes = `[{
+		bytes = `{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -173,13 +173,14 @@ func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
                         }
                     }
               }
-         },
-         {
-             "result": 1,
-             "text": "Unable to communicate"
-         }]`
+         }`
 	case 3:
-		bytes = `[{
+		bytes = `{
+             "result": 1,
+             "text": "Unable to communicate"
+         }`
+	case 4:
+		bytes = `{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -202,11 +203,12 @@ func mockGetStatusWithHA(callNo int, cmdResponses []interface{}) {
                         }
                     }
               }
-         },
-         {
+         }`
+	case 5:
+		bytes = `{
              "result": 1,
              "text": "Unable to communicate"
-         }]`
+         }`
 	}
 	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
 	err = errors.WithStack(err)
@@ -220,7 +222,7 @@ func mockGetStatusWithHA178(callNo int, cmdResponses []interface{}) {
 	var bytes string
 	switch callNo {
 	case 0:
-		bytes = `[{
+		bytes = `{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -252,9 +254,9 @@ func mockGetStatusWithHA178(callNo int, cmdResponses []interface{}) {
                         }
                     }
                ]
-         }}]`
+         }}`
 	case 1:
-		bytes = `[{
+		bytes = `{
              "result": 0,
              "text": "Everything is fine",
              "arguments": {
@@ -286,9 +288,9 @@ func mockGetStatusWithHA178(callNo int, cmdResponses []interface{}) {
                              }
                       }
                  ]
-          }}]`
+          }}`
 	case 2:
-		bytes = `[{
+		bytes = `{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -320,12 +322,12 @@ func mockGetStatusWithHA178(callNo int, cmdResponses []interface{}) {
                            }
                     }
                ]
-         }}]`
+         }}`
 	case 3:
-		bytes = `[{
+		bytes = `{
              "result": 1,
              "text": "Unable to communicate"
-         }]`
+         }`
 	}
 	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
 	err = errors.WithStack(err)
@@ -338,7 +340,7 @@ func mockGetStatusWithHAHub(callNo int, cmdResponses []any) {
 	var bytes string
 	switch callNo {
 	case 0:
-		bytes = `[{
+		bytes = `{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -386,9 +388,9 @@ func mockGetStatusWithHAHub(callNo int, cmdResponses []any) {
                     }
                 ]
             }
-        }]`
+        }`
 	default:
-		bytes = `[{
+		bytes = `{
             "result": 0,
             "text": "Everything is fine",
             "arguments": {
@@ -436,7 +438,7 @@ func mockGetStatusWithHAHub(callNo int, cmdResponses []any) {
                     }
                 ]
             }
-        }]`
+        }`
 	}
 	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
 	err = errors.WithStack(err)
@@ -446,7 +448,7 @@ func mockGetStatusWithHAHub(callNo int, cmdResponses []any) {
 // Generate test response to status-get command including status of the
 // HA pair doing load balancing.
 func mockGetStatusLoadBalancing(callNo int, cmdResponses []interface{}) {
-	bytes := `[
+	bytes := `
         {
             "result": 0,
             "text": "Everything is fine",
@@ -471,7 +473,7 @@ func mockGetStatusLoadBalancing(callNo int, cmdResponses []interface{}) {
                     }
                 }
             }
-    ]`
+    `
 	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
 	err = errors.WithStack(err)
 	log.WithError(err).Error("unmarshal error")
@@ -480,7 +482,7 @@ func mockGetStatusLoadBalancing(callNo int, cmdResponses []interface{}) {
 // Generate test response to status-get command including status of the
 // HA pair doing load balancing. Format supported by Kea 1.7.8 onwards.
 func mockGetStatusLoadBalancing178(callNo int, cmdResponses []interface{}) {
-	bytes := `[
+	bytes := `
         {
             "result": 0,
             "text": "Everything is fine",
@@ -515,7 +517,7 @@ func mockGetStatusLoadBalancing178(callNo int, cmdResponses []interface{}) {
                 ]
             }
         }
-    ]`
+    `
 	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
 	err = errors.WithStack(err)
 	log.WithError(err).Error("unmarshal error")
@@ -524,7 +526,7 @@ func mockGetStatusLoadBalancing178(callNo int, cmdResponses []interface{}) {
 // Generates test response to status-get command lacking a status of the
 // HA pair.
 func mockGetStatusNoHA(callNo int, cmdResponses []interface{}) {
-	bytes := `[
+	bytes := `
         {
             "result": 0,
             "text": "Everything is fine",
@@ -534,7 +536,7 @@ func mockGetStatusNoHA(callNo int, cmdResponses []interface{}) {
                 "reload": 1111
             }
         }
-    ]`
+    `
 	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
 	err = errors.WithStack(err)
 	log.WithError(err).Error("unmarshal error")
@@ -543,12 +545,12 @@ func mockGetStatusNoHA(callNo int, cmdResponses []interface{}) {
 // Generates test response to status-get command indicating an error and
 // lacking arguments.
 func mockGetStatusError(callNo int, cmdResponses []interface{}) {
-	bytes := `[
+	bytes := `
         {
             "result": 1,
             "text": "unable to communicate with the daemon"
         }
-    ]`
+    `
 	err := json.Unmarshal([]byte(bytes), cmdResponses[0])
 	err = errors.WithStack(err)
 	log.WithError(err).Error("unmarshal error")
@@ -723,7 +725,7 @@ func TestGetDHCPStatusError(t *testing.T) {
 	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 
 	status, err := getDHCPStatus(context.Background(), fa, daemon)
-	require.NoError(t, err)
+	require.ErrorContains(t, err, "unable to communicate with the daemon")
 	require.Nil(t, status)
 }
 
@@ -734,7 +736,7 @@ func TestNewHAStatusPuller(t *testing.T) {
 	defer teardown()
 
 	// The puller requires fetch interval to be present in the database.
-	err := dbmodel.InitializeSettings(db, nil)
+	err := dbmodel.InitializeSettings(db, 0)
 	require.NoError(t, err)
 
 	puller, err := NewHAStatusPuller(db, nil)
@@ -789,12 +791,14 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 	daemons := []*dbmodel.Daemon{daemon4, daemon6}
 	for _, d := range daemons {
 		// Detect services from the daemon configuration
-		_, err = DetectHAServices(db, d)
+		services, err := DetectHAServices(db, d)
+		require.NoError(t, err)
+		err = dbmodel.CommitServicesIntoDB(db, services, d)
 		require.NoError(t, err)
 	}
 
 	// The puller requires fetch interval to be present in the database.
-	err = dbmodel.InitializeSettings(db, nil)
+	err = dbmodel.InitializeSettings(db, 0)
 	require.NoError(t, err)
 
 	var fa *agentcommtest.FakeAgents
@@ -1049,7 +1053,7 @@ func TestPullHAStatusHub(t *testing.T) {
 	require.Len(t, services, 2)
 
 	// The puller requires fetch interval to be present in the database.
-	err = dbmodel.InitializeSettings(db, nil)
+	err = dbmodel.InitializeSettings(db, 0)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockGetStatusWithHAHub, nil)

@@ -16,7 +16,6 @@ import (
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
-	storkutil "isc.org/stork/util"
 )
 
 // Prepares the Kea mock. It accepts list of serialized JSON responses in order:
@@ -477,7 +476,7 @@ func TestStatsPullerBasic(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, nil)
+	_ = dbmodel.InitializeSettings(db, 0)
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 
 	// Act
@@ -496,7 +495,7 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, storkutil.Ptr(int64(0)))
+	_ = dbmodel.InitializeSettings(db, 0)
 	_ = createDaemonsWithSubnets(t, db, 0, `{ "Dhcp4": {} }`, `{ "Dhcp6": {} }`)
 
 	// prepare fake agents
@@ -545,7 +544,7 @@ func checkStatsPullerPullStats(t *testing.T, statsFormat string) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
-	_ = dbmodel.InitializeSettings(db, storkutil.Ptr(int64(0)))
+	_ = dbmodel.InitializeSettings(db, 0)
 	_ = dbmodel.InitializeStats(db)
 
 	// prepare apps with subnets and local subnets
@@ -737,7 +736,7 @@ func getHATestConfigWithSubnets(rootName, thisServerName, mode string, peerNames
 // configured in hot-standby mode.
 func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Service, hotStandby *dbmodel.Service) {
 	// Initialize database
-	err := dbmodel.InitializeSettings(db, nil)
+	err := dbmodel.InitializeSettings(db, 0)
 	require.NoError(t, err)
 
 	err = dbmodel.InitializeStats(db)
@@ -1186,7 +1185,7 @@ func TestProcessAppResponsesForResponseWithBigNumbers(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	_ = dbmodel.InitializeSettings(db, storkutil.Ptr(int64(0)))
+	_ = dbmodel.InitializeSettings(db, 0)
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	puller, _ := NewStatsPuller(db, fa)
 
