@@ -49,7 +49,8 @@ func TestMigrate(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	_ = dbops.Toss(db)
+	err := dbops.Toss(db)
+	require.NoError(t, err)
 
 	// Create versioning table in the database.
 	testMigrateAction(t, db, 0, 0, "init")
@@ -70,7 +71,8 @@ func TestInitMigrate(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	_ = dbops.Toss(db)
+	err := dbops.Toss(db)
+	require.NoError(t, err)
 
 	// Migrate from version 0 to version 1.
 	testMigrateAction(t, db, 0, 1, "up", "1")
@@ -82,7 +84,8 @@ func TestInitMigrateToLatest(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	_ = dbops.Toss(db)
+	err := dbops.Toss(db)
+	require.NoError(t, err)
 
 	o, n, err := dbops.MigrateToLatest(db)
 	require.NoError(t, err)
@@ -95,9 +98,10 @@ func TestAvailableVersion(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	_ = dbops.Toss(db)
+	err := dbops.Toss(db)
+	require.NoError(t, err)
 
-	_, _, err := dbops.Migrate(db, "init")
+	_, _, err = dbops.Migrate(db, "init")
 	require.NoError(t, err)
 	_, _, err = dbops.Migrate(db, "up")
 	require.NoError(t, err)
@@ -111,7 +115,8 @@ func TestCurrentVersion(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	_ = dbops.Toss(db)
+	err := dbops.Toss(db)
+	require.NoError(t, err)
 
 	// Initialize migrations.
 	testMigrateAction(t, db, 0, 0, "init")
