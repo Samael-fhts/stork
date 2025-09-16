@@ -49,21 +49,21 @@ func TestRpsWorkerPullRps(t *testing.T) {
 	defer teardown()
 
 	makeJSON4 := func(callNo int) string {
-		return (fmt.Sprintf(`[{
+		return (fmt.Sprintf(`{
                             "result": 0,
                             "text": "Everything is fine",
                             "arguments": {
                                 "pkt4-ack-sent": [ [ %d, "2019-07-30 10:13:00.000000" ] ]
-                            }}]`, (callNo * 5)))
+                            }}`, (callNo * 5)))
 	}
 
 	makeJSON6 := func(callNo int) string {
-		return (fmt.Sprintf(`[{
+		return (fmt.Sprintf(`{
                            "result": 0,
                            "text": "Everything is fine",
                            "arguments": {
                                 "pkt6-reply-sent": [ [ %d, "2019-07-30 10:13:00.000000" ] ]
-                           }}]`, (callNo * 7)))
+                           }}`, (callNo * 7)))
 	}
 
 	// Create a machine with one app and two kea daemons
@@ -176,12 +176,12 @@ func TestRpsWorkerValuePermutations(t *testing.T) {
 	expectedResponses := []int64{100, 35, 0, 15, 0, 10, 0, 17}
 
 	makeJSON4 := func(value int64) string {
-		resp := fmt.Sprintf(`[{
+		resp := fmt.Sprintf(`{
                             "result": 0,
                             "text": "Everything is fine",
                             "arguments": {
                                 "pkt4-ack-sent": [ [ %d, "2019-07-30 10:13:00.000000" ] ]
-                            }}]`, value)
+                            }}`, value)
 		return (resp)
 	}
 
@@ -243,24 +243,13 @@ func rpsTestAddMachine(t *testing.T, db *dbops.PgDB, dhcp4Active bool, dhcp6Acti
 		Port:     1234,
 		Protocol: "https",
 	}}
-	daemonV4 := &dbmodel.Daemon{
-		ID:           0,
-		MachineID:    m.ID,
-		Name:         daemonname.DHCPv4,
-		Active:       dhcp4Active,
-		AccessPoints: accessPoints,
-	}
 
-	daemonV6 := &dbmodel.Daemon{
-		Active: dhcp6Active,
-		Name:   daemonname.DHCPv6,
-		KeaDaemon: &dbmodel.KeaDaemon{
-			KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
-		},
-	}
+	daemonV4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, dhcp4Active, accessPoints)
 	err = dbmodel.AddDaemon(db, daemonV4)
 	require.NoError(t, err)
 	require.NotEqual(t, 0, daemonV4.ID)
+
+	daemonV6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, dhcp6Active, accessPoints)
 	err = dbmodel.AddDaemon(db, daemonV6)
 	require.NoError(t, err)
 	require.NotEqual(t, 0, daemonV6.ID)
