@@ -7,9 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/daemonname"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
-	apps "isc.org/stork/server/apps"
-	appstest "isc.org/stork/server/apps/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configreview"
 	"isc.org/stork/server/daemons/kea"
@@ -49,57 +48,57 @@ func TestGetDaemonConfigForKeaDaemonWithAssignedConfiguration(t *testing.T) {
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// add app kea to machine
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, true)
-	app := &dbmodel.App{
-		ID:           0,
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		Name:         "test-app",
-		Active:       true,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp4", true),
-			dbmodel.NewKeaDaemon("dhcp6", true),
+	// add daemon to machine
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     1234,
+			Key:      "",
+			Protocol: "https",
 		},
 	}
+
+	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
+	daemon6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, accessPoints)
+
 	// Daemon has assigned configuration
-	configDhcp4, err := dbmodel.NewKeaConfigFromJSON(`{
+	configDHCP4 := []byte(`{
 		"Dhcp4": { }
     }`)
+
+	err = daemon4.SetConfigFromJSON(configDHCP4)
 	require.NoError(t, err)
 
-	app.Daemons[0].KeaDaemon.Config = configDhcp4
-
-	configDhcp6, err := dbmodel.NewKeaConfigFromJSON(`{
+	configDHCP6 := []byte(`{
 		"Dhcp6": { }
     }`)
+
+	err = daemon6.SetConfigFromJSON([]byte(configDHCP6))
 	require.NoError(t, err)
 
-	app.Daemons[1].KeaDaemon.Config = configDhcp6
-
-	_, err = dbmodel.AddApp(db, app)
+	err = dbmodel.AddDaemon(db, daemon4)
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)
 
 	// Check Dhcp4 daemon
 	params := services.GetDaemonConfigParams{
-		ID: app.Daemons[0].ID,
+		ID: daemon4.ID,
 	}
 
 	rsp := rapi.GetDaemonConfig(ctx, params)
 	require.IsType(t, &services.GetDaemonConfigOK{}, rsp)
 	okRsp := rsp.(*services.GetDaemonConfigOK)
 	require.NotEmpty(t, okRsp.Payload)
-	require.Equal(t, configDhcp4, okRsp.Payload.Config)
+	require.Equal(t, configDHCP4, okRsp.Payload.Config)
 	require.NotZero(t, okRsp.Payload.AppID)
-	require.Equal(t, "test-app", okRsp.Payload.AppName)
 	require.Equal(t, "dhcp4", okRsp.Payload.DaemonName)
 	require.Equal(t, "kea", okRsp.Payload.AppType)
 	require.True(t, okRsp.Payload.Editable)
 
 	params = services.GetDaemonConfigParams{
-		ID: app.Daemons[1].ID,
+		ID: daemon6.ID,
 	}
 
 	// Check Dhcp6 daemon
@@ -107,9 +106,8 @@ func TestGetDaemonConfigForKeaDaemonWithAssignedConfiguration(t *testing.T) {
 	require.IsType(t, &services.GetDaemonConfigOK{}, rsp)
 	okRsp = rsp.(*services.GetDaemonConfigOK)
 	require.NotEmpty(t, okRsp.Payload)
-	require.Equal(t, configDhcp6, okRsp.Payload.Config)
+	require.Equal(t, configDHCP6, okRsp.Payload.Config)
 	require.NotZero(t, okRsp.Payload.AppID)
-	require.Equal(t, "test-app", okRsp.Payload.AppName)
 	require.Equal(t, "dhcp6", okRsp.Payload.DaemonName)
 	require.Equal(t, "kea", okRsp.Payload.AppType)
 	require.True(t, okRsp.Payload.Editable)
@@ -143,22 +141,19 @@ func TestGetDaemonConfigWithSecretsForSuperAdmin(t *testing.T) {
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// add app kea to machine
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, false)
-	app := &dbmodel.App{
-		ID:           0,
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		Name:         "test-app",
-		Active:       true,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp4", true),
-		},
+	// add daemon to machine
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
+
+	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+
 	// Daemon has assigned configuration
-	configDhcp4, err := dbmodel.NewKeaConfigFromJSON(`{
+	configDhcp4 := []byte(`{
 		"Dhcp4": {
 			"primitive": {
 				"password": "PASSWORD",
@@ -178,16 +173,16 @@ func TestGetDaemonConfigWithSecretsForSuperAdmin(t *testing.T) {
 			}
 		}
     }`)
+
+	err = daemon4.SetConfigFromJSON(configDhcp4)
 	require.NoError(t, err)
 
-	app.Daemons[0].KeaDaemon.Config = configDhcp4
-
-	_, err = dbmodel.AddApp(db, app)
+	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
 
 	// Check Dhcp4 daemon
 	params := services.GetDaemonConfigParams{
-		ID: app.Daemons[0].ID,
+		ID: daemon4.ID,
 	}
 
 	rsp := rapi.GetDaemonConfig(ctx, params)
@@ -238,22 +233,19 @@ func TestGetDaemonConfigWithoutSecretsForAdmin(t *testing.T) {
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// add app kea to machine
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, true)
-	app := &dbmodel.App{
-		ID:           0,
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		Name:         "test-app",
-		Active:       true,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp4", true),
-		},
+	// add daemon to machine
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "https",
 	}
+
+	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+
 	// Daemon has assigned configuration with secrets
-	configDhcp4, err := dbmodel.NewKeaConfigFromJSON(`{
+	configDhcp4 := []byte(`{
 		"Dhcp4": {
 			"primitive": {
 				"password": "PASSWORD",
@@ -273,16 +265,16 @@ func TestGetDaemonConfigWithoutSecretsForAdmin(t *testing.T) {
 			}
 		}
     }`)
+
+	err = daemon4.SetConfigFromJSON(configDhcp4)
 	require.NoError(t, err)
 
-	app.Daemons[0].KeaDaemon.Config = configDhcp4
-
-	_, err = dbmodel.AddApp(db, app)
+	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
 
 	// Check Dhcp4 daemon
 	params := services.GetDaemonConfigParams{
-		ID: app.Daemons[0].ID,
+		ID: daemon4.ID,
 	}
 
 	rsp := rapi.GetDaemonConfig(ctx, params)
@@ -291,7 +283,7 @@ func TestGetDaemonConfigWithoutSecretsForAdmin(t *testing.T) {
 	require.NotEmpty(t, okRsp.Payload)
 
 	// Expected daemon config (without secrets)
-	expected, err := dbmodel.NewKeaConfigFromJSON(`{
+	expected := []byte(`{
 		"Dhcp4": {
 			"primitive": {
 				"password": null,
@@ -340,44 +332,46 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// add app kea to machine
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, true)
-	app := &dbmodel.App{
-		ID:           0,
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		Name:         "test-app",
-		Active:       true,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp4", true),
-			dbmodel.NewKeaDaemon("dhcp6", true),
-		},
+	// add daemons to machine
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "https",
 	}
+
+	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+	daemon6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{accessPoint})
+
 	// Daemon has assigned configuration
-	configDhcp4, err := dbmodel.NewKeaConfigFromJSON(`{
+	configDhcp4 := []byte(`{
 		"Dhcp4": { }
     }`)
+
+	err = daemon4.SetConfigFromJSON(configDhcp4)
 	require.NoError(t, err)
 
-	app.Daemons[0].KeaDaemon.Config = configDhcp4
-	app.Daemons[0].Active = false
+	daemon4.Active = false
 
-	configDhcp6, err := dbmodel.NewKeaConfigFromJSON(`{
+	configDhcp6 := []byte(`{
 		"Dhcp6": { }
     }`)
+
+	err = daemon6.SetConfigFromJSON(configDhcp6)
 	require.NoError(t, err)
 
-	app.Daemons[1].KeaDaemon.Config = configDhcp6
-	app.Daemons[1].Monitored = false
+	daemon6.Monitored = false
 
-	_, err = dbmodel.AddApp(db, app)
+	err = dbmodel.AddDaemon(db, daemon4)
+	require.NoError(t, err)
+
+	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)
 
 	// Check Dhcp4 daemon
 	params := services.GetDaemonConfigParams{
-		ID: app.Daemons[0].ID,
+		ID: daemon4.ID,
 	}
 
 	rsp := rapi.GetDaemonConfig(ctx, params)
@@ -392,7 +386,7 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 	require.False(t, okRsp.Payload.Editable)
 
 	params = services.GetDaemonConfigParams{
-		ID: app.Daemons[1].ID,
+		ID: daemon6.ID,
 	}
 
 	// Check Dhcp6 daemon
@@ -402,7 +396,6 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 	require.NotEmpty(t, okRsp.Payload)
 	require.Equal(t, configDhcp6, okRsp.Payload.Config)
 	require.NotZero(t, okRsp.Payload.AppID)
-	require.Equal(t, "test-app", okRsp.Payload.AppName)
 	require.Equal(t, "dhcp6", okRsp.Payload.DaemonName)
 	require.Equal(t, "kea", okRsp.Payload.AppType)
 	require.False(t, okRsp.Payload.Editable)
@@ -435,27 +428,26 @@ func TestGetDaemonConfigForKeaDaemonWithoutAssignedConfiguration(t *testing.T) {
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// add app kea to machine
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, false)
-	app := &dbmodel.App{
-		ID:           0,
-		MachineID:    m.ID,
-		Type:         dbmodel.AppTypeKea,
-		Name:         "test-app",
-		Active:       true,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp4", true),
-			dbmodel.NewKeaDaemon("dhcp6", true),
-		},
+	// add daemons to machine
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
 
-	_, err = dbmodel.AddApp(db, app)
+	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+	daemon6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{accessPoint})
+
+	err = dbmodel.AddDaemon(db, daemon4)
+	require.NoError(t, err)
+
+	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)
 
 	params := services.GetDaemonConfigParams{
-		ID: app.Daemons[0].ID,
+		ID: daemon4.ID,
 	}
 
 	rsp := rapi.GetDaemonConfig(ctx, params)
@@ -492,26 +484,22 @@ func TestGetDaemonConfigForBind9Daemon(t *testing.T) {
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// add BIND 9 app
-	var bind9Points []*dbmodel.AccessPoint
-	bind9Points = dbmodel.AppendAccessPoint(bind9Points, dbmodel.AccessPointControl, "1.2.3.4", "abcd", 124, true)
-	app := &dbmodel.App{
-		MachineID:    m.ID,
-		Machine:      m,
-		Type:         dbmodel.AppTypeBind9,
-		AccessPoints: bind9Points,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Bind9Daemon: &dbmodel.Bind9Daemon{},
-			},
-		},
+	// add BIND9 daemon
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "1.2.3.4",
+		Port:     124,
+		Key:      "abcd",
+		Protocol: "https",
 	}
 
-	_, err = dbmodel.AddApp(db, app)
+	daemon := dbmodel.NewDaemon(m, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})
+
+	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
 
 	params := services.GetDaemonConfigParams{
-		ID: app.Daemons[0].ID,
+		ID: daemon.ID,
 	}
 
 	rsp := rapi.GetDaemonConfig(ctx, params)
@@ -548,18 +536,8 @@ func TestGetDaemonConfigForNonExistsDaemon(t *testing.T) {
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// add an app
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, false)
-	app := &dbmodel.App{
-		MachineID:    m.ID,
-		Machine:      m,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: keaPoints,
-	}
-
-	_, err = dbmodel.AddApp(db, app)
-	require.NoError(t, err)
+	// This test is checking for non-existent daemon ID (42)
+	// No daemons need to be created
 
 	params := services.GetDaemonConfigParams{
 		ID: 42,
@@ -598,18 +576,8 @@ func TestGetDaemonConfigForDatabaseError(t *testing.T) {
 	err = dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// add an app
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, true)
-	app := &dbmodel.App{
-		MachineID:    m.ID,
-		Machine:      m,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: keaPoints,
-	}
-
-	_, err = dbmodel.AddApp(db, app)
-	require.NoError(t, err)
+	// This test checks database error handling
+	// No daemons need to be created since we disconnect DB before the test
 
 	params := services.GetDaemonConfigParams{
 		ID: 42,
@@ -659,12 +627,12 @@ func TestGetDaemonConfigWithDHCPOptions(t *testing.T) {
 	require.NoError(t, err)
 	err = server.Configure(serverConfig)
 	require.NoError(t, err)
-	kea, _ := server.GetKea()
-	require.NotNil(t, kea)
-	require.NotEmpty(t, kea.Daemons)
+	daemon, err := server.GetDaemon()
+	require.NoError(t, err)
+	require.NotNil(t, daemon)
 
 	params := services.GetDaemonConfigParams{
-		ID: kea.Daemons[0].ID,
+		ID: daemon.ID,
 	}
 
 	// Act
@@ -699,21 +667,22 @@ func TestGetDaemonConfigReports(t *testing.T) {
 	err := dbmodel.AddMachine(db, m)
 	require.NoError(t, err)
 
-	// Add an app.
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, false)
-	app := &dbmodel.App{
-		MachineID:    m.ID,
-		Machine:      m,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp4", true),
-			dbmodel.NewKeaDaemon("dhcp6", true),
-		},
+	// Add daemons to machine
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
+	
+	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+	daemon6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{accessPoint})
 
-	_, err = dbmodel.AddApp(db, app)
+	err = dbmodel.AddDaemon(db, daemon4)
+	require.NoError(t, err)
+
+	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(nil, nil)
@@ -731,40 +700,40 @@ func TestGetDaemonConfigReports(t *testing.T) {
 		{
 			CheckerName: "name 1",
 			Content:     &content1,
-			DaemonID:    app.Daemons[0].ID,
+			DaemonID:    daemon4.ID,
 			RefDaemons: []*dbmodel.Daemon{
 				{
-					ID: app.Daemons[0].ID,
+					ID: daemon4.ID,
 				},
 				{
-					ID: app.Daemons[1].ID,
+					ID: daemon6.ID,
 				},
 			},
 		},
 		{
 			CheckerName: "name 2",
 			Content:     &content2,
-			DaemonID:    app.Daemons[0].ID,
+			DaemonID:    daemon4.ID,
 			RefDaemons: []*dbmodel.Daemon{
 				{
-					ID: app.Daemons[1].ID,
+					ID: daemon6.ID,
 				},
 			},
 		},
 		{
 			CheckerName: "name 3",
 			Content:     &content3,
-			DaemonID:    app.Daemons[1].ID,
+			DaemonID:    daemon6.ID,
 			RefDaemons: []*dbmodel.Daemon{
 				{
-					ID: app.Daemons[1].ID,
+					ID: daemon6.ID,
 				},
 			},
 		},
 		{
 			CheckerName: "empty 4",
 			Content:     nil,
-			DaemonID:    app.Daemons[1].ID,
+			DaemonID:    daemon6.ID,
 			RefDaemons:  []*dbmodel.Daemon{},
 		},
 	}
@@ -778,12 +747,12 @@ func TestGetDaemonConfigReports(t *testing.T) {
 	// Add related config review entries.
 	configReviews := []dbmodel.ConfigReview{
 		{
-			DaemonID:   app.Daemons[0].ID,
+			DaemonID:   daemon4.ID,
 			ConfigHash: "1234",
 			Signature:  "2345",
 		},
 		{
-			DaemonID:   app.Daemons[1].ID,
+			DaemonID:   daemon6.ID,
 			ConfigHash: "2345",
 			Signature:  "3456",
 		},
@@ -795,7 +764,7 @@ func TestGetDaemonConfigReports(t *testing.T) {
 
 	// Try to fetch config reports for the first daemon.
 	params := services.GetDaemonConfigReportsParams{
-		ID: app.Daemons[0].ID,
+		ID: daemon4.ID,
 	}
 
 	rsp := rapi.GetDaemonConfigReports(ctx, params)
@@ -851,7 +820,7 @@ func TestGetDaemonConfigReports(t *testing.T) {
 
 	// Try to fetch the config reports for the second daemon.
 	params = services.GetDaemonConfigReportsParams{
-		ID: app.Daemons[1].ID,
+		ID: daemon6.ID,
 	}
 	rsp = rapi.GetDaemonConfigReports(ctx, params)
 	require.IsType(t, &services.GetDaemonConfigReportsOK{}, rsp)
@@ -930,29 +899,27 @@ func TestPutDaemonConfigReview(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	// Create DHCPv4 config.
-	configDhcp4, err := dbmodel.NewKeaConfigFromJSON(`{
+	// Create DHCPv4 daemon with config.
+	configDhcp4 := []byte(`{
 		"Dhcp4": { }
     }`)
-	require.NoError(t, err)
 
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, false)
-	app := &dbmodel.App{
-		MachineID:    machine.ID,
-		Machine:      machine,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp4", true),
-		},
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
-	app.Daemons[0].KeaDaemon.Config = configDhcp4
+	
+	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 
-	daemons, err := dbmodel.AddApp(db, app)
+	err = daemon4.SetConfigFromJSON(configDhcp4)
 	require.NoError(t, err)
-	require.Len(t, daemons, 1)
-	require.NotZero(t, daemons[0].ID)
+
+	err = dbmodel.AddDaemon(db, daemon4)
+	require.NoError(t, err)
+	require.NotZero(t, daemon4.ID)
 
 	fa := agentcommtest.NewFakeAgents(nil, nil)
 	fd := &storktest.FakeDispatcher{}
@@ -962,7 +929,7 @@ func TestPutDaemonConfigReview(t *testing.T) {
 
 	// Use a valid daemon ID to create new config review.
 	params := services.PutDaemonConfigReviewParams{
-		ID: daemons[0].ID,
+		ID: daemon4.ID,
 	}
 	rsp := rapi.PutDaemonConfigReview(ctx, params)
 	require.IsType(t, &services.PutDaemonConfigReviewAccepted{}, rsp)
@@ -1021,21 +988,18 @@ func TestPutDaemonConfigReviewNotKeaDaemon(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	// Create BIND9 app instance.
-	var bind9Points []*dbmodel.AccessPoint
-	bind9Points = dbmodel.AppendAccessPoint(bind9Points, dbmodel.AccessPointControl, "1.2.3.4", "abcd", 124, true)
-	app := &dbmodel.App{
-		MachineID:    machine.ID,
-		Machine:      machine,
-		Type:         dbmodel.AppTypeBind9,
-		AccessPoints: bind9Points,
-		Daemons: []*dbmodel.Daemon{
-			{
-				Bind9Daemon: &dbmodel.Bind9Daemon{},
-			},
-		},
+	// Create BIND9 daemon instance.
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "1.2.3.4",
+		Port:     124,
+		Key:      "abcd",
+		Protocol: "https",
 	}
-	daemons, err := dbmodel.AddApp(db, app)
+	
+	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})
+
+	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(nil, nil)
@@ -1045,14 +1009,14 @@ func TestPutDaemonConfigReviewNotKeaDaemon(t *testing.T) {
 	ctx := context.Background()
 
 	params := services.PutDaemonConfigReviewParams{
-		ID: daemons[0].ID,
+		ID: daemon.ID,
 	}
 	rsp := rapi.PutDaemonConfigReview(ctx, params)
 	require.IsType(t, &services.PutDaemonConfigReviewDefault{}, rsp)
 	defaultRsp := rsp.(*services.PutDaemonConfigReviewDefault)
 	require.NotNil(t, defaultRsp)
 	require.Equal(t, http.StatusBadRequest, getStatusCode(*defaultRsp))
-	require.Equal(t, fmt.Sprintf("Daemon with ID %d is not a Kea daemon", daemons[0].ID),
+	require.Equal(t, fmt.Sprintf("Daemon with ID %d is not a Kea daemon", daemon.ID),
 		*defaultRsp.Payload.Message)
 }
 
@@ -1070,20 +1034,18 @@ func TestPutDaemonConfigReviewNoConfig(t *testing.T) {
 	err := dbmodel.AddMachine(db, machine)
 	require.NoError(t, err)
 
-	// Create Kea app instance with a DHCPv4 daemon with no configuration
-	// assigned.
-	var keaPoints []*dbmodel.AccessPoint
-	keaPoints = dbmodel.AppendAccessPoint(keaPoints, dbmodel.AccessPointControl, "localhost", "", 1234, false)
-	app := &dbmodel.App{
-		MachineID:    machine.ID,
-		Machine:      machine,
-		Type:         dbmodel.AppTypeKea,
-		AccessPoints: keaPoints,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon("dhcp4", true),
-		},
+	// Create Kea daemon instance with no configuration assigned.
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
-	daemons, err := dbmodel.AddApp(db, app)
+	
+	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+
+	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(nil, nil)
@@ -1093,14 +1055,14 @@ func TestPutDaemonConfigReviewNoConfig(t *testing.T) {
 	ctx := context.Background()
 
 	params := services.PutDaemonConfigReviewParams{
-		ID: daemons[0].ID,
+		ID: daemon4.ID,
 	}
 	rsp := rapi.PutDaemonConfigReview(ctx, params)
 	require.IsType(t, &services.PutDaemonConfigReviewDefault{}, rsp)
 	defaultRsp := rsp.(*services.PutDaemonConfigReviewDefault)
 	require.NotNil(t, defaultRsp)
 	require.Equal(t, http.StatusBadRequest, getStatusCode(*defaultRsp))
-	require.Equal(t, fmt.Sprintf("Configuration not found for daemon with ID %d", daemons[0].ID),
+	require.Equal(t, fmt.Sprintf("Configuration not found for daemon with ID %d", daemon4.ID),
 		*defaultRsp.Payload.Message)
 }
 
@@ -1183,15 +1145,17 @@ func TestGetDaemonConfigCheckers(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, m)
-	app := &dbmodel.App{
-		Type: dbmodel.AppTypeKea,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon(dbmodel.DaemonNameDHCPv4, true),
-		},
-		MachineID: m.ID,
+	
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
-	daemons, _ := dbmodel.AddApp(db, app)
-	daemon := daemons[0]
+	
+	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+	_ = dbmodel.AddDaemon(db, daemon)
 
 	fd := &storktest.FakeDispatcher{}
 	fd.SetCheckerState(daemon, "foo", configreview.CheckerStateDisabled)
@@ -1345,15 +1309,17 @@ func TestPutDaemonConfigCheckerPreferencesAPIResponse(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, m)
-	app := &dbmodel.App{
-		Type: dbmodel.AppTypeKea,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon(dbmodel.DaemonNameDHCPv4, true),
-		},
-		MachineID: m.ID,
+	
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
-	daemons, _ := dbmodel.AddApp(db, app)
-	daemon := daemons[0]
+	
+	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+	_ = dbmodel.AddDaemon(db, daemon)
 
 	fd := &storktest.FakeDispatcher{}
 	rapi, _ := NewRestAPI(dbSettings, db, fd)
@@ -1393,15 +1359,17 @@ func TestPutNewDaemonConfigCheckers(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, m)
-	app := &dbmodel.App{
-		Type: dbmodel.AppTypeKea,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon(dbmodel.DaemonNameDHCPv4, true),
-		},
-		MachineID: m.ID,
+	
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
-	daemons, _ := dbmodel.AddApp(db, app)
-	daemon := daemons[0]
+	
+	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+	_ = dbmodel.AddDaemon(db, daemon)
 
 	fd := &storktest.FakeDispatcher{}
 	rapi, _ := NewRestAPI(dbSettings, db, fd)
@@ -1441,15 +1409,17 @@ func TestPutDaemonConfigCheckerPreferencesUpdate(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, m)
-	app := &dbmodel.App{
-		Type: dbmodel.AppTypeKea,
-		Daemons: []*dbmodel.Daemon{
-			dbmodel.NewKeaDaemon(dbmodel.DaemonNameDHCPv4, true),
-		},
-		MachineID: m.ID,
+	
+	accessPoint := &dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "localhost",
+		Port:     1234,
+		Key:      "",
+		Protocol: "http",
 	}
-	daemons, _ := dbmodel.AddApp(db, app)
-	daemon := daemons[0]
+	
+	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
+	_ = dbmodel.AddDaemon(db, daemon)
 
 	fd := &storktest.FakeDispatcher{}
 	rapi, _ := NewRestAPI(dbSettings, db, fd)
@@ -1702,10 +1672,10 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 	require.NotNil(t, contents.Configs)
 	require.Len(t, contents.Configs, 2)
 	require.EqualValues(t, daemons[0].GetID(), contents.Configs[0].DaemonID)
-	require.Equal(t, dbmodel.DaemonNameDHCPv4, contents.Configs[0].DaemonName)
+	require.Equal(t, daemonname.DHCPv4, contents.Configs[0].DaemonName)
 	require.Equal(t, "3.0.0", contents.Configs[0].DaemonVersion)
 	require.EqualValues(t, daemons[1].GetID(), contents.Configs[1].DaemonID)
-	require.Equal(t, dbmodel.DaemonNameDHCPv4, contents.Configs[1].DaemonName)
+	require.Equal(t, daemonname.DHCPv4, contents.Configs[1].DaemonName)
 	require.Equal(t, "3.0.0", contents.Configs[1].DaemonVersion)
 
 	// Submit transaction.
@@ -1780,12 +1750,12 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 			Configs: []*models.KeaDaemonConfigurableGlobalParameters{
 				{
 					DaemonID:      daemons[0].GetID(),
-					DaemonName:    dbmodel.DaemonNameDHCPv4,
+					DaemonName:    string(daemonname.DHCPv4),
 					PartialConfig: partialConfig,
 				},
 				{
 					DaemonID:      daemons[1].GetID(),
-					DaemonName:    dbmodel.DaemonNameDHCPv4,
+					DaemonName:    string(daemonname.DHCPv4),
 					PartialConfig: partialConfig,
 				},
 			},
@@ -1802,69 +1772,71 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 	for i, c := range fa.RecordedCommands {
 		switch {
 		case i < 2:
-			require.JSONEq(t,
-				`{
-					"command": "config-set",
-					"service": [ "dhcp4" ],
-					"arguments": {
-						"Dhcp4": {
-							"allocator": "flq",
-							"authoritative": true,
-							"early-global-reservations-lookup": false,
-							"echo-client-id": true,
-							"host-reservation-identifiers": [ "hw-address", "client-id" ],
-							"cache-threshold": 0.2,
-							"ddns-generated-prefix": "myhost.example.org",
-							"ddns-override-client-update": true,
-							"ddns-override-no-update": false,
-							"ddns-qualifying-suffix": "example.org",
-							"ddns-replace-client-name": "never",
-							"ddns-send-updates": false,
-							"ddns-update-on-renew": true,
-							"ddns-use-conflict-resolution": true,
-							"ddns-conflict-resolution-mode": "check-with-dhcid",
-							"dhcp-ddns": {
-								"enable-updates": true,
-								"max-queue-size": 100,
-								"ncr-format": "JSON",
-								"ncr-protocol": "UDP",
-								"sender-ip": "192.0.2.1",
-								"sender-port": 8080,
-								"server-ip": "192.0.2.2",
-								"server-port": 8081
-							},
-							"expired-leases-processing": {
-								"flush-reclaimed-timer-wait-time": 12,
-								"hold-reclaimed-time": 13,
-								"max-reclaim-leases": 14,
-								"max-reclaim-time": 15,
-								"reclaim-timer-wait-time": 16,
-								"unwarned-reclaim-cycles": 17
-							},
-							"option-data": [
-								{
-									"code": 42,
-									"always-send": true,
-									"csv-format": true,
-									"data": "4242",
-									"space": "dhcp4"
-								}
-							],
-							"reservations-global": true,
-							"reservations-in-subnet": false,
-							"reservations-out-of-pool": true,
-							"valid-lifetime": 1111
-						}
+			expected := `{
+				"command": "config-set",
+				"service": [ "dhcp4" ],
+				"arguments": {
+					"Dhcp4": {
+						"allocator": "flq",
+						"authoritative": true,
+						"early-global-reservations-lookup": false,
+						"echo-client-id": true,
+						"host-reservation-identifiers": [ "hw-address", "client-id" ],
+						"cache-threshold": 0.2,
+						"ddns-generated-prefix": "myhost.example.org",
+						"ddns-override-client-update": true,
+						"ddns-override-no-update": false,
+						"ddns-qualifying-suffix": "example.org",
+						"ddns-replace-client-name": "never",
+						"ddns-send-updates": false,
+						"ddns-update-on-renew": true,
+						"ddns-use-conflict-resolution": true,
+						"ddns-conflict-resolution-mode": "check-with-dhcid",
+						"dhcp-ddns": {
+							"enable-updates": true,
+							"max-queue-size": 100,
+							"ncr-format": "JSON",
+							"ncr-protocol": "UDP",
+							"sender-ip": "192.0.2.1",
+							"sender-port": 8080,
+							"server-ip": "192.0.2.2",
+							"server-port": 8081
+						},
+						"expired-leases-processing": {
+							"flush-reclaimed-timer-wait-time": 12,
+							"hold-reclaimed-time": 13,
+							"max-reclaim-leases": 14,
+							"max-reclaim-time": 15,
+							"reclaim-timer-wait-time": 16,
+							"unwarned-reclaim-cycles": 17
+						},
+						"option-data": [
+							{
+								"code": 42,
+								"always-send": true,
+								"csv-format": true,
+								"data": "4242",
+								"space": "dhcp4"
+							}
+						],
+						"reservations-global": true,
+						"reservations-in-subnet": false,
+						"reservations-out-of-pool": true,
+						"valid-lifetime": 1111
 					}
-				}`,
-				c.Marshal())
+				}
+			}`
+			marshaled, err := c.Marshal()
+			require.NoError(t, err)
+			require.JSONEq(t, expected, string(marshaled))
 		default:
-			require.JSONEq(t,
-				`{
-					"command": "config-write",
-					"service": [ "dhcp4" ]
-				}`,
-				c.Marshal())
+			expected := `{
+				"command": "config-write",
+				"service": [ "dhcp4" ]
+			}`
+			marshaled, err := c.Marshal()
+			require.NoError(t, err)
+			require.JSONEq(t, expected, string(marshaled))
 		}
 	}
 
@@ -1987,10 +1959,10 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 	require.NotNil(t, contents.Configs)
 	require.Len(t, contents.Configs, 2)
 	require.EqualValues(t, daemons[0].GetID(), contents.Configs[0].DaemonID)
-	require.Equal(t, dbmodel.DaemonNameDHCPv6, contents.Configs[0].DaemonName)
+	require.Equal(t, daemonname.DHCPv6, contents.Configs[0].DaemonName)
 	require.Equal(t, "3.0.0", contents.Configs[0].DaemonVersion)
 	require.EqualValues(t, daemons[1].GetID(), contents.Configs[1].DaemonID)
-	require.Equal(t, dbmodel.DaemonNameDHCPv6, contents.Configs[1].DaemonName)
+	require.Equal(t, daemonname.DHCPv6, contents.Configs[1].DaemonName)
 	require.Equal(t, "3.0.0", contents.Configs[0].DaemonVersion)
 
 	// Submit transaction.
@@ -2064,12 +2036,12 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 			Configs: []*models.KeaDaemonConfigurableGlobalParameters{
 				{
 					DaemonID:      daemons[0].GetID(),
-					DaemonName:    dbmodel.DaemonNameDHCPv6,
+					DaemonName:    string(daemonname.DHCPv6),
 					PartialConfig: partialConfig,
 				},
 				{
 					DaemonID:      daemons[1].GetID(),
-					DaemonName:    dbmodel.DaemonNameDHCPv6,
+					DaemonName:    string(daemonname.DHCPv6),
 					PartialConfig: partialConfig,
 				},
 			},
@@ -2142,12 +2114,13 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 				}`,
 				c.Marshal())
 		default:
-			require.JSONEq(t,
-				`{
-					"command": "config-write",
-					"service": [ "dhcp6" ]
-			}`,
-				c.Marshal())
+			expected := `{
+				"command": "config-write",
+				"service": [ "dhcp6" ]
+		}`
+			marshaled, err := c.Marshal()
+			require.NoError(t, err)
+			require.JSONEq(t, expected, string(marshaled))
 		}
 	}
 
@@ -2327,7 +2300,7 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 				Configs: []*models.KeaDaemonConfigurableGlobalParameters{
 					{
 						DaemonID:   daemon.GetID(),
-						DaemonName: dbmodel.DaemonNameDHCPv4,
+						DaemonName: string(daemonname.DHCPv4),
 						PartialConfig: &models.KeaConfigurableGlobalParameters{
 							KeaConfigValidLifetimeParameters: models.KeaConfigValidLifetimeParameters{
 								ValidLifetime: storkutil.Ptr(int64(1111)),
@@ -2368,7 +2341,7 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 				Configs: []*models.KeaDaemonConfigurableGlobalParameters{
 					{
 						DaemonID:   daemon.GetID(),
-						DaemonName: dbmodel.DaemonNameDHCPv6,
+						DaemonName: string(daemonname.DHCPv6),
 						PartialConfig: &models.KeaConfigurableGlobalParameters{
 							DHCPOptions: models.DHCPOptions{
 								Options: []*models.DHCPOption{
@@ -2405,7 +2378,7 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 				Configs: []*models.KeaDaemonConfigurableGlobalParameters{
 					{
 						DaemonID:      daemon.GetID(),
-						DaemonName:    dbmodel.DaemonNameDHCPv4,
+						DaemonName:    string(daemonname.DHCPv4),
 						PartialConfig: &models.KeaConfigurableGlobalParameters{},
 					},
 				},
@@ -2510,9 +2483,9 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 	require.NotNil(t, contents.Configs)
 	require.Len(t, contents.Configs, 2)
 	require.EqualValues(t, daemons[0].GetID(), contents.Configs[0].DaemonID)
-	require.Equal(t, dbmodel.DaemonNameDHCPv6, daemons[0].GetName(), contents.Configs[0].DaemonName)
+	require.Equal(t, daemonname.DHCPv6, daemons[0].GetName(), contents.Configs[0].DaemonName)
 	require.EqualValues(t, daemons[1].GetID(), contents.Configs[1].DaemonID)
-	require.Equal(t, dbmodel.DaemonNameDHCPv6, daemons[1].GetName(), contents.Configs[1].DaemonName)
+	require.Equal(t, daemonname.DHCPv6, daemons[1].GetName(), contents.Configs[1].DaemonName)
 
 	// Try to start another session by another user.
 	ctx2, err := rapi.SessionManager.Load(context.Background(), "")
