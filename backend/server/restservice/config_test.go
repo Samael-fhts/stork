@@ -11,7 +11,9 @@ import (
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configreview"
+	daemonsconfig "isc.org/stork/server/daemons"
 	"isc.org/stork/server/daemons/kea"
+	daemonstest "isc.org/stork/server/daemons/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbmodeltest "isc.org/stork/server/database/model/test"
 	dbtest "isc.org/stork/server/database/test"
@@ -675,7 +677,7 @@ func TestGetDaemonConfigReports(t *testing.T) {
 		Key:      "",
 		Protocol: "http",
 	}
-	
+
 	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 	daemon6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{accessPoint})
 
@@ -911,7 +913,7 @@ func TestPutDaemonConfigReview(t *testing.T) {
 		Key:      "",
 		Protocol: "http",
 	}
-	
+
 	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 
 	err = daemon4.SetConfigFromJSON(configDhcp4)
@@ -996,7 +998,7 @@ func TestPutDaemonConfigReviewNotKeaDaemon(t *testing.T) {
 		Key:      "abcd",
 		Protocol: "https",
 	}
-	
+
 	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})
 
 	err = dbmodel.AddDaemon(db, daemon)
@@ -1042,7 +1044,7 @@ func TestPutDaemonConfigReviewNoConfig(t *testing.T) {
 		Key:      "",
 		Protocol: "http",
 	}
-	
+
 	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 
 	err = dbmodel.AddDaemon(db, daemon4)
@@ -1145,7 +1147,7 @@ func TestGetDaemonConfigCheckers(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, m)
-	
+
 	accessPoint := &dbmodel.AccessPoint{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "localhost",
@@ -1153,7 +1155,7 @@ func TestGetDaemonConfigCheckers(t *testing.T) {
 		Key:      "",
 		Protocol: "http",
 	}
-	
+
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 	_ = dbmodel.AddDaemon(db, daemon)
 
@@ -1309,7 +1311,7 @@ func TestPutDaemonConfigCheckerPreferencesAPIResponse(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, m)
-	
+
 	accessPoint := &dbmodel.AccessPoint{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "localhost",
@@ -1317,7 +1319,7 @@ func TestPutDaemonConfigCheckerPreferencesAPIResponse(t *testing.T) {
 		Key:      "",
 		Protocol: "http",
 	}
-	
+
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 	_ = dbmodel.AddDaemon(db, daemon)
 
@@ -1359,7 +1361,7 @@ func TestPutNewDaemonConfigCheckers(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, m)
-	
+
 	accessPoint := &dbmodel.AccessPoint{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "localhost",
@@ -1367,7 +1369,7 @@ func TestPutNewDaemonConfigCheckers(t *testing.T) {
 		Key:      "",
 		Protocol: "http",
 	}
-	
+
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 	_ = dbmodel.AddDaemon(db, daemon)
 
@@ -1409,7 +1411,7 @@ func TestPutDaemonConfigCheckerPreferencesUpdate(t *testing.T) {
 		AgentPort: 8080,
 	}
 	_ = dbmodel.AddMachine(db, m)
-	
+
 	accessPoint := &dbmodel.AccessPoint{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "localhost",
@@ -1417,7 +1419,7 @@ func TestPutDaemonConfigCheckerPreferencesUpdate(t *testing.T) {
 		Key:      "",
 		Protocol: "http",
 	}
-	
+
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 	_ = dbmodel.AddDaemon(db, daemon)
 
@@ -1529,19 +1531,16 @@ func TestDeleteKeaConfigHashes(t *testing.T) {
 	fd := &storktest.FakeDispatcher{}
 	rapi, _ := NewRestAPI(dbSettings, db, fd)
 
-	kea, err := dbmodeltest.NewKea(db)
-	require.NoError(t, err)
-	require.NotNil(t, kea)
-
-	dhcp4, err := kea.NewKeaDHCPv4Server()
+	dhcp4, err := dbmodeltest.NewKeaDHCPv4Server(db)
 	require.NoError(t, err)
 	require.NotNil(t, dhcp4)
-	dhcp6, err := kea.NewKeaDHCPv6Server()
+
+	dhcp6, err := dbmodeltest.NewKeaDHCPv6Server(db)
 	require.NoError(t, err)
 	require.NotNil(t, dhcp6)
 
 	require.NoError(t, dhcp4.Configure(`{ "Dhcp4": { } }`))
-	require.NoError(t, dhcp6.Configure(`{ "Dhcp4": { } }`))
+	require.NoError(t, dhcp6.Configure(`{ "Dhcp6": { } }`))
 
 	daemons, err := dbmodel.GetKeaDHCPDaemons(db)
 	require.NoError(t, err)
@@ -1598,10 +1597,7 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 	err = server1.SetVersion("3.0.0")
 	require.NoError(t, err)
 
-	app1, err := server1.GetKea()
-	require.NoError(t, err)
-
-	err = kea.CommitAppIntoDB(db, app1, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -1611,13 +1607,13 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 	err = server2.SetVersion("3.0.0")
 	require.NoError(t, err)
 
-	app2, err := server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app2, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemonIDs := []int64{app1.Daemons[0].GetID(), app2.Daemons[0].GetID()}
+	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}
 
 	daemons, err := dbmodel.GetDaemonsByIDs(db, daemonIDs)
 	require.NoError(t, err)
@@ -1632,7 +1628,7 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -1885,11 +1881,9 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 	err = server1.SetVersion("3.0.0")
 	require.NoError(t, err)
 
-	app1, err := server1.GetKea()
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
-
-	err = kea.CommitAppIntoDB(db, app1, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
-	require.NoError(t, err)
+	require.NotNil(t, daemon1)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
 	require.NoError(t, err)
@@ -1898,13 +1892,14 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 	err = server2.SetVersion("3.0.0")
 	require.NoError(t, err)
 
-	app2, err := server2.GetKea()
+	daemon2, err := server2.GetDaemon()
+	require.NoError(t, err)
+	require.NotNil(t, daemon2)
+
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app2, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
-	require.NoError(t, err)
-
-	daemonIDs := []int64{app1.Daemons[0].GetID(), app2.Daemons[0].GetID()}
+	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}
 
 	daemons, err := dbmodel.GetDaemonsByIDs(db, daemonIDs)
 	require.NoError(t, err)
@@ -1919,7 +1914,7 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -2058,61 +2053,62 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 	for i, c := range fa.RecordedCommands {
 		switch {
 		case i < 2:
-			require.JSONEq(t,
-				`{
-					"command": "config-set",
-					"service": [ "dhcp6" ],
-					"arguments": {
-						"Dhcp6": {
-							"allocator": "flq",
-							"early-global-reservations-lookup": false,
-							"host-reservation-identifiers": [ "hw-address", "client-id" ],
-							"cache-threshold": 0.2,
-							"ddns-generated-prefix": "myhost.example.org",
-							"ddns-override-client-update": true,
-							"ddns-override-no-update": false,
-							"ddns-qualifying-suffix": "example.org",
-							"ddns-replace-client-name": "never",
-							"ddns-send-updates": false,
-							"ddns-update-on-renew": true,
-							"ddns-use-conflict-resolution": true,
-							"ddns-conflict-resolution-mode": "check-with-dhcid",
-							"dhcp-ddns": {
-								"enable-updates": true,
-								"max-queue-size": 100,
-								"ncr-format": "JSON",
-								"ncr-protocol": "UDP",
-								"sender-ip": "2001:db8:1::1",
-								"sender-port": 8080,
-								"server-ip": "2001:db8:1::2",
-								"server-port": 8081
-							},
-							"expired-leases-processing": {
-								"flush-reclaimed-timer-wait-time": 12,
-								"hold-reclaimed-time": 13,
-								"max-reclaim-leases": 14,
-								"max-reclaim-time": 15,
-								"reclaim-timer-wait-time": 16,
-								"unwarned-reclaim-cycles": 17
-							},
-							"option-data": [
-								{
-									"code": 42,
-									"always-send": true,
-									"csv-format": true,
-									"data": "4242",
-									"space": "dhcp6"
-								}
-							],
-							"pd-allocator": "random",
-							"reservations-global": true,
-							"reservations-in-subnet": false,
-							"reservations-out-of-pool": true,
-							"valid-lifetime": 1111
-						}
+			expected := `{
+				"command": "config-set",
+				"service": [ "dhcp6" ],
+				"arguments": {
+					"Dhcp6": {
+						"allocator": "flq",
+						"early-global-reservations-lookup": false,
+						"host-reservation-identifiers": [ "hw-address", "client-id" ],
+						"cache-threshold": 0.2,
+						"ddns-generated-prefix": "myhost.example.org",
+						"ddns-override-client-update": true,
+						"ddns-override-no-update": false,
+						"ddns-qualifying-suffix": "example.org",
+						"ddns-replace-client-name": "never",
+						"ddns-send-updates": false,
+						"ddns-update-on-renew": true,
+						"ddns-use-conflict-resolution": true,
+						"ddns-conflict-resolution-mode": "check-with-dhcid",
+						"dhcp-ddns": {
+							"enable-updates": true,
+							"max-queue-size": 100,
+							"ncr-format": "JSON",
+							"ncr-protocol": "UDP",
+							"sender-ip": "2001:db8:1::1",
+							"sender-port": 8080,
+							"server-ip": "2001:db8:1::2",
+							"server-port": 8081
+						},
+						"expired-leases-processing": {
+							"flush-reclaimed-timer-wait-time": 12,
+							"hold-reclaimed-time": 13,
+							"max-reclaim-leases": 14,
+							"max-reclaim-time": 15,
+							"reclaim-timer-wait-time": 16,
+							"unwarned-reclaim-cycles": 17
+						},
+						"option-data": [
+							{
+								"code": 42,
+								"always-send": true,
+								"csv-format": true,
+								"data": "4242",
+								"space": "dhcp6"
+							}
+						],
+						"pd-allocator": "random",
+						"reservations-global": true,
+						"reservations-in-subnet": false,
+						"reservations-out-of-pool": true,
+						"valid-lifetime": 1111
 					}
-				}`,
-				c.Marshal())
+				}
+			}`
+			marshaled, err := c.Marshal()
+			require.NoError(t, err)
+			require.JSONEq(t, expected, string(marshaled))
 		default:
 			expected := `{
 				"command": "config-write",
@@ -2163,11 +2159,14 @@ func TestUpdateGlobalParametersBeginNoDaemon(t *testing.T) {
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 	require.NotNil(t, lookup)
 
+	daemonLocker := config.NewDaemonLocker()
+
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
+		DB:           db,
+		Agents:       fa,
+		DefLookup:    lookup,
+		DaemonLocker: daemonLocker,
 	})
 	require.NotNil(t, cm)
 
@@ -2214,15 +2213,16 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err := server1.GetKea()
+	daemon, err := server1.GetDaemon()
+	require.NoError(t, err)
+	require.NotNil(t, daemon)
+
+	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
-	require.NoError(t, err)
+	daemonIDs := []int64{daemon.GetID()}
 
-	daemonIDs := []int64{app.Daemons[0].GetID()}
-
-	daemon, err := dbmodel.GetDaemonByID(db, app.Daemons[0].GetID())
+	daemon, err = dbmodel.GetDaemonByID(db, daemon.GetID())
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
 
@@ -2238,7 +2238,7 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -2388,7 +2388,7 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 		require.IsType(t, &dhcp.UpdateKeaGlobalParametersSubmitDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.UpdateKeaGlobalParametersSubmitDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with committing Kea config: config-set command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", app.GetName()),
+		require.Equal(t, fmt.Sprintf("Problem with committing Kea config: config-set command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", daemon.GetName()),
 			*defaultRsp.Payload.Message)
 	})
 }
@@ -2411,10 +2411,7 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app1, err := server1.GetKea()
-	require.NoError(t, err)
-
-	err = kea.CommitAppIntoDB(db, app1, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -2422,13 +2419,13 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app2, err := server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app2, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemonIDs := []int64{app1.Daemons[0].GetID(), app2.Daemons[0].GetID()}
+	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}
 
 	daemons, err := dbmodel.GetDaemonsByIDs(db, daemonIDs)
 	require.NoError(t, err)
@@ -2443,7 +2440,7 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
