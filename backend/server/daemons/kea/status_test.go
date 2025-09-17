@@ -1045,7 +1045,7 @@ func TestPullHAStatusHub(t *testing.T) {
 	err = dbmodel.AddDaemon(db, dhcp4)
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{dhcp4}, fec, nil, lookup)
+	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{dhcp4}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)

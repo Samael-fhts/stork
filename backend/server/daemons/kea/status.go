@@ -254,7 +254,7 @@ func (puller *HAStatusPuller) pullData() error {
 // Gets the status of a Kea daemon and stores useful information in the database.
 // The High Availability status is stored in the database for those daemons which
 // have the HA enabled.
-func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (bool, bool) {
+func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (pulled bool, ok bool) {
 	// Before contacting the DHCP server, let's check if there is any service
 	// the daemon belongs to.
 	dbServices, err := dbmodel.GetDetailedServicesByDaemonID(puller.DB, daemon.ID)
@@ -294,11 +294,14 @@ func (puller *HAStatusPuller) pullDataForDaemon(daemon *dbmodel.Daemon) (bool, b
 	status, err := getDHCPStatus(ctx, puller.Agents, daemon)
 	if err != nil {
 		log.WithError(err).Errorf("Error occurred while getting Kea daemon %d status", daemon.ID)
+		puller.commitHAServicesStatus(haServices)
 		return true, false
 	}
 	// If no HA status, there is nothing to do.
 	if status.HAServers == nil && len(status.HA) == 0 {
-		return true, true
+		log.Errorf("status-get response doesn't contain HA status for daemon %d", daemon.ID)
+		puller.commitHAServicesStatus(haServices)
+		return true, false
 	}
 	haType := daemon.Name
 
