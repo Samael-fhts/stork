@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	dnsconfig "isc.org/stork/daemoncfg/dnsconfig"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -56,8 +57,8 @@ func TestGetZones(t *testing.T) {
 	randomZones = testutil.GenerateMoreZonesWithRPZ(randomZones, 25, true)
 
 	var (
-		apps  []*dbmodel.App
-		zones []*dbmodel.Zone
+		daemons []*dbmodel.Daemon
+		zones   []*dbmodel.Zone
 	)
 	for i, randomZone := range randomZones {
 		machine := &dbmodel.Machine{
@@ -68,24 +69,23 @@ func TestGetZones(t *testing.T) {
 		err = dbmodel.AddMachine(db, machine)
 		require.NoError(t, err)
 
-		app := &dbmodel.App{
-			ID:        0,
-			MachineID: machine.ID,
-			Type:      dbmodel.AppTypeBind9,
-			Name:      fmt.Sprintf("app-%d", i),
-			Daemons: []*dbmodel.Daemon{
-				dbmodel.NewBind9Daemon(true),
-			},
+		accessPoint := &dbmodel.AccessPoint{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8080,
+			Key:      "",
+			Protocol: "rndc",
 		}
-		addedDaemons, err := dbmodel.AddApp(db, app)
+
+		daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})
+		err = dbmodel.AddDaemon(db, daemon)
 		require.NoError(t, err)
-		require.Len(t, addedDaemons, 1)
-		apps = append(apps, app)
+		daemons = append(daemons, daemon)
 		zones = append(zones, &dbmodel.Zone{
 			Name: randomZones[i].Name,
 			LocalZones: []*dbmodel.LocalZone{
 				{
-					DaemonID: addedDaemons[0].ID,
+					DaemonID: daemon.ID,
 					View:     fmt.Sprintf("view-%d", i),
 					Class:    randomZone.Class,
 					Serial:   randomZone.Serial,
@@ -236,7 +236,8 @@ func TestGetZones(t *testing.T) {
 
 	t.Run("filter by app ID", func(t *testing.T) {
 		ctx := context.Background()
-		appID := apps[0].ID
+		virtualApp := daemons[0].GetVirtualApp()
+		appID := virtualApp.ID
 		params := dns.GetZonesParams{
 			AppID: &appID,
 		}
@@ -245,13 +246,13 @@ func TestGetZones(t *testing.T) {
 		rspOK := (rsp).(*dns.GetZonesOK)
 		require.NotEmpty(t, rspOK.Payload.Items)
 		require.Equal(t, 1, len(rspOK.Payload.Items))
-		require.EqualValues(t, apps[0].ID, rspOK.Payload.Items[0].LocalZones[0].AppID)
+		require.EqualValues(t, virtualApp.ID, rspOK.Payload.Items[0].LocalZones[0].AppID)
 		require.EqualValues(t, 1, rspOK.Payload.Total)
 	})
 
 	t.Run("filter by non-existent app ID", func(t *testing.T) {
 		ctx := context.Background()
-		appID := apps[99].ID + 100
+		appID := daemons[99].GetVirtualApp().ID + 100
 		params := dns.GetZonesParams{
 			AppID: &appID,
 		}
@@ -312,8 +313,9 @@ func TestGetZones(t *testing.T) {
 
 	t.Run("filter by app name using text", func(t *testing.T) {
 		ctx := context.Background()
-		// Use the first zone's name as search text
-		searchText := apps[0].Name
+		// Use the first daemon's virtual app name as search text
+		virtualApp := daemons[0].GetVirtualApp()
+		searchText := virtualApp.Name
 		params := dns.GetZonesParams{
 			Text: &searchText,
 		}
@@ -439,7 +441,7 @@ func TestGetZonesFetch(t *testing.T) {
 			BuiltinZoneCount:  storkutil.Ptr(int64(234)),
 		},
 	}
-	// Add the machines and apps and associate them with the states.
+	// Add the machines and daemons and associate them with the states.
 	for i := range details {
 		machine := &dbmodel.Machine{
 			Address:   "localhost",
@@ -448,18 +450,19 @@ func TestGetZonesFetch(t *testing.T) {
 		err := dbmodel.AddMachine(db, machine)
 		require.NoError(t, err)
 
-		app := &dbmodel.App{
-			MachineID: machine.ID,
-			Type:      dbmodel.AppTypeBind9,
-			Daemons: []*dbmodel.Daemon{
-				dbmodel.NewBind9Daemon(true),
-			},
+		accessPoint := &dbmodel.AccessPoint{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8080,
+			Key:      "",
+			Protocol: "rndc",
 		}
-		addedDaemons, err := dbmodel.AddApp(db, app)
-		require.NoError(t, err)
-		require.Len(t, addedDaemons, 1)
 
-		state := dbmodel.NewZoneInventoryState(addedDaemons[0].ID, details[i])
+		daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})
+		err = dbmodel.AddDaemon(db, daemon)
+		require.NoError(t, err)
+
+		state := dbmodel.NewZoneInventoryState(daemon.ID, details[i])
 		err = dbmodel.AddZoneInventoryState(db, state)
 		require.NoError(t, err)
 	}
