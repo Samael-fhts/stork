@@ -10,14 +10,15 @@ import (
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
-	keactrl "isc.org/stork/appctrl/kea"
+	keactrl "isc.org/stork/daemonctrl/kea"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
-	apps "isc.org/stork/server/apps"
-	appstest "isc.org/stork/server/apps/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator"
+	"isc.org/stork/server/daemons"
+	daemonsconfig "isc.org/stork/server/daemons"
 	"isc.org/stork/server/daemons/kea"
+	daemonstest "isc.org/stork/server/daemons/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
 	"isc.org/stork/server/gen/models"
@@ -29,14 +30,12 @@ import (
 //go:generate mockgen -package=restservice -destination=migratormock_test.go isc.org/stork/server/configmigrator MigrationManager
 
 func mockStatusError(commandName keactrl.CommandName, cmdResponses []interface{}) {
-	command := keactrl.NewCommandBase(commandName, keactrl.DHCPv4)
-	json := `[
-        {
+	json := `{
             "result": 1,
             "text": "unable to communicate with the daemon"
-        }
-    ]`
-	_ = keactrl.UnmarshalResponseList(command, []byte(json), cmdResponses[0])
+        }`
+	response := cmdResponses[0].(*keactrl.ResponseHeader)
+	_ = response.Unmarshal([]byte(json))
 }
 
 // Test that all hosts can be fetched without filtering.
@@ -49,7 +48,7 @@ func TestGetHostsNoFiltering(t *testing.T) {
 	ctx := context.Background()
 
 	// Add four hosts. Two with IPv4 and two with IPv6 reservations.
-	hosts, apps := storktestdbmodel.AddTestHosts(t, db)
+	hosts, daemons := storktestdbmodel.AddTestHosts(t, db)
 
 	params := dhcp.GetHostsParams{}
 	rsp := rapi.GetHosts(ctx, params)
@@ -113,11 +112,11 @@ func TestGetHostsNoFiltering(t *testing.T) {
 	// The first host should be associated with two apps.
 	require.Len(t, items[0].LocalHosts, 2)
 	require.NotNil(t, items[0].LocalHosts[0])
-	require.EqualValues(t, apps[0].ID, items[0].LocalHosts[0].AppID)
+	require.EqualValues(t, daemons[0].GetVirtualApp().ID, items[0].LocalHosts[0].AppID)
 	require.Equal(t, dbmodel.HostDataSourceAPI.String(), items[0].LocalHosts[0].DataSource)
 	require.Equal(t, "dhcp-server0", items[0].LocalHosts[0].AppName)
 	require.NotNil(t, items[0].LocalHosts[1])
-	require.EqualValues(t, apps[1].ID, items[0].LocalHosts[1].AppID)
+	require.EqualValues(t, daemons[2].GetVirtualApp().ID, items[0].LocalHosts[1].AppID)
 	require.Equal(t, dbmodel.HostDataSourceAPI.String(), items[0].LocalHosts[1].DataSource)
 	require.Equal(t, "dhcp-server1", items[0].LocalHosts[1].AppName)
 }
@@ -408,11 +407,14 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 	require.NotNil(t, lookup)
 
+	daemonLocker := config.NewDaemonLocker()
+
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
+		DB:           db,
+		Agents:       fa,
+		DefLookup:    lookup,
+		DaemonLocker: daemonLocker,
 	})
 	require.NotNil(t, cm)
 
@@ -431,8 +433,8 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 	err = rapi.SessionManager.LoginHandler(ctx, user)
 	require.NoError(t, err)
 
-	// Make sure we have some Kea apps in the database.
-	hosts, apps := storktestdbmodel.AddTestHosts(t, db)
+	// Make sure we have some Kea daemons in the database.
+	hosts, daemons := storktestdbmodel.AddTestHosts(t, db)
 	// Drop the hosts associations.
 	for _, host := range hosts {
 		_, _ = dbmodel.DeleteDaemonsFromHost(db, host.ID, dbmodel.HostDataSourceUnspecified)
@@ -468,7 +470,7 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 			},
 			LocalHosts: []*models.LocalHost{
 				{
-					DaemonID:       apps[0].Daemons[0].ID,
+					DaemonID:       daemons[0].ID,
 					DataSource:     dbmodel.HostDataSourceAPI.String(),
 					ClientClasses:  []string{"class1"},
 					NextServer:     "192.2.2.2",
@@ -476,7 +478,7 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 					BootFileName:   "/tmp/boot.xyz",
 				},
 				{
-					DaemonID:       apps[1].Daemons[0].ID,
+					DaemonID:       daemons[1].ID,
 					DataSource:     dbmodel.HostDataSourceAPI.String(),
 					ClientClasses:  []string{"class1"},
 					NextServer:     "192.2.2.2",
@@ -493,6 +495,9 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 	require.Len(t, fa.RecordedCommands, 2)
 
 	for _, c := range fa.RecordedCommands {
+		commandMarshaled, err := c.Marshal()
+		require.NoError(t, err)
+
 		require.JSONEq(t, `{
             "command": "reservation-add",
             "service": ["dhcp4"],
@@ -507,7 +512,7 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 					"boot-file-name": "/tmp/boot.xyz"
                 }
             }
-        }`, c.Marshal())
+        }`, string(commandMarshaled))
 	}
 
 	// Make sure that the transaction is done.
@@ -522,7 +527,7 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 	require.Nil(t, cctx)
 
 	// Make sure that the host has been added in the database.
-	returnedHosts, _, err := dbmodel.GetHostsByDaemonID(db, apps[0].Daemons[0].ID, dbmodel.HostDataSourceAPI)
+	returnedHosts, _, err := dbmodel.GetHostsByDaemonID(db, daemons[0].ID, dbmodel.HostDataSourceAPI)
 	require.NoError(t, err)
 	require.Len(t, returnedHosts, 1)
 	returnedHost := returnedHosts[0]
@@ -561,11 +566,14 @@ func TestCreateHostBeginSubmitHostnameIPReservationsFromLocalHosts(t *testing.T)
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 	require.NotNil(t, lookup)
 
+	daemonLocker := config.NewDaemonLocker()
+
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
-		DB:        db,
-		Agents:    fa,
-		DefLookup: lookup,
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
+		DB:           db,
+		Agents:       fa,
+		DefLookup:    lookup,
+		DaemonLocker: daemonLocker,
 	})
 	require.NotNil(t, cm)
 
@@ -581,8 +589,8 @@ func TestCreateHostBeginSubmitHostnameIPReservationsFromLocalHosts(t *testing.T)
 	}
 	_ = rapi.SessionManager.LoginHandler(ctx, user)
 
-	// Make sure we have some Kea apps in the database.
-	hosts, apps := storktestdbmodel.AddTestHosts(t, db)
+	// Make sure we have some Kea daemons in the database.
+	hosts, daemons := storktestdbmodel.AddTestHosts(t, db)
 	// Drop the hosts associations.
 	for _, host := range hosts {
 		_, _ = dbmodel.DeleteDaemonsFromHost(db, host.ID, dbmodel.HostDataSourceUnspecified)
@@ -619,7 +627,7 @@ func TestCreateHostBeginSubmitHostnameIPReservationsFromLocalHosts(t *testing.T)
 			},
 			LocalHosts: []*models.LocalHost{
 				{
-					DaemonID:   apps[0].Daemons[0].ID,
+					DaemonID:   daemons[0].ID,
 					DataSource: dbmodel.HostDataSourceAPI.String(),
 					Hostname:   "bar",
 					IPReservations: []*models.IPReservation{
@@ -640,6 +648,9 @@ func TestCreateHostBeginSubmitHostnameIPReservationsFromLocalHosts(t *testing.T)
 	require.IsType(t, &dhcp.CreateHostSubmitOK{}, rsp)
 	require.Len(t, fa.RecordedCommands, 1)
 
+	commandMarshaled, err := fa.RecordedCommands[0].Marshal()
+	require.NoError(t, err)
+
 	require.JSONEq(t, `{
 		"command": "reservation-add",
 		"service": ["dhcp4"],
@@ -652,7 +663,7 @@ func TestCreateHostBeginSubmitHostnameIPReservationsFromLocalHosts(t *testing.T)
 				"prefixes": [ "10.1.0.0/24" ]
 			}
 		}
-	}`, fa.RecordedCommands[0].Marshal())
+	}`, string(commandMarshaled))
 
 	// Make sure that the transaction is done.
 	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
@@ -665,7 +676,7 @@ func TestCreateHostBeginSubmitHostnameIPReservationsFromLocalHosts(t *testing.T)
 	}
 	require.Nil(t, cctx)
 
-	returnedHosts, _, err := dbmodel.GetHostsByDaemonID(db, apps[0].Daemons[0].ID, dbmodel.HostDataSourceAPI)
+	returnedHosts, _, err := dbmodel.GetHostsByDaemonID(db, daemons[0].ID, dbmodel.HostDataSourceAPI)
 	require.NoError(t, err)
 	require.Len(t, returnedHosts, 1)
 	returnedHost := returnedHosts[0]
@@ -699,7 +710,7 @@ func TestCreateHostBeginNoServers(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -746,7 +757,7 @@ func TestCreateHostSubmitError(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -769,7 +780,7 @@ func TestCreateHostSubmitError(t *testing.T) {
 	require.NoError(t, err)
 
 	// Make sure we have some Kea apps in the database.
-	_, apps := storktestdbmodel.AddTestHosts(t, db)
+	_, daemons := storktestdbmodel.AddTestHosts(t, db)
 
 	// Begin transaction. It will be needed for the actual part of the
 	// test that relies on the existence of the transaction.
@@ -803,10 +814,10 @@ func TestCreateHostSubmitError(t *testing.T) {
 			Host: &models.Host{
 				LocalHosts: []*models.LocalHost{
 					{
-						DaemonID: apps[0].Daemons[0].ID,
+						DaemonID: daemons[0].ID,
 					},
 					{
-						DaemonID: apps[1].Daemons[0].ID,
+						DaemonID: daemons[1].ID,
 					},
 				},
 			},
@@ -845,11 +856,11 @@ func TestCreateHostSubmitError(t *testing.T) {
 			Host: &models.Host{
 				LocalHosts: []*models.LocalHost{
 					{
-						DaemonID:   apps[0].Daemons[0].ID,
+						DaemonID:   daemons[0].ID,
 						DataSource: "foobar",
 					},
 					{
-						DaemonID: apps[1].Daemons[0].ID,
+						DaemonID: daemons[1].ID,
 					},
 				},
 			},
@@ -870,7 +881,7 @@ func TestCreateHostSubmitError(t *testing.T) {
 			Host: &models.Host{
 				LocalHosts: []*models.LocalHost{
 					{
-						DaemonID:   apps[0].Daemons[0].ID,
+						DaemonID:   daemons[0].ID,
 						DataSource: dbmodel.HostDataSourceAPI.String(),
 					},
 				},
@@ -898,7 +909,7 @@ func TestCreateHostBeginCancel(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -968,7 +979,7 @@ func TestCreateHostDeleteError(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1033,7 +1044,7 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -1056,8 +1067,8 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 	err = rapi.SessionManager.LoginHandler(ctx, user)
 	require.NoError(t, err)
 
-	// Make sure we have some Kea apps in the database.
-	hosts, apps := storktestdbmodel.AddTestHosts(t, db)
+	// Make sure we have some Kea daemons in the database.
+	hosts, daemons := storktestdbmodel.AddTestHosts(t, db)
 
 	// Begin transaction.
 	params := dhcp.UpdateHostBeginParams{
@@ -1093,7 +1104,7 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 			},
 			LocalHosts: []*models.LocalHost{
 				{
-					DaemonID:       apps[0].Daemons[0].ID,
+					DaemonID:       daemons[0].ID,
 					DataSource:     dbmodel.HostDataSourceAPI.String(),
 					ClientClasses:  []string{"class1"},
 					NextServer:     "192.2.2.2",
@@ -1114,7 +1125,7 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 					},
 				},
 				{
-					DaemonID:       apps[1].Daemons[0].ID,
+					DaemonID:       daemons[1].ID,
 					DataSource:     dbmodel.HostDataSourceAPI.String(),
 					ClientClasses:  []string{"class1"},
 					NextServer:     "192.2.2.2",
@@ -1145,6 +1156,8 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 	require.Len(t, fa.RecordedCommands, 4)
 
 	for i, c := range fa.RecordedCommands {
+		commandMarshaled, err := c.Marshal()
+		require.NoError(t, err)
 		switch {
 		case i < 2:
 			require.JSONEq(t, `{
@@ -1155,7 +1168,7 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 				"identifier-type": "hw-address",
 				"subnet-id": 111
 			}
-        }`, c.Marshal())
+        }`, string(commandMarshaled))
 
 		default:
 			require.JSONEq(t, `{
@@ -1181,7 +1194,7 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 						]
 					}
 				}
-			}`, c.Marshal())
+			}`, string(commandMarshaled))
 		}
 	}
 
@@ -1240,7 +1253,7 @@ func TestUpdateHostBeginNonExistingHostID(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1294,7 +1307,7 @@ func TestUpdateHostSubmitError(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -1317,8 +1330,8 @@ func TestUpdateHostSubmitError(t *testing.T) {
 	err = rapi.SessionManager.LoginHandler(ctx, user)
 	require.NoError(t, err)
 
-	// Make sure we have some Kea apps an hosts in the database.
-	hosts, apps := storktestdbmodel.AddTestHosts(t, db)
+	// Make sure we have some Kea daemons and hosts in the database.
+	hosts, daemons := storktestdbmodel.AddTestHosts(t, db)
 
 	// Begin transaction. It will be needed for the actual part of the
 	// test that relies on the existence of the transaction.
@@ -1360,10 +1373,10 @@ func TestUpdateHostSubmitError(t *testing.T) {
 				},
 				LocalHosts: []*models.LocalHost{
 					{
-						DaemonID: apps[0].Daemons[0].ID,
+						DaemonID: daemons[0].ID,
 					},
 					{
-						DaemonID: apps[1].Daemons[0].ID,
+						DaemonID: daemons[1].ID,
 					},
 				},
 			},
@@ -1414,7 +1427,7 @@ func TestUpdateHostSubmitError(t *testing.T) {
 				},
 				LocalHosts: []*models.LocalHost{
 					{
-						DaemonID:   apps[0].Daemons[0].ID,
+						DaemonID:   daemons[0].ID,
 						DataSource: dbmodel.HostDataSourceAPI.String(),
 					},
 				},
@@ -1445,7 +1458,7 @@ func TestUpdateHostBeginCancel(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -1541,7 +1554,7 @@ func TestDeleteHost(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1577,6 +1590,8 @@ func TestDeleteHost(t *testing.T) {
 	require.Len(t, fa.RecordedCommands, 2)
 
 	for _, c := range fa.RecordedCommands {
+		commandMarshaled, err := c.Marshal()
+		require.NoError(t, err)
 		require.JSONEq(t, `{
             "command": "reservation-del",
             "service": ["dhcp4"],
@@ -1585,7 +1600,7 @@ func TestDeleteHost(t *testing.T) {
                 "identifier-type": "hw-address",
                 "subnet-id": 111
             }
-        }`, c.Marshal())
+        }`, string(commandMarshaled))
 	}
 
 	returnedHost, err := dbmodel.GetHost(db, hosts[0].ID)
@@ -1609,7 +1624,7 @@ func TestDeleteHostError(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1725,13 +1740,13 @@ func TestStartHostsMigration(t *testing.T) {
 
 	migrationService := NewMockMigrationManager(ctrl)
 
-	statePuller, err := apps.NewStatePuller(db, nil, nil, nil, nil)
+	statePuller, err := daemons.NewStatePuller(db, nil, nil, nil, nil)
 	require.NoError(t, err)
 	hostPuller, err := kea.NewHostsPuller(db, nil, nil, nil)
 	require.NoError(t, err)
-	pullers := &apps.Pullers{
-		KeaHostsPuller:  hostPuller,
-		AppsStatePuller: statePuller,
+	pullers := &daemons.Pullers{
+		KeaHostsPuller: hostPuller,
+		StatePuller:    statePuller,
 	}
 	require.False(t, statePuller.Paused())
 	require.False(t, hostPuller.Paused())
@@ -1810,7 +1825,7 @@ func TestStartHostsMigrationFailed(t *testing.T) {
 	defer ctrl.Finish()
 
 	migrationService := NewMockMigrationManager(ctrl)
-	pullers := &apps.Pullers{}
+	pullers := &daemons.Pullers{}
 
 	rapi, err := NewRestAPI(dbSettings, db, migrationService, pullers)
 	require.NoError(t, err)
