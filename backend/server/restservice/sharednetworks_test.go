@@ -76,13 +76,10 @@ func TestGetSharedNetworks(t *testing.T) {
 		}
 	}`)
 
-	app, err := dhcp4.GetKea()
+	daemon4, err := dhcp4.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
-	require.NoError(t, err)
-
-	a4 := app
+	a4 := daemon4.GetVirtualApp()
 
 	dhcp6, err := dbmodeltest.NewKeaDHCPv6Server(db)
 	require.NoError(t, err)
@@ -110,10 +107,10 @@ func TestGetSharedNetworks(t *testing.T) {
 		}
 	}`)
 
-	app, err = dhcp6.GetKea()
+	daemon6, err := dhcp6.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon4, daemon6}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	// get all shared networks
@@ -162,10 +159,10 @@ func TestGetSharedNetworks(t *testing.T) {
 	require.Len(t, okRsp.Payload.Items, 2)
 	require.EqualValues(t, 2, okRsp.Payload.Total)
 	require.Equal(t, a4.ID, okRsp.Payload.Items[0].Subnets[0].LocalSubnets[0].AppID)
-	require.Equal(t, a4.Daemons[0].ID, okRsp.Payload.Items[0].Subnets[0].LocalSubnets[0].DaemonID)
+	require.Equal(t, daemon4.ID, okRsp.Payload.Items[0].Subnets[0].LocalSubnets[0].DaemonID)
 	require.Equal(t, a4.Name, okRsp.Payload.Items[0].Subnets[0].LocalSubnets[0].AppName)
 	require.Equal(t, a4.ID, okRsp.Payload.Items[1].Subnets[0].LocalSubnets[0].AppID)
-	require.Equal(t, a4.Daemons[0].ID, okRsp.Payload.Items[1].Subnets[0].LocalSubnets[0].DaemonID)
+	require.Equal(t, daemon4.ID, okRsp.Payload.Items[1].Subnets[0].LocalSubnets[0].DaemonID)
 	require.Equal(t, a4.Name, okRsp.Payload.Items[1].Subnets[0].LocalSubnets[0].AppName)
 	require.Nil(t, okRsp.Payload.Items[1].Subnets[0].LocalSubnets[0].Stats)
 	require.ElementsMatch(t, []string{"mouse", "frog"}, []string{okRsp.Payload.Items[0].Name, okRsp.Payload.Items[1].Name})
@@ -192,11 +189,11 @@ func TestGetSharedNetwork4(t *testing.T) {
 	err = dhcp4.Configure(string(testutil.AllKeysDHCPv4JSON))
 	require.NoError(t, err)
 
-	app, err := dhcp4.GetKea()
+	daemon4, err := dhcp4.GetDaemon()
 	require.NoError(t, err)
 
 	// Populate subnets and shared networks from the Kea configuration.
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon4}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
@@ -488,11 +485,11 @@ func TestGetSharedNetwork4MinimalParameters(t *testing.T) {
 	err = dhcp4.Configure(cfg)
 	require.NoError(t, err)
 
-	app, err := dhcp4.GetKea()
+	daemon4, err := dhcp4.GetDaemon()
 	require.NoError(t, err)
 
 	// Populate the subnets in the database.
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon4}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
@@ -535,11 +532,11 @@ func TestGetSharedNetwork6(t *testing.T) {
 	err = dhcp6.Configure(string(testutil.AllKeysDHCPv6JSON))
 	require.NoError(t, err)
 
-	app, err := dhcp6.GetKea()
+	daemon6, err := dhcp6.GetDaemon()
 	require.NoError(t, err)
 
 	// Populate subnets and shared networks from the Kea configuration.
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon6}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
@@ -658,11 +655,11 @@ func TestGetSharedNetwork6MinimalParameters(t *testing.T) {
 	err = dhcp6.Configure(cfg)
 	require.NoError(t, err)
 
-	app, err := dhcp6.GetKea()
+	daemon6, err := dhcp6.GetDaemon()
 	require.NoError(t, err)
 
 	// Populates the subnets in the database.
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon6}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
@@ -724,10 +721,7 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err := server1.GetKea()
-	require.NoError(t, err)
-
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -735,15 +729,15 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err = server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	dbapps, err := dbmodel.GetAllApps(db, true)
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, dbapps, 2)
+	require.Len(t, daemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
 	require.NoError(t, err)
@@ -884,11 +878,11 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 			Subnets:  []*models.Subnet{},
 			LocalSharedNetworks: []*models.LocalSharedNetwork{
 				{
-					DaemonID:                         dbapps[0].Daemons[0].ID,
+					DaemonID:                         daemon1.ID,
 					KeaConfigSharedNetworkParameters: keaConfigSharedNetworkParameters,
 				},
 				{
-					DaemonID:                         dbapps[1].Daemons[0].ID,
+					DaemonID:                         daemon2.ID,
 					KeaConfigSharedNetworkParameters: keaConfigSharedNetworkParameters,
 				},
 			},
@@ -903,6 +897,8 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 	require.Len(t, fa.RecordedCommands, 4)
 
 	for i, c := range fa.RecordedCommands {
+		commandMarshalled, err := c.Marshal()
+		require.NoError(t, err)
 		switch i {
 		case 0, 1:
 			require.JSONEq(t, `
@@ -965,14 +961,14 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 						]
 					}
 				}
-			`, c.Marshal())
+			`, string(commandMarshalled))
 		default:
 			require.JSONEq(t, `
 				{
 					"command": "config-write",
 					"service": ["dhcp4"]
 				}
-			`, c.Marshal())
+			`, string(commandMarshalled))
 		}
 	}
 
@@ -1003,7 +999,7 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 		require.NotNil(t, lsn.KeaParameters.ClientClass)
 		require.Equal(t, "foo", *lsn.KeaParameters.ClientClass)
 		require.Len(t, lsn.KeaParameters.RequireClientClasses, 1)
-		require.EqualValues(t, "bar", lsn.KeaParameters.RequireClientClasses[0])
+		require.Equal(t, "bar", lsn.KeaParameters.RequireClientClasses[0])
 		require.NotNil(t, lsn.KeaParameters.DDNSGeneratedPrefix)
 		require.Equal(t, "abc", *lsn.KeaParameters.DDNSGeneratedPrefix)
 		require.NotNil(t, lsn.KeaParameters.DDNSOverrideClientUpdate)
@@ -1122,10 +1118,7 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app1, err := server1.GetKea()
-	require.NoError(t, err)
-
-	err = kea.CommitAppIntoDB(db, app1, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -1133,15 +1126,15 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app2, err := server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app2, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	dbapps, err := dbmodel.GetAllApps(db, true)
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, dbapps, 2)
+	require.Len(t, daemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
 	require.NoError(t, err)
@@ -1275,7 +1268,7 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 		require.IsType(t, &dhcp.CreateSharedNetworkSubmitDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.CreateSharedNetworkSubmitDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with committing shared network information: network4-add command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", app1.GetName()), *defaultRsp.Payload.Message)
+		require.Equal(t, fmt.Sprintf("Problem with committing shared network information: network4-add command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with daemon'", daemon1.Machine.Address), *defaultRsp.Payload.Message)
 	})
 }
 
@@ -1320,26 +1313,24 @@ func TestCreateSharedNetworkBeginCancel(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err := server1.GetKea()
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
-	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
 	require.NoError(t, err)
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err = server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	dbapps, err := dbmodel.GetAllApps(db, true)
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, dbapps, 2)
+	require.Len(t, daemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
 	require.NoError(t, err)
@@ -1452,26 +1443,24 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err := server1.GetKea()
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
-	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
 	require.NoError(t, err)
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err = server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	dbapps, err := dbmodel.GetAllApps(db, true)
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, dbapps, 2)
+	require.Len(t, daemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
 	require.NoError(t, err)
@@ -1627,7 +1616,7 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 					LocalSubnets: []*models.LocalSubnet{
 						{
 							ID:       1,
-							DaemonID: dbapps[0].Daemons[0].ID,
+							DaemonID: daemon1.ID,
 							KeaConfigSubnetParameters: &models.KeaConfigSubnetParameters{
 								SubnetLevelParameters: &models.KeaConfigSubnetDerivedParameters{
 									KeaConfigClientClassParameters: models.KeaConfigClientClassParameters{
@@ -1638,7 +1627,7 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 						},
 						{
 							ID:       1,
-							DaemonID: dbapps[1].Daemons[0].ID,
+							DaemonID: daemon2.ID,
 							KeaConfigSubnetParameters: &models.KeaConfigSubnetParameters{
 								SubnetLevelParameters: &models.KeaConfigSubnetDerivedParameters{
 									KeaConfigClientClassParameters: models.KeaConfigClientClassParameters{
@@ -1654,22 +1643,22 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 					LocalSubnets: []*models.LocalSubnet{
 						{
 							ID:       2,
-							DaemonID: dbapps[0].Daemons[0].ID,
+							DaemonID: daemon1.ID,
 						},
 						{
 							ID:       2,
-							DaemonID: dbapps[1].Daemons[0].ID,
+							DaemonID: daemon2.ID,
 						},
 					},
 				},
 			},
 			LocalSharedNetworks: []*models.LocalSharedNetwork{
 				{
-					DaemonID:                         dbapps[0].Daemons[0].ID,
+					DaemonID:                         daemon1.ID,
 					KeaConfigSharedNetworkParameters: keaConfigSharedNetworkParameters,
 				},
 				{
-					DaemonID:                         dbapps[1].Daemons[0].ID,
+					DaemonID:                         daemon2.ID,
 					KeaConfigSharedNetworkParameters: keaConfigSharedNetworkParameters,
 				},
 			},
@@ -1973,26 +1962,24 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err := server1.GetKea()
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
-	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
 	require.NoError(t, err)
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err = server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	dbapps, err := dbmodel.GetAllApps(db, true)
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, dbapps, 2)
+	require.Len(t, daemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
 	require.NoError(t, err)
@@ -2073,11 +2060,11 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 			Universe: int64(sharedNetworks[0].Family),
 			LocalSharedNetworks: []*models.LocalSharedNetwork{
 				{
-					DaemonID:                         dbapps[0].Daemons[0].ID,
+					DaemonID:                         daemon1.ID,
 					KeaConfigSharedNetworkParameters: keaConfigSharedNetworkParameters,
 				},
 				{
-					DaemonID:                         dbapps[1].Daemons[0].ID,
+					DaemonID:                         daemon2.ID,
 					KeaConfigSharedNetworkParameters: keaConfigSharedNetworkParameters,
 				},
 			},
@@ -2092,6 +2079,7 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 	for i, c := range fa.RecordedCommands {
 		switch i {
 		case 0, 2:
+			commandBytes, _ := c.Marshal()
 			require.JSONEq(t, `
 				{
 					"command": "network6-del",
@@ -2101,8 +2089,9 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 						"subnets-action": "keep"
 					}
 				}
-			`, c.Marshal())
+			`, string(commandBytes))
 		case 1, 3:
+			commandBytes, _ := c.Marshal()
 			require.JSONEq(t, `
 				{
 					"command": "network6-add",
@@ -2120,14 +2109,15 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 						]
 					}
 				}
-			`, c.Marshal())
+			`, string(commandBytes))
 		default:
+			commandBytes, _ := c.Marshal()
 			require.JSONEq(t, `
 				{
 					"command": "config-write",
 					"service": ["dhcp6"]
 				}
-			`, c.Marshal())
+			`, string(commandBytes))
 		}
 	}
 
@@ -2205,10 +2195,10 @@ func TestUpdateSharedNetworkBeginCancel(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err := server1.GetKea()
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -2216,15 +2206,15 @@ func TestUpdateSharedNetworkBeginCancel(t *testing.T) {
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err = server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	dbapps, err := dbmodel.GetAllApps(db, true)
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, dbapps, 2)
+	require.Len(t, daemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
 	require.NoError(t, err)
@@ -2351,10 +2341,10 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err := server1.GetKea()
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -2362,15 +2352,15 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	err = server2.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err = server2.GetKea()
+	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	dbapps, err := dbmodel.GetAllApps(db, true)
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, dbapps, 2)
+	require.Len(t, daemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
 	require.NoError(t, err)
@@ -2417,6 +2407,7 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	require.Len(t, fa.RecordedCommands, 4)
 
 	for i, c := range fa.RecordedCommands {
+		commandBytes, _ := c.Marshal()
 		switch {
 		case i < 2:
 			require.JSONEq(t, `{
@@ -2426,12 +2417,12 @@ func TestDeleteSharedNetwork(t *testing.T) {
 					"name": "foo",
 					"subnets-action": "delete"
 				}
-		}`, c.Marshal())
+		}`, string(commandBytes))
 		default:
 			require.JSONEq(t, `{
 				"command": "config-write",
 				"service": ["dhcp4"]
-			}`, c.Marshal())
+			}`, string(commandBytes))
 		}
 	}
 	returnedSharedNetwork, err := dbmodel.GetSharedNetwork(db, sharedNetworks[0].ID)
@@ -2477,15 +2468,15 @@ func TestDeleteSharedNetworkError(t *testing.T) {
 	err = server1.Configure(serverConfig)
 	require.NoError(t, err)
 
-	app, err := server1.GetKea()
+	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitAppIntoDB(db, app, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	dbapps, err := dbmodel.GetAllApps(db, true)
+	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, dbapps, 1)
+	require.Len(t, daemons, 1)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
 	require.NoError(t, err)
@@ -2540,6 +2531,6 @@ func TestDeleteSharedNetworkError(t *testing.T) {
 		require.IsType(t, &dhcp.DeleteSharedNetworkDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.DeleteSharedNetworkDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with deleting a shared network: network4-del command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", app.GetName()), *defaultRsp.Payload.Message)
+		require.Equal(t, fmt.Sprintf("Problem with deleting a shared network: network4-del command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", daemon1.Machine.Address), *defaultRsp.Payload.Message)
 	})
 }
