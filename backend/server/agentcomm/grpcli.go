@@ -126,17 +126,6 @@ type State struct {
 	Daemons              []*Daemon
 }
 
-// MakeAccessPoint is an utility to make an array of one access point.
-func MakeAccessPoint(tp, address, key string, port int64, protocol string) []AccessPoint {
-	return []AccessPoint{{
-		Type:     tp,
-		Address:  address,
-		Port:     port,
-		Key:      key,
-		Protocol: protocol,
-	}}
-}
-
 // An interface to the response from gRPC including a command status.
 type agentResponse interface {
 	GetStatus() *agentapi.Status
