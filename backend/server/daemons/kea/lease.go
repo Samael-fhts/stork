@@ -94,7 +94,7 @@ func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daem
 // it is returned. If the lease does not exist, a nil pointer and nil error
 // are returned.
 func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, leaseType keactrl.LeaseType, ipAddress string) (lease *dbmodel.Lease, err error) {
-	command := keactrl.NewCommandLease6Get(leaseType, ipAddress, "dhcp6")
+	command := keactrl.NewCommandLease6Get(leaseType, ipAddress, daemonname.DHCPv6)
 	var response Lease6GetResponse
 	ctx := context.Background()
 	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{command}, &response)
