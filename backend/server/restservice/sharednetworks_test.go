@@ -9,10 +9,10 @@ import (
 	"github.com/stretchr/testify/require"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
-	apps "isc.org/stork/server/apps"
-	appstest "isc.org/stork/server/apps/test"
 	"isc.org/stork/server/config"
+	"isc.org/stork/server/daemons"
 	"isc.org/stork/server/daemons/kea"
+	daemonstest "isc.org/stork/server/daemons/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbmodeltest "isc.org/stork/server/database/model/test"
 	dbtest "isc.org/stork/server/database/test"
@@ -735,9 +735,9 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetAllDaemons(db)
+	allDaemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 2)
+	require.Len(t, allDaemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
 	require.NoError(t, err)
@@ -751,7 +751,7 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1132,9 +1132,9 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetAllDaemons(db)
+	allDaemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 2)
+	require.Len(t, allDaemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
 	require.NoError(t, err)
@@ -1150,7 +1150,7 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1210,10 +1210,10 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 				Name: "foo",
 				LocalSharedNetworks: []*models.LocalSharedNetwork{
 					{
-						DaemonID: dbapps[0].Daemons[0].ID,
+						DaemonID: daemon1.ID,
 					},
 					{
-						DaemonID: dbapps[1].Daemons[0].ID,
+						DaemonID: daemon2.ID,
 					},
 				},
 			},
@@ -1256,10 +1256,10 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 				Universe: 4,
 				LocalSharedNetworks: []*models.LocalSharedNetwork{
 					{
-						DaemonID: dbapps[0].Daemons[0].ID,
+						DaemonID: daemon1.ID,
 					},
 					{
-						DaemonID: dbapps[1].Daemons[0].ID,
+						DaemonID: daemon2.ID,
 					},
 				},
 			},
@@ -1316,7 +1316,6 @@ func TestCreateSharedNetworkBeginCancel(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
 	require.NoError(t, err)
 	err = server2.Configure(serverConfig)
@@ -1328,9 +1327,9 @@ func TestCreateSharedNetworkBeginCancel(t *testing.T) {
 	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetAllDaemons(db)
+	allDaemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 2)
+	require.Len(t, allDaemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
 	require.NoError(t, err)
@@ -1344,7 +1343,7 @@ func TestCreateSharedNetworkBeginCancel(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1446,7 +1445,6 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
 	require.NoError(t, err)
 	err = server2.Configure(serverConfig)
@@ -1458,9 +1456,9 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetAllDaemons(db)
+	allDaemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 2)
+	require.Len(t, allDaemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
 	require.NoError(t, err)
@@ -1476,7 +1474,7 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -1671,6 +1669,9 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 	require.Len(t, fa.RecordedCommands, 10)
 
 	for i, c := range fa.RecordedCommands {
+		commandMarshaled, err := c.Marshal()
+		require.NoError(t, err)
+
 		switch i {
 		case 0, 4:
 			require.JSONEq(t, `
@@ -1682,7 +1683,7 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 						"subnets-action": "keep"
 					}
 				}
-				`, c.Marshal(),
+				`, string(commandMarshaled),
 			)
 		case 1, 5:
 			require.JSONEq(t, `
@@ -1746,7 +1747,7 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 						]
 					}
 				}
-			`, c.Marshal())
+			`, string(commandMarshaled))
 		case 2, 6:
 			require.JSONEq(t, `
 				{
@@ -1757,7 +1758,7 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 						"id": 1
 					}
 				}
-			`, c.Marshal())
+			`, string(commandMarshaled))
 		case 3, 7:
 			require.JSONEq(t, `
 				{
@@ -1768,16 +1769,16 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 						"id": 2
 					}
 				}
-			`, c.Marshal())
+			`, string(commandMarshaled))
 		case 8, 9:
 			require.JSONEq(t, `
 				{
 					"command": "config-write",
 					"service": ["dhcp4"]
 				}
-			`, c.Marshal())
+			`, string(commandMarshaled))
 		default:
-			require.Fail(t, fmt.Sprintf("Unexpected command %d: %s", i, c.Marshal()))
+			require.Fail(t, fmt.Sprintf("Unexpected command %d: %s", i, string(commandMarshaled)))
 		}
 	}
 
@@ -1965,7 +1966,6 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
 	require.NoError(t, err)
 	err = server2.Configure(serverConfig)
@@ -1977,9 +1977,9 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetAllDaemons(db)
+	allDaemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 2)
+	require.Len(t, allDaemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
 	require.NoError(t, err)
@@ -1995,7 +1995,7 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -2212,9 +2212,9 @@ func TestUpdateSharedNetworkBeginCancel(t *testing.T) {
 	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetAllDaemons(db)
+	allDaemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 2)
+	require.Len(t, allDaemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
 	require.NoError(t, err)
@@ -2230,7 +2230,7 @@ func TestUpdateSharedNetworkBeginCancel(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -2358,9 +2358,9 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetAllDaemons(db)
+	allDaemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 2)
+	require.Len(t, allDaemons, 2)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
 	require.NoError(t, err)
@@ -2374,7 +2374,7 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -2474,9 +2474,9 @@ func TestDeleteSharedNetworkError(t *testing.T) {
 	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetAllDaemons(db)
+	allDaemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 1)
+	require.Len(t, allDaemons, 1)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
 	require.NoError(t, err)
@@ -2486,7 +2486,7 @@ func TestDeleteSharedNetworkError(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := apps.NewManager(&appstest.ManagerAccessorsWrapper{
+	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
