@@ -27,8 +27,8 @@ import (
 func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemonConfigParams) middleware.Responder {
 	dbDaemon, err := dbmodel.GetDaemonByID(r.DB, params.ID)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get daemon with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetDaemonConfigDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -86,6 +86,16 @@ func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemon
 		}
 	}
 
+	rawConfig, err := dbDaemon.KeaDaemon.Config.GetRawConfig()
+	if err != nil {
+		msg := "Failed to get raw config"
+		log.WithError(err).Error(msg)
+		rsp := services.NewGetDaemonConfigDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
+			Message: &msg,
+		})
+		return rsp
+	}
+
 	app := dbDaemon.GetVirtualApp()
 
 	rsp := services.NewGetDaemonConfigOK().WithPayload(&models.KeaDaemonConfig{
@@ -95,7 +105,7 @@ func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemon
 		AppType:    string(app.Type),
 		DaemonName: string(dbDaemon.Name),
 		Editable:   dbDaemon.Monitored && dbDaemon.Active,
-		Config:     dbDaemon.KeaDaemon.Config,
+		Config:     rawConfig,
 		Options:    options,
 	})
 	return rsp

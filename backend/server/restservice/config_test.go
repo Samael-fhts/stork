@@ -2,6 +2,7 @@ package restservice
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"testing"
@@ -93,7 +94,9 @@ func TestGetDaemonConfigForKeaDaemonWithAssignedConfiguration(t *testing.T) {
 	require.IsType(t, &services.GetDaemonConfigOK{}, rsp)
 	okRsp := rsp.(*services.GetDaemonConfigOK)
 	require.NotEmpty(t, okRsp.Payload)
-	require.Equal(t, configDHCP4, okRsp.Payload.Config)
+	payloadConfig, err := json.Marshal(okRsp.Payload.Config)
+	require.NoError(t, err)
+	require.JSONEq(t, string(configDHCP4), string(payloadConfig))
 	require.NotZero(t, okRsp.Payload.AppID)
 	require.Equal(t, "dhcp4", okRsp.Payload.DaemonName)
 	require.Equal(t, "kea", okRsp.Payload.AppType)
@@ -108,7 +111,9 @@ func TestGetDaemonConfigForKeaDaemonWithAssignedConfiguration(t *testing.T) {
 	require.IsType(t, &services.GetDaemonConfigOK{}, rsp)
 	okRsp = rsp.(*services.GetDaemonConfigOK)
 	require.NotEmpty(t, okRsp.Payload)
-	require.Equal(t, configDHCP6, okRsp.Payload.Config)
+	payloadConfig, err = json.Marshal(okRsp.Payload.Config)
+	require.NoError(t, err)
+	require.JSONEq(t, string(configDHCP6), string(payloadConfig))
 	require.NotZero(t, okRsp.Payload.AppID)
 	require.Equal(t, "dhcp6", okRsp.Payload.DaemonName)
 	require.Equal(t, "kea", okRsp.Payload.AppType)
