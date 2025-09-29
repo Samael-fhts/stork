@@ -187,12 +187,19 @@ end
 server_dist_man_dir = "dist/server/usr/share/man/man8"
 directory server_dist_man_dir
 server_dist_man_file = File.join(server_dist_man_dir, "stork-server.8")
-file server_dist_man_file => [server_dist_man_dir, SERVER_MAN_FILE] do
-    sh "cp", "-a", SERVER_MAN_FILE, server_dist_man_file
-end
 tool_dist_man_file = File.join(server_dist_man_dir, "stork-tool.8")
-file tool_dist_man_file => [server_dist_man_dir, TOOL_MAN_FILE] do
-    sh "cp", "-a", TOOL_MAN_FILE, tool_dist_man_file
+dist_man_files_attempt_stub_file = File.join(BUILD_STUB_FILES_DIR, "man-files-dist-attempted")
+file dist_man_files_attempt_stub_file => [server_dist_man_dir] do
+    # Normally, SERVER_MAN_FILE and TOOL_MAN_FILE would be prerequisites.
+    # But we want the lack of Sphinx to not prevent installation, so call "build:doc:man" inside an if statement.
+    if File.exist? SPHINX_BUILD_FAILED_STUB_FILE
+        puts "Building of manuals not possible, continuing without."
+    else
+        Rake::Task["build:doc:man"].invoke
+        sh "cp", "-a", SERVER_MAN_FILE, server_dist_man_file
+        sh "cp", "-a", TOOL_MAN_FILE, tool_dist_man_file
+    end
+    sh "touch", dist_man_files_attempt_stub_file
 end
 
 server_dist_system_dir = "dist/server/lib/systemd/system/"
@@ -239,14 +246,39 @@ file server_nginx_example_file => ["etc/nginx-stork.conf", server_examples_dir] 
 end
 
 server_www_dir = "dist/server/usr/share/stork/www"
-file server_www_dir => [WEBUI_DIST_DIRECTORY, WEBUI_DIST_ARM_DIRECTORY] do
+file server_www_dir => [WEBUI_DIST_DIRECTORY] do
+    # Normally, WEBUI_DIST_ARM_DIRECTORY would be a prerequisite.
+    # But we want the lack of Sphinx to not prevent this task, so call "build:doc:user" inside an if statement.
+    if File.exist? SPHINX_BUILD_FAILED_STUB_FILE
+        puts "Building of ARM not possible, continuing without."
+
+        assets_arm_dir = File.join(server_www_dir, "assets", "arm")
+        redirect_html = <<~HTML
+            <!DOCTYPE html>
+            <html lang="en">
+                <head>
+                <meta charset="UTF-8" />
+                    <meta http-equiv="refresh" content="0; url=https://stork.readthedocs.io/en/v#{STORK_VERSION}/" />
+                    <title>Redirecting...</title>
+                </head>
+            </html>
+        HTML
+        redirect_html = redirect_html.tr("\n", "").squeeze(" ") # Minify.
+
+        sh "mkdir", "-p", assets_arm_dir
+        File.open(File.join(assets_arm_dir, "index.html"), "w") do |file|
+            file.write(redirect_html)
+        end
+    else
+        Rake::Task["build:doc:user"].invoke
+    end
     sh "mkdir", "-p", server_www_dir
     sh "cp", "-a", *FileList[File.join(WEBUI_DIST_DIRECTORY, "*")], server_www_dir
     sh "touch", "-c", server_www_dir
 end
 
 server_dist_dir_tool_part = [tool_dist_bin_file]
-server_dist_dir_man_part = [tool_dist_man_file, server_dist_man_file]
+server_dist_dir_man_part = [dist_man_files_attempt_stub_file]
 server_dist_dir_server_part = [server_dist_bin_file, server_dist_system_service_file, server_dist_etc_dir]
 server_dist_dir_webui_part = [server_nginx_example_file, server_grafana_examples_dir, server_www_dir]
 

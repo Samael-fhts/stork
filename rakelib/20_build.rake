@@ -374,7 +374,15 @@ namespace :build do
     task :tool => [TOOL_BINARY_FILE]
 
     desc "Build Web UI (production mode)"
-    task :ui => [WEBUI_DIST_DIRECTORY, WEBUI_DIST_ARM_DIRECTORY]
+    task :ui => [WEBUI_DIST_DIRECTORY] do
+        # Normally, WEBUI_DIST_ARM_DIRECTORY would be a prerequisite.
+        # But we want the lack of Sphinx to not prevent this task, so call "build:doc:user" inside an if statement.
+        if File.exist? SPHINX_BUILD_FAILED_STUB_FILE
+            puts "Building of manuals not possible, continuing without."
+        else
+            Rake::Task["build:doc:user"].invoke
+        end
+    end
 
     desc "Build Stork Backend (Server, Agent, Tool)"
     task :backend => [:server, :agent, :tool]
@@ -384,7 +392,15 @@ namespace :build do
 end
 
 desc "Build all Stork components (Server, Agent, Tool, UI, doc)"
-task :build => ["build:backend", "build:doc", "build:ui"]
+task :build => ["build:backend", "build:ui"] do
+    # Normally, "build:doc" would be a prerequisite.
+    # But we want the lack of Sphinx to not prevent this task, so call it inside an if statement.
+    if File.exist? SPHINX_BUILD_FAILED_STUB_FILE
+        puts "Building of manuals not possible, continuing without."
+    else
+        Rake::Task["build:doc"].invoke
+    end
+end
 
 
 ## Rebuild

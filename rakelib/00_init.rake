@@ -654,6 +654,7 @@ ruby_tools_bin_bundle_dir = File.join(ruby_tools_dir, "bin_bundle")
 directory ruby_tools_bin_bundle_dir
 
 # Automatically created directories by tools
+BUILD_STUB_FILES_DIR = ".build"
 ruby_tools_gems_dir = File.join(ruby_tools_dir, "gems")
 gobin = File.join(go_tools_dir, "go", "bin")
 python_tools_dir = File.join(tools_dir, "python")
@@ -1032,12 +1033,17 @@ file PIP => [PYTHON] do
     sh PIP, "--version"
 end
 
+directory BUILD_STUB_FILES_DIR
 SPHINX_BUILD = File.join(python_tools_dir, "bin", "sphinx-build")
+SPHINX_BUILD_FAILED_STUB_FILE = File.join(BUILD_STUB_FILES_DIR, "sphinx-build-failed")
 sphinx_requirements_file = File.expand_path("init_deps/sphinx.txt", __dir__)
-file SPHINX_BUILD => [PIP] do
+file SPHINX_BUILD => [BUILD_STUB_FILES_DIR, PIP] do
     sh PIP, "install", "--prefer-binary", "-r", sphinx_requirements_file
     sh "touch", "-c", SPHINX_BUILD
     sh SPHINX_BUILD, "--version"
+rescue RuntimeError => e
+    puts e.message
+    sh "touch", SPHINX_BUILD_FAILED_STUB_FILE
 end
 add_hash_guard(SPHINX_BUILD, sphinx_requirements_file)
 
