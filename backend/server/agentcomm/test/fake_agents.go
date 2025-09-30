@@ -104,8 +104,9 @@ func (fa *FakeAgents) GetState(ctx context.Context, machine dbmodel.MachineTag) 
 	}
 
 	state := agentcomm.State{
-		Cpus:   1,
-		Memory: 4,
+		Cpus:         1,
+		Memory:       4,
+		AgentVersion: "2.3.0",
 	}
 	return &state, nil
 }

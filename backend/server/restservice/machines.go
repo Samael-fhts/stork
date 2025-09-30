@@ -274,7 +274,7 @@ func (r *RestAPI) GetMachineState(ctx context.Context, params services.GetMachin
 	dbMachine, err := dbmodel.GetMachineByID(r.DB, params.ID)
 	if err != nil {
 		msg := fmt.Sprintf("Cannot get machine with ID %d from db", params.ID)
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetMachineStateDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -743,7 +743,7 @@ func (r *RestAPI) PingMachine(ctx context.Context, params services.PingMachinePa
 	dbMachine, err := dbmodel.GetMachineByIDWithRelations(r.DB, params.ID)
 	if err != nil {
 		msg := fmt.Sprintf("Cannot get machine with ID %d from db", params.ID)
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := services.NewPingMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -782,7 +782,7 @@ func (r *RestAPI) PingMachine(ctx context.Context, params services.PingMachinePa
 	err = r.Agents.Ping(ctx2, dbMachine)
 	if err != nil {
 		msg := "Cannot ping machine"
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := services.NewPingMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -833,8 +833,8 @@ func (r *RestAPI) UpdateMachine(ctx context.Context, params services.UpdateMachi
 
 	dbMachine, err := dbmodel.GetMachineByID(r.DB, params.ID)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get machine with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewUpdateMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -880,7 +880,7 @@ func (r *RestAPI) UpdateMachine(ctx context.Context, params services.UpdateMachi
 	dbMachine.Authorized = params.Machine.Authorized
 	_, err = r.DB.Model(dbMachine).WherePK().Update()
 	if err != nil {
-		log.Errorf("Cannot update machine: %s", err)
+		log.WithError(err).Error("Cannot update machine")
 		msg := fmt.Sprintf("Cannot update machine with ID %d in db", params.ID)
 		rsp := services.NewUpdateMachineDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
@@ -921,8 +921,8 @@ func (r *RestAPI) GetMachinesServerToken(ctx context.Context, params services.Ge
 	// get server token from database
 	dbServerToken, err := dbmodel.GetSecret(r.DB, dbmodel.SecretServerToken)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot retrieve server token from database"
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetMachinesServerTokenDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -1543,12 +1543,14 @@ func (r *RestAPI) GetAppsWithCommunicationIssues(ctx context.Context, params ser
 		// Convert the apps to the REST API format.
 		app := r.appToRestAPI(dbDaemons)
 		// Is it a BIND9 daemon?
-		daemon := app.Details.Daemon
+		bind9Daemon := app.Details.Daemon
 		// Append the app to the list if there is any kind of communication issue.
-		if daemon != nil && daemon.Monitored && (daemon.AgentCommErrors > 0 || daemon.RndcCommErrors > 0 || daemon.StatsCommErrors > 0) {
+		if bind9Daemon != nil && bind9Daemon.Monitored && (bind9Daemon.AgentCommErrors > 0 || bind9Daemon.RndcCommErrors > 0 || bind9Daemon.StatsCommErrors > 0) {
 			apps = append(apps, app)
 			continue
 		}
+		// TODO: Handle PowerDNS (PDNS) daemon.
+
 		// Apparently these are Kea daemons.
 		for _, daemon := range app.Details.Daemons {
 			// Append the app to the list if there is any kind of communication issue.

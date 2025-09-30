@@ -122,6 +122,7 @@ func mockGetAppsState(callNo int, cmdResponses []interface{}) {
 		*versionResponse = kea.VersionGetResponse{
 			ResponseHeader: keactrl.ResponseHeader{
 				Result: 0,
+				Text:   "2.3.0",
 			},
 			Arguments: &kea.VersionGetRespArgs{
 				Extended: "Extended version",
@@ -149,6 +150,7 @@ func mockGetAppsState(callNo int, cmdResponses []interface{}) {
 		*versionResponse = kea.VersionGetResponse{
 			ResponseHeader: keactrl.ResponseHeader{
 				Result: 0,
+				Text:   "2.3.0",
 			},
 			Arguments: &kea.VersionGetRespArgs{
 				Extended: "Extended version",
@@ -233,6 +235,7 @@ func TestGetMachineAndDaemonsState(t *testing.T) {
 	require.NoError(t, err)
 
 	fa.MachineState = &agentcomm.State{
+		AgentVersion: "2.3.0",
 		Daemons: []*agentcomm.Daemon{
 			{
 				Name: daemonname.CA,
@@ -288,9 +291,10 @@ func TestGetMachineAndPowerDNSState(t *testing.T) {
 
 	// Add PowerDNS daemon to db.
 	accessPoint := &dbmodel.AccessPoint{
-		Type:    dbmodel.AccessPointControl,
-		Address: "1.2.3.4",
-		Port:    123,
+		Type:     dbmodel.AccessPointControl,
+		Address:  "1.2.3.4",
+		Port:     124,
+		Protocol: "http",
 	}
 	pdnsDaemon := dbmodel.NewDaemon(machine, daemonname.PDNS, true, []*dbmodel.AccessPoint{accessPoint})
 	pdnsDaemon.Pid = 123
@@ -316,6 +320,7 @@ func TestGetMachineAndPowerDNSState(t *testing.T) {
 	mockAgents.EXPECT().GetState(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, machineTag dbmodel.MachineTag) (*agentcomm.State, error) {
 		require.EqualValues(t, machine.ID, machineTag.GetID())
 		return &agentcomm.State{
+			AgentVersion: "2.3.0",
 			Daemons: []*agentcomm.Daemon{
 				{
 					Name: daemonname.PDNS,
@@ -368,19 +373,19 @@ func TestGetMachineAndPowerDNSState(t *testing.T) {
 	require.Len(t, returnedApp.AccessPoints, 1)
 	require.EqualValues(t, 124, returnedApp.AccessPoints[0].Port)
 
-	dbDaemon := returnedApp.Details.PdnsDaemon
-	require.NotNil(t, dbDaemon)
-	require.Equal(t, string(pdnsDaemon.Name), dbDaemon.Name)
-	require.Equal(t, "4.7.0", dbDaemon.Version)
-	require.EqualValues(t, 1234, dbDaemon.Uptime)
-	require.Equal(t, "http://127.0.0.1:8081", dbDaemon.URL)
-	require.Equal(t, "http://127.0.0.1:8081/config", dbDaemon.ConfigURL)
-	require.Equal(t, "http://127.0.0.1:8081/zones", dbDaemon.ZonesURL)
-	require.Equal(t, "http://127.0.0.1:8081/autoprimaries", dbDaemon.AutoprimariesURL)
+	apiDaemon := returnedApp.Details.PdnsDaemon
+	require.NotNil(t, apiDaemon)
+	require.Equal(t, string(pdnsDaemon.Name), apiDaemon.Name)
+	require.Equal(t, "4.7.0", apiDaemon.Version)
+	require.EqualValues(t, 1234, apiDaemon.Uptime)
+	require.Equal(t, "http://127.0.0.1:8081", apiDaemon.URL)
+	require.Equal(t, "http://127.0.0.1:8081/config", apiDaemon.ConfigURL)
+	require.Equal(t, "http://127.0.0.1:8081/zones", apiDaemon.ZonesURL)
+	require.Equal(t, "http://127.0.0.1:8081/autoprimaries", apiDaemon.AutoprimariesURL)
 
 	updatedDaemon, err := dbmodel.GetDaemonByID(db, pdnsDaemon.ID)
 	require.NoError(t, err)
-	require.Equal(t, dbDaemon.Name, updatedDaemon.Name)
+	require.EqualValues(t, apiDaemon.Name, updatedDaemon.Name)
 	require.Equal(t, "4.7.0", updatedDaemon.Version)
 	require.Equal(t, "4.7.0", updatedDaemon.ExtendedVersion)
 	require.EqualValues(t, 1234, updatedDaemon.Uptime)
@@ -1318,7 +1323,7 @@ func TestGetApp(t *testing.T) {
 	require.IsType(t, &services.GetAppDefault{}, rsp)
 	defaultRsp := rsp.(*services.GetAppDefault)
 	require.Equal(t, http.StatusNotFound, getStatusCode(*defaultRsp))
-	require.Equal(t, "Cannot find app with ID 123", *defaultRsp.Payload.Message)
+	require.Equal(t, "App with ID 123 not found", *defaultRsp.Payload.Message)
 
 	// add machine
 	m := &dbmodel.Machine{
@@ -1369,7 +1374,7 @@ func TestRestGetApp(t *testing.T) {
 	require.IsType(t, &services.GetAppDefault{}, rsp)
 	defaultRsp := rsp.(*services.GetAppDefault)
 	require.Equal(t, http.StatusNotFound, getStatusCode(*defaultRsp))
-	require.Equal(t, "Cannot find app with ID 123", *defaultRsp.Payload.Message)
+	require.Equal(t, "App with ID 123 not found", *defaultRsp.Payload.Message)
 
 	// add machine
 	m := &dbmodel.Machine{
@@ -1594,7 +1599,7 @@ func TestRestGetApps(t *testing.T) {
 		for _, app := range okRsp.Payload.Items {
 			switch app.Type {
 			case string(dbmodel.VirtualAppTypeKea):
-				require.Equal(t, "fancy-app", app.Name)
+				require.Equal(t, "kea@localhost%682820814", app.Name)
 				appKea := app.Details.AppKea
 				require.Len(t, appKea.Daemons, 1)
 				daemon := appKea.Daemons[0]
@@ -1613,7 +1618,7 @@ func TestRestGetApps(t *testing.T) {
 				require.EqualValues(t, 2, daemon.RndcCommErrors)
 				require.EqualValues(t, 3, daemon.StatsCommErrors)
 			case string(dbmodel.VirtualAppTypePDNS):
-				require.Equal(t, "pdns@localhost", app.Name)
+				require.Equal(t, "pdns@localhost%683410636", app.Name)
 				appPdns := app.Details.AppPdns
 				require.Equal(t, "https://pdns.example.com", appPdns.PdnsDaemon.URL)
 				require.Equal(t, "https://pdns.example.com/config", appPdns.PdnsDaemon.ConfigURL)
@@ -1632,7 +1637,7 @@ func TestRestGetApps(t *testing.T) {
 		okRsp = rsp.(*services.GetAppsOK)
 		require.EqualValues(t, 1, okRsp.Payload.Total)
 		require.EqualValues(t, string(dbmodel.VirtualAppTypeKea), okRsp.Payload.Items[0].Type)
-		require.EqualValues(t, "fancy-app", okRsp.Payload.Items[0].Name)
+		require.EqualValues(t, "kea@localhost%682820814", okRsp.Payload.Items[0].Name)
 	})
 
 	t.Run("get bind9 apps", func(t *testing.T) {
@@ -1644,7 +1649,7 @@ func TestRestGetApps(t *testing.T) {
 		okRsp = rsp.(*services.GetAppsOK)
 		require.EqualValues(t, 1, okRsp.Payload.Total)
 		require.EqualValues(t, string(dbmodel.VirtualAppTypeBind9), okRsp.Payload.Items[0].Type)
-		require.EqualValues(t, "another-fancy-app", okRsp.Payload.Items[0].Name)
+		require.EqualValues(t, "bind9@localhost%683476174", okRsp.Payload.Items[0].Name)
 	})
 
 	t.Run("get pdns apps", func(t *testing.T) {
@@ -1656,7 +1661,7 @@ func TestRestGetApps(t *testing.T) {
 		okRsp = rsp.(*services.GetAppsOK)
 		require.EqualValues(t, 1, okRsp.Payload.Total)
 		require.EqualValues(t, string(dbmodel.VirtualAppTypePDNS), okRsp.Payload.Items[0].Type)
-		require.EqualValues(t, "pdns@localhost", okRsp.Payload.Items[0].Name)
+		require.EqualValues(t, "pdns@localhost%683410636", okRsp.Payload.Items[0].Name)
 	})
 
 	t.Run("get apps with multiple types", func(t *testing.T) {
@@ -1670,9 +1675,9 @@ func TestRestGetApps(t *testing.T) {
 		for _, app := range okRsp.Payload.Items {
 			switch app.Type {
 			case string(dbmodel.VirtualAppTypeKea):
-				require.Equal(t, "fancy-app", app.Name)
+				require.Equal(t, "kea@localhost%682820814", app.Name)
 			case string(dbmodel.VirtualAppTypeBind9):
-				require.Equal(t, "another-fancy-app", app.Name)
+				require.Equal(t, "bind9@localhost%683476174", app.Name)
 			}
 		}
 	})
@@ -1938,7 +1943,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "kea1", apps.Items[0].Name)
+		require.Equal(t, "kea@localhost%682820814", apps.Items[0].Name)
 	})
 
 	t.Run("ca errors", func(t *testing.T) {
@@ -1960,7 +1965,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "kea1", apps.Items[0].Name)
+		require.Equal(t, "kea@localhost%682820814", apps.Items[0].Name)
 	})
 
 	t.Run("kea daemon errors", func(t *testing.T) {
@@ -1999,7 +2004,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "bind9", apps.Items[0].Name)
+		require.Equal(t, "bind9@localhost%684131542", apps.Items[0].Name)
 	})
 
 	t.Run("rndc errors", func(t *testing.T) {
@@ -2021,7 +2026,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "bind9", apps.Items[0].Name)
+		require.Equal(t, "bind9@localhost%684131542", apps.Items[0].Name)
 	})
 
 	t.Run("stats errors", func(t *testing.T) {
@@ -2043,7 +2048,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "bind9", apps.Items[0].Name)
+		require.Equal(t, "bind9@localhost%684131542", apps.Items[0].Name)
 	})
 }
 
@@ -3401,7 +3406,7 @@ func TestGetAccessPointKey(t *testing.T) {
 
 	machine := &dbmodel.Machine{Address: "localhost", AgentPort: 8080}
 	_ = dbmodel.AddMachine(db, machine)
-	
+
 	accessPoint := &dbmodel.AccessPoint{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",

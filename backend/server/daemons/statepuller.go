@@ -200,8 +200,9 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 		dbMachine.Error = "Cannot get state of machine"
 		err = dbmodel.UpdateMachine(db, dbMachine)
 		if err != nil {
-			log.Error(err)
-			return "Problem updating record in database"
+			msg := "Problem updating record in database"
+			log.WithError(err).Error(msg)
+			return msg
 		}
 		return ""
 	}

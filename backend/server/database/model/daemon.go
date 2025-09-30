@@ -652,6 +652,16 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 		} else if result.RowsAffected() <= 0 {
 			return pkgerrors.Wrapf(ErrNotExists, "BIND 9 daemon with ID %d does not exist", daemon.Bind9Daemon.ID)
 		}
+	} else if daemon.PDNSDaemon != nil && daemon.PDNSDaemon.ID != 0 {
+		// This is PowerDNS daemon. Update the PowerDNS specific table.
+		daemon.PDNSDaemon.DaemonID = daemon.ID
+		result, err := dbi.Model(daemon.PDNSDaemon).WherePK().Update()
+		if err != nil {
+			return pkgerrors.Wrapf(err, "problem updating PowerDNS-specific information for daemon %d",
+				daemon.ID)
+		} else if result.RowsAffected() <= 0 {
+			return pkgerrors.Wrapf(ErrNotExists, "PowerDNS daemon with ID %d does not exist", daemon.PDNSDaemon.ID)
+		}
 	}
 
 	// Update the access points.
