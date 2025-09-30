@@ -221,6 +221,36 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, daemon *dbmodel.Dae
 	return leases, warns, nil
 }
 
+// Sends lease4-get-by-hw-address command to Kea.
+func GetLeases4ByHWAddress(agents agentcomm.ConnectedAgents, dbDaemon *dbmodel.Daemon, hwAddress string) (leases []dbmodel.Lease, err error) {
+	leases, _, err = getLeasesByProperties(agents, dbDaemon, hwAddress, "lease4-get-by-hw-address")
+	return leases, err
+}
+
+// Sends lease4-get-by-client-id command to Kea.
+func GetLeases4ByClientID(agents agentcomm.ConnectedAgents, dbDaemon *dbmodel.Daemon, clientID string) (leases []dbmodel.Lease, err error) {
+	leases, _, err = getLeasesByProperties(agents, dbDaemon, clientID, "lease4-get-by-client-id")
+	return leases, err
+}
+
+// Sends lease4-get-by-hostname command to Kea.
+func GetLeases4ByHostname(agents agentcomm.ConnectedAgents, dbDaemon *dbmodel.Daemon, hostname string) (leases []dbmodel.Lease, err error) {
+	leases, _, err = getLeasesByProperties(agents, dbDaemon, hostname, "lease4-get-by-hostname")
+	return leases, err
+}
+
+// Sends lease6-get-by-duid command to Kea.
+func GetLeases6ByDUID(agents agentcomm.ConnectedAgents, dbDaemon *dbmodel.Daemon, duid string) (leases []dbmodel.Lease, err error) {
+	leases, _, err = getLeasesByProperties(agents, dbDaemon, duid, "lease6-get-by-duid")
+	return leases, err
+}
+
+// Sends lease6-get-by-hostname command to Kea.
+func GetLeases6ByHostname(agents agentcomm.ConnectedAgents, dbDaemon *dbmodel.Daemon, hostname string) (leases []dbmodel.Lease, err error) {
+	leases, _, err = getLeasesByProperties(agents, dbDaemon, hostname, "lease6-get-by-hostname")
+	return leases, err
+}
+
 // Convenience function checking if a given daemon has the libdhcp_lease_cmds
 // hooks library configured.
 func hasLeaseCmdsHook(daemon *dbmodel.Daemon) bool {

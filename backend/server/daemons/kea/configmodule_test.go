@@ -150,7 +150,7 @@ func TestBeginGlobalParametersUpdate(t *testing.T) {
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
 	require.Len(t, state.Updates, 1)
-	require.Equal(t, config.OperationKeaGlobalParametersUpdate, state.Updates[0].Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaGlobalParametersUpdate, state.Updates[0].Operation)
 
 	storedDaemons := state.Updates[0].Recipe.KeaDaemonsBeforeConfigUpdate
 	require.Len(t, storedDaemons, 2)
@@ -212,7 +212,7 @@ func TestApplyGlobalParametersUpdate(t *testing.T) {
 	daemonIDs := []int64{1, 2}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaGlobalParametersUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaGlobalParametersUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		GlobalConfigRecipeParams: GlobalConfigRecipeParams{
 			KeaDaemonsBeforeConfigUpdate: daemons,
@@ -242,7 +242,7 @@ func TestApplyGlobalParametersUpdate(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaGlobalParametersUpdate, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaGlobalParametersUpdate, update.Operation)
 	require.NotNil(t, update.Recipe)
 	require.Len(t, update.Recipe.KeaDaemonsBeforeConfigUpdate, 2)
 	require.Len(t, update.Recipe.KeaDaemonsAfterConfigUpdate, 2)
@@ -329,7 +329,7 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 	daemonIDs := []int64{daemons[0].ID, daemons[1].ID}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaGlobalParametersUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaGlobalParametersUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		GlobalConfigRecipeParams: GlobalConfigRecipeParams{
 			KeaDaemonsBeforeConfigUpdate: daemons,
@@ -424,7 +424,7 @@ func TestBeginHostAdd(t *testing.T) {
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
 	require.Len(t, state.Updates, 1)
-	require.Equal(t, config.OperationKeaHostAdd, state.Updates[0].Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaHostAdd, state.Updates[0].Operation)
 }
 
 // Test second stage of adding a new host.
@@ -437,7 +437,7 @@ func TestApplyHostAdd(t *testing.T) {
 
 	// Transaction state is required because typically it is created by the
 	// BeginHostAdd function.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostAdd)
 	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
 
 	// Simulate submitting new host entry. The host is associated with
@@ -492,7 +492,7 @@ func TestApplyHostAdd(t *testing.T) {
 	update := returnedState.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaHostAdd, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaHostAdd, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be two commands ready to send.
@@ -564,7 +564,7 @@ func TestCommitHostAdd(t *testing.T) {
 
 	// Transaction state is required because typically it is created by the
 	// BeginHostAdd function.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostAdd)
 	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
 
 	// Create new host reservation and store it in the context.
@@ -676,7 +676,7 @@ func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 
 	// Transaction state is required because typically it is created by the
 	// BeginHostAdd function.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostAdd)
 	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
 
 	// Create new host reservation and store it in the context.
@@ -761,7 +761,7 @@ func TestBeginHostUpdate(t *testing.T) {
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
 	require.Len(t, state.Updates, 1)
-	require.Equal(t, config.OperationKeaHostUpdate, state.Updates[0].Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaHostUpdate, state.Updates[0].Operation)
 	require.NotNil(t, state.Updates[0].Recipe.HostBeforeUpdate)
 }
 
@@ -845,7 +845,7 @@ func TestApplyHostUpdate(t *testing.T) {
 	daemonIDs := []int64{1}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		HostConfigRecipeParams: HostConfigRecipeParams{
 			HostBeforeUpdate: host,
@@ -936,7 +936,7 @@ func TestApplyHostUpdate(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaHostUpdate, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaHostUpdate, update.Operation)
 	require.NotNil(t, update.Recipe)
 	require.NotNil(t, update.Recipe.HostBeforeUpdate)
 
@@ -1060,7 +1060,7 @@ func TestCommitHostUpdate(t *testing.T) {
 	daemonIDs := []int64{1}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		HostConfigRecipeParams: HostConfigRecipeParams{
 			HostBeforeUpdate: host,
@@ -1214,7 +1214,7 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 	daemonIDs := []int64{1}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		HostConfigRecipeParams: HostConfigRecipeParams{
 			HostBeforeUpdate: host,
@@ -1306,7 +1306,7 @@ func TestApplyHostDelete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaHostDelete, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaHostDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be two commands ready to send.
@@ -1430,7 +1430,7 @@ func TestBeginSharedNetworkAdd(t *testing.T) {
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
 	require.Len(t, state.Updates, 1)
-	require.Equal(t, config.OperationKeaSharedNetworkAdd, state.Updates[0].Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSharedNetworkAdd, state.Updates[0].Operation)
 }
 
 // Test second stage of adding a shared network.
@@ -1447,7 +1447,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 
 	// Transaction state is required because typically it is created by the
 	// BeginSharedNetworkAdd function.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSharedNetworkAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkAdd)
 	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
 
 	// New shared network entry.
@@ -1576,7 +1576,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaSharedNetworkAdd, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSharedNetworkAdd, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be seven commands ready to send.
@@ -1686,7 +1686,7 @@ func TestCommitSharedNetworkAdd(t *testing.T) {
 
 	// Transaction state is required because typically it is created by the
 	// BeginSharedNetworkAdd function.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSharedNetworkAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkAdd)
 	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
 
 	// New shared network entry.
@@ -1932,7 +1932,7 @@ func TestBeginSharedNetworkUpdate(t *testing.T) {
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
 	require.Len(t, state.Updates, 1)
-	require.Equal(t, config.OperationKeaSharedNetworkUpdate, state.Updates[0].Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSharedNetworkUpdate, state.Updates[0].Operation)
 	require.NotNil(t, state.Updates[0].Recipe.SharedNetworkBeforeUpdate)
 	require.Equal(t, "foo", state.Updates[0].Recipe.SharedNetworkBeforeUpdate.Name)
 	require.Len(t, state.Updates[0].Recipe.SharedNetworkBeforeUpdate.LocalSharedNetworks, 2)
@@ -2069,7 +2069,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 	daemonIDs := []int64{1, 2}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSharedNetworkUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		SharedNetworkConfigRecipeParams: SharedNetworkConfigRecipeParams{
 			SharedNetworkBeforeUpdate: sharedNetwork,
@@ -2251,7 +2251,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaSharedNetworkUpdate, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSharedNetworkUpdate, update.Operation)
 	require.NotNil(t, update.Recipe)
 	require.NotNil(t, update.Recipe.SharedNetworkBeforeUpdate)
 
@@ -2402,7 +2402,7 @@ func TestCommitSharedNetworkUpdate(t *testing.T) {
 	daemonIDs := []int64{daemons[0].ID, daemons[1].ID}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSharedNetworkUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		SharedNetworkConfigRecipeParams: SharedNetworkConfigRecipeParams{
 			SharedNetworkBeforeUpdate: &sharedNetworks[0],
@@ -2565,7 +2565,7 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	daemonIDs := []int64{daemons[0].ID}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSharedNetworkUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		SharedNetworkConfigRecipeParams: SharedNetworkConfigRecipeParams{
 			SharedNetworkBeforeUpdate: &sharedNetworks[0],
@@ -2677,7 +2677,7 @@ func TestApplySharedNetwork4Delete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaSharedNetworkDelete, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSharedNetworkDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be four commands ready to send.
@@ -2793,7 +2793,7 @@ func TestApplySharedNetwork6Delete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaSharedNetworkDelete, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSharedNetworkDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be two commands ready to send.
@@ -2967,7 +2967,7 @@ func TestBeginSubnetAdd(t *testing.T) {
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
 	require.Len(t, state.Updates, 1)
-	require.Equal(t, config.OperationKeaSubnetAdd, state.Updates[0].Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSubnetAdd, state.Updates[0].Operation)
 }
 
 // Test second stage of subnet creation.
@@ -2984,7 +2984,7 @@ func TestApplySubnetAdd(t *testing.T) {
 
 	// Transaction state is required because typically it is created by the
 	// BeginSubnetAdd function.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSubnetAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetAdd)
 	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
 
 	// Simulate creating new subnet entry.
@@ -3044,7 +3044,7 @@ func TestApplySubnetAdd(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaSubnetAdd, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSubnetAdd, update.Operation)
 	require.NotNil(t, update.Recipe)
 	require.Nil(t, update.Recipe.SubnetBeforeUpdate)
 
@@ -3178,7 +3178,7 @@ func TestCommitSubnetAdd(t *testing.T) {
 
 	// Transaction state is required because typically it is created by the
 	// BeginSubnetAdd function.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSubnetAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetAdd)
 	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
 
 	ctx, err = module.ApplySubnetAdd(ctx, &subnet)
@@ -3338,7 +3338,7 @@ func TestBeginSubnetUpdate(t *testing.T) {
 	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
 	require.Len(t, state.Updates, 1)
-	require.Equal(t, config.OperationKeaSubnetUpdate, state.Updates[0].Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSubnetUpdate, state.Updates[0].Operation)
 	require.NotNil(t, state.Updates[0].Recipe.SubnetBeforeUpdate)
 	require.NotNil(t, state.Updates[0].Recipe.SubnetBeforeUpdate.SharedNetwork)
 	require.Equal(t, "foo", state.Updates[0].Recipe.SubnetBeforeUpdate.SharedNetwork.Name)
@@ -3425,7 +3425,7 @@ func TestApplySubnetUpdate(t *testing.T) {
 	daemonIDs := []int64{1, 2}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSubnetUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		SubnetConfigRecipeParams: SubnetConfigRecipeParams{
 			SubnetBeforeUpdate: subnet,
@@ -3512,7 +3512,7 @@ func TestApplySubnetUpdate(t *testing.T) {
 	update := stateReturned.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaSubnetUpdate, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSubnetUpdate, update.Operation)
 	require.NotNil(t, update.Recipe)
 	require.NotNil(t, update.Recipe.SubnetBeforeUpdate)
 
@@ -3658,7 +3658,7 @@ func TestCommitSubnetUpdate(t *testing.T) {
 	daemonIDs := []int64{daemons[0].ID, daemons[1].ID}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSubnetUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		SubnetConfigRecipeParams: SubnetConfigRecipeParams{
 			SubnetBeforeUpdate: &subnets[0],
@@ -3803,7 +3803,7 @@ func TestCommitSubnetUpdateResponseWithErrorStatus(t *testing.T) {
 	daemonIDs := []int64{daemons[0].ID}
 	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
 
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSubnetUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetUpdate, daemonIDs...)
 	recipe := ConfigRecipe{
 		SubnetConfigRecipeParams: SubnetConfigRecipeParams{
 			SubnetBeforeUpdate: &subnets[0],
@@ -3903,7 +3903,7 @@ func TestApplySubnet4Delete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaSubnetDelete, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSubnetDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be six commands ready to send.
@@ -4031,7 +4031,7 @@ func TestApplySubnet6Delete(t *testing.T) {
 	update := state.Updates[0]
 
 	// Basic validation of the retrieved state.
-	require.Equal(t, config.OperationKeaSubnetDelete, update.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaSubnetDelete, update.Operation)
 	require.NotNil(t, update.Recipe)
 
 	// There should be six commands ready to send.

@@ -2,6 +2,7 @@ package kea
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
@@ -108,6 +109,21 @@ type ConfigModule struct {
 	manager config.ModuleManager
 }
 
+// Creates an instance of the Kea config update from the config update
+// represented in the database.
+func NewConfigUpdateFromDBModel(dbupdate *dbmodel.ConfigUpdate) *config.Update[ConfigRecipe] {
+	update := &config.Update[ConfigRecipe]{
+		Operation: dbupdate.Operation,
+		DaemonIDs: dbupdate.DaemonIDs,
+	}
+	if dbupdate.Recipe != nil {
+		if err := json.Unmarshal(*dbupdate.Recipe, &update.Recipe); err != nil {
+			return nil
+		}
+	}
+	return update
+}
+
 // Creates new instance of the Kea configuration module.
 func NewConfigModule(manager config.ModuleManager) *ConfigModule {
 	return &ConfigModule{
@@ -124,25 +140,25 @@ func (module *ConfigModule) Commit(ctx context.Context) (context.Context, error)
 	}
 	for _, pu := range state.Updates {
 		switch pu.Operation {
-		case config.OperationKeaGlobalParametersUpdate:
+		case dbmodel.ConfigOperationKeaGlobalParametersUpdate:
 			ctx, err = module.commitGlobalParametersUpdate(ctx)
-		case config.OperationKeaHostAdd:
+		case dbmodel.ConfigOperationKeaHostAdd:
 			ctx, err = module.commitHostAdd(ctx)
-		case config.OperationKeaHostUpdate:
+		case dbmodel.ConfigOperationKeaHostUpdate:
 			ctx, err = module.commitHostUpdate(ctx)
-		case config.OperationKeaHostDelete:
+		case dbmodel.ConfigOperationKeaHostDelete:
 			ctx, err = module.commitHostDelete(ctx)
-		case config.OperationKeaSharedNetworkAdd:
+		case dbmodel.ConfigOperationKeaSharedNetworkAdd:
 			ctx, err = module.commitSharedNetworkAdd(ctx)
-		case config.OperationKeaSharedNetworkUpdate:
+		case dbmodel.ConfigOperationKeaSharedNetworkUpdate:
 			ctx, err = module.commitSharedNetworkUpdate(ctx)
-		case config.OperationKeaSharedNetworkDelete:
+		case dbmodel.ConfigOperationKeaSharedNetworkDelete:
 			ctx, err = module.commitSharedNetworkDelete(ctx)
-		case config.OperationKeaSubnetAdd:
+		case dbmodel.ConfigOperationKeaSubnetAdd:
 			ctx, err = module.commitSubnetAdd(ctx)
-		case config.OperationKeaSubnetUpdate:
+		case dbmodel.ConfigOperationKeaSubnetUpdate:
 			ctx, err = module.commitSubnetUpdate(ctx)
-		case config.OperationKeaSubnetDelete:
+		case dbmodel.ConfigOperationKeaSubnetDelete:
 			ctx, err = module.commitSubnetDelete(ctx)
 		default:
 			err = errors.Errorf("unknown operation %s when called Commit()", pu.Operation)
@@ -175,7 +191,7 @@ func (module *ConfigModule) BeginGlobalParametersUpdate(ctx context.Context, dae
 		return ctx, errors.WithStack(config.NewLockError())
 	}
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaGlobalParametersUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaGlobalParametersUpdate, daemonIDs...)
 	recipe := &ConfigRecipe{
 		GlobalConfigRecipeParams: GlobalConfigRecipeParams{
 			KeaDaemonsBeforeConfigUpdate: daemons,
@@ -279,7 +295,7 @@ func (module *ConfigModule) commitGlobalParametersUpdate(ctx context.Context) (c
 // Begins adding a new host reservation. It initializes transaction state.
 func (module *ConfigModule) BeginHostAdd(ctx context.Context) (context.Context, error) {
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostAdd)
 	ctx = context.WithValue(ctx, config.StateContextKey, *state)
 	return ctx, nil
 }
@@ -372,7 +388,7 @@ func (module *ConfigModule) BeginHostUpdate(ctx context.Context, hostID int64) (
 		return ctx, errors.Wrap(config.NewLockError(), err.Error())
 	}
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostUpdate, daemonIDs...)
 	recipe := &ConfigRecipe{
 		HostConfigRecipeParams: HostConfigRecipeParams{
 			HostBeforeUpdate: host,
@@ -525,7 +541,7 @@ func (module *ConfigModule) ApplyHostDelete(ctx context.Context, host *dbmodel.H
 	}
 	daemonIDs, _ := ctx.Value(config.DaemonsContextKey).([]int64)
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaHostDelete, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostDelete, daemonIDs...)
 	recipe := ConfigRecipe{
 		Commands: commands,
 		HostConfigRecipeParams: HostConfigRecipeParams{
@@ -631,7 +647,7 @@ func (module *ConfigModule) commitChanges(ctx context.Context) (context.Context,
 // Begins adding a new shared network. It initializes transaction state.
 func (module *ConfigModule) BeginSharedNetworkAdd(ctx context.Context) (context.Context, error) {
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSharedNetworkAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkAdd)
 	ctx = context.WithValue(ctx, config.StateContextKey, *state)
 	return ctx, nil
 }
@@ -772,7 +788,7 @@ func (module *ConfigModule) BeginSharedNetworkUpdate(ctx context.Context, shared
 		return ctx, errors.WithStack(config.NewLockError())
 	}
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSharedNetworkUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkUpdate, daemonIDs...)
 	recipe := &ConfigRecipe{
 		SharedNetworkConfigRecipeParams: SharedNetworkConfigRecipeParams{
 			SharedNetworkBeforeUpdate: sharedNetwork,
@@ -1007,7 +1023,7 @@ func (module *ConfigModule) ApplySharedNetworkDelete(ctx context.Context, shared
 	}
 	daemonIDs, _ := ctx.Value(config.DaemonsContextKey).([]int64)
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSharedNetworkDelete, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkDelete, daemonIDs...)
 	recipe := ConfigRecipe{
 		Commands: commands,
 		SharedNetworkConfigRecipeParams: SharedNetworkConfigRecipeParams{
@@ -1047,7 +1063,7 @@ func (module *ConfigModule) commitSharedNetworkDelete(ctx context.Context) (cont
 // Begins adding a new subnet. It initializes transaction state.
 func (module *ConfigModule) BeginSubnetAdd(ctx context.Context) (context.Context, error) {
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSubnetAdd)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetAdd)
 	ctx = context.WithValue(ctx, config.StateContextKey, *state)
 	return ctx, nil
 }
@@ -1216,7 +1232,7 @@ func (module *ConfigModule) BeginSubnetUpdate(ctx context.Context, subnetID int6
 		return ctx, errors.WithStack(config.NewLockError())
 	}
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSubnetUpdate, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetUpdate, daemonIDs...)
 	recipe := &ConfigRecipe{
 		SubnetConfigRecipeParams: SubnetConfigRecipeParams{
 			SubnetBeforeUpdate: subnet,
@@ -1461,7 +1477,7 @@ func (module *ConfigModule) ApplySubnetDelete(ctx context.Context, subnet *dbmod
 	}
 	daemonIDs, _ := ctx.Value(config.DaemonsContextKey).([]int64)
 	// Create transaction state.
-	state := config.NewTransactionStateWithUpdate[ConfigRecipe](config.OperationKeaSubnetDelete, daemonIDs...)
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetDelete, daemonIDs...)
 	recipe := ConfigRecipe{
 		Commands: commands,
 		SubnetConfigRecipeParams: SubnetConfigRecipeParams{

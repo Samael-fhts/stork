@@ -2,7 +2,6 @@ package config
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	"github.com/go-pg/pg/v10"
@@ -11,25 +10,6 @@ import (
 	agentcomm "isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 )
-
-type Operation string
-
-const (
-	OperationKeaHostAdd                Operation = "kea.host_add"
-	OperationKeaHostUpdate             Operation = "kea.host_update"
-	OperationKeaHostDelete             Operation = "kea.host_delete"
-	OperationKeaSharedNetworkAdd       Operation = "kea.shared_network_add"
-	OperationKeaSharedNetworkUpdate    Operation = "kea.shared_network_update"
-	OperationKeaSharedNetworkDelete    Operation = "kea.shared_network_delete"
-	OperationKeaSubnetAdd              Operation = "kea.subnet_add"
-	OperationKeaSubnetUpdate           Operation = "kea.subnet_update"
-	OperationKeaSubnetDelete           Operation = "kea.subnet_delete"
-	OperationKeaGlobalParametersUpdate Operation = "kea.global_parameters_update"
-)
-
-func (op Operation) IsKeaOperation() bool {
-	return strings.HasPrefix(string(op), "kea.")
-}
 
 var _ TransactionStateAccessor = (*TransactionState[any])(nil)
 
@@ -49,7 +29,7 @@ type TransactionStateAccessor interface {
 // app types.
 type Update[T any] struct {
 	// Type of the operation to perform, e.g. "kea.host_add".
-	Operation Operation
+	Operation dbmodel.ConfigOperation
 	// Identifiers of the daemons affected by the update. For example,
 	// a host reservation can be shared by two daemons.
 	DaemonIDs []int64
@@ -63,6 +43,9 @@ type Update[T any] struct {
 // A structure describing a single configuration change. It includes one or more
 // configuration updates.
 type TransactionState[T any] struct {
+	// A flag indicating if the state has been re-created from the information
+	// stored in the database (scheduled configuration change).
+	Scheduled bool
 	// Configuration updates belonging to the transaction.
 	Updates []*Update[T]
 }
@@ -144,6 +127,10 @@ type Manager interface {
 	Done(context.Context)
 	// Sends configuration changes to the daemons.
 	Commit(context.Context) (context.Context, error)
+	// Sends scheduled configuration changes to the daemons.
+	CommitDue() error
+	// Schedules configuration changes to apply them in the future.
+	Schedule(context.Context, time.Time) (context.Context, error)
 }
 
 // Configuration manager interface exposing functions used for getting
@@ -191,7 +178,7 @@ func (state TransactionState[T]) GetUpdates() (updates []*Update[any]) {
 }
 
 // Creates new config update instance.
-func NewUpdate[T any](operation Operation, daemonIDs ...int64) *Update[T] {
+func NewUpdate[T any](operation dbmodel.ConfigOperation, daemonIDs ...int64) *Update[T] {
 	return &Update[T]{
 		Operation: operation,
 		DaemonIDs: daemonIDs,
@@ -200,7 +187,7 @@ func NewUpdate[T any](operation Operation, daemonIDs ...int64) *Update[T] {
 
 // Creates new transaction state with one config update instance. It is
 // the most typical use case.
-func NewTransactionStateWithUpdate[T any](operation Operation, daemonIDs ...int64) *TransactionState[T] {
+func NewTransactionStateWithUpdate[T any](operation dbmodel.ConfigOperation, daemonIDs ...int64) *TransactionState[T] {
 	update := NewUpdate[T](operation, daemonIDs...)
 	state := &TransactionState[T]{}
 	state.Updates = append(state.Updates, update)

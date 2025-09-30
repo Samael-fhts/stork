@@ -5,13 +5,16 @@ import (
 	"testing"
 	"time"
 
+	pkgerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/daemonname"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/daemons/kea"
 	appstest "isc.org/stork/server/daemons/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
+	storkutil "isc.org/stork/util"
 )
 
 // An error returned by the Commit function in fake Kea module.
@@ -27,7 +30,7 @@ func (lackingStateError) Error() string {
 // the calls to the Commit() function in the Kea module.
 type fakeKeaModuleCommit struct {
 	contexts []context.Context
-	ops      []config.Operation
+	ops      []dbmodel.ConfigOperation
 	err      error
 }
 
@@ -420,7 +423,7 @@ func TestCommitKeaModule(t *testing.T) {
 	// Create a new transaction with Kea.
 	state := config.TransactionState[kea.ConfigRecipe]{
 		Updates: []*config.Update[kea.ConfigRecipe]{
-			config.NewUpdate[kea.ConfigRecipe](config.OperationKeaHostAdd),
+			config.NewUpdate[kea.ConfigRecipe](dbmodel.ConfigOperationKeaHostAdd),
 		},
 	}
 	ctx = context.WithValue(ctx, config.StateContextKey, state)
@@ -430,7 +433,7 @@ func TestCommitKeaModule(t *testing.T) {
 	_, err = manager.Commit(ctx)
 	require.NoError(t, err)
 	require.Len(t, fkm.ops, 1)
-	require.Equal(t, config.OperationKeaHostAdd, fkm.ops[0])
+	require.Equal(t, dbmodel.ConfigOperationKeaHostAdd, fkm.ops[0])
 }
 
 // Test that an error is returned when unknown tool is specified in the
@@ -445,7 +448,7 @@ func TestCommitUnknownTarget(t *testing.T) {
 	// Create a new transaction with unknown target.
 	state := config.TransactionState[any]{
 		Updates: []*config.Update[any]{
-			config.NewUpdate[any](config.OperationKeaHostAdd),
+			config.NewUpdate[any](dbmodel.ConfigOperationKeaHostAdd),
 		},
 	}
 	ctx = context.WithValue(ctx, config.StateContextKey, state)
@@ -453,4 +456,330 @@ func TestCommitUnknownTarget(t *testing.T) {
 	// Commit the changes and expect an error.
 	_, err = manager.Commit(ctx)
 	require.Error(t, err)
+}
+
+// Test that due changes from the database are committed.
+func TestCommitDue(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	// Scheduled config changes must be associated with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	manager := NewManager(&appstest.ManagerAccessorsWrapper{
+		DB: db,
+	})
+	require.NotNil(t, manager)
+
+	// Replace the interface for committing changes in the Kea
+	// configuration module for the fake one.
+	impl := manager.(*configManagerImpl)
+	require.NotNil(t, impl)
+	fkm := newFakeKeaModuleCommit()
+	impl.keaCommit = fkm
+
+	// Add three config changes to the database. The first two are due. The
+	// third one is still in the future.
+	changes := []dbmodel.ScheduledConfigChange{
+		{
+			DeadlineAt: storkutil.UTCNow().Add(-time.Second * 10),
+			UserID:     int64(user.ID),
+			Updates: []*dbmodel.ConfigUpdate{
+				dbmodel.NewConfigUpdate(dbmodel.ConfigOperationKeaHostAdd),
+			},
+		},
+		{
+			DeadlineAt: storkutil.UTCNow().Add(-time.Second * 100),
+			UserID:     int64(user.ID),
+			Updates: []*dbmodel.ConfigUpdate{
+				dbmodel.NewConfigUpdate(dbmodel.ConfigOperationKeaGlobalParametersUpdate),
+			},
+		},
+		{
+			DeadlineAt: storkutil.UTCNow().Add(time.Second * 100),
+			UserID:     int64(user.ID),
+			Updates: []*dbmodel.ConfigUpdate{
+				dbmodel.NewConfigUpdate(dbmodel.ConfigOperationKeaHostUpdate),
+			},
+		},
+	}
+	for i := range changes {
+		err := dbmodel.AddScheduledConfigChange(db, &changes[i])
+		require.NoError(t, err)
+	}
+	// Commit due changes.
+	err = manager.CommitDue()
+	require.NoError(t, err)
+	require.Len(t, fkm.ops, 2)
+	// The changes should be ordered by deadline.
+	require.Equal(t, dbmodel.ConfigOperationKeaGlobalParametersUpdate, fkm.ops[0])
+	require.Equal(t, dbmodel.ConfigOperationKeaHostAdd, fkm.ops[1])
+
+	require.Len(t, fkm.contexts, 2)
+	for _, ctx := range fkm.contexts {
+		// Ensure that context ID exists.
+		_, ok := config.GetValueAsInt64(ctx, config.ContextIDKey)
+		require.True(t, ok)
+		// Ensure that the user ID exists.
+		userID, ok := config.GetValueAsInt64(ctx, config.UserContextKey)
+		require.True(t, ok)
+		require.EqualValues(t, user.ID, userID)
+		// Ensure that the state exists and is correct.
+		state, ok := config.GetTransactionState[kea.ConfigRecipe](ctx)
+		require.True(t, ok)
+		require.True(t, state.Scheduled)
+	}
+
+	// We have processed due config changes. They should no longer be returned.
+	changes, err = dbmodel.GetDueConfigChanges(db)
+	require.NoError(t, err)
+	require.Empty(t, changes)
+}
+
+// Test that errors are recorded in the database when committing due
+// config changes fails.
+func TestCommitDueErrors(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	// Scheduled config changes must be associated with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	manager := NewManager(&appstest.ManagerAccessorsWrapper{
+		DB: db,
+	})
+	require.NotNil(t, manager)
+
+	// Replace the interface for committing changes in the Kea
+	// configuration module for the fake one.
+	impl := manager.(*configManagerImpl)
+	require.NotNil(t, impl)
+	fkm := newFakeKeaModuleCommit()
+	// Cause the Commit() function to return an error.
+	fkm.err = pkgerrors.New("custom test error")
+	impl.keaCommit = fkm
+
+	// Add three config changes to the database. The first two are due. The
+	// third one is still in the future.
+	changes := []dbmodel.ScheduledConfigChange{
+		{
+			DeadlineAt: storkutil.UTCNow().Add(-time.Second * 10),
+			UserID:     int64(user.ID),
+			Updates: []*dbmodel.ConfigUpdate{
+				dbmodel.NewConfigUpdate(dbmodel.ConfigOperationKeaHostAdd),
+			},
+		},
+		{
+			DeadlineAt: storkutil.UTCNow().Add(-time.Second * 100),
+			UserID:     int64(user.ID),
+			Updates: []*dbmodel.ConfigUpdate{
+				dbmodel.NewConfigUpdate(dbmodel.ConfigOperationKeaGlobalParametersUpdate),
+			},
+		},
+	}
+	for i := range changes {
+		err := dbmodel.AddScheduledConfigChange(db, &changes[i])
+		require.NoError(t, err)
+	}
+	// Commit due changes.
+	err = manager.CommitDue()
+	require.NoError(t, err)
+
+	// The changes should have been marked as executed.
+	returned, err := dbmodel.GetScheduledConfigChanges(db)
+	require.NoError(t, err)
+	require.Len(t, returned, 2)
+
+	// Make sure that the errors have been recorded and that the executed
+	// flags flipped.
+	for _, change := range returned {
+		require.True(t, change.Executed)
+		require.Equal(t, "custom test error", change.Error)
+	}
+}
+
+// Test that due changes are dropped if the user is deleted.
+func TestDeleteUserDropDueChanges(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	// Scheduled config changes must be associated with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	manager := NewManager(&appstest.ManagerAccessorsWrapper{
+		DB: db,
+	})
+	require.NotNil(t, manager)
+
+	// Replace the interface for committing changes in the Kea
+	// configuration module for the fake one.
+	impl := manager.(*configManagerImpl)
+	require.NotNil(t, impl)
+	fkm := newFakeKeaModuleCommit()
+	impl.keaCommit = fkm
+
+	// Add a config changes to the database. The user is deleted before the
+	// change is applied which is still in the future.
+	changes := []dbmodel.ScheduledConfigChange{
+		{
+			DeadlineAt: storkutil.UTCNow().Add(time.Second * 100),
+			UserID:     int64(user.ID),
+			Updates: []*dbmodel.ConfigUpdate{
+				dbmodel.NewConfigUpdate(dbmodel.ConfigOperationKeaGlobalParametersUpdate),
+			},
+		},
+	}
+	for i := range changes {
+		err := dbmodel.AddScheduledConfigChange(db, &changes[i])
+		require.NoError(t, err)
+	}
+
+	err = dbmodel.DeleteUser(db, user)
+	require.NoError(t, err)
+
+	// We have processed due config changes. They should no longer be returned.
+	changes, err = dbmodel.GetDueConfigChanges(db)
+	require.NoError(t, err)
+	require.Empty(t, changes)
+}
+
+// Test that it is ok to call CommitDue() when there are no due changes.
+func TestCommitDueNoChanges(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	manager := NewManager(&appstest.ManagerAccessorsWrapper{
+		DB: db,
+	})
+	require.NotNil(t, manager)
+
+	// Replace the interface for committing changes in the Kea
+	// configuration module for the fake one.
+	impl := manager.(*configManagerImpl)
+	require.NotNil(t, impl)
+	fkm := newFakeKeaModuleCommit()
+	impl.keaCommit = fkm
+
+	err := manager.CommitDue()
+	require.NoError(t, err)
+	require.Empty(t, fkm.ops)
+}
+
+// Test that config changes can be scheduled to apply later.
+func TestSchedule(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	manager := NewManager(&appstest.ManagerAccessorsWrapper{
+		DB: db,
+	})
+	require.NotNil(t, manager)
+
+	// Create a context with a config change.
+	ctx, err := manager.CreateContext(1)
+	require.NoError(t, err)
+
+	// Simulate adding daemons to the database and then storing the daemon information
+	// as part of the scheduled config change.
+	machine := &dbmodel.Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+		State: dbmodel.MachineState{
+			Hostname: "cool.example.org",
+		},
+	}
+
+	// Create access points for the daemons
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "cool.example.org",
+			Port:     1234,
+			Protocol: "https",
+		},
+	}
+
+	// Create daemons directly using NewDaemon
+	daemon1 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
+	daemon1.ID = 1
+	daemon1.Version = "2.0.1"
+
+	daemon2 := dbmodel.NewDaemon(machine, daemonname.CA, true, accessPoints)
+	daemon2.ID = 2
+	daemon2.Version = "2.0.1"
+
+	// Create the state.
+	state := config.TransactionState[kea.ConfigRecipe]{
+		Updates: []*config.Update[kea.ConfigRecipe]{
+			config.NewUpdate[kea.ConfigRecipe](dbmodel.ConfigOperationKeaHostAdd),
+		},
+	}
+	// Store the daemon in the state/context.
+	state.Updates[0].Recipe.Commands = []kea.ConfigCommand{
+		{
+			Daemon: daemon1,
+		},
+		{
+			Daemon: daemon2,
+		},
+	}
+
+	ctx = context.WithValue(ctx, config.StateContextKey, state)
+
+	// Schedule the change.
+	_, err = manager.Schedule(ctx, storkutil.UTCNow().Add(time.Second*100))
+	require.NoError(t, err)
+
+	// Ensure that the change has been added to the database.
+	changes, err := dbmodel.GetScheduledConfigChanges(db)
+	require.NoError(t, err)
+	require.Len(t, changes, 1)
+	require.Len(t, changes[0].Updates, 1)
+	require.Equal(t, dbmodel.ConfigOperationKeaHostAdd, changes[0].Updates[0].Operation)
+	require.NotNil(t, changes[0].Updates[0].Recipe)
+
+	update := kea.NewConfigUpdateFromDBModel(changes[0].Updates[0])
+	require.NotNil(t, update)
+
+	// Make sure the daemon information was retrieved.
+	require.Len(t, update.Recipe.Commands, 2)
+	require.NotNil(t, update.Recipe.Commands[0].Daemon)
+	daemonReturned := update.Recipe.Commands[0].Daemon
+
+	require.EqualValues(t, 1, daemonReturned.GetID())
+	require.Equal(t, daemonname.DHCPv4, daemonReturned.GetName())
+	require.Equal(t, "2.0.1", daemonReturned.Version)
+
+	parsedMachine := daemonReturned.GetMachineTag()
+	require.EqualValues(t, 1, parsedMachine.GetID())
+	require.Equal(t, "localhost", parsedMachine.GetAddress())
+	require.EqualValues(t, 8080, parsedMachine.GetAgentPort())
+	require.Equal(t, "cool.example.org", parsedMachine.GetHostname())
+
+	daemonReturned = update.Recipe.Commands[1].Daemon
+	require.EqualValues(t, 2, daemonReturned.GetID())
+	require.Equal(t, daemonname.CA, daemonReturned.GetName())
+	require.Equal(t, parsedMachine.GetID(), daemonReturned.MachineID)
 }

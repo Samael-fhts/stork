@@ -3,6 +3,7 @@ package daemons
 import (
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"math"
 	"math/big"
 	"sync"
@@ -12,8 +13,9 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/server/agentcomm"
-	"isc.org/stork/server/daemons/kea"
 	"isc.org/stork/server/config"
+	"isc.org/stork/server/daemons/kea"
+	dbmodel "isc.org/stork/server/database/model"
 )
 
 // Holds a pair of a context and its cancel function.
@@ -276,4 +278,93 @@ func (manager *configManagerImpl) Commit(ctx context.Context) (context.Context, 
 		}
 	}
 	return ctx, err
+}
+
+// Commit all configuration changes in the database which are due, i.e. for which
+// the deadline_at time expired.
+func (manager *configManagerImpl) CommitDue() error {
+	// Get due configuration changes.
+	changes, err := dbmodel.GetDueConfigChanges(manager.GetDB())
+	if err != nil {
+		return err
+	}
+	// Nothing to do.
+	if len(changes) == 0 {
+		return nil
+	}
+	// Iterate over the changes.
+	for _, change := range changes {
+		var state any
+		// Re-create the transaction state from the serialized data stored in
+		// the database.
+		switch {
+		case change.HasKeaUpdates():
+			keaState := config.TransactionState[kea.ConfigRecipe]{
+				Scheduled: true,
+			}
+			for _, u := range change.Updates {
+				update := kea.NewConfigUpdateFromDBModel(u)
+				if update == nil {
+					continue
+				}
+				keaState.Updates = append(keaState.Updates, update)
+			}
+			state = keaState
+		default:
+		}
+		var (
+			ctx context.Context
+			err error
+		)
+		// Re-create the context.
+		ctx, err = manager.CreateContext(change.UserID)
+		if err == nil {
+			ctx = context.WithValue(ctx, config.StateContextKey, state)
+			// Commit the changes in the monitored daemons.
+			_, err = manager.Commit(ctx)
+		}
+		var errText string
+		if err != nil {
+			errText = err.Error()
+		}
+		// Mark the current config change as executed.
+		if err = dbmodel.SetScheduledConfigChangeExecuted(manager.GetDB(), change.ID, errText); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// Schedules sending the changes queued in the context to one or multiple daemons.
+// The deadline parameter specifies the time when the changes should be committed.
+func (manager *configManagerImpl) Schedule(ctx context.Context, deadline time.Time) (context.Context, error) {
+	state, ok := config.GetAnyTransactionState(ctx)
+	if !ok {
+		return ctx, pkgerrors.Errorf("context lacks state")
+	}
+	userID, ok := config.GetValueAsInt64(ctx, config.UserContextKey)
+	if !ok {
+		return ctx, pkgerrors.Errorf("context lacks user key")
+	}
+	// Create the config change entry in the database.
+	scc := &dbmodel.ScheduledConfigChange{
+		DeadlineAt: deadline,
+		UserID:     userID,
+	}
+	for _, u := range state.GetUpdates() {
+		update := &dbmodel.ConfigUpdate{
+			Operation: u.Operation,
+			DaemonIDs: u.DaemonIDs,
+		}
+		recipe, err := json.Marshal(u.Recipe)
+		if err != nil {
+			return ctx, pkgerrors.Wrapf(err, "problem converting config update recipe to the raw format")
+		}
+		update.Recipe = (*json.RawMessage)(&recipe)
+		scc.Updates = append(scc.Updates, update)
+	}
+	if err := dbmodel.AddScheduledConfigChange(manager.db, scc); err != nil {
+		return ctx, err
+	}
+	return ctx, nil
 }

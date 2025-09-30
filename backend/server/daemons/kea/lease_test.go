@@ -9,6 +9,7 @@ import (
 	"isc.org/stork/daemonctrl/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	keadata "isc.org/stork/daemondata/kea"
+	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -246,6 +247,80 @@ func mockLeases6GetEmpty(callNo int, responses []any) {
         {
             "result": 3,
             "text": "No lease found."
+        }
+    `)
+	_ = json.Unmarshal(bytes, responses[0])
+}
+
+// Generates a success mock response to commands fetching multiple
+// DHCPv4 leases.
+func mockLeases4Get(callNo int, responses []any) {
+	bytes := []byte(`
+        {
+            "result": 0,
+            "text": "Leases found",
+            "arguments": {
+                "leases": [
+                    {
+                        "client-id": "42:42:42:42:42:42:42:42",
+                        "cltt": 12345678,
+                        "fqdn-fwd": false,
+                        "fqdn-rev": true,
+                        "hostname": "myhost.example.com.",
+                        "hw-address": "08:08:08:08:08:08",
+                        "ip-address": "192.0.2.1",
+                        "state": 0,
+                        "subnet-id": 44,
+                        "valid-lft": 3600
+                    }
+                ]
+            }
+        }
+    `)
+	_ = json.Unmarshal(bytes, responses[0])
+}
+
+// Generates a success mock response to commands fetching multiple
+// DHCPv6 leases.
+func mockLeases6Get(callNo int, responses []interface{}) {
+	bytes := []byte(`
+        {
+            "result": 0,
+            "text": "Leases found",
+            "arguments": {
+                "leases": [
+                    {
+                        "cltt": 12345678,
+                        "duid": "42:42:42:42:42:42:42:42",
+                        "fqdn-fwd": false,
+                        "fqdn-rev": true,
+                        "hostname": "myhost.example.com.",
+                        "hw-address": "08:08:08:08:08:08",
+                        "iaid": 1,
+                        "ip-address": "2001:db8:2::1",
+                        "preferred-lft": 500,
+                        "state": 0,
+                        "subnet-id": 44,
+                        "type": "IA_NA",
+                        "valid-lft": 3600
+                    },
+                    {
+                        "cltt": 12345678,
+                        "duid": "42:42:42:42:42:42:42:42",
+                        "fqdn-fwd": false,
+                        "fqdn-rev": true,
+                        "hostname": "",
+                        "iaid": 1,
+                        "ip-address": "2001:db8:0:0:2::",
+                        "preferred-lft": 500,
+                        "prefix-len": 80,
+                        "state": 0,
+                        "subnet-id": 44,
+                        "type": "IA_PD",
+                        "valid-lft": 3600
+                    }
+                ]
+            }
         }
     `)
 	_ = json.Unmarshal(bytes, responses[0])
@@ -564,6 +639,211 @@ func TestGetLease6ByIPAddressEmpty(t *testing.T) {
 	lease, err := GetLease6ByIPAddress(agents, daemon, "IA_NA", "2001:db8:1::2")
 	require.NoError(t, err)
 	require.Nil(t, lease)
+}
+
+// Test success scenarios in sending lease4-get-by-hw-address, lease4-get-by-client-id
+// and lease4-get-by-hostname commands to Kea.
+func TestGetLeases4(t *testing.T) {
+	agents := agentcommtest.NewFakeAgents(mockLeases4Get, nil)
+
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
+			Protocol: "",
+		},
+	}
+
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, daemonname.DHCPv4, true, accessPoints)
+
+	tests := []struct {
+		name          string
+		function      func(agentcomm.ConnectedAgents, *dbmodel.Daemon, string) ([]dbmodel.Lease, error)
+		propertyValue string
+	}{
+		{
+			name:          "hw-address",
+			function:      GetLeases4ByHWAddress,
+			propertyValue: "08:08:08:08:08:08",
+		},
+		{
+			name:          "client-id",
+			function:      GetLeases4ByClientID,
+			propertyValue: "42:42:42:42:42:42:42:42",
+		},
+		{
+			name:          "hostname",
+			function:      GetLeases4ByHostname,
+			propertyValue: "myhost.example.com.",
+		},
+	}
+
+	for i := range tests {
+		testedFunc := tests[i].function
+		propertyValue := tests[i].propertyValue
+		t.Run(tests[i].name, func(t *testing.T) {
+			leases, err := testedFunc(agents, daemon, propertyValue)
+			require.NoError(t, err)
+			require.Len(t, leases, 1)
+
+			lease := leases[0]
+			require.EqualValues(t, daemon.ID, lease.DaemonId)
+			require.NotNil(t, lease.Daemon)
+			require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
+			require.EqualValues(t, 12345678, lease.CLTT)
+			require.False(t, lease.FqdnFwd)
+			require.True(t, lease.FqdnRev)
+			require.Equal(t, "myhost.example.com.", lease.Hostname)
+			require.Equal(t, "08:08:08:08:08:08", lease.HWAddress)
+			require.Equal(t, "192.0.2.1", lease.IPAddress)
+			require.Zero(t, lease.State)
+			require.EqualValues(t, 44, lease.SubnetID)
+			require.EqualValues(t, 3600, lease.ValidLifetime)
+			require.Nil(t, lease.UserContext)
+		})
+	}
+}
+
+// Test success scenarios in sending lease6-get-by-duid, lease6-get-by-hostname
+// commands to Kea.
+func TestGetLeases6(t *testing.T) {
+	agents := agentcommtest.NewFakeAgents(mockLeases6Get, nil)
+
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
+			Protocol: "",
+		},
+	}
+
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, daemonname.DHCPv6, true, accessPoints)
+
+	tests := []struct {
+		name          string
+		function      func(agentcomm.ConnectedAgents, *dbmodel.Daemon, string) ([]dbmodel.Lease, error)
+		propertyValue string
+	}{
+		{
+			name:          "duid",
+			function:      GetLeases6ByDUID,
+			propertyValue: "08:08:08:08:08:08",
+		},
+		{
+			name:          "hostname",
+			function:      GetLeases6ByHostname,
+			propertyValue: "myhost.example.com.",
+		},
+	}
+
+	for i := range tests {
+		testedFunc := tests[i].function
+		propertyValue := tests[i].propertyValue
+		t.Run(tests[i].name, func(t *testing.T) {
+			leases, err := testedFunc(agents, daemon, propertyValue)
+			require.NoError(t, err)
+			require.Len(t, leases, 2)
+
+			lease := leases[0]
+			require.EqualValues(t, daemon.ID, lease.DaemonId)
+			require.NotNil(t, lease.Daemon)
+			require.EqualValues(t, 12345678, lease.CLTT)
+			require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
+			require.False(t, lease.FqdnFwd)
+			require.True(t, lease.FqdnRev)
+			require.Equal(t, "myhost.example.com.", lease.Hostname)
+			require.Equal(t, "08:08:08:08:08:08", lease.HWAddress)
+			require.EqualValues(t, 1, lease.IAID)
+			require.Equal(t, "2001:db8:2::1", lease.IPAddress)
+			require.EqualValues(t, 500, lease.PreferredLifetime)
+			require.Zero(t, lease.State)
+			require.EqualValues(t, 44, lease.SubnetID)
+			require.Equal(t, "IA_NA", lease.Type)
+			require.EqualValues(t, 3600, lease.ValidLifetime)
+			require.Nil(t, lease.UserContext)
+
+			lease = leases[1]
+			require.EqualValues(t, daemon.ID, lease.DaemonId)
+			require.NotNil(t, lease.Daemon)
+			require.EqualValues(t, 12345678, lease.CLTT)
+			require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
+			require.False(t, lease.FqdnFwd)
+			require.True(t, lease.FqdnRev)
+			require.Empty(t, lease.Hostname)
+			require.Empty(t, lease.HWAddress)
+			require.EqualValues(t, 1, lease.IAID)
+			require.Equal(t, "2001:db8:0:0:2::", lease.IPAddress)
+			require.EqualValues(t, 500, lease.PreferredLifetime)
+			require.EqualValues(t, 80, lease.PrefixLength)
+			require.Zero(t, lease.State)
+			require.EqualValues(t, 44, lease.SubnetID)
+			require.Equal(t, "IA_PD", lease.Type)
+			require.EqualValues(t, 3600, lease.ValidLifetime)
+			require.Nil(t, lease.UserContext)
+		})
+	}
+}
+
+// Test the scenario in sending lease4-get-by-hw-address command to Kea when
+// no lease is found.
+func TestGetLeases4Empty(t *testing.T) {
+	agents := agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
+
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
+			Protocol: "",
+		},
+	}
+
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, daemonname.DHCPv4, true, accessPoints)
+
+	leases, err := GetLeases4ByHWAddress(agents, daemon, "000000000000")
+	require.NoError(t, err)
+	require.Empty(t, leases)
+
+	// Ensure that MAC address was converted to the format expected by Kea.
+	arguments := agents.RecordedCommands[0].(*keactrl.Command).Arguments
+	require.NotNil(t, arguments)
+	require.Contains(t, arguments.(map[string]interface{}), "hw-address")
+	require.Equal(t, "00:00:00:00:00:00", (arguments.(map[string]interface{}))["hw-address"])
+}
+
+// Test the scenario in sending lease6-get-by-hostname command to Kea when
+// no lease is found.
+func TestGetLeases6Empty(t *testing.T) {
+	agents := agentcommtest.NewFakeAgents(mockLeases6GetEmpty, nil)
+
+	accessPoints := []*dbmodel.AccessPoint{
+		{
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
+			Protocol: "",
+		},
+	}
+
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, daemonname.DHCPv6, true, accessPoints)
+
+	leases, err := GetLeases6ByHostname(agents, daemon, "myhost")
+	require.NoError(t, err)
+	require.Empty(t, leases)
 }
 
 // Test sending multiple combined commands when one of the commands fails. The

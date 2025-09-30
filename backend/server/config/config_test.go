@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	dbmodel "isc.org/stork/server/database/model"
 )
 
 // Test instantiating an annotated entity.
@@ -17,9 +18,9 @@ func TestNewAnnotatedEntity(t *testing.T) {
 
 // Test creating new config update instance.
 func TestNewUpdate(t *testing.T) {
-	cu := NewUpdate[any](OperationKeaHostAdd, 1, 2, 3)
+	cu := NewUpdate[any](dbmodel.ConfigOperationKeaHostAdd, 1, 2, 3)
 	require.NotNil(t, cu)
-	require.Equal(t, OperationKeaHostAdd, cu.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaHostAdd, cu.Operation)
 	require.Len(t, cu.DaemonIDs, 3)
 	require.Contains(t, cu.DaemonIDs, int64(1))
 	require.Contains(t, cu.DaemonIDs, int64(2))
@@ -28,11 +29,11 @@ func TestNewUpdate(t *testing.T) {
 
 // Test creating new transaction state instance with one update instance.
 func TestNewTransactionStateWithUpdate(t *testing.T) {
-	state := NewTransactionStateWithUpdate[any](OperationKeaHostUpdate, 2, 3)
+	state := NewTransactionStateWithUpdate[any](dbmodel.ConfigOperationKeaHostUpdate, 2, 3)
 	require.NotNil(t, state)
 	require.Len(t, state.Updates, 1)
 	cu := state.Updates[0]
-	require.Equal(t, OperationKeaHostUpdate, cu.Operation)
+	require.Equal(t, dbmodel.ConfigOperationKeaHostUpdate, cu.Operation)
 	require.Len(t, cu.DaemonIDs, 2)
 	require.Contains(t, cu.DaemonIDs, int64(2))
 	require.Contains(t, cu.DaemonIDs, int64(3))
@@ -44,7 +45,7 @@ func TestSetRecipeForUpdate(t *testing.T) {
 		Updates: []*Update[testRecipe]{},
 	}
 	for i := 0; i < 5; i++ {
-		update := NewUpdate[testRecipe](OperationKeaHostUpdate, int64(i))
+		update := NewUpdate[testRecipe](dbmodel.ConfigOperationKeaHostUpdate, int64(i))
 		state.Updates = append(state.Updates, update)
 	}
 	recipe := testRecipe{
@@ -81,7 +82,7 @@ func TestGetUpdates(t *testing.T) {
 		Updates: []*Update[testRecipe]{},
 	}
 	for i := 0; i < 5; i++ {
-		update := NewUpdate[testRecipe](OperationKeaHostUpdate, int64(i))
+		update := NewUpdate[testRecipe](dbmodel.ConfigOperationKeaHostUpdate, int64(i))
 		update.Recipe = testRecipe{
 			param: "foo",
 		}
@@ -90,7 +91,7 @@ func TestGetUpdates(t *testing.T) {
 	anyUpdates := state.GetUpdates()
 	require.Len(t, anyUpdates, 5)
 	for i, u := range anyUpdates {
-		require.Equal(t, OperationKeaHostUpdate, u.Operation)
+		require.Equal(t, dbmodel.ConfigOperationKeaHostUpdate, u.Operation)
 		require.Len(t, u.DaemonIDs, 1)
 		require.EqualValues(t, i, u.DaemonIDs[0])
 		require.IsType(t, testRecipe{}, u.Recipe)
