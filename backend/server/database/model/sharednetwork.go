@@ -273,7 +273,8 @@ func DeleteDaemonsFromSharedNetwork(dbi dbops.DBI, sharedNetworkID int64) error 
 func GetAllSharedNetworks(dbi dbops.DBI, family int) ([]SharedNetwork, error) {
 	networks := []SharedNetwork{}
 	q := dbi.Model(&networks).
-		Relation("LocalSharedNetworks.Daemon.AccessPoints")
+		Relation("LocalSharedNetworks.Daemon.AccessPoints").
+		Relation("LocalSharedNetworks.Daemon.Machine")
 
 	if family == 4 || family == 6 {
 		q = q.Where("inet_family = ?", family)

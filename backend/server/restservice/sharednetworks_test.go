@@ -1268,7 +1268,7 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 		require.IsType(t, &dhcp.CreateSharedNetworkSubmitDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.CreateSharedNetworkSubmitDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with committing shared network information: network4-add command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with daemon'", daemon1.Machine.Address), *defaultRsp.Payload.Message)
+		require.Equal(t, fmt.Sprintf("Problem with committing shared network information: network4-add command to %s failed: non-success response result from Kea: 1, text: unable to communicate with the daemon", daemon1.Name), *defaultRsp.Payload.Message)
 	})
 }
 
@@ -2198,7 +2198,7 @@ func TestUpdateSharedNetworkBeginCancel(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -2209,7 +2209,7 @@ func TestUpdateSharedNetworkBeginCancel(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -2344,7 +2344,7 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -2355,7 +2355,7 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -2471,7 +2471,7 @@ func TestDeleteSharedNetworkError(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -2531,6 +2531,6 @@ func TestDeleteSharedNetworkError(t *testing.T) {
 		require.IsType(t, &dhcp.DeleteSharedNetworkDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.DeleteSharedNetworkDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with deleting a shared network: network4-del command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", daemon1.Machine.Address), *defaultRsp.Payload.Message)
+		require.Equal(t, fmt.Sprintf("Problem with deleting a shared network: network4-del command to %s failed: non-success response result from Kea: 1, text: unable to communicate with the daemon", daemon1.Name), *defaultRsp.Payload.Message)
 	})
 }
