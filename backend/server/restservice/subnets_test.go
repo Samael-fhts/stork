@@ -111,6 +111,8 @@ func TestGetSubnets(t *testing.T) {
         }
     }`)
 	require.NoError(t, err)
+	daemon34, err := dhcp4.GetDaemon()
+	require.NoError(t, err)
 
 	dhcp6, err = m.NewKeaDHCPv6Server()
 	require.NoError(t, err)
@@ -153,7 +155,7 @@ func TestGetSubnets(t *testing.T) {
 	daemon36, err := dhcp6.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon14, daemon26, daemon36}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon14, daemon26, daemon34, daemon36}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}, {IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
 	subnets, err := dbmodel.GetSubnetsByPrefix(db, "192.118.0.0/24")
@@ -294,8 +296,8 @@ func TestGetSubnets(t *testing.T) {
 	require.Len(t, okRsp.Payload.Items, 1)
 	require.EqualValues(t, 1, okRsp.Payload.Total)
 	require.Len(t, okRsp.Payload.Items[0].LocalSubnets, 1)
-	require.Equal(t, virtualApp36.ID, okRsp.Payload.Items[0].LocalSubnets[0].AppID)
-	require.Equal(t, daemon36.ID, okRsp.Payload.Items[0].LocalSubnets[0].DaemonID)
+	require.Equal(t, daemon34.ID, okRsp.Payload.Items[0].LocalSubnets[0].DaemonID)
+	require.Equal(t, daemon34.GetVirtualApp().ID, okRsp.Payload.Items[0].LocalSubnets[0].AppID)
 	// checking if returned subnet-ids have expected values
 	require.EqualValues(t, 3, okRsp.Payload.Items[0].LocalSubnets[0].ID)
 	require.Nil(t, okRsp.Payload.Items[0].LocalSubnets[0].Stats)
@@ -1871,7 +1873,7 @@ func TestCreateSubnetBeginSubmitError(t *testing.T) {
 		require.IsType(t, &dhcp.CreateSubnetSubmitDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.CreateSubnetSubmitDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with committing subnet information: subnet4-add command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", daemon1.GetName()),
+		require.Equal(t, fmt.Sprintf("Problem with committing subnet information: subnet4-add command to %s failed: non-success response result from Kea: 1, text: unable to communicate with the daemon", daemon1.GetName()),
 			*defaultRsp.Payload.Message)
 	})
 }
@@ -4143,7 +4145,7 @@ func TestUpdateSubnetSubmitError(t *testing.T) {
 		require.IsType(t, &dhcp.UpdateSubnetSubmitDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.UpdateSubnetSubmitDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with committing subnet information: subnet4-update command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", daemon.GetName()),
+		require.Equal(t, fmt.Sprintf("Problem with committing subnet information: subnet4-update command to %s failed: non-success response result from Kea: 1, text: unable to communicate with the daemon", daemon.GetName()),
 			*defaultRsp.Payload.Message)
 	})
 }
@@ -4510,7 +4512,7 @@ func TestDeleteSubnetError(t *testing.T) {
 		require.IsType(t, &dhcp.DeleteSubnetDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.DeleteSubnetDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with deleting a subnet: network4-subnet-del command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", daemon.GetName()),
+		require.Equal(t, fmt.Sprintf("Problem with deleting a subnet: network4-subnet-del command to %s failed: non-success response result from Kea: 1, text: unable to communicate with the daemon", daemon.GetName()),
 			*defaultRsp.Payload.Message)
 	})
 }

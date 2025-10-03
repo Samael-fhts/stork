@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
+	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"
@@ -488,7 +489,13 @@ func (r *RestAPI) GetSubnets(ctx context.Context, params dhcp.GetSubnetsParams) 
 		limit = *params.Limit
 	}
 
-	var machineID *int64
+	// get subnets from db
+	filters := &dbmodel.SubnetsByPageFilters{
+		Family:        params.DhcpVersion,
+		Text:          params.Text,
+		LocalSubnetID: params.LocalSubnetID,
+	}
+
 	if params.AppID != nil {
 		daemons, err := dbmodel.GetDaemonsByVirtualAppID(r.DB, *params.AppID)
 		if err != nil {
@@ -499,17 +506,44 @@ func (r *RestAPI) GetSubnets(ctx context.Context, params dhcp.GetSubnetsParams) 
 			})
 			return rsp
 		}
-		if len(daemons) != 0 {
-			machineID = &daemons[0].MachineID
+		if len(daemons) == 0 {
+			// There are no daemons for the given app ID. Return empty result.
+			rsp := dhcp.NewGetSubnetsOK().WithPayload(&models.Subnets{
+				Total: 0,
+				Items: []*models.Subnet{},
+			})
+			return rsp
 		}
-	}
-
-	// get subnets from db
-	filters := &dbmodel.SubnetsByPageFilters{
-		MachineID:     machineID,
-		Family:        params.DhcpVersion,
-		Text:          params.Text,
-		LocalSubnetID: params.LocalSubnetID,
+		if params.DhcpVersion != nil {
+			var daemon *dbmodel.Daemon
+		DAEMON_LOOP:
+			for _, d := range daemons {
+				switch *params.DhcpVersion {
+				case 4:
+					if d.Name == daemonname.DHCPv4 {
+						daemon = d
+						break DAEMON_LOOP
+					}
+				case 6:
+					if d.Name == daemonname.DHCPv6 {
+						daemon = d
+						break DAEMON_LOOP
+					}
+				}
+			}
+			if daemon == nil {
+				// There are no daemon for the given app ID and DHCP version.
+				// Return empty result.
+				rsp := dhcp.NewGetSubnetsOK().WithPayload(&models.Subnets{
+					Total: 0,
+					Items: []*models.Subnet{},
+				})
+				return rsp
+			}
+			filters.DaemonID = &daemon.ID
+		} else {
+			filters.MachineID = &daemons[0].MachineID
+		}
 	}
 
 	subnets, err := r.getSubnets(start, limit, filters, "", dbmodel.SortDirAsc)
