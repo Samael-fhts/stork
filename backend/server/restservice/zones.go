@@ -37,6 +37,14 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 			daemonName = storkutil.Ptr(daemonname.Bind9)
 		case "pdns":
 			daemonName = storkutil.Ptr(daemonname.PDNS)
+		default:
+			// Unknown app type, return empty result.
+			payload := models.Zones{
+				Items: []*models.Zone{},
+				Total: 0,
+			}
+			rsp := dns.NewGetZonesOK().WithPayload(&payload)
+			return rsp
 		}
 	}
 
@@ -49,6 +57,15 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 			rsp := dns.NewGetZonesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 				Message: &msg,
 			})
+			return rsp
+		}
+		if len(daemons) == 0 {
+			// No daemons with the specified virtual app ID exist, return empty result.
+			payload := models.Zones{
+				Items: []*models.Zone{},
+				Total: 0,
+			}
+			rsp := dns.NewGetZonesOK().WithPayload(&payload)
 			return rsp
 		}
 		if len(daemons) > 0 {
@@ -71,7 +88,7 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 		filter.EnableZoneType(dbmodel.ZoneType(zoneType))
 	}
 	// Get the zones from the database.
-	zones, total, err := dbmodel.GetZones(r.DB, filter, dbmodel.ZoneRelationLocalZonesDaemon)
+	zones, total, err := dbmodel.GetZones(r.DB, filter, dbmodel.ZoneRelationLocalZonesDaemon, dbmodel.ZoneRelationLocalZonesAccessPoints, dbmodel.ZoneRelationLocalZonesMachine)
 	if err != nil {
 		msg := "Failed to get zones from the database"
 		log.WithError(err).Error(msg)
@@ -126,7 +143,7 @@ func (r *RestAPI) GetZonesFetch(ctx context.Context, params dns.GetZonesFetchPar
 		rsp := dns.NewGetZonesFetchAccepted().WithPayload(&payload)
 		return rsp
 	}
-	states, count, err := dbmodel.GetZoneInventoryStates(r.DB, dbmodel.ZoneInventoryStateRelationDaemon)
+	states, count, err := dbmodel.GetZoneInventoryStates(r.DB, dbmodel.ZoneInventoryStateRelationDaemon, dbmodel.ZoneInventoryStateRelationAccessPoints, dbmodel.ZoneInventoryStateRelationMachine)
 	if err != nil {
 		msg := "Failed to get zones fetch states from the database"
 		log.WithError(err).Error(msg)

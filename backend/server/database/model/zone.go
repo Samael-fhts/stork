@@ -18,9 +18,10 @@ import (
 type ZoneRelation string
 
 const (
-	ZoneRelationLocalZones        ZoneRelation = "LocalZones"
-	ZoneRelationLocalZonesDaemon  ZoneRelation = "LocalZones.Daemon"
-	ZoneRelationLocalZonesMachine ZoneRelation = "LocalZones.Daemon.Machine"
+	ZoneRelationLocalZones             ZoneRelation = "LocalZones"
+	ZoneRelationLocalZonesDaemon       ZoneRelation = "LocalZones.Daemon"
+	ZoneRelationLocalZonesAccessPoints ZoneRelation = "LocalZones.Daemon.AccessPoints"
+	ZoneRelationLocalZonesMachine      ZoneRelation = "LocalZones.Daemon.Machine"
 )
 
 type ZoneType string

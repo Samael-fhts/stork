@@ -11,7 +11,9 @@ import (
 type ZoneInventoryStateRelation string
 
 const (
-	ZoneInventoryStateRelationDaemon ZoneInventoryStateRelation = "Daemon"
+	ZoneInventoryStateRelationDaemon       ZoneInventoryStateRelation = "Daemon"
+	ZoneInventoryStateRelationAccessPoints ZoneInventoryStateRelation = "Daemon.AccessPoints"
+	ZoneInventoryStateRelationMachine      ZoneInventoryStateRelation = "Daemon.Machine"
 )
 
 // Represents a status returned by a zone inventory on an agent.
