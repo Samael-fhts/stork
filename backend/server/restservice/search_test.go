@@ -359,8 +359,8 @@ func TestSearchRecords(t *testing.T) {
 	rsp = rapi.SearchRecords(ctx, params)
 	require.IsType(t, &search.SearchRecordsOK{}, rsp)
 	okRsp = rsp.(*search.SearchRecordsOK)
-	require.Len(t, okRsp.Payload.Apps.Items, 3)
-	require.EqualValues(t, 3, okRsp.Payload.Apps.Total)
+	require.Len(t, okRsp.Payload.Apps.Items, 4)
+	require.EqualValues(t, 4, okRsp.Payload.Apps.Total)
 	require.Len(t, okRsp.Payload.Groups.Items, 0)
 	require.Zero(t, okRsp.Payload.Groups.Total)
 	require.Len(t, okRsp.Payload.Hosts.Items, 0)
@@ -374,16 +374,16 @@ func TestSearchRecords(t *testing.T) {
 	require.Len(t, okRsp.Payload.Users.Items, 0)
 	require.Zero(t, okRsp.Payload.Users.Total)
 
-	// search for 'kea' - app is expected
-	text = "kea"
+	// search for 'dhcp' - all daemons are expected
+	text = "dhcp"
 	params = search.SearchRecordsParams{
 		Text: &text,
 	}
 	rsp = rapi.SearchRecords(ctx, params)
 	require.IsType(t, &search.SearchRecordsOK{}, rsp)
 	okRsp = rsp.(*search.SearchRecordsOK)
-	require.Len(t, okRsp.Payload.Apps.Items, 3)
-	require.EqualValues(t, 3, okRsp.Payload.Apps.Total)
+	require.Len(t, okRsp.Payload.Apps.Items, 4)
+	require.EqualValues(t, 4, okRsp.Payload.Apps.Total)
 	require.Len(t, okRsp.Payload.Groups.Items, 0)
 	require.Zero(t, okRsp.Payload.Groups.Total)
 	require.Len(t, okRsp.Payload.Hosts.Items, 0)

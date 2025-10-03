@@ -349,7 +349,8 @@ func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *stri
 		text := "%" + *filterText + "%"
 		q = q.WhereGroup(func(qq *orm.Query) (*orm.Query, error) {
 			qq = qq.WhereOr("name ILIKE ?", text)
-			qq = qq.WhereOr("meta->>'Version' ILIKE ?", text)
+			qq = qq.WhereOr("version ILIKE ?", text)
+			qq = qq.WhereOr("extended_version ILIKE ?", text)
 			qq = qq.WhereOr("machine.address ILIKE ?", text)
 			qq = qq.WhereOr("machine.state->>'Hostname' ILIKE ?", text)
 			return qq, nil

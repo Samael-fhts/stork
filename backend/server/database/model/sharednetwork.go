@@ -361,7 +361,8 @@ func GetSharedNetworksByPage(dbi dbops.DBI, offset, limit, daemonID, family int6
 	}
 	q = q.DistinctOn(distinctOnFields)
 
-	q = q.Relation("LocalSharedNetworks.Daemon.AccessPoints")
+	q = q.Relation("LocalSharedNetworks.Daemon.AccessPoints").
+		Relation("LocalSharedNetworks.Daemon.Machine")
 
 	// If any of the filtering parameters are specified we need to explicitly join
 	// the subnets table so as we can access its columns in the Where clause.
