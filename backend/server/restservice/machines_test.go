@@ -156,18 +156,9 @@ func mockGetAppsState(callNo int, cmdResponses []interface{}) {
 				Extended: "Extended version",
 			},
 		}
-		// status-get response
-		statusResponse := cmdResponses[1].(*kea.StatusGetResponse)
-		*statusResponse = kea.StatusGetResponse{
-			ResponseHeader: keactrl.ResponseHeader{
-				Result: 0,
-			},
-			Arguments: &kea.StatusGetRespArgs{
-				Pid: 123,
-			},
-		}
+
 		// config-get response
-		response := cmdResponses[2].(*keactrl.Response)
+		response := cmdResponses[1].(*keactrl.Response)
 		*response = keactrl.Response{
 			ResponseHeader: keactrl.ResponseHeader{
 				Result: 0,
@@ -184,6 +175,17 @@ func mockGetAppsState(callNo int, cmdResponses []interface{}) {
 					]
 				}
 			}`),
+		}
+
+		// status-get response
+		statusResponse := cmdResponses[2].(*kea.StatusGetResponse)
+		*statusResponse = kea.StatusGetResponse{
+			ResponseHeader: keactrl.ResponseHeader{
+				Result: 0,
+			},
+			Arguments: &kea.StatusGetRespArgs{
+				Pid: 123,
+			},
 		}
 	default:
 		panic("unexpected call number")
@@ -1523,7 +1525,7 @@ func TestRestGetApps(t *testing.T) {
 		Port:     1234,
 		Protocol: "http",
 	}
-	s1 := dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{keaAccessPoint})
+	s1 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	s1.KeaDaemon = &dbmodel.KeaDaemon{}
 	s1.LogTargets = []*dbmodel.LogTarget{
 		{
@@ -1611,7 +1613,7 @@ func TestRestGetApps(t *testing.T) {
 				require.Equal(t, "debug", daemon.LogTargets[0].Severity)
 				require.Equal(t, "/tmp/log", daemon.LogTargets[0].Output)
 			case string(dbmodel.VirtualAppTypeBind9):
-				require.Equal(t, "another-fancy-app", app.Name)
+				require.Equal(t, "bind9@localhost%683476174", app.Name)
 				appBind9 := app.Details.AppBind9
 				daemon := appBind9.Daemon
 				require.EqualValues(t, 1, daemon.AgentCommErrors)
@@ -1889,7 +1891,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		Port:     1234,
 		Protocol: "http",
 	}
-	keaDaemon1 := dbmodel.NewDaemon(m1, daemonname.CA, true, []*dbmodel.AccessPoint{keaAccessPoint1})
+	keaDaemon1 := dbmodel.NewDaemon(m1, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint1})
 	keaDaemon1.Monitored = true
 	keaDaemon1.KeaDaemon = &dbmodel.KeaDaemon{}
 	err = dbmodel.AddDaemon(db, keaDaemon1)
@@ -1985,7 +1987,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "kea1", apps.Items[0].Name)
+		require.Equal(t, "kea@localhost%682820814", apps.Items[0].Name)
 	})
 
 	t.Run("bind9 current errors", func(t *testing.T) {
@@ -2080,7 +2082,6 @@ func TestGetAppsCommunicationIssuesNotMonitored(t *testing.T) {
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	keaDaemon.Monitored = false
-	keaDaemon.KeaDaemon = &dbmodel.KeaDaemon{}
 	err = dbmodel.AddDaemon(db, keaDaemon)
 	require.NoError(t, err)
 
@@ -2133,14 +2134,12 @@ func TestRestGetAppServicesStatus(t *testing.T) {
 		Protocol: "http",
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
-	keaDaemon.KeaDaemon = &dbmodel.KeaDaemon{}
 	err = dbmodel.AddDaemon(db, keaDaemon)
 	require.NoError(t, err)
 	require.NotZero(t, keaDaemon.ID)
 
 	exampleTime := storkutil.UTCNow().Add(-5 * time.Second)
 	commInterrupted := []bool{true, true}
-	keaApp := keaDaemon.GetVirtualApp()
 	keaServices := []dbmodel.Service{
 		{
 			BaseService: dbmodel.BaseService{},
@@ -2148,7 +2147,7 @@ func TestRestGetAppServicesStatus(t *testing.T) {
 				HAType:                      "dhcp4",
 				HAMode:                      "load-balancing",
 				Relationship:                "server1",
-				PrimaryID:                   keaApp.ID,
+				PrimaryID:                   keaDaemon.ID,
 				PrimaryStatusCollectedAt:    exampleTime,
 				SecondaryStatusCollectedAt:  exampleTime,
 				PrimaryLastState:            "load-balancing",
@@ -2175,7 +2174,7 @@ func TestRestGetAppServicesStatus(t *testing.T) {
 				HAType:                      "dhcp4",
 				HAMode:                      "load-balancing",
 				Relationship:                "server3",
-				PrimaryID:                   keaApp.ID,
+				PrimaryID:                   keaDaemon.ID,
 				PrimaryStatusCollectedAt:    exampleTime,
 				SecondaryStatusCollectedAt:  exampleTime,
 				PrimaryLastState:            "load-balancing",
@@ -2202,7 +2201,7 @@ func TestRestGetAppServicesStatus(t *testing.T) {
 				HAType:                      "dhcp6",
 				HAMode:                      "hot-standby",
 				Relationship:                "server1",
-				PrimaryID:                   keaApp.ID,
+				PrimaryID:                   keaDaemon.ID,
 				PrimaryStatusCollectedAt:    exampleTime,
 				SecondaryStatusCollectedAt:  exampleTime,
 				PrimaryLastState:            "hot-standby",
@@ -2234,7 +2233,7 @@ func TestRestGetAppServicesStatus(t *testing.T) {
 	}
 
 	params := services.GetAppServicesStatusParams{
-		ID: keaApp.ID,
+		ID: keaDaemon.GetVirtualApp().ID,
 	}
 	rsp := rapi.GetAppServicesStatus(ctx, params)
 
@@ -2267,7 +2266,7 @@ func TestRestGetAppServicesStatus(t *testing.T) {
 	require.Equal(t, "load-balancing", haStatus.PrimaryServer.State)
 	require.GreaterOrEqual(t, haStatus.PrimaryServer.Age, int64(5))
 	require.Equal(t, "127.0.0.1", haStatus.PrimaryServer.ControlAddress)
-	require.EqualValues(t, keaApp.ID, haStatus.PrimaryServer.AppID)
+	require.EqualValues(t, keaDaemon.GetVirtualApp().ID, haStatus.PrimaryServer.AppID)
 	require.NotEmpty(t, haStatus.PrimaryServer.StatusTime.String())
 	require.EqualValues(t, 1, haStatus.PrimaryServer.CommInterrupted)
 	require.EqualValues(t, 7, haStatus.PrimaryServer.ConnectingClients)
@@ -2306,7 +2305,7 @@ func TestRestGetAppServicesStatus(t *testing.T) {
 	require.Equal(t, "load-balancing", haStatus.PrimaryServer.State)
 	require.GreaterOrEqual(t, haStatus.PrimaryServer.Age, int64(5))
 	require.Equal(t, "127.0.0.1", haStatus.PrimaryServer.ControlAddress)
-	require.EqualValues(t, keaApp.ID, haStatus.PrimaryServer.AppID)
+	require.EqualValues(t, keaDaemon.GetVirtualApp().ID, haStatus.PrimaryServer.AppID)
 	require.NotEmpty(t, haStatus.PrimaryServer.StatusTime.String())
 	require.EqualValues(t, 1, haStatus.PrimaryServer.CommInterrupted)
 	require.EqualValues(t, 1, haStatus.PrimaryServer.ConnectingClients)
@@ -2396,13 +2395,11 @@ func TestRestGetAppServicesStatusPassiveBackup(t *testing.T) {
 		Protocol: "https",
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
-	keaDaemon.KeaDaemon = &dbmodel.KeaDaemon{}
 	err = dbmodel.AddDaemon(db, keaDaemon)
 	require.NoError(t, err)
 	require.NotZero(t, keaDaemon.ID)
 
 	exampleTime := storkutil.UTCNow().Add(-5 * time.Second)
-	keaApp := keaDaemon.GetVirtualApp()
 	keaServices := []dbmodel.Service{
 		{
 			BaseService: dbmodel.BaseService{},
@@ -2410,7 +2407,7 @@ func TestRestGetAppServicesStatusPassiveBackup(t *testing.T) {
 				HAType:                   "dhcp4",
 				HAMode:                   "passive-backup",
 				Relationship:             "server1",
-				PrimaryID:                keaApp.ID,
+				PrimaryID:                keaDaemon.ID,
 				PrimaryStatusCollectedAt: exampleTime,
 				PrimaryLastState:         "passive-backup",
 				PrimaryLastScopes:        []string{"server1"},
@@ -2427,7 +2424,7 @@ func TestRestGetAppServicesStatusPassiveBackup(t *testing.T) {
 	}
 
 	params := services.GetAppServicesStatusParams{
-		ID: keaApp.ID,
+		ID: keaDaemon.GetVirtualApp().ID,
 	}
 	rsp := rapi.GetAppServicesStatus(ctx, params)
 
@@ -2457,7 +2454,7 @@ func TestRestGetAppServicesStatusPassiveBackup(t *testing.T) {
 	require.Equal(t, "passive-backup", haStatus.PrimaryServer.State)
 	require.GreaterOrEqual(t, haStatus.PrimaryServer.Age, int64(5))
 	require.Equal(t, "127.0.0.1", haStatus.PrimaryServer.ControlAddress)
-	require.EqualValues(t, keaApp.ID, haStatus.PrimaryServer.AppID)
+	require.EqualValues(t, keaDaemon.GetVirtualApp().ID, haStatus.PrimaryServer.AppID)
 	require.NotEmpty(t, haStatus.PrimaryServer.StatusTime.String())
 	require.EqualValues(t, -1, haStatus.PrimaryServer.CommInterrupted)
 	require.Zero(t, haStatus.PrimaryServer.ConnectingClients)
@@ -2562,7 +2559,6 @@ func TestGetDhcpOverview(t *testing.T) {
 		Protocol: "http",
 	}
 	dhcp4Daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
-	dhcp4Daemon.KeaDaemon = &dbmodel.KeaDaemon{}
 	dhcp4Daemon.Monitored = true
 	err = dbmodel.AddDaemon(db, dhcp4Daemon)
 	require.NoError(t, err)
@@ -2623,7 +2619,7 @@ func TestGetDhcpOverview(t *testing.T) {
 
 	// only dhcp4 is present
 	require.EqualValues(t, "dhcp4", okRsp.Payload.DhcpDaemons[0].Name)
-	require.EqualValues(t, "test-app", okRsp.Payload.DhcpDaemons[0].AppName)
+	require.EqualValues(t, "kea@localhost%682820814", okRsp.Payload.DhcpDaemons[0].AppName)
 	require.EqualValues(t, 1, okRsp.Payload.DhcpDaemons[0].AgentCommErrors)
 	require.EqualValues(t, 2, okRsp.Payload.DhcpDaemons[0].CaCommErrors)
 	require.EqualValues(t, 5, okRsp.Payload.DhcpDaemons[0].DaemonCommErrors)
@@ -2664,11 +2660,9 @@ func TestHAInDhcpOverview(t *testing.T) {
 		Protocol: "https",
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
-	keaDaemon.KeaDaemon = &dbmodel.KeaDaemon{}
 	err = dbmodel.AddDaemon(db, keaDaemon)
 	require.NoError(t, err)
 	require.NotZero(t, keaDaemon.ID)
-	keaApp := keaDaemon.GetVirtualApp()
 
 	// Create an HA service.
 	exampleTime := storkutil.UTCNow().Add(-5 * time.Second)
@@ -2678,7 +2672,7 @@ func TestHAInDhcpOverview(t *testing.T) {
 			HAType:                   "dhcp4",
 			HAMode:                   "load-balancing",
 			Relationship:             "server1",
-			PrimaryID:                keaApp.ID,
+			PrimaryID:                keaDaemon.ID,
 			PrimaryStatusCollectedAt: exampleTime,
 			PrimaryLastState:         "load-balancing",
 			SecondaryLastFailoverAt:  exampleTime,
@@ -2762,7 +2756,6 @@ func TestUpdateDaemon(t *testing.T) {
 		Protocol: "http",
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
-	keaDaemon.KeaDaemon = &dbmodel.KeaDaemon{}
 	keaDaemon.Monitored = true
 	err = dbmodel.AddDaemon(db, keaDaemon)
 	require.NoError(t, err)
@@ -2891,42 +2884,12 @@ func TestRenameApp(t *testing.T) {
 		},
 	}
 	rsp := rapi.RenameApp(ctx, params)
-	require.IsType(t, &services.RenameAppOK{}, rsp)
-
-	// Make sure the daemon has been successfully renamed.
-	returnedDaemon, err := dbmodel.GetDaemonByID(db, keaDaemon.ID)
-	require.NoError(t, err)
-	require.NotNil(t, returnedDaemon)
-	require.Equal(t, "dhcp-server2", returnedDaemon.Name)
-
-	// Use an incorrect app name.
-	newName = "dhcp-server2@machine3"
-	rsp = rapi.RenameApp(ctx, params)
 	require.IsType(t, &services.RenameAppDefault{}, rsp)
+
+	// Check the error message.
 	defaultRsp := rsp.(*services.RenameAppDefault)
-	require.Equal(t, http.StatusBadRequest, getStatusCode(*defaultRsp))
-
-	// Ensure that the event informing about renaming the app was emitted.
-	require.Len(t, fec.Events, 1)
-	require.Contains(t, fec.Events[0].Text, "renamed from dhcp-server1")
-	require.NotNil(t, fec.Events[0].Relations)
-	require.Equal(t, machine.ID, fec.Events[0].Relations.MachineID)
-
-	// Empty name (with only whitespace) should cause an error too.
-	newName = "   "
-	rsp = rapi.RenameApp(ctx, params)
-	require.IsType(t, &services.RenameAppDefault{}, rsp)
-	defaultRsp = rsp.(*services.RenameAppDefault)
-	require.Equal(t, http.StatusBadRequest, getStatusCode(*defaultRsp))
-
-	// Finally, let's try supplying a nil value.
-	params.NewAppName = services.RenameAppBody{
-		Name: nil,
-	}
-	rsp = rapi.RenameApp(ctx, params)
-	require.IsType(t, &services.RenameAppDefault{}, rsp)
-	defaultRsp = rsp.(*services.RenameAppDefault)
-	require.Equal(t, http.StatusBadRequest, getStatusCode(*defaultRsp))
+	require.Equal(t, "Unable to rename app - this feature is no longer supported", *defaultRsp.Payload.Message)
+	require.Equal(t, http.StatusServiceUnavailable, getStatusCode(*defaultRsp))
 }
 
 // This test verifies that database backend configurations are parsed correctly
@@ -3036,9 +2999,10 @@ func TestMachineToRestAPIForNilKeaConfig(t *testing.T) {
 	// Arrange
 	machine := &dbmodel.Machine{ID: 1}
 	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{})
-	daemon.KeaDaemon = &dbmodel.KeaDaemon{}
+	machine.Daemons = []*dbmodel.Daemon{daemon}
 
-	rapi, err := NewRestAPI(&dbops.DatabaseSettings{})
+	fa := agentcommtest.NewFakeAgents(nil, nil)
+	rapi, err := NewRestAPI(&dbops.DatabaseSettings{}, fa)
 	require.NoError(t, err)
 
 	// Act
@@ -4370,7 +4334,7 @@ func TestGetMachinesAppsVersions(t *testing.T) {
 	require.Equal(t, machine2.Address, *machines.Items[1].Address)
 	require.NotNil(t, machines.Items[0].Apps)
 	require.NotNil(t, machines.Items[1].Apps)
-	require.Equal(t, "3.2.1", machines.Items[0].Apps[0].Version)
+	require.Equal(t, "3.2.2", machines.Items[0].Apps[0].Version)
 	require.Equal(t, "9.8.7", machines.Items[0].AgentVersion)
 	require.Equal(t, "3.2.2", machines.Items[0].Apps[0].Details.Daemons[0].Version)
 	require.Equal(t, "3.2.1", machines.Items[0].Apps[0].Details.Daemons[1].Version)

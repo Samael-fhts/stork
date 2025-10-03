@@ -332,6 +332,7 @@ func GetDetailedServicesByDaemonID(dbi dbops.DBI, daemonID int64) ([]Service, er
 		Relation("HAService").
 		Relation("Daemons.KeaDaemon.KeaDHCPDaemon").
 		Relation("Daemons.AccessPoints").
+		Relation("Daemons.Machine").
 		Where("d.id = ?", daemonID).
 		OrderExpr("service.id ASC").
 		Select()

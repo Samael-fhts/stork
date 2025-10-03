@@ -212,6 +212,10 @@ func (r *RestAPI) machineToRestAPI(dbMachine dbmodel.Machine) *models.Machine {
 		apps = append(apps, a)
 	}
 
+	sort.Slice(apps, func(i, j int) bool {
+		return apps[i].Name > apps[j].Name
+	})
+
 	m := models.Machine{
 		ID:                   dbMachine.ID,
 		Address:              &dbMachine.Address,
@@ -2042,10 +2046,39 @@ func (r *RestAPI) GetAccessPointKey(ctx context.Context, params services.GetAcce
 		return rsp
 	}
 
-	accessPoint, err := dbmodel.GetAccessPointByID(r.DB, params.AppID, params.Type)
+	daemons, err := dbmodel.GetDaemonsByVirtualAppID(r.DB, params.AppID)
 	if err != nil {
-		log.Error(err)
+		msg := "Cannot retrieve daemons from database"
+		log.WithError(err).Error(msg)
+		rsp := services.NewGetAccessPointKeyDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
+			Message: &msg,
+		})
+		return rsp
+	}
+	if len(daemons) == 0 {
+		msg := "Cannot find daemons for the given app"
+		rsp := services.NewGetAccessPointKeyDefault(http.StatusNotFound).WithPayload(&models.APIError{
+			Message: &msg,
+		})
+		return rsp
+	}
+
+	// Look for the CA daemon. If there is no CA daemon, take the first daemon.
+	var daemon *dbmodel.Daemon
+	for _, d := range daemons {
+		if d.Name == daemonname.CA {
+			daemon = d
+			break
+		}
+	}
+	if daemon == nil {
+		daemon = daemons[0]
+	}
+
+	accessPoint, err := daemon.GetAccessPoint(params.Type)
+	if err != nil {
 		msg := "Cannot retrieve access point from database"
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetAccessPointKeyDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
