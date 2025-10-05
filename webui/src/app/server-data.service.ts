@@ -4,9 +4,10 @@ import { Observable, Subject, merge, timer, EMPTY, of } from 'rxjs'
 import { switchMap, shareReplay, catchError, filter, map } from 'rxjs/operators'
 
 import { AuthService } from './auth.service'
-import { ServicesService, UsersService } from './backend/api/api'
-import { AppsStats } from './backend/model/appsStats'
-import { Groups } from './backend/model/groups'
+import { ServicesService, UsersService } from './backend'
+import { AppsStats } from './backend'
+import { Groups } from './backend'
+import { Group } from './backend'
 
 /**
  * Service for providing and caching data from the server.
@@ -86,27 +87,24 @@ export class ServerDataService {
     }
 
     /**
-     * Get name of the system group fetched from the database indicated by group ID.
+     * Get name or comma-separated list of names of the system groups fetched from the database indicated by group IDs.
      *
-     * @param groupId Identifier of the group in the database, counted
-     *                from 1.
+     * @param groupIds System group identifiers that user belongs to.
      * @param groupItems List of all groups returned by the server.
-     * @returns Group name or unknown string if the group is not found.
+     * @returns Group names or unknown string if the group is not found.
      */
-    public getGroupName(groupId: number, groupItems: any[]): string {
-        // The superadmin group is well known and doesn't require
-        // iterating over the list of groups fetched from the server.
-        // Especially, if the server didn't respond properly for
-        // some reason, we still want to be able to handle the
-        // superadmin group.
-        if (groupId === 1) {
-            return 'superadmin'
-        }
+    public getGroupNames(groupIds: number[], groupItems: Group[]): string {
+        const groupNames: string[] = []
         for (const grp of groupItems) {
-            if (grp.id === groupId) {
-                return grp.name
+            if (groupIds.includes(grp.id)) {
+                groupNames.push(grp.name)
             }
         }
+
+        if (groupNames.length > 0) {
+            return groupNames.join(', ')
+        }
+
         return 'unknown'
     }
 
