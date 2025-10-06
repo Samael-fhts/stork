@@ -123,7 +123,7 @@ func mockLease4GetError(callNo int, responses []interface{}) {
 
 // Generates response to declined leases searching on the DHCPv4 and DHCPv6 server.
 func mockLeasesGetDeclined(callNo int, responses []interface{}) {
-	switch callNo {
+	switch callNo % 2 {
 	case 0:
 		bytes := []byte(`
         {
@@ -143,7 +143,7 @@ func mockLeasesGetDeclined(callNo int, responses []interface{}) {
         }`)
 		_ = json.Unmarshal(bytes, responses[0])
 	case 1:
-		bytes := []byte(`[
+		bytes := []byte(`
         {
             "result": 0,
             "text": "Lease found.",
@@ -486,10 +486,10 @@ func TestFindDeclinedLeases(t *testing.T) {
 	// lease_cmds hooks library.
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:              dbmodel.AccessPointControl,
-			Address:           "localhost",
-			Port:              8000,
-			Protocol:          "http",
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
+			Protocol: "http",
 		},
 	}
 
@@ -611,10 +611,10 @@ func TestFindLeasesByHostID(t *testing.T) {
 	// Add Kea daemons with a DHCPv4 and DHCPv6 configuration loading the lease_cmds hooks library.
 	accessPoints := []*dbmodel.AccessPoint{
 		{
-			Type:              dbmodel.AccessPointControl,
-			Address:           "localhost",
-			Port:              8000,
-			Protocol:          "https",
+			Type:     dbmodel.AccessPointControl,
+			Address:  "localhost",
+			Port:     8000,
+			Protocol: "https",
 		},
 	}
 
