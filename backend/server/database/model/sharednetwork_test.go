@@ -399,7 +399,7 @@ func TestAddSharedNetworkWithSubnetsPools(t *testing.T) {
 	// It accepts the boolean flag indicating whether the shared network was
 	// returned by a function fetching a list of shared networks (true) or
 	// by a function fetching a single shared network (false).
-	verifySharedNetworkFn := func(t *testing.T, returnedNetwork *SharedNetwork, listing bool, includeMachine bool) {
+	verifySharedNetworkFn := func(t *testing.T, returnedNetwork *SharedNetwork, listing bool) {
 		require.Len(t, returnedNetwork.LocalSharedNetworks, 1)
 		require.NotNil(t, returnedNetwork.LocalSharedNetworks[0].Daemon)
 
@@ -410,11 +410,7 @@ func TestAddSharedNetworkWithSubnetsPools(t *testing.T) {
 			require.NotNil(t, returnedNetwork.LocalSharedNetworks[0].Daemon.KeaDaemon)
 		}
 
-		if includeMachine {
-			require.NotNil(t, returnedNetwork.LocalSharedNetworks[0].Daemon.Machine)
-		} else {
-			require.Nil(t, returnedNetwork.LocalSharedNetworks[0].Daemon.Machine)
-		}
+		require.NotNil(t, returnedNetwork.LocalSharedNetworks[0].Daemon.Machine)
 		require.Len(t, returnedNetwork.LocalSharedNetworks[0].Daemon.AccessPoints, 1)
 
 		require.Len(t, returnedNetwork.Subnets, 2)
@@ -462,7 +458,7 @@ func TestAddSharedNetworkWithSubnetsPools(t *testing.T) {
 		returnedNetwork, err := GetSharedNetwork(db, network.ID)
 		require.NoError(t, err)
 		require.NotNil(t, returnedNetwork)
-		verifySharedNetworkFn(t, returnedNetwork, false, true)
+		verifySharedNetworkFn(t, returnedNetwork, false)
 	})
 
 	t.Run("GetSharedNetworksByPage", func(t *testing.T) {
@@ -470,7 +466,7 @@ func TestAddSharedNetworkWithSubnetsPools(t *testing.T) {
 		require.NoError(t, err)
 		require.EqualValues(t, 1, total)
 		require.Len(t, returnedNetworks, 1)
-		verifySharedNetworkFn(t, &returnedNetworks[0], true, false)
+		verifySharedNetworkFn(t, &returnedNetworks[0], true)
 	})
 
 	t.Run("GetAllSharedNetworks", func(t *testing.T) {
