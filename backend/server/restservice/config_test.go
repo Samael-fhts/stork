@@ -196,7 +196,8 @@ func TestGetDaemonConfigWithSecretsForSuperAdmin(t *testing.T) {
 	require.IsType(t, &services.GetDaemonConfigOK{}, rsp)
 	okRsp := rsp.(*services.GetDaemonConfigOK)
 	require.NotEmpty(t, okRsp.Payload)
-	require.Equal(t, configDhcp4, okRsp.Payload.Config)
+	payloadJSON, _ := json.Marshal(okRsp.Payload.Config)
+	require.JSONEq(t, string(configDhcp4), string(payloadJSON))
 }
 
 // Test that GetDaemonConfig hides the secrets for standard users.
@@ -309,7 +310,8 @@ func TestGetDaemonConfigWithoutSecretsForAdmin(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotEmpty(t, expected)
-	require.Equal(t, expected, okRsp.Payload.Config)
+	payloadJSON, _ := json.Marshal(okRsp.Payload.Config)
+	require.JSONEq(t, string(expected), string(payloadJSON))
 }
 
 // Test that GetDaemonConfig returns correct editable flag value when
@@ -385,9 +387,10 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 	require.IsType(t, &services.GetDaemonConfigOK{}, rsp)
 	okRsp := rsp.(*services.GetDaemonConfigOK)
 	require.NotEmpty(t, okRsp.Payload)
-	require.Equal(t, configDhcp4, okRsp.Payload.Config)
+	payloadJSON, _ := json.Marshal(okRsp.Payload.Config)
+	require.JSONEq(t, string(configDhcp4), string(payloadJSON))
 	require.NotZero(t, okRsp.Payload.AppID)
-	require.Equal(t, "test-app", okRsp.Payload.AppName)
+	require.Equal(t, "kea@localhost%682820814", okRsp.Payload.AppName)
 	require.Equal(t, "dhcp4", okRsp.Payload.DaemonName)
 	require.Equal(t, "kea", okRsp.Payload.AppType)
 	require.False(t, okRsp.Payload.Editable)
@@ -401,7 +404,8 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 	require.IsType(t, &services.GetDaemonConfigOK{}, rsp)
 	okRsp = rsp.(*services.GetDaemonConfigOK)
 	require.NotEmpty(t, okRsp.Payload)
-	require.Equal(t, configDhcp6, okRsp.Payload.Config)
+	payloadJSON, _ = json.Marshal(okRsp.Payload.Config)
+	require.JSONEq(t, string(configDhcp6), string(payloadJSON))
 	require.NotZero(t, okRsp.Payload.AppID)
 	require.Equal(t, "dhcp6", okRsp.Payload.DaemonName)
 	require.Equal(t, "kea", okRsp.Payload.AppType)
@@ -784,11 +788,11 @@ func TestGetDaemonConfigReports(t *testing.T) {
 	require.EqualValues(t, 2, okRsp.Payload.TotalReports)
 	require.Len(t, okRsp.Payload.Items, 2)
 	require.EqualValues(t, "name 1", okRsp.Payload.Items[0].Checker)
-	require.Equal(t, "funny review contents for <daemon id=\"1\" name=\"dhcp4\" appId=\"1\" appType=\"kea\"> and <daemon id=\"2\" name=\"dhcp6\" appId=\"1\" appType=\"kea\">",
+	require.Equal(t, "funny review contents for <daemon id=\"1\" name=\"dhcp4\" machineId=\"1\"> and <daemon id=\"2\" name=\"dhcp6\" machineId=\"1\">",
 		*okRsp.Payload.Items[0].Content)
 
 	require.EqualValues(t, "name 2", okRsp.Payload.Items[1].Checker)
-	require.Equal(t, "another funny review contents for <daemon id=\"2\" name=\"dhcp6\" appId=\"1\" appType=\"kea\">", *okRsp.Payload.Items[1].Content)
+	require.Equal(t, "another funny review contents for <daemon id=\"2\" name=\"dhcp6\" machineId=\"1\">", *okRsp.Payload.Items[1].Content)
 
 	// Test getting the paged result.
 	params.Start = new(int64)
@@ -805,7 +809,7 @@ func TestGetDaemonConfigReports(t *testing.T) {
 	require.EqualValues(t, 2, okRsp.Payload.TotalReports)
 	require.Len(t, okRsp.Payload.Items, 1)
 	require.EqualValues(t, "name 1", okRsp.Payload.Items[0].Checker)
-	require.Equal(t, "funny review contents for <daemon id=\"1\" name=\"dhcp4\" appId=\"1\" appType=\"kea\"> and <daemon id=\"2\" name=\"dhcp6\" appId=\"1\" appType=\"kea\">",
+	require.Equal(t, "funny review contents for <daemon id=\"1\" name=\"dhcp4\" machineId=\"1\"> and <daemon id=\"2\" name=\"dhcp6\" machineId=\"1\">",
 		*okRsp.Payload.Items[0].Content)
 	require.NotNil(t, okRsp.Payload.Review)
 	require.NotZero(t, okRsp.Payload.Review.ID)
@@ -823,7 +827,7 @@ func TestGetDaemonConfigReports(t *testing.T) {
 	require.EqualValues(t, 2, okRsp.Payload.TotalReports)
 	require.Len(t, okRsp.Payload.Items, 1)
 	require.EqualValues(t, "name 2", okRsp.Payload.Items[0].Checker)
-	require.Equal(t, "another funny review contents for <daemon id=\"2\" name=\"dhcp6\" appId=\"1\" appType=\"kea\">", *okRsp.Payload.Items[0].Content)
+	require.Equal(t, "another funny review contents for <daemon id=\"2\" name=\"dhcp6\" machineId=\"1\">", *okRsp.Payload.Items[0].Content)
 
 	// Try to fetch the config reports for the second daemon.
 	params = services.GetDaemonConfigReportsParams{
@@ -1673,10 +1677,10 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 	require.NotNil(t, contents.Configs)
 	require.Len(t, contents.Configs, 2)
 	require.EqualValues(t, daemons[0].GetID(), contents.Configs[0].DaemonID)
-	require.Equal(t, daemonname.DHCPv4, contents.Configs[0].DaemonName)
+	require.Equal(t, string(daemonname.DHCPv4), contents.Configs[0].DaemonName)
 	require.Equal(t, "3.0.0", contents.Configs[0].DaemonVersion)
 	require.EqualValues(t, daemons[1].GetID(), contents.Configs[1].DaemonID)
-	require.Equal(t, daemonname.DHCPv4, contents.Configs[1].DaemonName)
+	require.Equal(t, string(daemonname.DHCPv4), contents.Configs[1].DaemonName)
 	require.Equal(t, "3.0.0", contents.Configs[1].DaemonVersion)
 
 	// Submit transaction.
@@ -1959,10 +1963,10 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 	require.NotNil(t, contents.Configs)
 	require.Len(t, contents.Configs, 2)
 	require.EqualValues(t, daemons[0].GetID(), contents.Configs[0].DaemonID)
-	require.Equal(t, daemonname.DHCPv6, contents.Configs[0].DaemonName)
+	require.Equal(t, string(daemonname.DHCPv6), contents.Configs[0].DaemonName)
 	require.Equal(t, "3.0.0", contents.Configs[0].DaemonVersion)
 	require.EqualValues(t, daemons[1].GetID(), contents.Configs[1].DaemonID)
-	require.Equal(t, daemonname.DHCPv6, contents.Configs[1].DaemonName)
+	require.Equal(t, string(daemonname.DHCPv6), contents.Configs[1].DaemonName)
 	require.Equal(t, "3.0.0", contents.Configs[0].DaemonVersion)
 
 	// Submit transaction.
@@ -2222,9 +2226,6 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, daemon)
 
-	err = dbmodel.AddDaemon(db, daemon)
-	require.NoError(t, err)
-
 	daemonIDs := []int64{daemon.GetID()}
 
 	daemon, err = dbmodel.GetDaemonByID(db, daemon.GetID())
@@ -2393,7 +2394,7 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 		require.IsType(t, &dhcp.UpdateKeaGlobalParametersSubmitDefault{}, rsp)
 		defaultRsp := rsp.(*dhcp.UpdateKeaGlobalParametersSubmitDefault)
 		require.Equal(t, http.StatusConflict, getStatusCode(*defaultRsp))
-		require.Equal(t, fmt.Sprintf("Problem with committing Kea config: config-set command to %s failed: error status (1) returned by Kea dhcp4 daemon with text: 'unable to communicate with the daemon'", daemon.GetName()),
+		require.Equal(t, fmt.Sprintf("Problem with committing Kea config: config-set command to %s failed: non-success response result from Kea: 1, text: unable to communicate with the daemon", daemon.GetName()),
 			*defaultRsp.Payload.Message)
 	})
 }
