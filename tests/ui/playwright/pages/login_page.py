@@ -92,7 +92,19 @@ class LoginPage:
             expect(self.new_password()).to_be_visible(timeout=timeout_ms)
             expect(self.confirm_password()).to_be_visible(timeout=timeout_ms)
             return True
-        except PWTimeout:
+        except PWTimeout as err:
+            # Log what happened for easier triage in CI output
+            print(
+                f"[login_page] Password-change dialog not detected within "
+                f"{timeout_ms} ms at URL={self.page.url!r}: {err!r}"
+            )
+            return False
+        except Exception as err:
+            # Unexpected error while probing the dialog
+            print(
+                f"[login_page] Error while checking password-change dialog at "
+                f"URL={self.page.url!r}: {err!r}"
+            )
             return False
 
     def change_password(self, old_password: str, new_password: str):
