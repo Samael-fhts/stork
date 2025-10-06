@@ -26,6 +26,7 @@ func GetLogTargetByID(db dbops.DBI, id int64) (*LogTarget, error) {
 	logTarget := LogTarget{}
 	err := db.Model(&logTarget).
 		Relation("Daemon.Machine").
+		Relation("Daemon.AccessPoints").
 		Where("log_target.id = ?", id).
 		Select()
 	if errors.Is(err, pg.ErrNoRows) {
