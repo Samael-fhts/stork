@@ -903,7 +903,7 @@ func TestDeleteMachineWithBind9DaemonOrphans(t *testing.T) {
 	err = DeleteMachine(db, m)
 	require.NoError(t, err)
 
-	returnedZones, _, err := GetZones(db, nil)
+	returnedZones, _, err := GetZones(db, GetZonesFilter{})
 	require.NoError(t, err)
 	require.Empty(t, returnedZones)
 }

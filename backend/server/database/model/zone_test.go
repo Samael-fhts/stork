@@ -17,7 +17,7 @@ import (
 
 // Test convenience function enabling filtering by zone types on the GetZonesFilter.
 func TestGetZonesFilterEnableZoneTypes(t *testing.T) {
-	filter := &GetZonesFilter{}
+	filter := GetZonesFilter{}
 	filter.EnableZoneType(ZoneTypeSlave)
 	filter.EnableZoneType(ZoneTypeBuiltin)
 	require.ElementsMatch(t, []ZoneType{ZoneTypeSecondary, ZoneTypeSlave, ZoneTypeBuiltin}, slices.Collect(filter.Types.GetEnabled()))
@@ -98,7 +98,7 @@ func TestAddZonesOverlap(t *testing.T) {
 	require.NoError(t, err)
 
 	// Make sure that the zones have been added and are associated with one daemon.
-	zones, total, err := GetZones(db, nil, ZoneRelationLocalZones)
+	zones, total, err := GetZones(db, GetZonesFilter{}, ZoneRelationLocalZones)
 	require.NoError(t, err)
 	require.Equal(t, 100, total)
 	require.Len(t, zones, 100)
@@ -129,7 +129,7 @@ func TestAddZonesOverlap(t *testing.T) {
 
 	// Retrieve the zones and their associations. They should be now associated
 	// with two servers.
-	zones, total, err = GetZones(db, nil, ZoneRelationLocalZones)
+	zones, total, err = GetZones(db, GetZonesFilter{}, ZoneRelationLocalZones)
 	require.NoError(t, err)
 	require.Equal(t, 100, total)
 	require.Len(t, zones, 100)
@@ -192,7 +192,7 @@ func TestGetZones(t *testing.T) {
 
 	t.Run("no filtering", func(t *testing.T) {
 		// Without filtering we should get all zones.
-		zones, total, err := GetZones(db, nil, ZoneRelationLocalZones)
+		zones, total, err := GetZones(db, GetZonesFilter{}, ZoneRelationLocalZones)
 		require.NoError(t, err)
 		require.Equal(t, 150, total)
 		require.Len(t, zones, 150)
@@ -200,7 +200,7 @@ func TestGetZones(t *testing.T) {
 
 	t.Run("relations", func(t *testing.T) {
 		// Include daemon and app tables.
-		zones, total, err := GetZones(db, nil, ZoneRelationLocalZonesMachine)
+		zones, total, err := GetZones(db, GetZonesFilter{}, ZoneRelationLocalZonesMachine)
 		require.NoError(t, err)
 		require.Equal(t, 150, total)
 		require.Len(t, zones, 150)
@@ -213,7 +213,7 @@ func TestGetZones(t *testing.T) {
 	})
 
 	t.Run("filter by serial", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Serial: storkutil.Ptr("12345"),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -226,7 +226,7 @@ func TestGetZones(t *testing.T) {
 	})
 
 	t.Run("filter by class", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Class: storkutil.Ptr("IN"),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -239,7 +239,7 @@ func TestGetZones(t *testing.T) {
 	})
 
 	t.Run("filter by single zone type", func(t *testing.T) {
-		filter := &GetZonesFilter{}
+		filter := GetZonesFilter{}
 		filter.EnableZoneType(ZoneTypeSecondary)
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
 		require.NoError(t, err)
@@ -252,7 +252,7 @@ func TestGetZones(t *testing.T) {
 	})
 
 	t.Run("filter by multiple zone types", func(t *testing.T) {
-		filter := &GetZonesFilter{}
+		filter := GetZonesFilter{}
 		filter.EnableZoneType(ZoneTypeBuiltin)
 		filter.EnableZoneType(ZoneTypePrimary)
 		filter.EnableZoneType(ZoneTypeSecondary)
@@ -277,7 +277,7 @@ func TestGetZones(t *testing.T) {
 	})
 
 	t.Run("filter for zone types unspecified", func(t *testing.T) {
-		filter := &GetZonesFilter{}
+		filter := GetZonesFilter{}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
 		require.NoError(t, err)
 		require.Equal(t, 150, total)
@@ -296,7 +296,7 @@ func TestGetZones(t *testing.T) {
 
 	t.Run("lower bound", func(t *testing.T) {
 		// Get first 30 zones ordered by DNS name.
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Limit: storkutil.Ptr(30),
 		}
 		zones1, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -319,7 +319,7 @@ func TestGetZones(t *testing.T) {
 
 	t.Run("offset", func(t *testing.T) {
 		// Get first 20 zones ordered by DNS name.
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Offset: storkutil.Ptr(0),
 			Limit:  storkutil.Ptr(20),
 		}
@@ -342,7 +342,7 @@ func TestGetZones(t *testing.T) {
 	})
 
 	t.Run("sort", func(t *testing.T) {
-		filter := &GetZonesFilter{}
+		filter := GetZonesFilter{}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
 		require.NoError(t, err)
 		require.Equal(t, 150, total)
@@ -408,7 +408,7 @@ func TestGetZonesFilterByRootZone(t *testing.T) {
 	t.Run("filter by root zone", func(t *testing.T) {
 		searchKeys := []string{"r", "ro", "roo", "root", "(root", "(root)", "R", "Root", "(rooT"}
 		for _, searchKey := range searchKeys {
-			filter := &GetZonesFilter{
+			filter := GetZonesFilter{
 				Text: storkutil.Ptr(searchKey),
 			}
 			zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -420,7 +420,7 @@ func TestGetZonesFilterByRootZone(t *testing.T) {
 	})
 
 	t.Run("filter by dot", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Text: storkutil.Ptr("."),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -431,7 +431,7 @@ func TestGetZonesFilterByRootZone(t *testing.T) {
 	})
 
 	t.Run("filter by another zone", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Text: storkutil.Ptr("example"),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -500,7 +500,7 @@ func TestGetZonesWithDaemonIDFilter(t *testing.T) {
 
 	// Make sure that the zones are returned for each daemon.
 	for i := 0; i < 3; i++ {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			DaemonID: storkutil.Ptr(daemons[i].ID),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -513,7 +513,7 @@ func TestGetZonesWithDaemonIDFilter(t *testing.T) {
 	}
 
 	// Make sure that the zones are not returned for non-existing daemon ID.
-	filter := &GetZonesFilter{
+	filter := GetZonesFilter{
 		DaemonID: storkutil.Ptr(daemons[2].ID + 1),
 	}
 	zones, total, err := GetZones(db, filter)
@@ -597,7 +597,7 @@ func TestGetZonesWithDaemonIDFilterOverlappingZones(t *testing.T) {
 
 	// Make sure that the zones are returned for each app.
 	for i := 0; i < 3; i++ {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			DaemonID: storkutil.Ptr(daemons[i].ID),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -652,7 +652,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	}
 
 	t.Run("filter by zone name", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Text: storkutil.Ptr("mple0.org"),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -663,7 +663,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	})
 
 	t.Run("filter by daemon name", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			DaemonName: storkutil.Ptr(daemonname.Bind9),
 		}
 		zones, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -675,7 +675,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	})
 
 	t.Run("filter by view", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			DaemonName: storkutil.Ptr(daemonname.Bind9),
 			Text:       storkutil.Ptr("ew2"),
 		}
@@ -687,7 +687,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	})
 
 	t.Run("match all zone names", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Text: storkutil.Ptr("exam"),
 		}
 		_, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -696,7 +696,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	})
 
 	t.Run("match all views", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			Text: storkutil.Ptr("vi"),
 		}
 		_, total, err := GetZones(db, filter, ZoneRelationLocalZones)
@@ -705,7 +705,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	})
 
 	t.Run("combined filtering", func(t *testing.T) {
-		filter := &GetZonesFilter{
+		filter := GetZonesFilter{
 			DaemonName: storkutil.Ptr(daemonname.Bind9),
 			Text:       storkutil.Ptr("mple0.org"),
 		}
@@ -886,7 +886,7 @@ func TestDeleteOrphanedZones(t *testing.T) {
 	require.EqualValues(t, 100, affectedRows)
 
 	// No zones present.
-	zones, total, err := GetZones(db, nil, ZoneRelationLocalZones)
+	zones, total, err := GetZones(db, GetZonesFilter{}, ZoneRelationLocalZones)
 	require.NoError(t, err)
 	require.Zero(t, total)
 	require.Empty(t, zones)
@@ -1152,7 +1152,7 @@ func BenchmarkGetZones(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		zones, _, err := GetZones(db, nil, ZoneRelationLocalZones)
+		zones, _, err := GetZones(db, GetZonesFilter{}, ZoneRelationLocalZones)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -1234,7 +1234,7 @@ func BenchmarkGetZonesWithZoneTypeFilter(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		filter := &GetZonesFilter{}
+		filter := GetZonesFilter{}
 		filter.EnableZoneType(ZoneTypeBuiltin)
 		filter.EnableZoneType(ZoneTypeSecondary)
 		filter.EnableZoneType(ZoneTypeForward)

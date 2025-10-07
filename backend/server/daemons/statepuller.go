@@ -217,37 +217,21 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 	if agentVersion.LessThanOrEqual(storkutil.NewSemanticVersion(2, 2, 0)) {
 		// The agent communicates through the Kea CA. It cannot detect the
 		// other daemons.
-		var additionalDaemons []*agentcomm.Daemon
-
 		for _, daemon := range state.Daemons {
 			if daemon.Name != daemonname.CA {
 				continue
 			}
 
-			// Fetch the Kea CA configuration to retrieve a list of running
-			// daemons.
-			config, err := kea.GetConfig(ctx, agents, daemon)
+			additionalDaemons, err := getDaemonsFromKeaCAConfig(ctx, agents, daemon)
 			if err != nil {
-				return "Cannot get Kea CA configuration: " + err.Error()
+				msg := "Cannot get daemons from Kea CA configuration"
+				log.WithError(err).Error(msg)
+				return msg
 			}
 
-			daemonNames := config.GetManagementControlSockets().GetManagedDaemonNames()
-			for _, name := range daemonNames {
-				if name == daemonname.CA {
-					continue
-				}
-
-				additionalDaemons = append(additionalDaemons, &agentcomm.Daemon{
-					Name: name,
-					// Communication with this daemon is done through the Kea CA.
-					AccessPoints: daemon.AccessPoints,
-					Machine:      daemon.Machine,
-				})
-			}
+			// Append the additional daemons to the list of daemons.
+			state.Daemons = append(state.Daemons, additionalDaemons...)
 		}
-
-		// Append the additional daemons to the list of daemons.
-		state.Daemons = append(state.Daemons, additionalDaemons...)
 	}
 
 	// The Stork server doesn't gather the Stork agent configuration, so we cannot
@@ -397,4 +381,31 @@ func conditionallyBeginKeaConfigReviews(daemon *dbmodel.Daemon, state kea.Daemon
 	if len(triggers) != 0 {
 		_ = reviewDispatcher.BeginReview(daemon, triggers, nil)
 	}
+}
+
+// Reads the daemons from the Kea CA configuration file.
+// It is expected that the provided daemon is the Kea CA daemon.
+func getDaemonsFromKeaCAConfig(ctx context.Context, agents agentcomm.ConnectedAgents, daemon *agentcomm.Daemon) ([]*agentcomm.Daemon, error) {
+	// Fetch the Kea CA configuration to retrieve a list of running
+	// daemons.
+	config, err := kea.GetConfig(ctx, agents, daemon)
+	if err != nil {
+		return nil, errors.WithMessage(err, "cannot get Kea CA configuration")
+	}
+
+	daemonNames := config.GetManagementControlSockets().GetManagedDaemonNames()
+	var daemons []*agentcomm.Daemon
+	for _, name := range daemonNames {
+		if name == daemonname.CA {
+			continue
+		}
+
+		daemons = append(daemons, &agentcomm.Daemon{
+			Name: name,
+			// Communication with this daemon is done through the Kea CA.
+			AccessPoints: daemon.AccessPoints,
+			Machine:      daemon.Machine,
+		})
+	}
+	return daemons, nil
 }

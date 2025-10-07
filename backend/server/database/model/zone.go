@@ -229,7 +229,7 @@ func AddZones(dbi pg.DBI, zones ...*Zone) error {
 // complicate the implementation. Note that this function is primarily used for
 // paging zones, so the number of records is typically low, and the performance gain
 // would be negligible.
-func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*Zone, int, error) {
+func GetZones(db pg.DBI, filter GetZonesFilter, relations ...ZoneRelation) ([]*Zone, int, error) {
 	var zones []*Zone
 	q := db.Model(&zones).Group("zone.id")
 	// Add relations.
@@ -239,19 +239,16 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 	// Order expression.
 	q = q.OrderExpr("rname COLLATE \"C\" ASC")
 
-	// Filtering is optional.
-	if filter == nil {
-		count, err := q.SelectAndCount()
-		if err != nil {
-			return nil, count, errors.Wrapf(err, "failed to select unfiltered zones from the database")
-		}
-		return zones, count, nil
-	}
-
 	// Limit the number of zones returned.
 	if filter.Limit != nil {
 		q = q.Limit(*filter.Limit)
 	}
+
+	// Paging from offset.
+	if filter.Offset != nil {
+		q = q.Offset(*filter.Offset)
+	}
+
 	// Paging from the last returned zone name.
 	if filter.LowerBound != nil {
 		labels := dns.SplitDomainName(*filter.LowerBound)
@@ -259,10 +256,7 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 		lowerBound := strings.Join(labels, ".")
 		q = q.Where("rname COLLATE \"C\" > ?", lowerBound)
 	}
-	// Paging from offset.
-	if filter.Offset != nil {
-		q = q.Offset(*filter.Offset)
-	}
+
 	// Join relations required for filtering.
 	if filter.Serial != nil || filter.Class != nil ||
 		filter.Types != nil && filter.Types.IsAnySpecified() ||

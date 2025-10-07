@@ -64,3 +64,13 @@ func UpdateLogTarget(db dbops.DBI, logTarget *LogTarget) error {
 	}
 	return err
 }
+
+// Adds or updates a log target in the database.
+// If the log target has no id yet, it means that it is not yet present in the
+// database and should be inserted. Otherwise, it is updated.
+func AddOrUpdateLogTarget(db dbops.DBI, logTarget *LogTarget) error {
+	if logTarget.ID > 0 {
+		return UpdateLogTarget(db, logTarget)
+	}
+	return AddLogTarget(db, logTarget)
+}

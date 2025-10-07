@@ -701,27 +701,11 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 
 	// Insert or update log targets.
 	for i := range daemon.LogTargets {
-		// If the log target has no id yet, it means that it is not yet
-		// present in the database and should be inserted. Otherwise,
-		// it is updated.
-		if daemon.LogTargets[i].ID == 0 {
-			// Make sure that the inserted log target is linked with the
-			// daemon.
-			daemon.LogTargets[i].DaemonID = daemon.ID
-			err = AddLogTarget(dbi, daemon.LogTargets[i])
-			if err != nil {
-				return errors.Wrapf(err, "problem inserting log target %s to daemon %d: %v",
-					daemon.LogTargets[i].Output, daemon.ID, daemon)
-			}
-		} else {
-			err = UpdateLogTarget(dbi, daemon.LogTargets[i])
-			if err != nil {
-				return errors.Wrapf(err, "problem updating log target %s in daemon %d: %v",
-					daemon.LogTargets[i].Output, daemon.ID, daemon)
-			} else if result.RowsAffected() <= 0 {
-				return errors.Wrapf(ErrNotExists, "log target with ID %d does not exist",
-					daemon.LogTargets[i].ID)
-			}
+		daemon.LogTargets[i].DaemonID = daemon.ID
+		err = AddOrUpdateLogTarget(dbi, daemon.LogTargets[i])
+		if err != nil {
+			return errors.WithMessagef(err, "problem altering log target %v for daemon %d",
+				daemon.LogTargets[i], daemon.ID)
 		}
 	}
 
