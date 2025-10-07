@@ -28,10 +28,10 @@ import (
 
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/server/agentcomm"
-	"isc.org/stork/server/daemons"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator"
 	"isc.org/stork/server/configreview"
+	"isc.org/stork/server/daemons"
 	dbops "isc.org/stork/server/database"
 	dbsession "isc.org/stork/server/database/session"
 	"isc.org/stork/server/dnsop"

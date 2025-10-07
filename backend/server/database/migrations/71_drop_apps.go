@@ -84,9 +84,10 @@ func init() {
 		`)
 		return err
 	}, func(db migrations.DB) error {
-		_, err := db.Exec(
-			// App
-			`-- Recreate the app table
+		_, err := db.Exec(`
+			-- === APP ===
+
+			-- Recreate the app table
 			CREATE TABLE public.app (
 				id serial4 NOT NULL,
 				created_at timestamp DEFAULT (now() AT TIME ZONE 'utc'::text) NOT NULL,
@@ -174,27 +175,29 @@ func init() {
 			ON public.app FOR EACH ROW EXECUTE FUNCTION validate_app_name();
 
 			CREATE TRIGGER trigger_replace_app_name AFTER UPDATE
-			ON machine FOR EACH ROW EXECUTE PROCEDURE replace_app_name();` +
+			ON machine FOR EACH ROW EXECUTE PROCEDURE replace_app_name();
 
-			// Protocol
-			`-- Change protocol column back to use_secure_protocol
+			-- === PROTOCOL ===
+
+			-- Change protocol column back to use_secure_protocol
 			ALTER TABLE access_point ADD COLUMN use_secure_protocol boolean NOT NULL DEFAULT false;
 			UPDATE access_point
 			SET use_secure_protocol = CASE
 				WHEN protocol = 'https' THEN true
 				ELSE false
 			END;
-			ALTER TABLE access_point DROP COLUMN protocol;` +
+			ALTER TABLE access_point DROP COLUMN protocol;
+			
+			-- === SETTING ===
 
-			// Settings
-			`-- Revert the setting name change
+			-- Revert the setting name change
 			UPDATE setting
 			SET name = 'apps_state_puller_interval'
-			WHERE name = 'state_puller_interval';` +
+			WHERE name = 'state_puller_interval';
 
-			// Machine-App-Daemon references.
+			-- === MACHINE - APP - DAEMON REFERENCES ===
 
-			`-- Add app_id column back to daemon table
+			-- Add app_id column back to daemon table
 			ALTER TABLE daemon ADD COLUMN app_id bigint;
 
 			-- Create apps from existing daemons
@@ -240,10 +243,11 @@ func init() {
 
 			-- Drop the machine_id foreign key from daemon
 			ALTER TABLE daemon DROP CONSTRAINT daemon_machine_id_fkey;
-			ALTER TABLE daemon DROP COLUMN machine_id;` +
-
-			// Access point			
-			`-- Add app_id column back to access_point table
+			ALTER TABLE daemon DROP COLUMN machine_id;
+			
+			-- === ACCESS POINT ===
+			
+			-- Add app_id column back to access_point table
 			ALTER TABLE access_point ADD COLUMN app_id bigint;
 
 			-- Fill app_id in access_point from daemon
@@ -295,20 +299,21 @@ func init() {
 
 			-- Drop the daemon_id foreign key from access_point
 			ALTER TABLE access_point DROP CONSTRAINT access_point_daemon_id_fkey;
-			ALTER TABLE access_point DROP COLUMN daemon_id;` +
-
-			// Machine
-			` -- Trigger function inserting control access point every time an
-              -- app created.
-              CREATE FUNCTION update_machine_id()
-                  RETURNS trigger
-                  LANGUAGE 'plpgsql'
-                  AS $function$
-              BEGIN
-                  UPDATE app SET machine_id = NEW.machine_id WHERE id = NEW.app_id;
-                  RETURN NEW;
-              END;
-              $function$;
+			ALTER TABLE access_point DROP COLUMN daemon_id;
+			
+			-- === MACHINE ===
+			
+			-- Trigger function inserting control access point every time an
+			-- app created.
+			CREATE FUNCTION update_machine_id()
+				RETURNS trigger
+				LANGUAGE 'plpgsql'
+				AS $function$
+			BEGIN
+				UPDATE app SET machine_id = NEW.machine_id WHERE id = NEW.app_id;
+				RETURN NEW;
+			END;
+			$function$;
 
 			CREATE TRIGGER trigger_update_machine_id BEFORE INSERT OR UPDATE
 			ON access_point FOR EACH ROW EXECUTE PROCEDURE update_machine_id();

@@ -351,7 +351,6 @@ func CommitDaemonsIntoDB(db *dbops.PgDB, daemons []*dbmodel.Daemon, eventCenter 
 			}
 		}
 
-
 		for i, daemon := range daemons {
 			if !states[i].IsConfigChanged {
 				// There are quite frequent cases when the daemons' configurations haven't

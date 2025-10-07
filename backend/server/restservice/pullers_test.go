@@ -25,7 +25,7 @@ func TestGetPullers(t *testing.T) {
 	statePuller, _ := daemons.NewStatePuller(db, nil, nil, nil, nil)
 	bind9Puller, _ := bind9.NewStatsPuller(db, nil, nil)
 	pullers := &daemons.Pullers{
-		StatePuller:  statePuller,
+		StatePuller:      statePuller,
 		Bind9StatsPuller: bind9Puller,
 	}
 	rapi, _ := NewRestAPI(&rapiSettings, dbSettings, db, pullers)
@@ -55,7 +55,7 @@ func TestGetPuller(t *testing.T) {
 	statePuller, _ := daemons.NewStatePuller(db, nil, nil, nil, nil)
 	bind9Puller, _ := bind9.NewStatsPuller(db, nil, nil)
 	pullers := &daemons.Pullers{
-		StatePuller:  statePuller,
+		StatePuller:      statePuller,
 		Bind9StatsPuller: bind9Puller,
 	}
 	rapi, _ := NewRestAPI(&rapiSettings, dbSettings, db, pullers)
