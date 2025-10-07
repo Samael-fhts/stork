@@ -31,7 +31,7 @@ func TestPowerDNSDaemonEvaluation(t *testing.T) {
 	agentManager := NewMockAgentManager(ctrl)
 
 	daemon := &PDNSDaemon{}
-	err := daemon.Evaluate(agentManager)
+	err := daemon.Evaluate(t.Context(), agentManager)
 	require.NoError(t, err)
 }
 

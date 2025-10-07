@@ -1202,6 +1202,7 @@ DAEMON_LOOP:
 		for response, err := range responses {
 			if err != nil {
 				err = errors.WithMessagef(err, "problem getting stats from daemon: %s", daemon)
+				errs = append(errs, err)
 				continue DAEMON_LOOP
 			}
 

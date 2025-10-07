@@ -3,7 +3,6 @@ package dbmodel
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"hash/adler32"
 	"strings"
@@ -11,7 +10,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/go-pg/pg/v10/orm"
-	pkgerrors "github.com/pkg/errors"
+	errors "github.com/pkg/errors"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/daemonctrl/daemonname"
 	"isc.org/stork/daemondata/bind9stats"
@@ -138,7 +137,7 @@ func (d Daemon) GetAccessPoint(accessPointType string) (ap *AccessPoint, err err
 			return point, nil
 		}
 	}
-	return nil, pkgerrors.Errorf("no access point of type %s found for daemon ID %d", accessPointType, d.ID)
+	return nil, errors.Errorf("no access point of type %s found for daemon ID %d", accessPointType, d.ID)
 }
 
 // Returns daemon control access point including control address, port and
@@ -202,7 +201,7 @@ func NewDaemon(machine *Machine, name daemonname.Name, active bool, accessPoints
 	}
 
 	switch name {
-	case daemonname.CA, daemonname.D2:
+	case daemonname.CA, daemonname.D2, daemonname.NetConf:
 		daemon.KeaDaemon = &KeaDaemon{}
 	case daemonname.DHCPv4, daemonname.DHCPv6:
 		daemon.KeaDaemon = &KeaDaemon{KeaDHCPDaemon: &KeaDHCPDaemon{}}
@@ -229,7 +228,7 @@ func GetDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
 	if errors.Is(err, pg.ErrNoRows) {
 		return nil, nil
 	} else if err != nil {
-		return nil, pkgerrors.Wrapf(err, "problem getting daemon %v", id)
+		return nil, errors.Wrapf(err, "problem getting daemon %v", id)
 	}
 	return &daemon, nil
 }
@@ -253,7 +252,7 @@ func GetDaemonsByIDs(dbi pg.DBI, ids []int64) (daemons []Daemon, err error) {
 		for _, id := range ids {
 			sids = append(sids, fmt.Sprintf("%d", id))
 		}
-		return nil, pkgerrors.Wrapf(err, "problem selecting daemons with IDs: %s",
+		return nil, errors.Wrapf(err, "problem selecting daemons with IDs: %s",
 			strings.Join(sids, ", "))
 	}
 	return daemons, nil
@@ -274,7 +273,7 @@ func GetDaemonsByMachine(dbi pg.DBI, machineID int64) (daemons []Daemon, err err
 	if errors.Is(err, pg.ErrNoRows) {
 		return daemons, nil
 	} else if err != nil {
-		return nil, pkgerrors.Wrapf(err, "problem selecting daemons for machine ID %d", machineID)
+		return nil, errors.Wrapf(err, "problem selecting daemons for machine ID %d", machineID)
 	}
 	return daemons, nil
 }
@@ -301,7 +300,7 @@ func GetAllDaemonsWithRelations(dbi dbops.DBI, relations ...DaemonRelation) ([]D
 	}
 	err := q.OrderExpr("id ASC").Select()
 	if err != nil {
-		return nil, pkgerrors.Wrapf(err, "problem getting daemons from the database")
+		return nil, errors.Wrapf(err, "problem getting daemons from the database")
 	}
 	return daemons, nil
 }
@@ -315,7 +314,7 @@ func GetAllDaemonsWithRelations(dbi dbops.DBI, relations ...DaemonRelation) ([]D
 // order is used.
 func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *string, sortField string, sortDir SortDirEnum, daemonNames ...daemonname.Name) ([]Daemon, int64, error) {
 	if limit == 0 {
-		return nil, 0, pkgerrors.New("limit should be greater than 0")
+		return nil, 0, errors.New("limit should be greater than 0")
 	}
 	var daemons []Daemon
 
@@ -331,6 +330,8 @@ func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *stri
 		case daemonname.DHCPv4, daemonname.DHCPv6:
 			q = q.Relation(DaemonRelationHAService)
 			q = q.Relation(DaemonRelationKeaDHCPDaemon)
+		case daemonname.CA, daemonname.D2, daemonname.NetConf:
+			q = q.Relation(DaemonRelationKeaDaemon)
 		case daemonname.Bind9:
 			q = q.Relation(DaemonRelationBind9Daemon)
 		case daemonname.PDNS:
@@ -368,7 +369,7 @@ func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *stri
 		if errors.Is(err, pg.ErrNoRows) {
 			return []Daemon{}, 0, nil
 		}
-		return nil, 0, pkgerrors.Wrapf(err, "problem getting daemons")
+		return nil, 0, errors.Wrapf(err, "problem getting daemons")
 	}
 	return daemons, int64(total), nil
 }
@@ -389,7 +390,7 @@ func GetDaemonsByName(dbi pg.DBI, names ...daemonname.Name) (daemons []Daemon, e
 	if errors.Is(err, pg.ErrNoRows) {
 		return daemons, nil
 	} else if err != nil {
-		return nil, pkgerrors.Wrapf(err, "problem selecting daemons with names: %v", names)
+		return nil, errors.Wrapf(err, "problem selecting daemons with names: %v", names)
 	}
 	return daemons, nil
 }
@@ -415,7 +416,7 @@ func GetKeaDHCPDaemons(dbi pg.DBI) (daemons []Daemon, err error) {
 	if errors.Is(err, pg.ErrNoRows) {
 		err = nil
 	} else {
-		err = pkgerrors.Wrapf(err, "problem with getting Kea DHCP daemons")
+		err = errors.Wrapf(err, "problem with getting Kea DHCP daemons")
 	}
 	return
 }
@@ -432,7 +433,7 @@ func GetDaemonsForUpdate(tx *pg.Tx, daemonsToSelect []*Daemon) ([]*Daemon, error
 	// It is an error when no daemons are specified. Typically it will be one
 	// daemon but there can be more.
 	if len(daemonsToSelect) == 0 {
-		return daemons, pkgerrors.New("no daemons specified for selection for update")
+		return daemons, errors.New("no daemons specified for selection for update")
 	}
 
 	// Execute SELECT ... FROM daemon ... FOR UPDATE. It locks all selected
@@ -465,7 +466,7 @@ func GetDaemonsForUpdate(tx *pg.Tx, daemonsToSelect []*Daemon) ([]*Daemon, error
 		for _, id := range ids {
 			sids = append(sids, fmt.Sprintf("%d", id))
 		}
-		return nil, pkgerrors.Wrapf(err, "problem selecting daemons with IDs: %s, for update",
+		return nil, errors.Wrapf(err, "problem selecting daemons with IDs: %s, for update",
 			strings.Join(sids, ", "))
 	}
 	return daemons, nil
@@ -486,7 +487,7 @@ func GetKeaDaemonsForUpdate(tx *pg.Tx, daemonsToSelect []*Daemon) ([]*Daemon, er
 	// It is an error when no daemons are specified. Typically it will be one
 	// daemon but there can be more.
 	if len(daemonsToSelect) == 0 {
-		return daemons, pkgerrors.New("no Kea daemons specified for selection for update")
+		return daemons, errors.New("no Kea daemons specified for selection for update")
 	}
 
 	// Execute SELECT ... FROM daemon ... FOR UPDATE. It locks all selected
@@ -522,7 +523,7 @@ func GetKeaDaemonsForUpdate(tx *pg.Tx, daemonsToSelect []*Daemon) ([]*Daemon, er
 		for _, id := range ids {
 			sids = append(sids, fmt.Sprintf("%d", id))
 		}
-		return nil, pkgerrors.Wrapf(err, "problem selecting Kea daemons with IDs: %s, for update",
+		return nil, errors.Wrapf(err, "problem selecting Kea daemons with IDs: %s, for update",
 			strings.Join(sids, ", "))
 	}
 	return daemons, nil
@@ -531,18 +532,18 @@ func GetKeaDaemonsForUpdate(tx *pg.Tx, daemonsToSelect []*Daemon) ([]*Daemon, er
 // Adds a new daemon to the database.
 func addDaemon(tx *pg.Tx, daemon *Daemon) error {
 	if daemon.MachineID == 0 {
-		return pkgerrors.New("daemon must have a machine ID set")
+		return errors.New("daemon must have a machine ID set")
 	}
 	_, err := tx.Model(daemon).Insert()
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem adding daemon %v", daemon)
+		return errors.Wrapf(err, "problem adding daemon %v", daemon)
 	}
 	// Add access points.
 	for _, accessPoint := range daemon.AccessPoints {
 		accessPoint.DaemonID = daemon.ID
 		err = AddOrUpdateAccessPoint(tx, accessPoint)
 		if err != nil {
-			return pkgerrors.WithMessagef(err, "problem adding access point %v for daemon %d",
+			return errors.WithMessagef(err, "problem adding access point %v for daemon %d",
 				accessPoint, daemon.ID)
 		}
 	}
@@ -554,7 +555,7 @@ func addDaemon(tx *pg.Tx, daemon *Daemon) error {
 		daemon.KeaDaemon.DaemonID = daemon.ID
 		err = upsertInTransaction(tx, daemon.KeaDaemon.ID, daemon.KeaDaemon)
 		if err != nil {
-			return pkgerrors.WithMessagef(err, "problem upserting Kea daemon %d: %v",
+			return errors.WithMessagef(err, "problem upserting Kea daemon %d: %v",
 				daemon.ID, daemon.KeaDaemon)
 		}
 
@@ -563,7 +564,7 @@ func addDaemon(tx *pg.Tx, daemon *Daemon) error {
 			daemon.KeaDaemon.KeaDHCPDaemon.KeaDaemonID = daemon.KeaDaemon.ID
 			err = upsertInTransaction(tx, daemon.KeaDaemon.KeaDHCPDaemon.ID, daemon.KeaDaemon.KeaDHCPDaemon)
 			if err != nil {
-				return pkgerrors.WithMessagef(err, "problem upserting Kea DHCP daemon %d: %v",
+				return errors.WithMessagef(err, "problem upserting Kea DHCP daemon %d: %v",
 					daemon.KeaDaemon.KeaDHCPDaemon.ID, daemon.KeaDaemon.KeaDHCPDaemon)
 			}
 		}
@@ -572,7 +573,7 @@ func addDaemon(tx *pg.Tx, daemon *Daemon) error {
 		daemon.Bind9Daemon.DaemonID = daemon.ID
 		err = upsertInTransaction(tx, daemon.Bind9Daemon.ID, daemon.Bind9Daemon)
 		if err != nil {
-			return pkgerrors.WithMessagef(err, "problem upserting BIND 9 daemon %d: %v",
+			return errors.WithMessagef(err, "problem upserting BIND 9 daemon %d: %v",
 				daemon.Bind9Daemon.ID, daemon.Bind9Daemon)
 		}
 	case daemon.PDNSDaemon != nil:
@@ -580,7 +581,7 @@ func addDaemon(tx *pg.Tx, daemon *Daemon) error {
 		daemon.PDNSDaemon.DaemonID = daemon.ID
 		err = upsertInTransaction(tx, daemon.PDNSDaemon.ID, daemon.PDNSDaemon)
 		if err != nil {
-			return pkgerrors.Wrapf(err, "problem upserting PowerDNS daemon %d: %v",
+			return errors.Wrapf(err, "problem upserting PowerDNS daemon %d: %v",
 				daemon.ID, daemon.PDNSDaemon)
 		}
 	}
@@ -590,7 +591,7 @@ func addDaemon(tx *pg.Tx, daemon *Daemon) error {
 		logTarget.DaemonID = daemon.ID
 		err = AddLogTarget(tx, logTarget)
 		if err != nil {
-			return pkgerrors.WithMessagef(err, "problem adding log target %v for daemon %d",
+			return errors.WithMessagef(err, "problem adding log target %v for daemon %d",
 				logTarget, daemon.ID)
 		}
 	}
@@ -614,21 +615,22 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 	// Update common daemon instance.
 	result, err := dbi.Model(daemon).WherePK().ExcludeColumn("created_at").Update()
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem updating daemon %d", daemon.ID)
+		return errors.Wrapf(err, "problem updating daemon %d", daemon.ID)
 	} else if result.RowsAffected() <= 0 {
-		return pkgerrors.Wrapf(ErrNotExists, "daemon with ID %d does not exist", daemon.ID)
+		return errors.Wrapf(ErrNotExists, "daemon with ID %d does not exist", daemon.ID)
 	}
 
 	// If this is a Kea daemon, we have to update Kea specific tables too.
-	if daemon.KeaDaemon != nil && daemon.KeaDaemon.ID != 0 {
+	switch {
+	case daemon.KeaDaemon != nil && daemon.KeaDaemon.ID != 0:
 		// Make sure that the KeaDaemon points to the Daemon.
 		daemon.KeaDaemon.DaemonID = daemon.ID
 		result, err := dbi.Model(daemon.KeaDaemon).WherePK().Update()
 		if err != nil {
-			return pkgerrors.Wrapf(err, "problem updating general Kea-specific information for daemon %d",
+			return errors.Wrapf(err, "problem updating general Kea-specific information for daemon %d",
 				daemon.ID)
 		} else if result.RowsAffected() <= 0 {
-			return pkgerrors.Wrapf(ErrNotExists, "Kea daemon with ID %d does not exist", daemon.KeaDaemon.ID)
+			return errors.Wrapf(ErrNotExists, "Kea daemon with ID %d does not exist", daemon.KeaDaemon.ID)
 		}
 
 		// If this is Kea DHCP daemon, there is one more table to update.
@@ -636,32 +638,32 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 			daemon.KeaDaemon.KeaDHCPDaemon.KeaDaemonID = daemon.KeaDaemon.ID
 			result, err := dbi.Model(daemon.KeaDaemon.KeaDHCPDaemon).WherePK().Update()
 			if err != nil {
-				return pkgerrors.Wrapf(err, "problem updating general Kea DHCP information for daemon %d",
+				return errors.Wrapf(err, "problem updating general Kea DHCP information for daemon %d",
 					daemon.ID)
 			} else if result.RowsAffected() <= 0 {
-				return pkgerrors.Wrapf(ErrNotExists, "Kea DHCP daemon with ID %d does not exist",
+				return errors.Wrapf(ErrNotExists, "Kea DHCP daemon with ID %d does not exist",
 					daemon.KeaDaemon.KeaDHCPDaemon.ID)
 			}
 		}
-	} else if daemon.Bind9Daemon != nil && daemon.Bind9Daemon.ID != 0 {
+	case daemon.Bind9Daemon != nil && daemon.Bind9Daemon.ID != 0:
 		// This is Bind9 daemon. Update the Bind9 specific table.
 		daemon.Bind9Daemon.DaemonID = daemon.ID
 		result, err := dbi.Model(daemon.Bind9Daemon).WherePK().Update()
 		if err != nil {
-			return pkgerrors.Wrapf(err, "problem updating BIND 9-specific information for daemon %d",
+			return errors.Wrapf(err, "problem updating BIND 9-specific information for daemon %d",
 				daemon.ID)
 		} else if result.RowsAffected() <= 0 {
-			return pkgerrors.Wrapf(ErrNotExists, "BIND 9 daemon with ID %d does not exist", daemon.Bind9Daemon.ID)
+			return errors.Wrapf(ErrNotExists, "BIND 9 daemon with ID %d does not exist", daemon.Bind9Daemon.ID)
 		}
-	} else if daemon.PDNSDaemon != nil && daemon.PDNSDaemon.ID != 0 {
+	case daemon.PDNSDaemon != nil && daemon.PDNSDaemon.ID != 0:
 		// This is PowerDNS daemon. Update the PowerDNS specific table.
 		daemon.PDNSDaemon.DaemonID = daemon.ID
 		result, err := dbi.Model(daemon.PDNSDaemon).WherePK().Update()
 		if err != nil {
-			return pkgerrors.Wrapf(err, "problem updating PowerDNS-specific information for daemon %d",
+			return errors.Wrapf(err, "problem updating PowerDNS-specific information for daemon %d",
 				daemon.ID)
 		} else if result.RowsAffected() <= 0 {
-			return pkgerrors.Wrapf(ErrNotExists, "PowerDNS daemon with ID %d does not exist", daemon.PDNSDaemon.ID)
+			return errors.Wrapf(ErrNotExists, "PowerDNS daemon with ID %d does not exist", daemon.PDNSDaemon.ID)
 		}
 	}
 
@@ -670,7 +672,7 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 		accessPoint.DaemonID = daemon.ID
 		err = AddOrUpdateAccessPoint(dbi, accessPoint)
 		if err != nil {
-			return pkgerrors.WithMessagef(err, "problem adding or updating access point %v for daemon %d",
+			return errors.WithMessagef(err, "problem adding or updating access point %v for daemon %d",
 				accessPoint, daemon.ID)
 		}
 	}
@@ -681,7 +683,7 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 	}
 	err = DeleteAccessPointsByDaemonID(dbi, daemon.ID, accessPointTypes)
 	if err != nil {
-		return pkgerrors.WithMessagef(err, "problem deleting access points for daemon %d", daemon.ID)
+		return errors.WithMessagef(err, "problem deleting access points for daemon %d", daemon.ID)
 	}
 
 	// Update the log targets.
@@ -692,9 +694,8 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 		}
 	}
 	err = DeleteLogTargetByDaemonID(dbi, daemon.ID, logTargetIDs)
-
 	if err != nil {
-		return pkgerrors.WithMessagef(err, "problem deleting log targets for updated daemon %d",
+		return errors.WithMessagef(err, "problem deleting log targets for updated daemon %d",
 			daemon.ID)
 	}
 
@@ -709,16 +710,16 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 			daemon.LogTargets[i].DaemonID = daemon.ID
 			err = AddLogTarget(dbi, daemon.LogTargets[i])
 			if err != nil {
-				return pkgerrors.Wrapf(err, "problem inserting log target %s to daemon %d: %v",
+				return errors.Wrapf(err, "problem inserting log target %s to daemon %d: %v",
 					daemon.LogTargets[i].Output, daemon.ID, daemon)
 			}
 		} else {
 			err = UpdateLogTarget(dbi, daemon.LogTargets[i])
 			if err != nil {
-				return pkgerrors.Wrapf(err, "problem updating log target %s in daemon %d: %v",
+				return errors.Wrapf(err, "problem updating log target %s in daemon %d: %v",
 					daemon.LogTargets[i].Output, daemon.ID, daemon)
 			} else if result.RowsAffected() <= 0 {
-				return pkgerrors.Wrapf(ErrNotExists, "log target with ID %d does not exist",
+				return errors.Wrapf(ErrNotExists, "log target with ID %d does not exist",
 					daemon.LogTargets[i].ID)
 			}
 		}
@@ -742,9 +743,9 @@ func UpdateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 func deleteDaemon(tx *pg.Tx, daemon *Daemon) error {
 	result, err := tx.Model(daemon).WherePK().Delete()
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem deleting daemon: %d", daemon.ID)
+		return errors.Wrapf(err, "problem deleting daemon: %d", daemon.ID)
 	} else if result.RowsAffected() <= 0 {
-		return pkgerrors.Wrapf(ErrNotExists, "daemon with ID %d does not exist", daemon.ID)
+		return errors.Wrapf(ErrNotExists, "daemon with ID %d does not exist", daemon.ID)
 	}
 	return nil
 }
@@ -765,7 +766,7 @@ func DeleteDaemon(dbi dbops.DBI, daemon *Daemon) error {
 func DeleteKeaDaemonConfigHashes(dbi dbops.DBI) error {
 	_, err := dbi.Exec("UPDATE kea_daemon SET config_hash = NULL")
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem deleting Kea config hashes")
+		return errors.Wrapf(err, "problem deleting Kea config hashes")
 	}
 	return nil
 }
@@ -780,12 +781,12 @@ func (d *KeaDaemon) AfterScan(ctx context.Context) error {
 
 	bytes, err := json.Marshal(d.Config)
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem marshalling Kea config: %+v ", *d.Config)
+		return errors.Wrapf(err, "problem marshalling Kea config: %+v ", *d.Config)
 	}
 
 	err = json.Unmarshal(bytes, d.Config)
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem unmarshalling Kea config")
+		return errors.Wrapf(err, "problem unmarshalling Kea config")
 	}
 	return nil
 }
@@ -967,7 +968,7 @@ func GetDaemonsByVirtualAppID(dbi pg.DBI, appID int64) (daemons []*Daemon, err e
 		Where("type = ?", AccessPointControl).
 		Select()
 	if err != nil {
-		return nil, pkgerrors.Wrapf(err, "problem selecting control access points")
+		return nil, errors.Wrapf(err, "problem selecting control access points")
 	}
 
 	var matchingDaemonIDs []int64
@@ -996,7 +997,7 @@ func GetDaemonsByVirtualAppID(dbi pg.DBI, appID int64) (daemons []*Daemon, err e
 	if errors.Is(err, pg.ErrNoRows) {
 		return daemons, nil
 	} else if err != nil {
-		return nil, pkgerrors.Wrapf(err, "problem selecting daemons for virtual app ID %d", appID)
+		return nil, errors.Wrapf(err, "problem selecting daemons for virtual app ID %d", appID)
 	}
 
 	return daemons, nil

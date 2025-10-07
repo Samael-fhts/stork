@@ -122,16 +122,16 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 	var cmdsResult *agentcomm.KeaCmdsResult
 	cmdsResult, err = agents.ForwardToKeaOverHTTP(ctx, daemon, cmds, responses...)
 	if err != nil {
-		return
+		return daemon, err
 	}
 	if err = cmdsResult.GetFirstError(); err != nil {
-		return
+		return daemon, err
 	}
 
 	// process version-get responses
 	if err = versionGetResponse.GetError(); err != nil {
 		err = errors.WithMessage(err, "problem with version-get response")
-		return
+		return daemon, err
 	}
 	daemon.Version = versionGetResponse.Text
 	if versionGetResponse.Arguments != nil {
@@ -141,7 +141,7 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 	// process config-get responses
 	if err = configGetResponse.GetError(); err != nil {
 		err = errors.WithMessage(err, "problem with config-get and kea daemon")
-		return
+		return daemon, err
 	}
 
 	// Set the configuration for the daemon and populate selected configuration
@@ -149,13 +149,13 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 	// It does nothing if the configuration has not changed.
 	err = daemon.SetConfigFromJSON(configGetResponse.Arguments)
 	if err != nil {
-		return
+		return daemon, err
 	}
 
 	if isDHCPDaemon {
 		if err = statusGetResponse.GetError(); err != nil {
 			err = errors.WithMessage(err, "problem with status-get and kea daemon")
-			return
+			return daemon, err
 		}
 
 		if statusGetResponse.Arguments != nil {
@@ -164,7 +164,7 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 		}
 	}
 
-	return
+	return daemon, err
 }
 
 // Returns a new instance of Kea daemon with a refreshed state fetched from Kea,

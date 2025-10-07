@@ -66,7 +66,7 @@ type subnetLookup interface {
 
 // An object that implements this interface can send requests to the Kea CA.
 type keaCommandSender interface {
-	sendCommand(command *keactrl.Command, response any) error
+	sendCommand(ctx context.Context, command *keactrl.Command, response any) error
 }
 
 // Subnet lookup that fetches the subnet data only if necessary.
@@ -82,18 +82,20 @@ type lazySubnetLookup struct {
 	cached bool
 	// Family to use during lookups.
 	family int8
+	// Context to use during requests.
+	ctx context.Context
 }
 
 // Constructs the lazySubnetLookup instance. It accepts the Kea CA request sender.
-func newLazySubnetLookup(sender keaCommandSender) subnetLookup {
-	return &lazySubnetLookup{sender, nil, false, 4}
+func newLazySubnetLookup(ctx context.Context, sender keaCommandSender) subnetLookup {
+	return &lazySubnetLookup{sender, nil, false, 4, ctx}
 }
 
 // Fetches the subnet list from Kea and stores the response in a cache.
 // If any error occurs or list is unavailable then the cache for specific
 // family is set to nil. Returns fetched subnet list.
 // Family should be 4 or 6.
-func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
+func (l *lazySubnetLookup) fetchAndCacheList(ctx context.Context) map[int]subnetListItem {
 	// Request to subnet prefixes.
 	var request *keactrl.Command
 	if l.family == 4 {
@@ -107,7 +109,7 @@ func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
 	l.cachedSubnets = nil
 
 	var response subnetListJSON
-	err := l.sender.sendCommand(request, &response)
+	err := l.sender.sendCommand(ctx, request, &response)
 	if err != nil {
 		log.WithError(err).Error("Failed to fetch subnet list from Kea")
 		return nil
@@ -139,7 +141,7 @@ func (l *lazySubnetLookup) fetchAndCacheList() map[int]subnetListItem {
 func (l *lazySubnetLookup) getSubnetInfo(subnetID int) (subnetListItem, bool) {
 	subnets := l.cachedSubnets
 	if !l.cached {
-		subnets = l.fetchAndCacheList()
+		subnets = l.fetchAndCacheList(l.ctx)
 	}
 	if subnets == nil {
 		return subnetListItem{}, false
@@ -159,6 +161,7 @@ func (l *lazySubnetLookup) setFamily(family int8) {
 type PromKeaExporter struct {
 	Host string
 	Port int
+	Ctx  context.Context
 
 	EnablePerSubnetStats bool
 
@@ -181,10 +184,11 @@ type PromKeaExporter struct {
 }
 
 // Create new Prometheus Kea Exporter.
-func NewPromKeaExporter(host string, port int, enablePerSubnetStats bool, monitor Monitor) *PromKeaExporter {
+func NewPromKeaExporter(ctx context.Context, host string, port int, enablePerSubnetStats bool, monitor Monitor) *PromKeaExporter {
 	pke := &PromKeaExporter{
 		Host:                 host,
 		Port:                 port,
+		Ctx:                  ctx,
 		EnablePerSubnetStats: enablePerSubnetStats,
 		Monitor:              monitor,
 		Registry:             prometheus.NewRegistry(),
@@ -808,7 +812,7 @@ func (pke *PromKeaExporter) collectStats() error {
 		var response keactrl.StatisticGetAllResponse
 
 		// Fetching statistics
-		err := keaDaemon.sendCommand(request, &response)
+		err := keaDaemon.sendCommand(pke.Ctx, request, &response)
 		if err != nil {
 			err = errors.WithMessagef(err, "Problem fetching stats from Kea daemon %s", keaDaemon)
 			errs = append(errs, err)
@@ -816,7 +820,7 @@ func (pke *PromKeaExporter) collectStats() error {
 		}
 
 		// Prepare subnet lookup
-		subnetLookup := newLazySubnetLookup(keaDaemon)
+		subnetLookup := newLazySubnetLookup(pke.Ctx, keaDaemon)
 
 		// Process the response from the daemon and store collected stats in
 		// Prometheus structures.

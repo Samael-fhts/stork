@@ -368,6 +368,8 @@ func DeleteMachine(db *pg.DB, machine *Machine) error {
 				fns = append(fns, DeleteOrphanedZones)
 			case daemonname.DHCPv4, daemonname.DHCPv6:
 				fns = append(fns, DeleteOrphanedSubnets, DeleteOrphanedHosts, DeleteOrphanedSharedNetworks)
+			case daemonname.CA, daemonname.D2, daemonname.NetConf:
+				// No orphaned objects to delete.
 			}
 		}
 		for _, fn := range fns {

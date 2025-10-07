@@ -231,6 +231,7 @@ func TestGetMachineByIDWithRelations(t *testing.T) {
 
 	daemonBind9 := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
 	err = AddDaemon(db, daemonBind9)
+	require.NoError(t, err)
 
 	service := &Service{
 		BaseService: BaseService{

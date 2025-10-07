@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -30,7 +31,7 @@ type KeaDaemon struct {
 }
 
 // Sends a command to Kea and returns a response.
-func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
+func (d *KeaDaemon) sendCommand(ctx context.Context, command *keactrl.Command, response any) error {
 	if d.connector == nil {
 		return errors.New("cannot send command to Kea because no control access point is configured")
 	}
@@ -53,7 +54,7 @@ func (d *KeaDaemon) sendCommand(command *keactrl.Command, response any) error {
 	}
 
 	// Send the command to the Kea server.
-	responseBytes, err := d.connector.sendPayload(commandBytes)
+	responseBytes, err := d.connector.sendPayload(ctx, commandBytes)
 	if err != nil {
 		return errors.WithMessagef(err, "failed to send command to Kea")
 	}
@@ -94,12 +95,12 @@ func collectKeaAllowedLogs(config *keaconfig.Config) ([]string, error) {
 }
 
 // Fetches the Kea configuration from the daemon by sending config-get command.
-func (d *KeaDaemon) fetchConfig() (*keaconfig.Config, error) {
+func (d *KeaDaemon) fetchConfig(ctx context.Context) (*keaconfig.Config, error) {
 	// Prepare config-get command to be sent to Kea Control Agent.
 	command := keactrl.NewCommandBase(keactrl.ConfigGet, d.GetName())
 	// Send the command to Kea.
 	response := keactrl.Response{}
-	err := d.sendCommand(command, &response)
+	err := d.sendCommand(ctx, command, &response)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +189,7 @@ func readKeaConfig(path string) (*keaconfig.Config, error) {
 //
 // It returns the Kea app instance or an error if the Kea is not recognized or
 // any error occurs.
-func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, commander storkutil.CommandExecutor) ([]Daemon, error) {
+func detectKeaDaemons(ctx context.Context, p supportedProcess, httpClientConfig HTTPClientConfig, commander storkutil.CommandExecutor) ([]Daemon, error) {
 	// Extract the daemon name from the process.
 	processName, err := p.getName()
 	if err != nil {
@@ -318,7 +319,7 @@ func detectKeaDaemons(p supportedProcess, httpClientConfig HTTPClientConfig, com
 		for _, managedDaemonName := range managedDaemonNames {
 			command := keactrl.NewCommandBase(keactrl.VersionGet, managedDaemonName)
 			response := keactrl.Response{}
-			err = thisDaemon.sendCommand(command, &response)
+			err = thisDaemon.sendCommand(ctx, command, &response)
 			if err != nil {
 				return nil, errors.WithMessage(err, "cannot send command to Kea Control Agent")
 			} else if response.GetError() != nil {
@@ -447,8 +448,8 @@ func (d *KeaDaemon) Bootstrap() error {
 // Called periodically to update the daemon state.
 // Gathers the configured log files for detected apps and enables them
 // for viewing from the UI.
-func (d *KeaDaemon) Evaluate(agent AgentManager) error {
-	config, err := d.fetchConfig()
+func (d *KeaDaemon) Evaluate(ctx context.Context, agent AgentManager) error {
+	config, err := d.fetchConfig(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "cannot fetch Kea configuration")
 	}
@@ -471,7 +472,7 @@ func (d *KeaDaemon) Cleanup() error {
 // All kinds of API supported by Kea (HTTP, socket) expect JSON data.
 // This abstraction encapsulates the way how the data is sent and received.
 type keaConnector interface {
-	sendPayload(command []byte) ([]byte, error)
+	sendPayload(ctx context.Context, command []byte) ([]byte, error)
 }
 
 // Factory function to create a keaConnector based on the access point
@@ -500,8 +501,9 @@ type keaSocketConnector struct {
 }
 
 // Sends the command to Kea via a Unix socket and returns the response.
-func (c *keaSocketConnector) sendPayload(command []byte) ([]byte, error) {
-	conn, err := net.Dial("unix", c.socketPath)
+func (c *keaSocketConnector) sendPayload(ctx context.Context, command []byte) ([]byte, error) {
+	var dialer net.Dialer
+	conn, err := dialer.DialContext(ctx, "unix", c.socketPath)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to connect to unix socket: %s", c.socketPath)
 	}
@@ -527,8 +529,8 @@ type keaHTTPConnector struct {
 }
 
 // Sends the command to Kea via HTTP and returns the response.
-func (c *keaHTTPConnector) sendPayload(command []byte) ([]byte, error) {
-	response, err := c.httpClient.Call(c.url, bytes.NewBuffer(command))
+func (c *keaHTTPConnector) sendPayload(ctx context.Context, command []byte) ([]byte, error) {
+	response, err := c.httpClient.Call(ctx, c.url, bytes.NewBuffer(command))
 	if err != nil {
 		return nil, errors.WithMessagef(err, "failed to send command to Kea: %s", c.url)
 	}

@@ -150,7 +150,7 @@ func TestAddAuthorizationHeaderWhenBasicAuthCredentialsExist(t *testing.T) {
 
 	require.NotNil(t, client.basicAuth)
 
-	res, err := client.Call(ts.URL, bytes.NewBuffer([]byte{}))
+	res, err := client.Call(t.Context(), ts.URL, bytes.NewBuffer([]byte{}))
 	require.NoError(t, err)
 	defer res.Body.Close()
 }
@@ -166,7 +166,7 @@ func TestAddAuthorizationHeaderWhenBasicAuthCredentialsNonExist(t *testing.T) {
 
 	client := NewHTTPClient(HTTPClientConfig{SkipTLSVerification: true})
 
-	res, err := client.Call(ts.URL, bytes.NewBuffer([]byte{}))
+	res, err := client.Call(t.Context(), ts.URL, bytes.NewBuffer([]byte{}))
 	require.NoError(t, err)
 	defer res.Body.Close()
 }
@@ -179,7 +179,7 @@ func TestCallWithMissingBody(t *testing.T) {
 	defer ts.Close()
 
 	client := newTestHTTPClientWithDefaults()
-	res, err := client.Call(ts.URL, nil)
+	res, err := client.Call(t.Context(), ts.URL, nil)
 	require.NoError(t, err)
 	defer res.Body.Close()
 }
@@ -235,7 +235,7 @@ func TestCallTimeout(t *testing.T) {
 		// Use HTTP client to communicate with the server. This call
 		// should return with a timeout because the server response
 		// is blocked.
-		res, err = client.Call(ts.URL, nil)
+		res, err = client.Call(t.Context(), ts.URL, nil)
 		defer func() {
 			if err == nil {
 				res.Body.Close()

@@ -91,11 +91,12 @@ func (puller *HostsPuller) pull() error {
 	// hosts in the Stork database.
 	for i := range daemons {
 		pulled, err := puller.pullFromDaemon(&daemons[i])
-		if pulled {
+		switch {
+		case pulled:
 			successCount += 1
-		} else if err != nil {
+		case err != nil:
 			erredCount += 1
-		} else {
+		default:
 			skippedCount += 1
 		}
 	}

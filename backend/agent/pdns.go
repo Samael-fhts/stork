@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"path"
 	"regexp"
 	"strings"
@@ -41,7 +42,7 @@ func (pa *PDNSDaemon) Bootstrap() error {
 
 // Lifecycle method called periodically by the monitor.
 // It populates the zone inventory.
-func (ba *PDNSDaemon) Evaluate(AgentManager) error {
+func (ba *PDNSDaemon) Evaluate(context.Context, AgentManager) error {
 	zoneInventory := ba.GetZoneInventory()
 	if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
 		return nil

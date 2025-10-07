@@ -188,7 +188,6 @@ func TestDaemonCompare(t *testing.T) {
 // configuration has changed or when review dispatcher's checkers
 // have changed.
 func TestConditionallyBeginKeaConfigReviews(t *testing.T) {
-
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{})
 	err := daemon.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)

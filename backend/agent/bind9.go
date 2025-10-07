@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path"
@@ -70,7 +71,7 @@ func (ba *Bind9Daemon) Cleanup() error {
 
 // The lifecycle method called periodically to refresh the daemon state.
 // It populates the zone inventory.
-func (ba *Bind9Daemon) Evaluate(AgentManager) error {
+func (ba *Bind9Daemon) Evaluate(context.Context, AgentManager) error {
 	zoneInventory := ba.GetZoneInventory()
 	if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
 		return nil

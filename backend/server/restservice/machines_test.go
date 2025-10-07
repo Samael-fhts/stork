@@ -3011,7 +3011,7 @@ func TestMachineToRestAPIForNilKeaConfig(t *testing.T) {
 	// Assert
 	require.NotNil(t, restMachine)
 	require.Len(t, restMachine.Apps, 1)
-	require.Len(t, restMachine.Apps[0].Details.AppKea.Daemons, 1)
+	require.Len(t, restMachine.Apps[0].Details.Daemons, 1)
 }
 
 // Test conversion of a KeaDaemon to REST API format.

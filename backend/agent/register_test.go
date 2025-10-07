@@ -142,7 +142,7 @@ func TestRegisterBasic(t *testing.T) {
 	serverURL := ts.URL
 
 	// register with server token
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.NoError(t, err)
 
 	// verify the server cert fingerprint is written to the file
@@ -152,7 +152,7 @@ func TestRegisterBasic(t *testing.T) {
 
 	// register with agent token
 	serverToken = ""
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.NoError(t, err)
 }
 
@@ -282,7 +282,7 @@ func TestRegisterBusyPort(t *testing.T) {
 	serverURL := ts.URL
 
 	// register with server token
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.ErrorContains(t,
 		err,
 		fmt.Sprintf("Stork agent detected a program bound to port %d", agentPort),
@@ -413,59 +413,59 @@ func TestRegisterBadServer(t *testing.T) {
 	serverURL := ts.URL
 
 	// initially all is OK
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.NoError(t, err)
 
 	// missing ID in response
 	withID = false
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	withID = true
 
 	// bad ID in response
 	idValue = "bad-value"
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	idValue = 10 // restore proper value
 
 	// missing serverCACert in response
 	withServerCert = false
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	withServerCert = true // restore proper value
 
 	// bad serverCACert in response
 	serverCertValue = 5
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	serverCertValue = nil // restore proper value
 
 	// missing agentCert in response
 	withAgentCert = false
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	withAgentCert = true // restore proper value
 
 	// bad serverCACert in response
 	agentCertValue = 5
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	agentCertValue = nil // restore proper value
 
 	// missing serverCertFingerprint in response
 	withServerCertFingerprint = false
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	withServerCertFingerprint = true
 
 	// bad serverCertFingerprint in response
 	serverCertFingerprint = "bad-fingerprint"
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	serverCertFingerprint = nil // restore proper value
 
 	// finally all is OK
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.NoError(t, err)
 }
 
@@ -486,41 +486,41 @@ func TestRegisterNegative(t *testing.T) {
 	ServerCertFingerprintFile = path.Join(sb.BasePath, "tokens/server-cert.sha256")
 
 	// bad server URL
-	err := Register("12:3", "serverToken", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
+	err := Register(t.Context(), "12:3", "serverToken", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 
 	// empty server URL
-	err = Register("", "serverToken", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), "", "serverToken", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 
 	// cannot prompt for server token (regenKey is true)
-	err = Register("http:://localhost:54333", "", "1.2.3.4", 8080, true, false, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), "http:://localhost:54333", "", "1.2.3.4", 8080, true, false, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 
 	// bad agent port
-	err = Register("http:://localhost:54333", "", "1.2.3.4", 20240704, false, false, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), "http:://localhost:54333", "", "1.2.3.4", 20240704, false, false, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 
 	// bad folder for certs
 	KeyPEMFile = path.Join(sb.BasePath, "non-existing-dir/key.pem")
-	err = Register("http:://localhost:54333", "", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), "http:://localhost:54333", "", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	KeyPEMFile = path.Join(sb.BasePath, "certs/key.pem") // Restore proper value.
 
 	// bad folder for agent token
 	AgentTokenFile = path.Join(sb.BasePath, "non-existing-dir/agent-token.txt")
-	err = Register("http:://localhost:54333", "", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), "http:://localhost:54333", "", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	AgentTokenFile = path.Join(sb.BasePath, "tokens/agent-token.txt") // restore proper value
 
 	// bad folder for server cert fingerprint
 	ServerCertFingerprintFile = path.Join(sb.BasePath, "non-existing-dir/server-cert.sha256")
-	err = Register("http:://localhost:54333", "", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), "http:://localhost:54333", "", "1.2.3.4", 8080, false, false, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 	ServerCertFingerprintFile = path.Join(sb.BasePath, "server-cert.sha256")
 
 	// not running agent on 54444 port
-	err = Register("http://localhost:54333", "serverToken", "localhost", 54444, false, false, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), "http://localhost:54333", "serverToken", "localhost", 54444, false, false, newTestHTTPClientWithDefaults())
 	require.Error(t, err)
 }
 
@@ -715,7 +715,7 @@ func TestWriteAgentTokenFileDuringRegistration(t *testing.T) {
 
 	serverURL := ts.URL
 
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.NoError(t, err)
 	require.NotEmpty(t, lastRegisterAgentToken)
 	require.NotEmpty(t, lastPingAgentToken)
@@ -832,7 +832,7 @@ func TestRepeatRegister(t *testing.T) {
 	serverURL := ts.URL
 
 	// register with server token
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.NoError(t, err)
 
 	privKeyPEM1, err := os.ReadFile(KeyPEMFile)
@@ -848,7 +848,7 @@ func TestRepeatRegister(t *testing.T) {
 
 	// re-register with the same agent token
 	serverToken = ""
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.NoError(t, err)
 
 	privKeyPEM2, err := os.ReadFile(KeyPEMFile)
@@ -871,7 +871,7 @@ func TestRepeatRegister(t *testing.T) {
 	// Regenerate certs
 	regenKey = true
 	serverToken = "serverToken"
-	err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+	err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 	require.NoError(t, err)
 
 	privKeyPEM3, err := os.ReadFile(KeyPEMFile)
@@ -897,7 +897,7 @@ func TestRepeatRegister(t *testing.T) {
 	invalidHeaderValues := []string{"", "/machines/", "/machines", "/machines/abc", "/machines/1a", "/machines/2a2"}
 	for _, value := range invalidHeaderValues {
 		locationHeaderValue = value
-		err = Register(serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
+		err = Register(t.Context(), serverURL, serverToken, agentAddr, agentPort, regenKey, retry, newTestHTTPClientWithDefaults())
 		require.Error(t, err)
 	}
 }

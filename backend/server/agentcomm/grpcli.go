@@ -423,11 +423,12 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 			if point.Protocol == "" {
 				// For backward compatibility, if the protocol is not set,
 				// assume HTTP or HTTPS based on the UseSecureProtocol flag.
-				if daemonName == daemonname.Bind9 && point.Type == AccessPointControl {
+				switch {
+				case daemonName == daemonname.Bind9 && point.Type == AccessPointControl:
 					accessPoint.Protocol = "rndc"
-				} else if point.UseSecureProtocol {
+				case point.UseSecureProtocol:
 					accessPoint.Protocol = "https"
-				} else {
+				default:
 					accessPoint.Protocol = "http"
 				}
 			} else {

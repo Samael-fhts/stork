@@ -50,7 +50,7 @@ func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
 			},
 		}
 		configBytes, _ := json.Marshal(configArgs)
-		(*configResp).Arguments = configBytes
+		configResp.Arguments = configBytes
 	} else {
 		configArgs := map[string]interface{}{
 			"Control-agent": map[string]interface{}{
@@ -83,7 +83,7 @@ func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
 			},
 		}
 		configBytes, _ := json.Marshal(configArgs)
-		(*configResp).Arguments = configBytes
+		configResp.Arguments = configBytes
 	}
 }
 
@@ -121,7 +121,7 @@ func mockGetConfigFromOtherDaemonsResponse(family int, cmdResponses []interface{
 		},
 	}
 	configBytes, _ := json.Marshal(configArgs)
-	(*configResp).Arguments = configBytes
+	configResp.Arguments = configBytes
 
 	if len(cmdResponses) > 2 {
 		statusResp := cmdResponses[2].(*StatusGetResponse)

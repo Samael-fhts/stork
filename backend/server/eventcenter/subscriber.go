@@ -142,14 +142,15 @@ func (s *Subscriber) applyFiltersFromQuery(db *dbops.PgDB) (err error) {
 			return errors.WithMessagef(err, "problem getting daemons by app ID %d while applying sse filters: %s",
 				appID, s.serverURL)
 		}
-		if len(daemons) > 1 {
+		switch {
+		case len(daemons) > 1:
 			daemon := daemons[0]
 			f.MachineID = daemon.MachineID
-		} else if len(daemons) == 1 {
+		case len(daemons) == 1:
 			daemon := daemons[0]
 			f.DaemonID = daemon.ID
 			f.MachineID = daemon.MachineID
-		} else {
+		default:
 			return errors.Errorf("app with ID %d does not have any daemons", appID)
 		}
 	}

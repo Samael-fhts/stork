@@ -61,7 +61,7 @@ func TestGetDaemons(t *testing.T) {
 	hm := NewHookManager()
 	bind9StatsClient := NewBind9StatsClient()
 	sa := NewStorkAgent("foo", 42, monitor, bind9StatsClient, hm)
-	monitor.Start(sa)
+	monitor.Start(t.Context(), sa)
 	daemons := monitor.GetDaemons()
 	require.Len(t, daemons, 0)
 	monitor.Shutdown()
@@ -292,7 +292,7 @@ func TestDetectDaemons(t *testing.T) {
 	monitor.daemons = append(monitor.daemons, fakeDaemon)
 
 	// Act
-	monitor.detectDaemons()
+	monitor.detectDaemons(t.Context())
 	daemons := monitor.daemons
 	sort.Slice(daemons, func(i, j int) bool {
 		return daemons[i].GetName() < daemons[j].GetName()
@@ -305,7 +305,7 @@ func TestDetectDaemons(t *testing.T) {
 	require.Equal(t, daemonname.PDNS, daemons[2].GetName())
 
 	// Detect tha apps again. The zone inventory should be preserved.
-	monitor.detectDaemons()
+	monitor.detectDaemons(t.Context())
 	daemons2 := monitor.daemons
 	sort.Slice(daemons2, func(i, j int) bool {
 		return daemons2[i].GetName() < daemons2[j].GetName()
@@ -334,7 +334,7 @@ func TestDetectDaemons(t *testing.T) {
 	}
 
 	// Redetect apps. It should result in recreating the zone inventory.
-	monitor.detectDaemons()
+	monitor.detectDaemons(t.Context())
 	daemons3 := monitor.daemons
 	sort.Slice(daemons3, func(i, j int) bool {
 		return daemons3[i].GetName() < daemons3[j].GetName()
@@ -388,7 +388,7 @@ func TestDetectDaemonsConfigNoStatistics(t *testing.T) {
 	// Create fake daemon to test that the monitor stops zone inventory
 	// when new daemons are detected.
 	fakeDaemon := NewMockDaemon(ctrl)
-	fakeDaemon.EXPECT().Evaluate(gomock.Any()).AnyTimes()
+	fakeDaemon.EXPECT().Evaluate(gomock.Any(), gomock.Any()).AnyTimes()
 	fakeDaemon.EXPECT().Cleanup().Times(1)
 	fakeDaemon.EXPECT().IsEqual(gomock.Any()).AnyTimes().Return(false)
 	fakeDaemon.EXPECT().String().AnyTimes().Return("fake-daemon")
@@ -396,7 +396,7 @@ func TestDetectDaemonsConfigNoStatistics(t *testing.T) {
 	monitor.daemons = append(monitor.daemons, fakeDaemon)
 
 	// Detect daemons for the first time.
-	monitor.detectDaemons()
+	monitor.detectDaemons(t.Context())
 	daemons := monitor.daemons
 
 	// Zone inventory should not be initialized.
@@ -405,7 +405,7 @@ func TestDetectDaemonsConfigNoStatistics(t *testing.T) {
 
 	// Detect daemons again. It should not panic even though the zone
 	// inventory is not initialized.
-	monitor.detectDaemons()
+	monitor.detectDaemons(t.Context())
 	daemons2 := monitor.daemons
 	require.Len(t, daemons2, 1)
 	require.Nil(t, daemons2[0].(*Bind9Daemon).zoneInventory)
@@ -440,7 +440,7 @@ func TestDetectDaemonsContinueOnNotAvailableCommandLine(t *testing.T) {
 	monitor := &monitor{processManager: processManager, commander: executor, bind9FileParser: parser}
 
 	// Act
-	monitor.detectDaemons()
+	monitor.detectDaemons(t.Context())
 
 	// Assert
 	require.Len(t, monitor.daemons, 1)
@@ -485,7 +485,7 @@ func TestDetectDaemonsSkipOnNotAvailableCwd(t *testing.T) {
 	monitor := &monitor{processManager: processManager, commander: executor, bind9FileParser: parser}
 
 	// Act
-	monitor.detectDaemons()
+	monitor.detectDaemons(t.Context())
 
 	// Assert
 	require.Len(t, monitor.daemons, 1)
@@ -519,7 +519,7 @@ func TestDetectAppsNoAppDetectedWarning(t *testing.T) {
 	monitor := &monitor{processManager: processManager, commander: executor}
 
 	// Act
-	monitor.detectDaemons()
+	monitor.detectDaemons(t.Context())
 
 	// Assert
 	require.Contains(t, buffer.String(), "No daemon detected for monitoring")
@@ -545,7 +545,7 @@ func TestDetectAllowedLogsKeaUnreachable(t *testing.T) {
 	hm := NewHookManager()
 	sa := NewStorkAgent("foo", 42, monitor, bind9StatsClient, hm)
 
-	require.NotPanics(t, func() { monitor.evaluateDaemons(sa) })
+	require.NotPanics(t, func() { monitor.evaluateDaemons(t.Context(), sa) })
 }
 
 // Returns a fixed output and no error for any data. The output contains the
@@ -726,7 +726,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("/usr/bin/kea-ctrl-agent -c %s", tmpFilePath), nil)
 		process.EXPECT().getCwd().Return("", nil)
-		daemon, err := detectKeaDaemons(process, httpClientConfig, commander)
+		daemon, err := detectKeaDaemons(t.Context(), process, httpClientConfig, commander)
 		require.NoError(t, err)
 		checkDaemon(daemon)
 
@@ -735,7 +735,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("kea-ctrl-agent -c %s", file), nil)
 		process.EXPECT().getCwd().Return(cwd, nil)
-		daemon, err = detectKeaDaemons(process, httpClientConfig, commander)
+		daemon, err = detectKeaDaemons(t.Context(), process, httpClientConfig, commander)
 		require.NoError(t, err)
 		checkDaemon(daemon)
 	})
@@ -753,7 +753,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("/usr/bin/kea-ctrl-agent -c %s", tmpFilePath), nil)
 		process.EXPECT().getCwd().Return("", nil)
 
-		daemon, err := detectKeaDaemons(process, httpClientConfig, commander)
+		daemon, err := detectKeaDaemons(t.Context(), process, httpClientConfig, commander)
 		require.NoError(t, err)
 		checkDaemon(daemon)
 
@@ -762,7 +762,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("kea-ctrl-agent -c %s", file), nil)
 		process.EXPECT().getCwd().Return(cwd, nil)
-		daemon, err = detectKeaDaemons(process, httpClientConfig, commander)
+		daemon, err = detectKeaDaemons(t.Context(), process, httpClientConfig, commander)
 		require.NoError(t, err)
 		checkDaemon(daemon)
 	})
@@ -966,7 +966,7 @@ func TestPopulateZoneInventories(t *testing.T) {
 		connector: newKeaConnector(AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634}, HTTPClientConfig{}),
 	}
 	daemonMonitor.daemons = append(daemonMonitor.daemons, daemon0, daemon1, daemon2, daemon3, daemon4)
-	daemonMonitor.evaluateDaemons(agentManager)
+	daemonMonitor.evaluateDaemons(t.Context(), agentManager)
 
 	require.Eventually(t, func() bool {
 		for _, daemon := range daemonMonitor.daemons {

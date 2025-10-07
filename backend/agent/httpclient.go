@@ -150,8 +150,8 @@ func NewHTTPClient(config HTTPClientConfig) *httpClient {
 // must contain the valid JSON. If the authentication credentials or TLS
 // certificates are provided in the application configuration, they are added
 // to the request.
-func (c *httpClient) Call(url string, payload io.Reader) (*http.Response, error) {
-	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, url, payload)
+func (c *httpClient) Call(ctx context.Context, url string, payload io.Reader) (*http.Response, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, payload)
 	if err != nil {
 		err = errors.Wrapf(err, "problem creating POST request to %s", url)
 

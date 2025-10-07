@@ -585,7 +585,7 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 		var keaResponse keactrl.Response
 
 		// Try to forward the command to Kea Control Agent.
-		err := keaDaemon.sendCommand(&keaCommand, &keaResponse)
+		err := keaDaemon.sendCommand(ctx, &keaCommand, &keaResponse)
 		if err != nil {
 			log.WithError(err).WithFields(logFields).Errorf("Failed to forward commands to Kea")
 			grpcResponse.Status.Code = agentapi.Status_ERROR

@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"strings"
 	"sync"
@@ -87,7 +88,7 @@ type Daemon interface {
 	Cleanup() error
 	// Performs periodic processing of the daemon, e.g., detect logs or
 	// refresh zone inventory.
-	Evaluate(AgentManager) error
+	Evaluate(context.Context, AgentManager) error
 	String() string
 }
 
@@ -192,7 +193,7 @@ func convertProcessNameToDaemonName(procName string) daemonname.Name {
 type Monitor interface {
 	GetDaemons() []Daemon
 	GetDaemonByAccessPoint(apType, address string, port int64) Daemon
-	Start(AgentManager)
+	Start(context.Context, AgentManager)
 	Shutdown()
 }
 
@@ -235,24 +236,24 @@ func NewMonitor(explicitBind9ConfigPath string, keaHTTPClientConfig HTTPClientCo
 
 // This function starts the actual monitor. This start is delayed in case we want to only
 // do command line parameters parsing, e.g. to print version or help and quit.
-func (sm *monitor) Start(storkAgent AgentManager) {
+func (sm *monitor) Start(ctx context.Context, storkAgent AgentManager) {
 	sm.wg.Add(1)
-	go sm.run(storkAgent)
+	go sm.run(ctx, storkAgent)
 }
 
 // Run the main loop of the monitor. It continually detects the daemons
 // running on the host and refreshes their states.
-func (sm *monitor) run(storkAgent AgentManager) {
+func (sm *monitor) run(ctx context.Context, storkAgent AgentManager) {
 	log.Printf("Started daemon monitor")
 
 	sm.running = true
 	defer sm.wg.Done()
 
 	// Run app detection one time immediately at startup.
-	sm.detectDaemons()
+	sm.detectDaemons(ctx)
 
 	// Evaluate all detected daemons.
-	sm.evaluateDaemons(storkAgent)
+	sm.evaluateDaemons(ctx, storkAgent)
 
 	// Prepare ticker.
 	const detectionInterval = 10 * time.Second
@@ -269,8 +270,8 @@ func (sm *monitor) run(storkAgent AgentManager) {
 			// Periodic detection.
 			ticker.Stop()
 
-			sm.detectDaemons()
-			sm.evaluateDaemons(storkAgent)
+			sm.detectDaemons(ctx)
+			sm.evaluateDaemons(ctx, storkAgent)
 
 			// Reset ticker.
 			ticker.Reset(detectionInterval)
@@ -345,7 +346,7 @@ func splitDaemonsByTransition(previous, next []Daemon) (started, unchanged, unch
 }
 
 // Analyzes the processes running on the host and detects supported daemons.
-func (sm *monitor) detectDaemons() {
+func (sm *monitor) detectDaemons(ctx context.Context) {
 	var daemons []Daemon
 
 	// Lists processes running on the host and detectable by the monitor.
@@ -362,7 +363,7 @@ func (sm *monitor) detectDaemons() {
 		switch daemonName {
 		case daemonname.DHCPv4, daemonname.DHCPv6, daemonname.D2, daemonname.CA:
 			// Kea DHCP server.
-			detectedDaemons, err := detectKeaDaemons(p, sm.keaHTTPClientConfig, sm.commander)
+			detectedDaemons, err := detectKeaDaemons(ctx, p, sm.keaHTTPClientConfig, sm.commander)
 			if err != nil {
 				log.WithField("daemon", daemonName).WithError(err).Warn("Failed to detect Kea daemon(s)")
 				continue
@@ -433,9 +434,9 @@ func (sm *monitor) detectDaemons() {
 }
 
 // Evaluates the detected daemons.
-func (sm *monitor) evaluateDaemons(storkAgent AgentManager) {
+func (sm *monitor) evaluateDaemons(ctx context.Context, storkAgent AgentManager) {
 	for _, d := range sm.daemons {
-		if err := d.Evaluate(storkAgent); err != nil {
+		if err := d.Evaluate(ctx, storkAgent); err != nil {
 			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to evaluate daemon")
 		}
 	}

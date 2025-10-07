@@ -171,7 +171,8 @@ func TestCreateEventMachineAndDaemon(t *testing.T) {
 		ID:        234,
 		Name:      "dhcp4",
 		Machine:   machine,
-		MachineID: machine.ID}
+		MachineID: machine.ID,
+	}
 
 	// Act
 	ev := CreateEvent(dbmodel.EvInfo, "foo {daemon} bar {machine} baz", daemon, machine)

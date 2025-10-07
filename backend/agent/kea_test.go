@@ -38,7 +38,7 @@ func TestSendCommand(t *testing.T) {
 		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
 	}
 	var response keactrl.Response
-	err := daemon.sendCommand(command, &response)
+	err := daemon.sendCommand(t.Context(), command, &response)
 	require.NoError(t, err)
 }
 
@@ -56,7 +56,7 @@ func TestSendCommandNoAccessPoint(t *testing.T) {
 	}
 
 	var response keactrl.Response
-	err := daemon.sendCommand(command, &response)
+	err := daemon.sendCommand(t.Context(), command, &response)
 	require.ErrorContains(t, err, "no control access point")
 }
 
@@ -91,7 +91,7 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 		}
 	}
 	var response versionGet
-	err := daemon.sendCommand(command, &response)
+	err := daemon.sendCommand(t.Context(), command, &response)
 	require.Error(t, err)
 }
 
@@ -107,7 +107,7 @@ func TestSendCommandNoKea(t *testing.T) {
 		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
 	var response keactrl.Response
-	err := daemon.sendCommand(command, &response)
+	err := daemon.sendCommand(t.Context(), command, &response)
 	require.Error(t, err)
 }
 
@@ -245,7 +245,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 	// One from CA, one from DHCPv4 and one from DHCPv6.
 	agentManager.EXPECT().AllowLog(gomock.Any()).Times(3)
 
-	monitor.evaluateDaemons(agentManager)
+	monitor.evaluateDaemons(t.Context(), agentManager)
 
 	require.NoError(t, err)
 }
@@ -384,7 +384,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	// One from CA, one from DHCPv4 and one from DHCPv6.
 	agentManager.EXPECT().AllowLog(gomock.Any()).Times(3)
 
-	monitor.evaluateDaemons(agentManager)
+	monitor.evaluateDaemons(t.Context(), agentManager)
 
 	require.NoError(t, err)
 }
@@ -429,7 +429,7 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 	defer ctrl.Finish()
 	agentManager := NewMockAgentManager(ctrl)
 
-	err = daemon.Evaluate(agentManager)
+	err = daemon.Evaluate(t.Context(), agentManager)
 	require.Error(t, err)
 }
 

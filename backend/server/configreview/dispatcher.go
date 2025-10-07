@@ -215,8 +215,12 @@ func getDispatchGroupSelectors(daemonName daemonname.Name) DispatchGroupSelector
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaCADaemon}
 	case daemonname.D2:
 		return DispatchGroupSelectors{EachDaemon, KeaDaemon, KeaD2Daemon}
+	case daemonname.NetConf:
+		return DispatchGroupSelectors{EachDaemon, KeaDaemon}
 	case daemonname.Bind9:
 		return DispatchGroupSelectors{EachDaemon, Bind9Daemon}
+	case daemonname.PDNS:
+		return DispatchGroupSelectors{EachDaemon}
 	}
 	log.WithFields(log.Fields{
 		"daemon_name": daemonName,

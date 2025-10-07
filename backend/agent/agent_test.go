@@ -138,7 +138,7 @@ func (fdm *FakeMonitor) GetDaemonByAccessPoint(apType, address string, port int6
 func (fdm *FakeMonitor) Shutdown() {
 }
 
-func (fdm *FakeMonitor) Start(storkAgent AgentManager) {
+func (fdm *FakeMonitor) Start(context.Context, AgentManager) {
 }
 
 // A matcher for PowerDNS zones. It excludes the Loaded field which is

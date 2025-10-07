@@ -21,6 +21,7 @@ func TestNewCommandConfigSet(t *testing.T) {
 	command := NewCommandConfigSet(config, "dhcp6")
 	require.NotNil(t, command)
 	bytes, err := command.Marshal()
+	require.NoError(t, err)
 	require.JSONEq(t, `{
 		"command": "config-set",
 		"service": [ "dhcp6" ],

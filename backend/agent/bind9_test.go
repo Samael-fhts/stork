@@ -26,7 +26,7 @@ func TestBind9Evaluate(t *testing.T) {
 	agentManager := NewMockAgentManager(ctrl)
 
 	daemon := &Bind9Daemon{}
-	err := daemon.Evaluate(agentManager)
+	err := daemon.Evaluate(t.Context(), agentManager)
 	require.NoError(t, err)
 }
 

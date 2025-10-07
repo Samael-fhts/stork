@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"net/http"
@@ -80,7 +81,7 @@ func newFakeMonitorWithDefaultsDHCPv6Only(interceptor func(client *http.Client))
 // Check creating PromKeaExporter, check if prometheus stats are set up.
 func TestNewPromKeaExporterBasic(t *testing.T) {
 	fam := newFakeMonitorWithDefaults(nil)
-	pke := NewPromKeaExporter("foo", 42, true, fam)
+	pke := NewPromKeaExporter(t.Context(), "foo", 42, true, fam)
 	defer pke.Shutdown()
 
 	require.NotNil(t, pke.HTTPServer)
@@ -128,7 +129,7 @@ func TestPromKeaExporterStart(t *testing.T) {
 
 	fdm := newFakeMonitorWithDefaultsDHCPv4Only(gock.InterceptClient)
 
-	pke := NewPromKeaExporter("foo", 1234, true, fdm)
+	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fdm)
 	defer pke.Shutdown()
 
 	// Start exporter.
@@ -200,7 +201,7 @@ func TestPromKeaExporterStartKeaPrior2_4_0(t *testing.T) {
 
 	fdm := newFakeMonitorWithDefaultsDHCPv6Only(gock.InterceptClient)
 
-	pke := NewPromKeaExporter("foo", 1234, true, fdm)
+	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fdm)
 	defer pke.Shutdown()
 
 	// Start exporter and trigger the stats collection.
@@ -258,7 +259,7 @@ func TestPromKeaExporterStartKea2_4_0DHCPv4(t *testing.T) {
 
 	fdm := newFakeMonitorWithDefaultsDHCPv4Only(gock.InterceptClient)
 
-	pke := NewPromKeaExporter("foo", 1234, true, fdm)
+	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fdm)
 	defer pke.Shutdown()
 
 	// Start exporter and trigger the stats collection.
@@ -325,7 +326,7 @@ func TestPromKeaExporterStartKea2_4_0DHCPv6(t *testing.T) {
 
 	fdm := newFakeMonitorWithDefaultsDHCPv6Only(gock.InterceptClient)
 
-	pke := NewPromKeaExporter("foo", 1234, true, fdm)
+	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fdm)
 	defer pke.Shutdown()
 
 	// Start exporter and trigger the stats collection.
@@ -543,7 +544,7 @@ func TestSubnetPrefixInPrometheusMetrics(t *testing.T) {
 
 	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
 
-	pke := NewPromKeaExporter("foo", 1234, true, fam)
+	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fam)
 	defer pke.Shutdown()
 
 	// Act
@@ -600,7 +601,7 @@ func newFakeKeaSender() *fakeKeaSender {
 }
 
 // Increment call counter and return fixed data.
-func (s *fakeKeaSender) sendCommand(command *keactrl.Command, response any) error {
+func (s *fakeKeaSender) sendCommand(ctx context.Context, command *keactrl.Command, response any) error {
 	s.callCount++
 	if s.err != nil {
 		return s.err
@@ -615,7 +616,7 @@ func TestNewLazySubnetLookup(t *testing.T) {
 	sender := newFakeKeaSender()
 
 	// Act
-	lookup := newLazySubnetLookup(sender)
+	lookup := newLazySubnetLookup(t.Context(), sender)
 
 	// Assert
 	require.NotNil(t, lookup)
@@ -626,7 +627,7 @@ func TestNewLazySubnetLookup(t *testing.T) {
 func TestLazySubnetLookupFetchesData(t *testing.T) {
 	// Arrange
 	sender := newFakeKeaSender()
-	lookup := newLazySubnetLookup(sender)
+	lookup := newLazySubnetLookup(t.Context(), sender)
 
 	// Act
 	info1, ok1 := lookup.getSubnetInfo(1)
@@ -654,7 +655,7 @@ func TestLazySubnetLookupFetchesData(t *testing.T) {
 func TestLazySubnetLookupFetchesOnlyOnce(t *testing.T) {
 	// Arrange
 	sender := newFakeKeaSender()
-	lookup := newLazySubnetLookup(sender)
+	lookup := newLazySubnetLookup(t.Context(), sender)
 
 	// Act
 	_, _ = lookup.getSubnetInfo(1)
@@ -673,7 +674,7 @@ func TestLazySubnetLookupFetchesOnlyOnceEvenIfError(t *testing.T) {
 	sender := newFakeKeaSender()
 	sender.payload = nil
 	sender.err = errors.New("baz")
-	lookup := newLazySubnetLookup(sender)
+	lookup := newLazySubnetLookup(t.Context(), sender)
 
 	for _, subnetID := range []int{1, 1, 1, 42, 100} {
 		// Act
@@ -688,7 +689,7 @@ func TestLazySubnetLookupFetchesOnlyOnceEvenIfError(t *testing.T) {
 func TestLazySubnetLookupFetchesAgainWhenFamilyChanged(t *testing.T) {
 	// Arrange
 	sender := newFakeKeaSender()
-	lookup := newLazySubnetLookup(sender)
+	lookup := newLazySubnetLookup(t.Context(), sender)
 
 	// Act
 	_, _ = lookup.getSubnetInfo(1)
@@ -725,7 +726,7 @@ func TestDisablePerSubnetStatsCollecting(t *testing.T) {
 	fam := newFakeMonitorWithDefaultsDHCPv4Only(gock.InterceptClient)
 
 	// Act
-	pke := NewPromKeaExporter("foo", 1234, false, fam)
+	pke := NewPromKeaExporter(t.Context(), "foo", 1234, false, fam)
 	defer pke.Shutdown()
 	pke.Start()
 	c := make(chan prometheus.Metric)
@@ -779,7 +780,7 @@ func TestCollectingGlobalStatistics(t *testing.T) {
 
 	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
 
-	pke := NewPromKeaExporter("foo", 1234, true, fam)
+	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fam)
 	defer pke.Shutdown()
 
 	pke.Start()
@@ -839,7 +840,7 @@ func TestEncounteredUnsupportedStatisticsAreAppendedToIgnoreList(t *testing.T) {
 
 	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
 
-	pke := NewPromKeaExporter("my-host", 1234, true, fam)
+	pke := NewPromKeaExporter(t.Context(), "my-host", 1234, true, fam)
 	defer pke.Shutdown()
 
 	// Act
@@ -855,7 +856,7 @@ func TestEncounteredUnsupportedStatisticsAreAppendedToIgnoreList(t *testing.T) {
 func TestDescribe(t *testing.T) {
 	// Arrange
 	fam := newFakeMonitorWithDefaults(nil)
-	pke := NewPromKeaExporter("foo", 1234, true, fam)
+	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fam)
 	ch := make(chan *prometheus.Desc, 1)
 	defer close(ch)
 	defer pke.Shutdown()
