@@ -1596,8 +1596,8 @@ func (r *RestAPI) GetApp(ctx context.Context, params services.GetAppParams) midd
 	return rsp
 }
 
-// Gets current status of services for a given Kea application.
-func getKeaServicesStatus(db *dbops.PgDB, app *dbmodel.VirtualApp, daemons []*dbmodel.Daemon) *models.ServicesStatus {
+// Gets current status of services for a given Kea daemons.
+func getKeaServicesStatus(db *dbops.PgDB, daemons []*dbmodel.Daemon) *models.ServicesStatus {
 	servicesStatus := &models.ServicesStatus{}
 
 	var keaServices []dbmodel.Service
@@ -1764,7 +1764,7 @@ func (r *RestAPI) GetAppServicesStatus(ctx context.Context, params services.GetA
 	// If this is Kea application, get the Kea DHCP servers status which possibly
 	// includes HA status.
 	if virtualApp.Type == dbmodel.VirtualAppTypeKea {
-		servicesStatus = getKeaServicesStatus(r.DB, virtualApp, dbDaemons)
+		servicesStatus = getKeaServicesStatus(r.DB, dbDaemons)
 		if servicesStatus == nil {
 			msg := fmt.Sprintf("Cannot get status of app with ID %d", virtualApp.ID)
 			rsp := services.NewGetAppServicesStatusDefault(http.StatusInternalServerError).WithPayload(&models.APIError{

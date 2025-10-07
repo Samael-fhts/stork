@@ -15,7 +15,6 @@ import (
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator"
-	"isc.org/stork/server/daemons"
 	daemonsconfig "isc.org/stork/server/daemons"
 	"isc.org/stork/server/daemons/kea"
 	daemonstest "isc.org/stork/server/daemons/test"
@@ -29,7 +28,7 @@ import (
 
 //go:generate mockgen -package=restservice -destination=migratormock_test.go isc.org/stork/server/configmigrator MigrationManager
 
-func mockStatusError(commandName keactrl.CommandName, cmdResponses []interface{}) {
+func mockStatusError(cmdResponses []interface{}) {
 	json := `{
             "result": 1,
             "text": "unable to communicate with the daemon"
@@ -713,7 +712,7 @@ func TestCreateHostBeginNoServers(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -752,7 +751,7 @@ func TestCreateHostSubmitError(t *testing.T) {
 	// Setup fake agents that return an error in response to reservation-add
 	// command.
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		mockStatusError("reservation-add", cmdResponses)
+		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
 
@@ -760,7 +759,7 @@ func TestCreateHostSubmitError(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create config manager.
-	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -912,7 +911,7 @@ func TestCreateHostBeginCancel(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -982,7 +981,7 @@ func TestCreateHostDeleteError(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create config manager.
-	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1256,7 +1255,7 @@ func TestUpdateHostBeginNonExistingHostID(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1300,7 +1299,7 @@ func TestUpdateHostSubmitError(t *testing.T) {
 	// Setup fake agents that return an error in response to reservation-del
 	// command.
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		mockStatusError("reservation-del", cmdResponses)
+		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
 
@@ -1461,7 +1460,7 @@ func TestUpdateHostBeginCancel(t *testing.T) {
 	daemonLocker := config.NewDaemonLocker()
 
 	// Create the config manager.
-	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:           db,
 		Agents:       fa,
 		DefLookup:    lookup,
@@ -1557,7 +1556,7 @@ func TestDeleteHost(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create the config manager.
-	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1619,7 +1618,7 @@ func TestDeleteHostError(t *testing.T) {
 	// Setup fake agents that return an error in response to reservation-del
 	// command.
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		mockStatusError("reservation-del", cmdResponses)
+		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
 
@@ -1627,7 +1626,7 @@ func TestDeleteHostError(t *testing.T) {
 	require.NotNil(t, lookup)
 
 	// Create config manager.
-	cm := daemons.NewManager(&daemonstest.ManagerAccessorsWrapper{
+	cm := daemonsconfig.NewManager(&daemonstest.ManagerAccessorsWrapper{
 		DB:        db,
 		Agents:    fa,
 		DefLookup: lookup,
@@ -1743,11 +1742,11 @@ func TestStartHostsMigration(t *testing.T) {
 
 	migrationService := NewMockMigrationManager(ctrl)
 
-	statePuller, err := daemons.NewStatePuller(db, nil, nil, nil, nil)
+	statePuller, err := daemonsconfig.NewStatePuller(db, nil, nil, nil, nil)
 	require.NoError(t, err)
 	hostPuller, err := kea.NewHostsPuller(db, nil, nil, nil)
 	require.NoError(t, err)
-	pullers := &daemons.Pullers{
+	pullers := &daemonsconfig.Pullers{
 		KeaHostsPuller: hostPuller,
 		StatePuller:    statePuller,
 	}
@@ -1828,7 +1827,7 @@ func TestStartHostsMigrationFailed(t *testing.T) {
 	defer ctrl.Finish()
 
 	migrationService := NewMockMigrationManager(ctrl)
-	pullers := &daemons.Pullers{}
+	pullers := &daemonsconfig.Pullers{}
 
 	rapi, err := NewRestAPI(dbSettings, db, migrationService, pullers)
 	require.NoError(t, err)

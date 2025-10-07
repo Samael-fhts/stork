@@ -854,7 +854,7 @@ func (d *Daemon) SetConfigFromJSON(config []byte) error {
 		return nil
 	}
 
-	parsedConfig, err := keaconfig.NewConfig([]byte(config))
+	parsedConfig, err := keaconfig.NewConfig(config)
 	if err != nil {
 		return err
 	}

@@ -77,7 +77,7 @@ func TestGetDaemonConfigForKeaDaemonWithAssignedConfiguration(t *testing.T) {
 		"Dhcp6": { }
     }`)
 
-	err = daemon6.SetConfigFromJSON([]byte(configDHCP6))
+	err = daemon6.SetConfigFromJSON(configDHCP6)
 	require.NoError(t, err)
 
 	err = dbmodel.AddDaemon(db, daemon4)
@@ -2234,7 +2234,7 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 
 	// Create fake agents receiving commands.
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		mockStatusError("config-set", cmdResponses)
+		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
 

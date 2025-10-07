@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
-	pkgerrors "github.com/pkg/errors"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/collectors"
 	versioncollector "github.com/prometheus/client_golang/prometheus/collectors/version"
@@ -461,7 +460,7 @@ func (pbe *PromBind9Exporter) qryRTTHistogram(stats map[string]float64) (uint64,
 				rtt := strings.TrimPrefix(statName, qryRTT)
 				bucket, err = strconv.ParseFloat(rtt, 64)
 				if err != nil {
-					return 0, math.NaN(), buckets, pkgerrors.Errorf("could not parse RTT: %s", rtt)
+					return 0, math.NaN(), buckets, errors.Errorf("could not parse RTT: %s", rtt)
 				}
 			}
 			buckets[bucket/1000] = uint64(statValue)
@@ -514,7 +513,7 @@ func (pbe *PromBind9Exporter) trafficSizesHistogram(stats map[string]float64) (c
 			}
 			bucket, err = strconv.ParseFloat(sizes[1], 64)
 			if err != nil {
-				return 0, math.NaN(), buckets, pkgerrors.Errorf("could not parse size: %s", sizes[1])
+				return 0, math.NaN(), buckets, errors.Errorf("could not parse size: %s", sizes[1])
 			}
 		}
 		buckets[bucket] = uint64(statValue)
@@ -896,7 +895,7 @@ func (pbe *PromBind9Exporter) scrapeServerStat(statMap map[string]interface{}, s
 	if statIfc != nil {
 		stats, ok := statIfc.(map[string]interface{})
 		if !ok {
-			return nil, pkgerrors.Errorf("problem casting '%s' interface", statName)
+			return nil, errors.Errorf("problem casting '%s' interface", statName)
 		}
 		for labelName, labelValueIfc := range stats {
 			// get value
@@ -920,21 +919,21 @@ func (pbe *PromBind9Exporter) scrapeTimeStats(statMap map[string]interface{}) (e
 	timeStr = getStat(statMap, "boot-time").(string)
 	timeVal, err = time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem parsing time %+s", timeStr)
+		return errors.Wrapf(err, "problem parsing time %+s", timeStr)
 	}
 	pbe.stats.BootTime = timeVal
 	// config_time_seconds
 	timeStr = getStat(statMap, "config-time").(string)
 	timeVal, err = time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem parsing time %+s", timeStr)
+		return errors.Wrapf(err, "problem parsing time %+s", timeStr)
 	}
 	pbe.stats.ConfigTime = timeVal
 	// current_time_seconds
 	timeStr = getStat(statMap, "current-time").(string)
 	timeVal, err = time.Parse(time.RFC3339, timeStr)
 	if err != nil {
-		return pkgerrors.Wrapf(err, "problem parsing time %+s", timeStr)
+		return errors.Wrapf(err, "problem parsing time %+s", timeStr)
 	}
 	pbe.stats.CurrentTime = timeVal
 
@@ -1102,12 +1101,12 @@ func (pbe *PromBind9Exporter) setDaemonStats(stats map[string]any) (ret error) {
 	// incoming_queries_total
 	pbe.stats.IncomingQueries, err = pbe.scrapeServerStat(stats, "qtypes")
 	if err != nil {
-		return pkgerrors.WithMessagef(err, "problem parsing 'qtypes'")
+		return errors.WithMessagef(err, "problem parsing 'qtypes'")
 	}
 	// incoming_requests_total
 	pbe.stats.IncomingRequests, err = pbe.scrapeServerStat(stats, "opcodes")
 	if err != nil {
-		return pkgerrors.WithMessagef(err, "problem parsing 'opcodes'")
+		return errors.WithMessagef(err, "problem parsing 'opcodes'")
 	}
 
 	// query_duplicates_total
@@ -1119,31 +1118,31 @@ func (pbe *PromBind9Exporter) setDaemonStats(stats map[string]any) (ret error) {
 	// zone_transfer_success_total
 	pbe.stats.NsStats, err = pbe.scrapeServerStat(stats, "nsstats")
 	if err != nil {
-		return pkgerrors.WithMessagef(err, "problem parsing 'nsstats'")
+		return errors.WithMessagef(err, "problem parsing 'nsstats'")
 	}
 
 	// tasks_running
 	// worker_threads
 	pbe.stats.TaskMgr, err = pbe.scrapeServerStat(stats, "taskmgr")
 	if err != nil {
-		return pkgerrors.WithMessagef(err, "problem parsing 'taskmgr'")
+		return errors.WithMessagef(err, "problem parsing 'taskmgr'")
 	}
 
 	// Parse traffic stats.
 	trafficIfc, ok := stats["traffic"]
 	if !ok {
-		return pkgerrors.Errorf("no 'traffic' in response: %+v", stats)
+		return errors.Errorf("no 'traffic' in response: %+v", stats)
 	}
 	traffic, ok := trafficIfc.(map[string]interface{})
 	if !ok {
-		return pkgerrors.Errorf("problem casting trafficIfc: %+v", trafficIfc)
+		return errors.Errorf("problem casting trafficIfc: %+v", trafficIfc)
 	}
 	trafficMap := make(map[string]PromBind9TrafficStats)
 	for trafficName, trafficStatsIfc := range traffic {
 		sizeCounts := make(map[string]float64)
 		trafficStats, ok := trafficStatsIfc.(map[string]interface{})
 		if !ok {
-			return pkgerrors.Errorf("problem casting '%s' interface", trafficName)
+			return errors.Errorf("problem casting '%s' interface", trafficName)
 		}
 		for labelName, labelValueIfc := range trafficStats {
 			// get value
@@ -1163,12 +1162,12 @@ func (pbe *PromBind9Exporter) setDaemonStats(stats map[string]any) (ret error) {
 	// Parse views.
 	viewsIfc, ok := stats["views"]
 	if !ok {
-		return pkgerrors.Errorf("no 'views' in response: %+v", stats)
+		return errors.Errorf("no 'views' in response: %+v", stats)
 	}
 
 	views := viewsIfc.(map[string]interface{})
 	if !ok {
-		return pkgerrors.Errorf("problem casting viewsIfc: %+v", viewsIfc)
+		return errors.Errorf("problem casting viewsIfc: %+v", viewsIfc)
 	}
 
 	for viewName, viewStatsIfc := range views {

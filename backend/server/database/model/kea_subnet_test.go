@@ -68,8 +68,8 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			}},
 		},
 	}
-	configJson, _ := json.Marshal(configRaw)
-	err = d4.SetConfigFromJSON(configJson)
+	configJSON, _ := json.Marshal(configRaw)
+	err = d4.SetConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d4)
@@ -189,8 +189,8 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			}},
 		},
 	}
-	configJson, _ = json.Marshal(configRaw)
-	err = d6.SetConfigFromJSON(configJson)
+	configJSON, _ = json.Marshal(configRaw)
+	err = d6.SetConfigFromJSON(configJSON)
 	require.NoError(t, err)
 	err = AddDaemon(db, d6)
 	require.NoError(t, err)
@@ -252,8 +252,8 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			}},
 		},
 	}
-	configJson, _ = json.Marshal(configRaw)
-	err = d46v4.SetConfigFromJSON(configJson)
+	configJSON, _ = json.Marshal(configRaw)
+	err = d46v4.SetConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d46v4)
@@ -292,8 +292,8 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			}},
 		},
 	}
-	configJson, _ = json.Marshal(configRaw)
-	err = d46v6.SetConfigFromJSON(configJson)
+	configJSON, _ = json.Marshal(configRaw)
+	err = d46v6.SetConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d46v6)
@@ -551,8 +551,8 @@ func TestGetSubnetsByPageNoSubnets(t *testing.T) {
 	configRaw := &map[string]interface{}{
 		"Dhcp4": &map[string]interface{}{},
 	}
-	configJson, _ := json.Marshal(configRaw)
-	err = d4.SetConfigFromJSON(configJson)
+	configJSON, _ := json.Marshal(configRaw)
+	err = d4.SetConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d4)
@@ -612,8 +612,8 @@ func TestGetSharedNetworksByPageBasic(t *testing.T) {
 			}},
 		},
 	}
-	configJson, _ := json.Marshal(configRaw)
-	err = d4.SetConfigFromJSON(configJson)
+	configJSON, _ := json.Marshal(configRaw)
+	err = d4.SetConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d4)
@@ -703,8 +703,8 @@ func TestGetSharedNetworksByPageBasic(t *testing.T) {
 			}},
 		},
 	}
-	configJson, _ = json.Marshal(configRaw)
-	err = d6.SetConfigFromJSON(configJson)
+	configJSON, _ = json.Marshal(configRaw)
+	err = d6.SetConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d6)

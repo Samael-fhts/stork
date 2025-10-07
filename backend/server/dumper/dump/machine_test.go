@@ -127,6 +127,8 @@ func TestMachineDumpExecute(t *testing.T) {
 			require.NotNil(t, daemon.KeaDaemon.Config)
 		case daemonname.Bind9:
 			require.Len(t, daemon.LogTargets, 2)
+		default:
+			require.FailNow(t, "unknown daemon name", daemon.Name)
 		}
 	}
 }

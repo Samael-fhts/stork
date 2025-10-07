@@ -1699,7 +1699,7 @@ func TestCreateSubnetBeginSubmitError(t *testing.T) {
 	// Setup fake agents that return an error in response to reservation-add
 	// command.
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		mockStatusError("subnet4-add", cmdResponses)
+		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
 
@@ -4029,7 +4029,7 @@ func TestUpdateSubnetSubmitError(t *testing.T) {
 	require.Len(t, subnets, 1)
 
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		mockStatusError("subnet4-update", cmdResponses)
+		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
 
@@ -4419,7 +4419,7 @@ func TestDeleteSubnetError(t *testing.T) {
 	// Setup fake agents that return an error in response to subnet4-del
 	// command.
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		mockStatusError("subnet4-del", cmdResponses)
+		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
 

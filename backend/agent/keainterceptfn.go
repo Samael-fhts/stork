@@ -24,11 +24,7 @@ func interceptConfigGetLoggers(agent *StorkAgent, response *keactrl.Response) er
 		return err
 	}
 
-	paths, err := collectKeaAllowedLogs(config)
-	if err != nil {
-		return err
-	}
-
+	paths := collectKeaAllowedLogs(config)
 	for _, p := range paths {
 		agent.logTailer.allow(p)
 	}

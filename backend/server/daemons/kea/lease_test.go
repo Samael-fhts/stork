@@ -470,7 +470,7 @@ func TestGetLease4ByIPAddress(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.EqualValues(t, daemon.ID, lease.DaemonID)
 	require.NotNil(t, lease.Daemon)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
 	require.EqualValues(t, 12345678, lease.CLTT)
@@ -517,7 +517,7 @@ func TestGetLease6ByIPAddress(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.EqualValues(t, daemon.ID, lease.DaemonID)
 	require.NotNil(t, lease.Daemon)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
@@ -567,7 +567,7 @@ func TestGetLease6ByPrefix(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.EqualValues(t, daemon.ID, lease.DaemonID)
 	require.NotNil(t, lease.Daemon)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
@@ -691,7 +691,7 @@ func TestGetLeases4(t *testing.T) {
 			require.Len(t, leases, 1)
 
 			lease := leases[0]
-			require.EqualValues(t, daemon.ID, lease.DaemonId)
+			require.EqualValues(t, daemon.ID, lease.DaemonID)
 			require.NotNil(t, lease.Daemon)
 			require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
 			require.EqualValues(t, 12345678, lease.CLTT)
@@ -753,7 +753,7 @@ func TestGetLeases6(t *testing.T) {
 			require.Len(t, leases, 2)
 
 			lease := leases[0]
-			require.EqualValues(t, daemon.ID, lease.DaemonId)
+			require.EqualValues(t, daemon.ID, lease.DaemonID)
 			require.NotNil(t, lease.Daemon)
 			require.EqualValues(t, 12345678, lease.CLTT)
 			require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
@@ -771,7 +771,7 @@ func TestGetLeases6(t *testing.T) {
 			require.Nil(t, lease.UserContext)
 
 			lease = leases[1]
-			require.EqualValues(t, daemon.ID, lease.DaemonId)
+			require.EqualValues(t, daemon.ID, lease.DaemonID)
 			require.NotNil(t, lease.Daemon)
 			require.EqualValues(t, 12345678, lease.CLTT)
 			require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
@@ -872,7 +872,7 @@ func TestGetLeasesByPropertiesSecondError(t *testing.T) {
 	require.Len(t, leases, 1)
 
 	lease := leases[0]
-	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.EqualValues(t, daemon.ID, lease.DaemonID)
 	require.NotNil(t, lease.Daemon)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
 	require.EqualValues(t, 12345678, lease.CLTT)
@@ -910,7 +910,7 @@ func TestGetLeases4InvalidJSON(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.EqualValues(t, daemon.ID, lease.DaemonID)
 	require.NotNil(t, lease.Daemon)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.ClientID)
 	require.EqualValues(t, 12345678, lease.CLTT)
@@ -948,7 +948,7 @@ func TestGetLease6InvalidJSON(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, lease)
 
-	require.EqualValues(t, daemon.ID, lease.DaemonId)
+	require.EqualValues(t, daemon.ID, lease.DaemonID)
 	require.NotNil(t, lease.Daemon)
 	require.EqualValues(t, 12345678, lease.CLTT)
 	require.Equal(t, "42:42:42:42:42:42:42:42", lease.DUID)
@@ -1341,7 +1341,7 @@ func TestFindDeclinedLeases(t *testing.T) {
 			expectedDaemon = daemon6
 		}
 
-		require.EqualValues(t, expectedDaemon.ID, leases[i].DaemonId)
+		require.EqualValues(t, expectedDaemon.ID, leases[i].DaemonID)
 		require.NotNil(t, leases[i].Daemon)
 		require.Equal(t, ipAddress, leases[i].IPAddress)
 		require.EqualValues(t, keadata.LeaseStateDeclined, leases[i].State)
@@ -1449,7 +1449,7 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 			expectedDaemon = daemon6
 		}
 
-		require.EqualValues(t, expectedDaemon.ID, leases[i].DaemonId)
+		require.EqualValues(t, expectedDaemon.ID, leases[i].DaemonID)
 		require.NotNil(t, leases[i].Daemon)
 		require.Equal(t, ipAddress, leases[i].IPAddress)
 		require.EqualValues(t, keadata.LeaseStateDeclined, leases[i].State)

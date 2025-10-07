@@ -36,14 +36,14 @@ type PDNSDaemon struct {
 
 // Lifecycle method called once when the daemon is added to the monitor.
 // It starts the zone inventory background tasks.
-func (pa *PDNSDaemon) Bootstrap() error {
+func (d *PDNSDaemon) Bootstrap() error {
 	return nil
 }
 
 // Lifecycle method called periodically by the monitor.
 // It populates the zone inventory.
-func (ba *PDNSDaemon) Evaluate(context.Context, AgentManager) error {
-	zoneInventory := ba.GetZoneInventory()
+func (d *PDNSDaemon) Evaluate(context.Context, AgentManager) error {
+	zoneInventory := d.GetZoneInventory()
 	if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
 		return nil
 	}
@@ -62,16 +62,16 @@ func (ba *PDNSDaemon) Evaluate(context.Context, AgentManager) error {
 
 // Lifecycle method called once when the daemon is removed from the monitor.
 // Waits for the zone inventory to complete background tasks.
-func (pa *PDNSDaemon) Cleanup() error {
-	if pa.zoneInventory != nil {
-		pa.zoneInventory.stop()
+func (d *PDNSDaemon) Cleanup() error {
+	if d.zoneInventory != nil {
+		d.zoneInventory.stop()
 	}
 	return nil
 }
 
 // Returns the zone inventory.
-func (pa *PDNSDaemon) GetZoneInventory() *zoneInventory {
-	return pa.zoneInventory
+func (d *PDNSDaemon) GetZoneInventory() *zoneInventory {
+	return d.zoneInventory
 }
 
 // Detect the PowerDNS daemon by parsing the named process command line.

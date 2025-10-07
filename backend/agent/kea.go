@@ -72,11 +72,11 @@ func (d *KeaDaemon) sendCommand(ctx context.Context, command *keactrl.Command, r
 // config-get command returned by one of the Kea daemons. If the config
 // contains loggers' configuration the log files are extracted from it
 // and returned.
-func collectKeaAllowedLogs(config *keaconfig.Config) ([]string, error) {
+func collectKeaAllowedLogs(config *keaconfig.Config) []string {
 	loggers := config.GetLoggers()
 	if len(loggers) == 0 {
 		log.Info("No loggers found in the returned configuration while trying to refresh the viewable log files")
-		return nil, nil
+		return nil
 	}
 
 	// Go over returned loggers and collect those found in the returned configuration.
@@ -91,7 +91,7 @@ func collectKeaAllowedLogs(config *keaconfig.Config) ([]string, error) {
 			}
 		}
 	}
-	return paths, nil
+	return paths
 }
 
 // Fetches the Kea configuration from the daemon by sending config-get command.
@@ -453,10 +453,8 @@ func (d *KeaDaemon) Evaluate(ctx context.Context, agent AgentManager) error {
 	if err != nil {
 		return errors.WithMessage(err, "cannot fetch Kea configuration")
 	}
-	paths, err := collectKeaAllowedLogs(config)
-	if err != nil {
-		return errors.WithMessage(err, "cannot collect Kea allowed logs")
-	}
+	paths := collectKeaAllowedLogs(config)
+
 	for _, p := range paths {
 		agent.AllowLog(p)
 	}

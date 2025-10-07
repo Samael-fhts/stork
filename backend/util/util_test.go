@@ -150,7 +150,8 @@ func TestReadConfigurationWithoutIncludes(t *testing.T) {
 	require.NoError(t, err)
 
 	var content interface{}
-	json.Unmarshal([]byte(raw), &content)
+	err = json.Unmarshal(raw, &content)
+	require.NoError(t, err)
 	data := content.(map[string]interface{})
 
 	require.Contains(t, data, "foo", "bar", "baz")
@@ -169,7 +170,8 @@ func TestReadFileWithIncludes(t *testing.T) {
 	require.NoError(t, err)
 
 	var content interface{}
-	json.Unmarshal([]byte(raw), &content)
+	err = json.Unmarshal(raw, &content)
+	require.NoError(t, err)
 	data := content.(map[string]interface{})
 	require.Contains(t, data, "biz", "buz", "boz")
 
@@ -197,7 +199,8 @@ func TestReadFileWithIncludesNonJSONExtension(t *testing.T) {
 	require.NoError(t, err)
 
 	var content interface{}
-	json.Unmarshal([]byte(raw), &content)
+	err = json.Unmarshal(raw, &content)
+	require.NoError(t, err)
 	data := content.(map[string]interface{})
 	require.Contains(t, data, "biz", "buz", "boz")
 
@@ -225,7 +228,8 @@ func TestReadConfigurationWithNestedIncludes(t *testing.T) {
 	require.NoError(t, err)
 
 	var content interface{}
-	json.Unmarshal([]byte(raw), &content)
+	err = json.Unmarshal(raw, &content)
+	require.NoError(t, err)
 	data := content.(map[string]interface{})
 	require.Contains(t, data, "ban")
 
@@ -271,7 +275,7 @@ func TestReadConfigurationWithMultipleTheSameIncludes(t *testing.T) {
 	require.NoError(t, err)
 
 	var content interface{}
-	err = json.Unmarshal([]byte(raw), &content)
+	err = json.Unmarshal(raw, &content)
 	require.NoError(t, err)
 	data := content.(map[string]interface{})
 	require.Contains(t, data, "biz", "buz", "boz")

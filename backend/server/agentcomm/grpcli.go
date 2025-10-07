@@ -426,7 +426,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 				switch {
 				case daemonName == daemonname.Bind9 && point.Type == AccessPointControl:
 					accessPoint.Protocol = "rndc"
-				case point.UseSecureProtocol:
+				case point.UseSecureProtocol: //nolint:staticcheck,deprecated
 					accessPoint.Protocol = "https"
 				default:
 					accessPoint.Protocol = "http"

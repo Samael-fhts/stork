@@ -10,6 +10,6 @@ type Lease struct {
 
 	keadata.Lease
 
-	DaemonId int64
+	DaemonID int64
 	Daemon   *Daemon
 }

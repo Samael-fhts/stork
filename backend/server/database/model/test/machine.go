@@ -42,7 +42,7 @@ func NewMachine(db *pg.DB) (*Machine, error) {
 }
 
 // Creates new Kea app instance in the machine.
-func (machine *Machine) newKeaDaemon(name daemonname.Name) (*KeaServer, error) {
+func (m *Machine) newKeaDaemon(name daemonname.Name) (*KeaServer, error) {
 	ap := []*dbmodel.AccessPoint{{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "localhost",
@@ -52,7 +52,7 @@ func (machine *Machine) newKeaDaemon(name daemonname.Name) (*KeaServer, error) {
 	}}
 
 	daemon := &dbmodel.Daemon{
-		MachineID:    machine.ID,
+		MachineID:    m.ID,
 		Name:         name,
 		Active:       true,
 		AccessPoints: ap,
@@ -60,12 +60,12 @@ func (machine *Machine) newKeaDaemon(name daemonname.Name) (*KeaServer, error) {
 			KeaDHCPDaemon: &dbmodel.KeaDHCPDaemon{},
 		},
 	}
-	if err := dbmodel.AddDaemon(machine.db, daemon); err != nil {
+	if err := dbmodel.AddDaemon(m.db, daemon); err != nil {
 		return nil, err
 	}
 
 	return &KeaServer{
-		machine:  machine,
+		machine:  m,
 		DaemonID: daemon.ID,
 	}, nil
 }

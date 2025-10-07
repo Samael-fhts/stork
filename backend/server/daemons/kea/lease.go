@@ -84,7 +84,7 @@ func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daem
 		return lease, err
 	}
 	lease = response.Arguments
-	lease.DaemonId = daemon.ID
+	lease.DaemonID = daemon.ID
 	lease.Daemon = daemon
 	return lease, nil
 }
@@ -111,7 +111,7 @@ func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daem
 		return lease, err
 	}
 	lease = response.Arguments
-	lease.DaemonId = daemon.ID
+	lease.DaemonID = daemon.ID
 	lease.Daemon = daemon
 	return lease, nil
 }
@@ -215,7 +215,7 @@ func getLeasesByProperties(agents agentcomm.ConnectedAgents, daemon *dbmodel.Dae
 		}
 	}
 	for i := range leases {
-		leases[i].DaemonId = daemon.ID
+		leases[i].DaemonID = daemon.ID
 		leases[i].Daemon = daemon
 	}
 	return leases, warns, nil
