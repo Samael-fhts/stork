@@ -113,6 +113,10 @@ func (s *Subscriber) applyFiltersFromQuery(db *dbops.PgDB) (err error) {
 	if f.MachineID, err = getQueryValueAsInt64("machine", queryValues); err != nil {
 		return err
 	}
+	var appID int64
+	if appID, err = getQueryValueAsInt64("app", queryValues); err != nil {
+		return err
+	}
 	if f.SubnetID, err = getQueryValueAsInt64("subnet", queryValues); err != nil {
 		return err
 	}
@@ -124,16 +128,33 @@ func (s *Subscriber) applyFiltersFromQuery(db *dbops.PgDB) (err error) {
 	}
 
 	// There is additional query parameters supported by the server:
-	// daemonName. They are mutually exclusive with daemon parmameters.
-	// Let's get those parameters and perform appropriate sanity checks.
+	// daemonName. They are mutually exclusive with app and daemon parameters.
 	daemonName := queryValues["daemonName"]
 
-	if len(daemonName) > 0 {
-		// daemon must not be specified with daemonName.
-		if f.DaemonID != 0 {
-			return errors.Errorf("daemonName and daemon query parameters are mutually exclusive: %s", s.serverURL)
-		}
+	// Daemon ID must not be specified with daemonName.
+	if len(daemonName) > 0 && f.DaemonID != 0 {
+		return errors.Errorf("daemonName and daemon query parameters are mutually exclusive: %s", s.serverURL)
+	}
 
+	if appID != 0 {
+		daemons, err := dbmodel.GetDaemonsByVirtualAppID(db, appID)
+		if err != nil {
+			return errors.WithMessagef(err, "problem getting daemons by app ID %d while applying sse filters: %s",
+				appID, s.serverURL)
+		}
+		if len(daemons) > 1 {
+			daemon := daemons[0]
+			f.MachineID = daemon.MachineID
+		} else if len(daemons) == 1 {
+			daemon := daemons[0]
+			f.DaemonID = daemon.ID
+			f.MachineID = daemon.MachineID
+		} else {
+			return errors.Errorf("app with ID %d does not have any daemons", appID)
+		}
+	}
+
+	if len(daemonName) > 0 {
 		// App type and daemon name are ambiguous without saying to which machine
 		// the app and/or daemon belong.
 		if f.MachineID == 0 {
@@ -143,16 +164,21 @@ func (s *Subscriber) applyFiltersFromQuery(db *dbops.PgDB) (err error) {
 
 		daemons, err := dbmodel.GetDaemonsByMachine(db, f.MachineID)
 		if err != nil {
-			return errors.WithMessagef(err, "problem getting machine by ID %d while applying sse filters: %s",
+			return errors.WithMessagef(err, "problem getting daemons by machine ID %d while applying sse filters: %s",
 				f.MachineID, s.serverURL)
 		}
 
-		for _, daemon := range daemons {
-			if string(daemon.Name) == daemonName[0] {
-				f.DaemonID = daemon.ID
+		var daemon *dbmodel.Daemon
+		for _, d := range daemons {
+			if string(d.Name) == daemonName[0] {
+				daemon = &d
 				break
 			}
 		}
+		if daemon == nil {
+			return errors.Errorf("daemon %s does not exist on machine %d", daemonName[0], f.MachineID)
+		}
+		f.DaemonID = daemon.ID
 	}
 
 	// In order to avoid iterating over all the filters every time we have a new
