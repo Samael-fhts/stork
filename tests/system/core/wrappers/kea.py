@@ -62,15 +62,14 @@ class Kea(Agent):
         _, stdout, _ = self._compose.exec(self._service_name, ["kea-ctrl-agent", "-v"])
         return tuple(int(i) for i in stdout.strip().split("."))
 
-    def wait_for_detect_kea_daemons(
-        self, expected_daemons: int=2
-    ):
+    def wait_for_detect_kea_daemons(self, expected_daemons: int = 2):
         """
         Wait for the Stork Agent to detect the Kea daemons.
 
         It accepts the number of expected daemons and waits until the
         Stork agent detects them.
         """
+
         @wait_for_success(wait_msg="Waiting for the Kea daemons to be detected...")
         def worker():
             metrics = self.wait_for_next_prometheus_metrics()

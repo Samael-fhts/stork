@@ -127,9 +127,9 @@ def test_agent_communication_with_kea_using_basic_auth_no_credentials(
     # Trig forward command to Kea
     machine, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(machine.daemons) == 2
-    for daemon in machine.daemons:
-        key = server_service.read_access_point_key(daemon.id)
+    assert len(machine.apps) == 1
+    for app in machine.apps:
+        key = server_service.read_access_point_key(app.id)
         assert key == ""
 
 

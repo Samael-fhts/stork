@@ -1,5 +1,4 @@
 """System tests for the /leases API endpoint."""
-from collections import Counter
 
 import ipaddress
 
@@ -12,14 +11,9 @@ def test_search_leases(kea_service: Kea, server_service: Server):
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(state.daemons) == 3
-    daemonCounter = Counter(d.name for d in state.daemons)
-    for name in ("dhcp4", "dhcp6", "ca"):
-        assert daemonCounter[name] == 1
-    
-    for daemon in state.daemons:
-        version_raw = daemon.version
-        version = tuple(int(x) for x in version_raw.split("."))
+    assert len(state.apps) == 1
+    version_raw = state.apps[0].version
+    version = tuple(int(x) for x in version_raw.split("."))
 
     # Search by IPv4 address..
     data = server_service.list_leases("192.0.2.1")
