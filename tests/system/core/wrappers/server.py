@@ -669,30 +669,30 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         DatabaseDeadlockError, wait_msg="Waiting to fetch next machine state..."
     )
     def wait_for_next_machine_state(
-        self, machine_id: int, start: datetime = None, wait_for_daemons=True
+        self, machine_id: int, start: datetime = None, wait_for_apps=True
     ) -> Machine:
         """
         Waits for a next fetch of the machine state after a given date.
         If the date is None then the current moment is used.
-        By default, this function waits until some daemon is fetched.
+        By default, this function waits until some application is fetched.
         It may be suppressed by specifying a flag.
         """
         self._wait_for_states_pulling(start)
         state = self.read_machine_state(machine_id)
-        if wait_for_daemons and len(state.daemons) == 0:
-            raise NoSuccessException("the daemons are missing")
+        if wait_for_apps and len(state.apps) == 0:
+            raise NoSuccessException("the apps are missing")
         return state
 
     @wait_for_success(
         DatabaseDeadlockError, wait_msg="Waiting to fetch next machine states..."
     )
     def wait_for_next_machine_states(
-        self, start: datetime = None, wait_for_daemons=True
+        self, start: datetime = None, wait_for_apps=True
     ) -> List[Machine]:
         """
         Waits for the subsequent fetches of the machine states for all machines.
         The machines must be authorized. Returns list of states.
-        By default, this function waits until some daemons are fetched.
+        By default, this function waits until some application is fetched.
         It may be suppressed by specifying a flag.
         """
         self._wait_for_states_pulling(start)
@@ -700,8 +700,8 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         states = []
         for machine in machines.items:
             state = self.read_machine_state(machine.id)
-            if wait_for_daemons and len(state.daemons) == 0:
-                raise NoSuccessException("the daemons are missing")
+            if wait_for_apps and len(state.apps) == 0:
+                raise NoSuccessException("the apps are missing")
             states.append(state)
         return states
 
@@ -712,7 +712,8 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         # pylint: disable=implicit-str-concat
         r"added (?:(?:\d+ subnets)|(?:<subnet.*>)) to <daemon "
         r'id="(?P<daemon_id>\d+)" '
-        r'name="(?P<daemon_name>.*)"'
+        r'name="(?P<daemon_name>.*)" '
+        r'appId="(?P<app_id>\d+)"'
     )
 
     def wait_for_failed_ca_communication(self, check_unauthorized=True):
@@ -758,7 +759,7 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         for daemon in overview.dhcp_daemons:
             for relationship in daemon.ha_overview:
                 if relationship.ha_state not in valid_states:
-                    identifier = f"{daemon.machine}/{daemon.name}"
+                    identifier = f"{daemon.app_name}@{daemon.machine}/{daemon.name}"
                     raise NoSuccessException(
                         f"The {identifier} HA peer is {relationship.ha_state}"
                     )
