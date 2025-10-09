@@ -27,7 +27,7 @@ def test_agent_over_ipv6(server_service: Server, kea_service: Kea):
 
     state = server_service.wait_for_next_machine_state(machine.id)
 
-    assert len(state.daemons) > 0
+    assert len(state.apps) > 0
 
 
 @kea_parametrize("agent-kea-tls-optional-client-cert-no-verify")
@@ -40,7 +40,7 @@ def test_agent_communication_with_kea_over_secure_protocol(
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert state.daemons[0].access_points[0].protocol == "https"
+    assert state.apps[0].access_points[0].use_secure_protocol
     leases = server_service.list_leases("192.0.2.1")
     assert leases.total == 1
 
@@ -56,7 +56,7 @@ def test_agent_communication_with_kea_over_secure_protocol_non_trusted_client(
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert state.daemons[0].access_points[0].protocol == "https"
+    assert state.apps[0].access_points[0].use_secure_protocol
     leases = server_service.list_leases("192.0.2.1")
     assert leases.items is None
     assert kea_service.has_failed_tls_handshake_log_entry()
@@ -72,7 +72,7 @@ def test_agent_communication_with_kea_over_secure_protocol_require_trusted_cert(
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert state.daemons[0].access_points[0].protocol == "https"
+    assert state.apps[0].access_points[0].use_secure_protocol
     leases = server_service.list_leases("192.0.2.1")
     assert leases.items is None
     assert kea_service.has_failed_tls_handshake_log_entry()
@@ -88,7 +88,7 @@ def test_agent_communication_with_kea_over_http_with_hsts_header_in_response(
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert not state.daemons[0].access_points[0].protocol == "https"
+    assert not state.apps[0].access_points[0].use_secure_protocol
     leases = server_service.list_leases("192.0.2.1")
     assert leases.total == 1
 
@@ -108,7 +108,7 @@ def test_agent_communication_with_kea_over_https_with_hsts_header_in_response(
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert state.daemons[0].access_points[0].protocol == "https"
+    assert state.apps[0].access_points[0].use_secure_protocol
     leases = server_service.list_leases("192.0.2.1")
     assert leases.total == 1
 
@@ -149,10 +149,10 @@ def test_agent_communication_with_kea_using_basic_auth(
     leases = server_service.list_leases("192.0.2.1")
     assert leases.total == 1
 
-    assert len(machine.daemons) == 2
-    for daemon in machine.daemons:
-        key = server_service.read_access_point_key(daemon.id)
-        assert key == "foo"
+    assert len(machine.apps) == 1
+    app = machine.apps[0]
+    key = server_service.read_access_point_key(app.id)
+    assert key == "foo"
 
 
 @kea_parametrize(suppress_registration=True)
