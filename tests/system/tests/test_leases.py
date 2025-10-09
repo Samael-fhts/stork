@@ -11,7 +11,7 @@ def test_search_leases(kea_service: Kea, server_service: Server):
     server_service.authorize_all_machines()
     state, *_ = server_service.wait_for_next_machine_states()
 
-    assert len(state.apps) == 1
+    assert len(state.apps) == 3
     version_raw = state.apps[0].version
     version = tuple(int(x) for x in version_raw.split("."))
 
