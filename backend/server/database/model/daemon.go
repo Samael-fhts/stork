@@ -581,7 +581,7 @@ func addDaemon(tx *pg.Tx, daemon *Daemon) error {
 		daemon.PDNSDaemon.DaemonID = daemon.ID
 		err = upsertInTransaction(tx, daemon.PDNSDaemon.ID, daemon.PDNSDaemon)
 		if err != nil {
-			return errors.Wrapf(err, "problem upserting PowerDNS daemon %d: %v",
+			return errors.WithMessagef(err, "problem upserting PowerDNS daemon %d: %v",
 				daemon.ID, daemon.PDNSDaemon)
 		}
 	}
