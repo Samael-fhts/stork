@@ -315,7 +315,7 @@ func GetAllDaemons(dbi dbops.DBI) ([]Daemon, error) {
 	)
 }
 
-// Retrieves all daemons with no relationships to other tables.
+// Retrieves all daemons with provided relationships to other tables.
 func GetAllDaemonsWithRelations(dbi dbops.DBI, relations ...DaemonRelation) ([]Daemon, error) {
 	var daemons []Daemon
 
