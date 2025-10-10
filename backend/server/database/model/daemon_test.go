@@ -277,13 +277,13 @@ func TestGetDaemonByID(t *testing.T) {
 	require.Len(t, dmn.AccessPoints, 1)
 }
 
-// Test getting multiple daemons by IDs.
-func TestGetDaemonsByIDs(t *testing.T) {
+// Test getting multiple Kea daemons by IDs.
+func TestGetKeaDaemonsByIDs(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
 	// Get non-existing daemons
-	returnedDaemons, err := GetDaemonsByIDs(db, []int64{123, 234})
+	returnedDaemons, err := GetKeaDaemonsByIDs(db, []int64{123, 234})
 	require.NoError(t, err)
 	require.Empty(t, returnedDaemons)
 
@@ -317,7 +317,7 @@ func TestGetDaemonsByIDs(t *testing.T) {
 
 	// Get selected daemons.
 	selectedDaemons := []int64{daemons[0].ID, daemons[1].ID}
-	returnedDaemons, err = GetDaemonsByIDs(db, selectedDaemons)
+	returnedDaemons, err = GetKeaDaemonsByIDs(db, selectedDaemons)
 	require.NoError(t, err)
 	require.Len(t, returnedDaemons, 2)
 
@@ -996,7 +996,7 @@ func TestGetRpsStatsAsFloats(t *testing.T) {
 	// Get the daemon. It uses float32 data types for RPS.
 	// Let's make sure it is fetched without errors and the
 	// values are correctly cast to float32.
-	daemons, err := GetDaemonsByIDs(db, []int64{daemon.ID})
+	daemons, err := GetKeaDaemonsByIDs(db, []int64{daemon.ID})
 	require.NoError(t, err)
 	require.Len(t, daemons, 1)
 	daemon = &daemons[0]

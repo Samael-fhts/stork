@@ -323,7 +323,7 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, states, dbmodel.NewDHCPOptionDefinitionLookup())
 	require.NoError(t, err)
 
-	daemons, err := dbmodel.GetDaemonsByIDs(db, []int64{daemon1.ID, daemon2.ID})
+	daemons, err := dbmodel.GetKeaDaemonsByIDs(db, []int64{daemon1.ID, daemon2.ID})
 	require.NoError(t, err)
 
 	daemonIDs := []int64{daemons[0].ID, daemons[1].ID}
@@ -391,7 +391,7 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 	}
 
 	// Make sure that the global configurations have been updated in the database.
-	updatedDaemons, err := dbmodel.GetDaemonsByIDs(db, []int64{daemons[0].GetID(), daemons[1].GetID()})
+	updatedDaemons, err := dbmodel.GetKeaDaemonsByIDs(db, []int64{daemons[0].GetID(), daemons[1].GetID()})
 	require.NoError(t, err)
 	require.Len(t, updatedDaemons, 2)
 

@@ -176,7 +176,7 @@ func (module *ConfigModule) Commit(ctx context.Context) (context.Context, error)
 // the transaction should be created.
 func (module *ConfigModule) BeginGlobalParametersUpdate(ctx context.Context, daemonIDs []int64) (context.Context, error) {
 	// Get the daemons with their configurations from the database.
-	daemons, err := dbmodel.GetDaemonsByIDs(module.manager.GetDB(), daemonIDs)
+	daemons, err := dbmodel.GetKeaDaemonsByIDs(module.manager.GetDB(), daemonIDs)
 	if err != nil {
 		// Internal database error.
 		return ctx, err

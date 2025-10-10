@@ -259,14 +259,13 @@ func GetDNSDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
 	)
 }
 
-// Get selected daemons by their ids.
-func GetDaemonsByIDs(dbi pg.DBI, ids []int64) (daemons []Daemon, err error) {
+// Get selected Kea daemons by their ids.
+// It doesn't validate that the daemons are indeed Kea daemons.
+func GetKeaDaemonsByIDs(dbi pg.DBI, ids []int64) (daemons []Daemon, err error) {
 	err = dbi.Model(&daemons).
 		Relation(DaemonRelationAccessPoints).
 		Relation(DaemonRelationMachine).
 		Relation(DaemonRelationKeaDHCPDaemon).
-		Relation(DaemonRelationBind9Daemon).
-		Relation(DaemonRelationPDNSDaemon).
 		Where("daemon.id IN (?)", pg.In(ids)).
 		OrderExpr("daemon.id ASC").
 		Select()

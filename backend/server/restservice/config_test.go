@@ -1624,7 +1624,7 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 
 	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}
 
-	daemons, err := dbmodel.GetDaemonsByIDs(db, daemonIDs)
+	daemons, err := dbmodel.GetKeaDaemonsByIDs(db, daemonIDs)
 	require.NoError(t, err)
 
 	// Create fake agents receiving commands.
@@ -1859,7 +1859,7 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 	require.Nil(t, cctx)
 
 	// Make sure that the daemon configurations have been updated in the database.
-	updatedDaemons, err := dbmodel.GetDaemonsByIDs(db, daemonIDs)
+	updatedDaemons, err := dbmodel.GetKeaDaemonsByIDs(db, daemonIDs)
 	require.NoError(t, err)
 	require.Len(t, updatedDaemons, 2)
 	for _, daemon := range updatedDaemons {
@@ -1910,7 +1910,7 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 
 	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}
 
-	daemons, err := dbmodel.GetDaemonsByIDs(db, daemonIDs)
+	daemons, err := dbmodel.GetKeaDaemonsByIDs(db, daemonIDs)
 	require.NoError(t, err)
 
 	// Create fake agents receiving commands.
@@ -2142,7 +2142,7 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 	require.Nil(t, cctx)
 
 	// Make sure that the daemon configurations have been updated in the database.
-	updatedDaemons, err := dbmodel.GetDaemonsByIDs(db, daemonIDs)
+	updatedDaemons, err := dbmodel.GetKeaDaemonsByIDs(db, daemonIDs)
 	require.NoError(t, err)
 	require.Len(t, updatedDaemons, 2)
 	for _, daemon := range updatedDaemons {
@@ -2433,7 +2433,7 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 
 	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}
 
-	daemons, err := dbmodel.GetDaemonsByIDs(db, daemonIDs)
+	daemons, err := dbmodel.GetKeaDaemonsByIDs(db, daemonIDs)
 	require.NoError(t, err)
 
 	// Create fake agents receiving commands.
