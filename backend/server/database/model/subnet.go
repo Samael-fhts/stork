@@ -357,19 +357,26 @@ func (s *Subnet) AfterInsert(ctx context.Context) error {
 // If any of the daemons does not exist or an error occurs, the subnet
 // is not updated.
 func (s Subnet) PopulateDaemons(dbi dbops.DBI) error {
+	daemonIndex := make(map[int64]*Daemon)
 	var daemons []*Daemon
 	for _, ls := range s.LocalSubnets {
 		// DaemonID is required for this function to run.
 		if ls.DaemonID == 0 {
 			return pkgerrors.Errorf("problem with populating daemons: subnet %d lacks daemon ID", s.ID)
 		}
-		daemon, err := GetDaemonByID(dbi, ls.DaemonID)
-		if err != nil {
-			return pkgerrors.WithMessage(err, "problem with populating daemons")
-		}
-		// Daemon does not exist.
-		if daemon == nil {
-			return pkgerrors.Errorf("problem with populating daemons for subnet %d: daemon %d does not exist", s.ID, ls.DaemonID)
+
+		daemon, ok := daemonIndex[ls.DaemonID]
+		if !ok {
+			var err error
+			daemon, err = GetKeaDaemonByID(dbi, ls.DaemonID)
+			if err != nil {
+				return pkgerrors.WithMessage(err, "problem with populating daemons")
+			}
+			// Daemon does not exist.
+			if daemon == nil {
+				return pkgerrors.Errorf("problem with populating daemons for subnet %d: daemon %d does not exist", s.ID, ls.DaemonID)
+			}
+			daemonIndex[ls.DaemonID] = daemon
 		}
 		daemons = append(daemons, daemon)
 	}

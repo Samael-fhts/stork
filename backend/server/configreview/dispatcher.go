@@ -976,7 +976,7 @@ func LoadAndValidateCheckerPreferences(db dbops.DBI, d Dispatcher) error {
 			daemon, ok = daemons[preference.GetDaemonID()]
 			if !ok {
 				// Lookup in database
-				daemon, err = dbmodel.GetDaemonByID(db, preference.GetDaemonID())
+				daemon, err = dbmodel.GetKeaDaemonByID(db, preference.GetDaemonID())
 				if err != nil {
 					// Should never happen
 					return err

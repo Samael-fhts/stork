@@ -212,15 +212,13 @@ func NewDaemon(machine *Machine, name daemonname.Name, active bool, accessPoints
 	return daemon
 }
 
-// Get daemon by ID.
-func GetDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
+// Gets daemon by ID with relations.
+func GetDaemonByIDWithRelations(dbi pg.DBI, id int64, relations ...DaemonRelation) (*Daemon, error) {
 	daemon := Daemon{}
 	q := dbi.Model(&daemon)
-	q = q.Relation(DaemonRelationAccessPoints)
-	q = q.Relation(DaemonRelationMachine)
-	q = q.Relation(DaemonRelationKeaDHCPDaemon)
-	q = q.Relation(DaemonRelationBind9Daemon)
-	q = q.Relation(DaemonRelationPDNSDaemon)
+	for _, relation := range relations {
+		q = q.Relation(relation)
+	}
 	q = q.Where("daemon.id = ?", id)
 	err := q.Select()
 	if errors.Is(err, pg.ErrNoRows) {
@@ -229,6 +227,36 @@ func GetDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
 		return nil, errors.Wrapf(err, "problem getting daemon %v", id)
 	}
 	return &daemon, nil
+}
+
+// Gets daemon by ID with default relations.
+func GetDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
+	return GetDaemonByIDWithRelations(
+		dbi, id,
+		DaemonRelationAccessPoints, DaemonRelationMachine,
+		DaemonRelationKeaDHCPDaemon, DaemonRelationBind9Daemon,
+		DaemonRelationPDNSDaemon,
+	)
+}
+
+// Gets Kea daemon by ID.
+// It doesn't validate that the daemon is indeed a Kea daemon.
+func GetKeaDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
+	return GetDaemonByIDWithRelations(
+		dbi, id,
+		DaemonRelationAccessPoints, DaemonRelationMachine,
+		DaemonRelationKeaDHCPDaemon,
+	)
+}
+
+// Get DNS daemon by ID.
+// It doesn't validate that the daemon is indeed a DNS daemon.
+func GetDNSDaemonByID(dbi pg.DBI, id int64) (*Daemon, error) {
+	return GetDaemonByIDWithRelations(
+		dbi, id,
+		DaemonRelationAccessPoints, DaemonRelationMachine,
+		DaemonRelationBind9Daemon, DaemonRelationPDNSDaemon,
+	)
 }
 
 // Get selected daemons by their ids.

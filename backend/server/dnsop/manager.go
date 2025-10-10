@@ -563,7 +563,7 @@ func (manager *managerImpl) Shutdown() {
 func (manager *managerImpl) GetZoneRRs(zoneID int64, daemonID int64, viewName string, options ...GetZoneRRsOption) iter.Seq[*RRResponse] {
 	return func(yield func(*RRResponse) bool) {
 		// We need a daemon associated with the zone.
-		daemon, err := dbmodel.GetDaemonByID(manager.db, daemonID)
+		daemon, err := dbmodel.GetDNSDaemonByID(manager.db, daemonID)
 		if err != nil {
 			// This is unexpected and we can't proceed because we
 			// don't have the daemon instance.

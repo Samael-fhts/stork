@@ -25,7 +25,7 @@ import (
 
 // Get daemon config. Only Kea daemon supported.
 func (r *RestAPI) GetDaemonConfig(ctx context.Context, params services.GetDaemonConfigParams) middleware.Responder {
-	dbDaemon, err := dbmodel.GetDaemonByID(r.DB, params.ID)
+	dbDaemon, err := dbmodel.GetKeaDaemonByID(r.DB, params.ID)
 	if err != nil {
 		msg := fmt.Sprintf("Cannot get daemon with ID %d from db", params.ID)
 		log.WithError(err).Error(msg)
@@ -214,7 +214,7 @@ func (r *RestAPI) GetDaemonConfigReports(ctx context.Context, params services.Ge
 // Begins daemon configuration review on demand.
 func (r *RestAPI) PutDaemonConfigReview(ctx context.Context, params services.PutDaemonConfigReviewParams) middleware.Responder {
 	// Try to get the daemon information from the database.
-	daemon, err := dbmodel.GetDaemonByID(r.DB, params.ID)
+	daemon, err := dbmodel.GetKeaDaemonByID(r.DB, params.ID)
 	if err != nil {
 		log.Error(err)
 		msg := fmt.Sprintf("Cannot get daemon with ID %d from db", params.ID)
@@ -323,7 +323,7 @@ func (r *RestAPI) GetGlobalConfigCheckers(ctx context.Context, params services.G
 
 // Returns the config checkers metadata for a given daemon.
 func (r *RestAPI) GetDaemonConfigCheckers(ctx context.Context, params services.GetDaemonConfigCheckersParams) middleware.Responder {
-	daemon, err := dbmodel.GetDaemonByID(r.DB, params.ID)
+	daemon, err := dbmodel.GetDaemonByIDWithRelations(r.DB, params.ID)
 	if err != nil {
 		log.Error(err)
 		msg := fmt.Sprintf("Cannot get daemon with ID %d from db", params.ID)
@@ -360,7 +360,7 @@ func (r *RestAPI) GetDaemonConfigCheckers(ctx context.Context, params services.G
 // persistent. It returns a list of actual config checker metadata for given
 // daemon.
 func (r *RestAPI) PutDaemonConfigCheckerPreferences(ctx context.Context, params services.PutDaemonConfigCheckerPreferencesParams) middleware.Responder {
-	daemon, err := dbmodel.GetDaemonByID(r.DB, params.ID)
+	daemon, err := dbmodel.GetDaemonByIDWithRelations(r.DB, params.ID)
 	if err != nil {
 		log.Error(err)
 		msg := fmt.Sprintf("Cannot get daemon with ID %d from db", params.ID)

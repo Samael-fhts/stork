@@ -1212,19 +1212,26 @@ func (host Host) GetSubnetID(daemonID int64) (subnetID int64, err error) {
 // If any of the daemons does not exist or an error occurs, the host
 // is not updated.
 func (host Host) PopulateDaemons(dbi dbops.DBI) error {
+	daemonIndex := make(map[int64]*Daemon)
 	var daemons []*Daemon
 	for _, lh := range host.LocalHosts {
 		// DaemonID is required for this function to run.
 		if lh.DaemonID == 0 {
 			return pkgerrors.Errorf("problem with populating daemons: host %d lacks daemon ID", host.ID)
 		}
-		daemon, err := GetDaemonByID(dbi, lh.DaemonID)
-		if err != nil {
-			return pkgerrors.WithMessage(err, "problem with populating daemons")
-		}
-		// Daemon does not exist.
-		if daemon == nil {
-			return pkgerrors.Errorf("problem with populating daemons for host %d: daemon %d does not exist", host.ID, lh.DaemonID)
+
+		daemon, ok := daemonIndex[lh.DaemonID]
+		if !ok {
+			var err error
+			daemon, err = GetKeaDaemonByID(dbi, lh.DaemonID)
+			if err != nil {
+				return pkgerrors.WithMessage(err, "problem with populating daemons")
+			}
+			// Daemon does not exist.
+			if daemon == nil {
+				return pkgerrors.Errorf("problem with populating daemons for host %d: daemon %d does not exist", host.ID, lh.DaemonID)
+			}
+			daemonIndex[lh.DaemonID] = daemon
 		}
 		daemons = append(daemons, daemon)
 	}

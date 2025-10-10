@@ -39,7 +39,7 @@ func NewKeaDHCPv6Server(db *pg.DB) (*KeaServer, error) {
 
 // Applies a new configuration in the Kea server.
 func (server *KeaServer) Configure(config string) error {
-	d, err := dbmodel.GetDaemonByID(server.machine.db, server.DaemonID)
+	d, err := dbmodel.GetKeaDaemonByID(server.machine.db, server.DaemonID)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (server *KeaServer) Configure(config string) error {
 
 // Sets an arbitrary Kea server version.
 func (server *KeaServer) SetVersion(version string) error {
-	d, err := dbmodel.GetDaemonByID(server.machine.db, server.DaemonID)
+	d, err := dbmodel.GetKeaDaemonByID(server.machine.db, server.DaemonID)
 	if err != nil {
 		return err
 	}
@@ -71,7 +71,7 @@ func (server *KeaServer) GetMachine() (*dbmodel.Machine, error) {
 
 // Returns a daemon the Kea server belongs to.
 func (server *KeaServer) GetDaemon() (*dbmodel.Daemon, error) {
-	daemon, err := dbmodel.GetDaemonByID(server.machine.db, server.DaemonID)
+	daemon, err := dbmodel.GetKeaDaemonByID(server.machine.db, server.DaemonID)
 	if err != nil {
 		return nil, err
 	}
