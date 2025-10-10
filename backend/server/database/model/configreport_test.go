@@ -104,14 +104,12 @@ func TestGetConfigReportsExceptEmpty(t *testing.T) {
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
-	daemons := []*Daemon{daemon}
-
 	// Add a configuration report shared by both daemons.
 	configReport := &ConfigReport{
 		CheckerName: "test",
 		Content:     newPtr("Here is the test report for {daemon}, {daemon} and {daemon}"),
-		DaemonID:    daemons[0].ID,
-		RefDaemons:  daemons,
+		DaemonID:    daemon.ID,
+		RefDaemons:  []*Daemon{daemon},
 	}
 	err = AddConfigReport(db, configReport)
 	require.NoError(t, err)
@@ -120,13 +118,13 @@ func TestGetConfigReportsExceptEmpty(t *testing.T) {
 	configReport = &ConfigReport{
 		CheckerName: "empty",
 		Content:     nil,
-		DaemonID:    daemons[0].ID,
+		DaemonID:    daemon.ID,
 		RefDaemons:  []*Daemon{},
 	}
 	err = AddConfigReport(db, configReport)
 	require.NoError(t, err)
 	// Act
-	reports, total, err := GetConfigReportsByDaemonID(db, 0, 10, daemons[0].ID, true)
+	reports, total, err := GetConfigReportsByDaemonID(db, 0, 10, daemon.ID, true)
 
 	// Assert
 	require.Len(t, reports, 1)
@@ -229,22 +227,20 @@ func TestConfigReportsPaging(t *testing.T) {
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
-	daemons := []*Daemon{daemon}
-
 	// Add several configuration reports.
 	for i := 0; i < 10; i++ {
 		configReport := &ConfigReport{
 			CheckerName: fmt.Sprintf("test%d", i),
 			Content:     newPtr(fmt.Sprintf("Here is the test report no %d", i)),
-			DaemonID:    daemons[0].ID,
-			RefDaemons:  daemons,
+			DaemonID:    daemon.ID,
+			RefDaemons:  []*Daemon{daemon},
 		}
 		err = AddConfigReport(db, configReport)
 		require.NoError(t, err)
 	}
 
 	// When specifying the offset and limit of 0, all reports should be returned.
-	configReports, total, err := GetConfigReportsByDaemonID(db, 0, 0, daemons[0].ID, false)
+	configReports, total, err := GetConfigReportsByDaemonID(db, 0, 0, daemon.ID, false)
 	require.NoError(t, err)
 	require.EqualValues(t, 10, total)
 	require.Len(t, configReports, 10)
@@ -260,7 +256,7 @@ func TestConfigReportsPaging(t *testing.T) {
 	require.Len(t, allReportIDs, 10)
 
 	// Get the reports from the first to fifth.
-	configReports, total, err = GetConfigReportsByDaemonID(db, 0, 5, daemons[0].ID, false)
+	configReports, total, err = GetConfigReportsByDaemonID(db, 0, 5, daemon.ID, false)
 	require.NoError(t, err)
 	require.EqualValues(t, 10, total)
 	require.Len(t, configReports, 5)
@@ -276,7 +272,7 @@ func TestConfigReportsPaging(t *testing.T) {
 	require.Len(t, pagedReportIDs, 5)
 
 	// Get the reports from fifth to the last one.
-	configReports, total, err = GetConfigReportsByDaemonID(db, 5, 10, daemons[0].ID, false)
+	configReports, total, err = GetConfigReportsByDaemonID(db, 5, 10, daemon.ID, false)
 	require.NoError(t, err)
 	require.EqualValues(t, 10, total)
 	require.Len(t, configReports, 5)
@@ -311,14 +307,12 @@ func TestCountConfigReports(t *testing.T) {
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
-	daemons := []*Daemon{daemon}
-
 	// Add some empty reports
 	for i := 0; i < 10; i++ {
 		configReport := &ConfigReport{
 			CheckerName: fmt.Sprintf("empty %d", i),
 			Content:     nil,
-			DaemonID:    daemons[0].ID,
+			DaemonID:    daemon.ID,
 			RefDaemons:  []*Daemon{},
 		}
 
@@ -331,7 +325,7 @@ func TestCountConfigReports(t *testing.T) {
 		configReport := &ConfigReport{
 			CheckerName: fmt.Sprintf("checker %d", i),
 			Content:     newPtr(fmt.Sprintf("content %d", i)),
-			DaemonID:    daemons[0].ID,
+			DaemonID:    daemon.ID,
 			RefDaemons:  []*Daemon{},
 		}
 
@@ -340,8 +334,8 @@ func TestCountConfigReports(t *testing.T) {
 	}
 
 	// Act
-	totalReports, reportsErr := CountConfigReportsByDaemonID(db, daemons[0].ID, false)
-	totalIssues, issuesErr := CountConfigReportsByDaemonID(db, daemons[0].ID, true)
+	totalReports, reportsErr := CountConfigReportsByDaemonID(db, daemon.ID, false)
+	totalIssues, issuesErr := CountConfigReportsByDaemonID(db, daemon.ID, true)
 
 	// Assert
 	require.NoError(t, reportsErr)
@@ -369,8 +363,6 @@ func TestInvalidConfigReport(t *testing.T) {
 	err = AddDaemon(db, daemon)
 	require.NoError(t, err)
 
-	daemons := []*Daemon{daemon}
-
 	testCases := []string{
 		"empty checker name",
 		"empty content",
@@ -380,26 +372,20 @@ func TestInvalidConfigReport(t *testing.T) {
 		{
 			CheckerName: "",
 			Content:     newPtr("Here is the first test report"),
-			DaemonID:    daemons[0].ID,
-			RefDaemons: []*Daemon{
-				daemons[0],
-			},
+			DaemonID:    daemon.ID,
+			RefDaemons: []*Daemon{daemon},
 		},
 		{
 			CheckerName: "test",
 			Content:     newPtr(""),
-			DaemonID:    daemons[0].ID,
-			RefDaemons: []*Daemon{
-				daemons[0],
-			},
+			DaemonID:    daemon.ID,
+			RefDaemons: []*Daemon{daemon},
 		},
 		{
 			CheckerName: "test",
 			Content:     newPtr("contents"),
 			DaemonID:    111111,
-			RefDaemons: []*Daemon{
-				daemons[0],
-			},
+			RefDaemons:  []*Daemon{daemon},
 		},
 	}
 
