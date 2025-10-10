@@ -681,7 +681,7 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 	for _, accessPoint := range daemon.AccessPoints {
 		accessPointTypes = append(accessPointTypes, accessPoint.Type)
 	}
-	err = DeleteAccessPointsByDaemonID(dbi, daemon.ID, accessPointTypes)
+	err = DeleteAccessPoints(dbi, daemon.ID, accessPointTypes)
 	if err != nil {
 		return errors.WithMessagef(err, "problem deleting access points for daemon %d", daemon.ID)
 	}

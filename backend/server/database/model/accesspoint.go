@@ -25,7 +25,7 @@ const (
 )
 
 // Get an access point by daemon id and access point type.
-func GetAccessPointByID(db dbops.DBI, daemonID int64, accessPointType string) (*AccessPoint, error) {
+func GetAccessPoint(db dbops.DBI, daemonID int64, accessPointType string) (*AccessPoint, error) {
 	accessPoint := &AccessPoint{DaemonID: daemonID, Type: accessPointType}
 	err := db.Model(accessPoint).WherePK().Select()
 
@@ -74,7 +74,7 @@ func DeleteAccessPoint(db dbops.DBI, daemonID int64, accessPointType string) err
 // Deletes all access points for a given daemon that doesn't match the provided
 // types. If `keepTypes` is empty, all access points for the daemon will be
 // deleted.
-func DeleteAccessPointsByDaemonID(db dbops.DBI, daemonID int64, keepTypes []string) error {
+func DeleteAccessPoints(db dbops.DBI, daemonID int64, keepTypes []string) error {
 	accessPoint := &AccessPoint{DaemonID: daemonID}
 	query := db.Model(accessPoint).Where("daemon_id = ?", daemonID)
 

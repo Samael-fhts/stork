@@ -9,13 +9,13 @@ import (
 )
 
 // Test that the no output and no error are returned if the entry is not found.
-func TestGetAccessPointByIDForMissingEntry(t *testing.T) {
+func TestGetAccessPointForMissingEntry(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
 	// Act
-	accessPoint, err := GetAccessPointByID(db, 42, AccessPointControl)
+	accessPoint, err := GetAccessPoint(db, 42, AccessPointControl)
 
 	// Assert
 	require.NoError(t, err)
@@ -23,13 +23,13 @@ func TestGetAccessPointByIDForMissingEntry(t *testing.T) {
 }
 
 // Test that the error is returned if any database problem occurs.
-func TestGetAccessPointByIDForInvalidDatabase(t *testing.T) {
+func TestGetAccessPointForInvalidDatabase(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 
 	// Act
 	teardown()
-	accessPoint, err := GetAccessPointByID(db, 42, AccessPointControl)
+	accessPoint, err := GetAccessPoint(db, 42, AccessPointControl)
 
 	// Assert
 	require.Error(t, err)
@@ -37,7 +37,7 @@ func TestGetAccessPointByIDForInvalidDatabase(t *testing.T) {
 }
 
 // Test that the access point is properly returned.
-func TestGetAccessPointByID(t *testing.T) {
+func TestGetAccessPoint(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
@@ -58,7 +58,7 @@ func TestGetAccessPointByID(t *testing.T) {
 	_ = AddDaemon(db, daemon)
 
 	// Act
-	accessPoint, err := GetAccessPointByID(db, daemon.ID, AccessPointControl)
+	accessPoint, err := GetAccessPoint(db, daemon.ID, AccessPointControl)
 
 	// Assert
 	require.NoError(t, err)
