@@ -140,8 +140,7 @@ func (d Daemon) GetAccessPoint(accessPointType string) (ap *AccessPoint, err err
 	return nil, errors.Errorf("no access point of type %s found for daemon ID %d", accessPointType, d.ID)
 }
 
-// Returns daemon control access point including control address, port and
-// the flag indicating if the connection is secure.
+// Returns daemon control access point members.
 func (d Daemon) GetControlAccessPoint() (address string, port int64, key string, protocol string, err error) {
 	var ap *AccessPoint
 	ap, err = d.GetAccessPoint(AccessPointControl)
@@ -154,8 +153,7 @@ func (d Daemon) GetControlAccessPoint() (address string, port int64, key string,
 	return
 }
 
-// Returns daemon statistics access point including statistics address, port and
-// the flag indicating if the connection is secure.
+// Returns daemon statistics access point members.
 func (d Daemon) GetStatisticsAccessPoint() (address string, port int64, key string, protocol string, err error) {
 	var ap *AccessPoint
 	ap, err = d.GetAccessPoint(AccessPointStatistics)

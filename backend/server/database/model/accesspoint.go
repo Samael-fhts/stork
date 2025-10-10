@@ -14,6 +14,11 @@ type AccessPoint struct {
 	Type     string `pg:",pk"`
 	Address  string
 	Port     int64
+	// For BIND 9 when the RNDC key is set, this value is: RNDC key name,
+	// algorithm and secret joined by colon.
+	// For Kea when the Basic Auth is set, this is a username of the user used
+	// by the Stork agent to authenticate to the Kea server.
+	// Otherwise it is empty string.
 	Key      string
 	Protocol string `pg:",use_zero"`
 }
