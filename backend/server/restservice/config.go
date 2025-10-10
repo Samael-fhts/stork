@@ -132,8 +132,8 @@ func (r *RestAPI) GetDaemonConfigReports(ctx context.Context, params services.Ge
 	// Get the basic information about the last review.
 	review, err := dbmodel.GetConfigReviewByDaemonID(r.DB, params.ID)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get configuration review for daemon with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetDaemonConfigReportsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -160,8 +160,8 @@ func (r *RestAPI) GetDaemonConfigReports(ctx context.Context, params services.Ge
 	issuesOnly := params.IssuesOnly != nil && *params.IssuesOnly
 	dbReports, total, err := dbmodel.GetConfigReportsByDaemonID(r.DB, start, limit, params.ID, issuesOnly)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get configuration review reports for daemon with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetDaemonConfigReportsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -178,8 +178,8 @@ func (r *RestAPI) GetDaemonConfigReports(ctx context.Context, params services.Ge
 		totalReports = total
 	}
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot count configuration review reports for daemon with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetDaemonConfigReportsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -216,8 +216,8 @@ func (r *RestAPI) PutDaemonConfigReview(ctx context.Context, params services.Put
 	// Try to get the daemon information from the database.
 	daemon, err := dbmodel.GetKeaDaemonByID(r.DB, params.ID)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get daemon with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewPutDaemonConfigReviewDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -308,8 +308,8 @@ func convertConfigCheckerStateFromRestAPI(state models.ConfigCheckerState) (conf
 func (r *RestAPI) GetGlobalConfigCheckers(ctx context.Context, params services.GetGlobalConfigCheckersParams) middleware.Responder {
 	metadata, err := r.ReviewDispatcher.GetCheckersMetadata(nil)
 	if err != nil {
-		log.Error(err)
 		msg := "cannot get the global checkers metadata"
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetGlobalConfigCheckersDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -325,8 +325,8 @@ func (r *RestAPI) GetGlobalConfigCheckers(ctx context.Context, params services.G
 func (r *RestAPI) GetDaemonConfigCheckers(ctx context.Context, params services.GetDaemonConfigCheckersParams) middleware.Responder {
 	daemon, err := dbmodel.GetDaemonByIDWithRelations(r.DB, params.ID)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get daemon with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetDaemonConfigCheckersDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -342,8 +342,8 @@ func (r *RestAPI) GetDaemonConfigCheckers(ctx context.Context, params services.G
 
 	metadata, err := r.ReviewDispatcher.GetCheckersMetadata(daemon)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get checkers metadata for daemon (ID: %d, Name: %s)", daemon.ID, daemon.Name)
+		log.WithError(err).Error(msg)
 		rsp := services.NewGetDaemonConfigCheckersDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -362,8 +362,8 @@ func (r *RestAPI) GetDaemonConfigCheckers(ctx context.Context, params services.G
 func (r *RestAPI) PutDaemonConfigCheckerPreferences(ctx context.Context, params services.PutDaemonConfigCheckerPreferencesParams) middleware.Responder {
 	daemon, err := dbmodel.GetDaemonByIDWithRelations(r.DB, params.ID)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get daemon with ID %d from db", params.ID)
+		log.WithError(err).Error(msg)
 		rsp := services.NewPutDaemonConfigCheckerPreferencesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -393,8 +393,8 @@ func (r *RestAPI) PutDaemonConfigCheckerPreferences(ctx context.Context, params 
 
 		err = r.ReviewDispatcher.SetCheckerState(daemon, change.Name, state)
 		if err != nil {
-			log.Error(err)
 			msg := fmt.Sprintf("Cannot set the state for the %s checker", change.Name)
+			log.WithError(err).Error(msg)
 			rsp := services.NewPutDaemonConfigCheckerPreferencesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 				Message: &msg,
 			})
@@ -420,8 +420,8 @@ func (r *RestAPI) PutDaemonConfigCheckerPreferences(ctx context.Context, params 
 
 	err = dbmodel.CommitCheckerPreferences(r.DB, newOrUpdatedPreferences, deletedPreferences)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot commit the config checker changes into DB"
+		log.WithError(err).Error(msg)
 		rsp := services.NewPutDaemonConfigCheckerPreferencesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -430,8 +430,8 @@ func (r *RestAPI) PutDaemonConfigCheckerPreferences(ctx context.Context, params 
 
 	metadata, err := r.ReviewDispatcher.GetCheckersMetadata(daemon)
 	if err != nil {
-		log.Error(err)
 		msg := fmt.Sprintf("Cannot get checkers metadata for daemon (ID: %d, Name: %s)", daemon.ID, daemon.Name)
+		log.WithError(err).Error(msg)
 		rsp := services.NewPutDaemonConfigCheckerPreferencesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -455,8 +455,8 @@ func (r *RestAPI) PutGlobalConfigCheckerPreferences(ctx context.Context, params 
 		if state, ok := convertConfigCheckerStateFromRestAPI(apiState); ok {
 			err := r.ReviewDispatcher.SetCheckerState(nil, change.Name, state)
 			if err != nil {
-				log.Error(err)
 				msg := fmt.Sprintf("Cannot set the global state for the %s checker", change.Name)
+				log.WithError(err).Error(msg)
 				rsp := services.NewPutDaemonConfigCheckerPreferencesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 					Message: &msg,
 				})
@@ -479,8 +479,8 @@ func (r *RestAPI) PutGlobalConfigCheckerPreferences(ctx context.Context, params 
 
 	err := dbmodel.CommitCheckerPreferences(r.DB, newOrUpdatedPreferences, deletedPreferences)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot commit the config checker changes into DB"
+		log.WithError(err).Error(msg)
 		rsp := services.NewPutDaemonConfigCheckerPreferencesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -489,8 +489,8 @@ func (r *RestAPI) PutGlobalConfigCheckerPreferences(ctx context.Context, params 
 
 	metadata, err := r.ReviewDispatcher.GetCheckersMetadata(nil)
 	if err != nil {
-		log.Error(err)
 		msg := "Cannot get global checkers metadata for daemon"
+		log.WithError(err).Error(msg)
 		rsp := services.NewPutDaemonConfigCheckerPreferencesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})

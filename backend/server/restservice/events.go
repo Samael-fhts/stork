@@ -62,7 +62,7 @@ func (r *RestAPI) GetEvents(ctx context.Context, params events.GetEventsParams) 
 	eventRecs, err := r.getEvents(start, limit, level, params.DaemonType, params.Machine, params.User, "created_at", dbmodel.SortDirDesc)
 	if err != nil {
 		msg := "Problem fetching events from the database"
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := events.NewGetEventsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -93,7 +93,7 @@ func (r *RestAPI) DeleteEvents(ctx context.Context, params events.DeleteEventsPa
 	deleteCount, err := dbmodel.DeleteAllEvents(r.DB)
 	if err != nil {
 		msg := "Problem deleting events from the database"
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := events.NewDeleteEventsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})

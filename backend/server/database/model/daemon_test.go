@@ -1,6 +1,7 @@
 package dbmodel
 
 import (
+	"math/rand"
 	"sync"
 	"testing"
 	"time"
@@ -209,6 +210,45 @@ func TestGetHAOverview(t *testing.T) {
 
 	require.Equal(t, "hot-standby", overviews[1].State)
 	require.Equal(t, failoverAt, overviews[1].LastFailureAt)
+}
+
+func BenchmarkGetDaemonByID(b *testing.B) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(b)
+	defer teardown()
+
+	m := &Machine{
+		ID:        0,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	_ = AddMachine(db, m)
+
+	accessPoints := []*AccessPoint{
+		{
+			Type:    AccessPointControl,
+			Address: "",
+			Port:    1234,
+			Key:     "",
+		},
+	}
+
+	for i := 0; i < 300; i++ {
+		daemon := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
+		_ = AddDaemon(db, daemon)
+	}
+	for i := 0; i < 300; i++ {
+		daemon := NewDaemon(m, daemonname.Bind9, true, accessPoints)
+		_ = AddDaemon(db, daemon)
+	}
+	for i := 0; i < 300; i++ {
+		daemon := NewDaemon(m, daemonname.PDNS, true, accessPoints)
+		_ = AddDaemon(db, daemon)
+	}
+
+	for b.Loop() {
+		id := rand.Int()%900 + 1
+		_, _ = GetDaemonByID(db, int64(id))
+	}
 }
 
 // Test getting daemon by ID.

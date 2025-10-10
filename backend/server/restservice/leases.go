@@ -68,7 +68,7 @@ func (r *RestAPI) GetLeases(ctx context.Context, params dhcp.GetLeasesParams) mi
 	}
 	if err != nil {
 		msg := "Problem searching leases on Kea servers due to Stork database errors"
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetLeasesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})

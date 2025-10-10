@@ -216,7 +216,7 @@ func (r *RestAPI) GetHosts(ctx context.Context, params dhcp.GetHostsParams) midd
 	hosts, err := r.getHosts(start, limit, filters, "", dbmodel.SortDirAny)
 	if err != nil {
 		msg := "Problem fetching hosts from the database"
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetHostsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
@@ -235,7 +235,7 @@ func (r *RestAPI) GetHost(ctx context.Context, params dhcp.GetHostParams) middle
 	if err != nil {
 		// Error while communicating with the database.
 		msg := fmt.Sprintf("Problem fetching host reservation with ID %d from db", params.ID)
-		log.Error(err)
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewGetHostDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
