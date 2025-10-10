@@ -212,45 +212,6 @@ func TestGetHAOverview(t *testing.T) {
 	require.Equal(t, failoverAt, overviews[1].LastFailureAt)
 }
 
-func BenchmarkGetDaemonByID(b *testing.B) {
-	db, _, teardown := dbtest.SetupDatabaseTestCase(b)
-	defer teardown()
-
-	m := &Machine{
-		ID:        0,
-		Address:   "localhost",
-		AgentPort: 8080,
-	}
-	_ = AddMachine(db, m)
-
-	accessPoints := []*AccessPoint{
-		{
-			Type:    AccessPointControl,
-			Address: "",
-			Port:    1234,
-			Key:     "",
-		},
-	}
-
-	for i := 0; i < 300; i++ {
-		daemon := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
-		_ = AddDaemon(db, daemon)
-	}
-	for i := 0; i < 300; i++ {
-		daemon := NewDaemon(m, daemonname.Bind9, true, accessPoints)
-		_ = AddDaemon(db, daemon)
-	}
-	for i := 0; i < 300; i++ {
-		daemon := NewDaemon(m, daemonname.PDNS, true, accessPoints)
-		_ = AddDaemon(db, daemon)
-	}
-
-	for b.Loop() {
-		id := rand.Int()%900 + 1
-		_, _ = GetDaemonByID(db, int64(id))
-	}
-}
-
 // Test getting daemon by ID.
 func TestGetDaemonByID(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
@@ -1044,4 +1005,53 @@ func TestGetRpsStatsAsFloats(t *testing.T) {
 	require.NotNil(t, daemon.KeaDaemon.KeaDHCPDaemon.Stats)
 	require.Equal(t, float32(1000), daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS1)
 	require.Equal(t, float32(2000), daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS2)
+}
+
+// The benchmark checks performance of fetching a daemon by ID.
+// I used it to compare performance in relation to the number of daemon
+// relations included.
+//
+// goos: darwin, goarch: arm64, cpu: Apple M4 Pro
+// WithAllRelations     6991    160582 ns/op    9843 B/op     123 allocs/op
+// OnlyKeaRelation	    9717    112593 ns/op    7810 B/op     103 allocs/op
+// OnlyBind9Relation   12734     93699 ns/op    7115 B/op      98 allocs/op
+// OnlyPDNSRelation    12949     92653 ns/op    6748 B/op      97 allocs/op
+// WithoutRelations    15116     78878 ns/op    5707 B/op      87 allocs/op
+func BenchmarkGetDaemonByID(b *testing.B) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(b)
+	defer teardown()
+
+	m := &Machine{
+		ID:        0,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	_ = AddMachine(db, m)
+
+	accessPoints := []*AccessPoint{
+		{
+			Type:    AccessPointControl,
+			Address: "",
+			Port:    1234,
+			Key:     "",
+		},
+	}
+
+	for i := 0; i < 300; i++ {
+		daemon := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
+		_ = AddDaemon(db, daemon)
+	}
+	for i := 0; i < 300; i++ {
+		daemon := NewDaemon(m, daemonname.Bind9, true, accessPoints)
+		_ = AddDaemon(db, daemon)
+	}
+	for i := 0; i < 300; i++ {
+		daemon := NewDaemon(m, daemonname.PDNS, true, accessPoints)
+		_ = AddDaemon(db, daemon)
+	}
+
+	for b.Loop() {
+		id := rand.Int()%900 + 1
+		_, _ = GetDaemonByID(db, int64(id))
+	}
 }
