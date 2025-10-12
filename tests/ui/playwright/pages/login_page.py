@@ -81,29 +81,26 @@ class LoginPage:
 
         self.sign_in_button().click()
 
-    def logout(self):
+    def logout(self, username: str = None):
         """Logs out the current user."""
-        self.page.get_by_role("button", name="Logout (admin)").click()
+        if username:
+            self.page.get_by_role("button", name=f"Logout ({username})").click()
+        else:
+            self.page.get_by_role("button", name="Logout").click()
 
     def is_password_change_required(self, timeout_ms: int = 2000) -> bool:
         """Detect if the forced password-change dialog is present."""
         try:
-            expect(self.old_password()).to_be_visible(timeout=timeout_ms)
-            expect(self.new_password()).to_be_visible(timeout=timeout_ms)
-            expect(self.confirm_password()).to_be_visible(timeout=timeout_ms)
+
+            self.old_password().wait_for(state="visible", timeout=timeout_ms)
+
+            self.new_password().wait_for(state="visible", timeout=200)
+            self.confirm_password().wait_for(state="visible", timeout=200)
             return True
         except PWTimeout as err:
-            # Log what happened for easier triage in CI output
             print(
                 f"[login_page] Password-change dialog not detected within "
                 f"{timeout_ms} ms at URL={self.page.url!r}: {err!r}"
-            )
-            return False
-        except Exception as err:
-            # Unexpected error while probing the dialog
-            print(
-                f"[login_page] Error while checking password-change dialog at "
-                f"URL={self.page.url!r}: {err!r}"
             )
             return False
 
@@ -114,10 +111,21 @@ class LoginPage:
         self.confirm_password().fill(new_password)
         self.save_new_password_button().click()
 
-    def await_dashboard(self, timeout_ms: int = 10000):
-        """Wait until the dashboard is loaded. Prefer URL; keep login form disappearance as a safety net."""
+    def await_dashboard(self, timeout_ms: int = 10_000):
+        """ Wait until the dashboard is truly loaded. """
         try:
             self.page.wait_for_url("**/dashboard*", timeout=timeout_ms)
+
+
+            menubar = self.page.locator("[data-pc-name='menubar']").first
+            menubar.wait_for(state="visible", timeout=3000)
+
+
+            welcome_panel = self.page.locator("[data-pc-name='panel']").filter(
+                has_text=re.compile(r"^\s*Welcome to Stork!?$", re.I)
+            )
+            welcome_panel.first.wait_for(state="visible", timeout=3000)
+
         except PWTimeout:
-            # At minimum, login form should be gone
+            # Safety net: at minimum, we should be off the login form
             expect(self.password_locator()).not_to_be_visible(timeout=2000)
