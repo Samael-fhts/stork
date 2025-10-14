@@ -1,4 +1,5 @@
 import re
+import time
 from playwright.sync_api import Page, expect, TimeoutError as PWTimeout
 
 
@@ -90,19 +91,22 @@ class LoginPage:
 
     def is_password_change_required(self, timeout_ms: int = 2000) -> bool:
         """Detect if the forced password-change dialog is present."""
-        try:
 
-            self.old_password().wait_for(state="visible", timeout=timeout_ms)
+        deadline = time.monotonic() + (timeout_ms / 1000.0)
+        old = self.old_password()
+        new = self.new_password()
+        confirm = self.confirm_password()
 
-            self.new_password().wait_for(state="visible", timeout=200)
-            self.confirm_password().wait_for(state="visible", timeout=200)
-            return True
-        except PWTimeout as err:
-            print(
-                f"[login_page] Password-change dialog not detected within "
-                f"{timeout_ms} ms at URL={self.page.url!r}: {err!r}"
-            )
-            return False
+        while time.monotonic() < deadline:
+            if old.is_visible() and new.is_visible() and confirm.is_visible():
+                return True
+        time.sleep(0.05)
+
+        print(
+            f"[login_page] Password-change dialog not detected within {timeout_ms} ms at URL={self.page.url!r}"
+        )
+
+        return False
 
     def change_password(self, old_password: str, new_password: str):
         """Fill and save the password-change dialog."""
@@ -112,20 +116,31 @@ class LoginPage:
         self.save_new_password_button().click()
 
     def await_dashboard(self, timeout_ms: int = 10_000):
-        """ Wait until the dashboard is truly loaded. """
-        try:
-            self.page.wait_for_url("**/dashboard*", timeout=timeout_ms)
+        """Wait until the dashboard is truly loaded."""
 
+        menubar = self.page.locator("[data-pc-name='menubar']").first
+        welcome_panel = (
+            self.page.locator("[data-pc-name='panel']")
+            .filter(has_text=re.compile(r"Welcome to Stork", re.I))
+            .first
+        )
 
-            menubar = self.page.locator("[data-pc-name='menubar']").first
-            menubar.wait_for(state="visible", timeout=3000)
+        deadline = time.monotonic() + (timeout_ms / 1000.0)
+        m_ok = p_ok = False
 
+        while time.monotonic() < deadline:
+            url_ok = "/dashboard" in self.page.url
+            m_ok = menubar.is_visible()
+            p_ok = welcome_panel.is_visible()
+            if url_ok and m_ok and p_ok:
+                return
+            time.sleep(0.05)
 
-            welcome_panel = self.page.locator("[data-pc-name='panel']").filter(
-                has_text=re.compile(r"^\s*Welcome to Stork!?$", re.I)
-            )
-            welcome_panel.first.wait_for(state="visible", timeout=3000)
+        assert (
+            not self.password_locator().is_visible()
+        ), "Still on login form after waiting for dashboard."
 
-        except PWTimeout:
-            # Safety net: at minimum, we should be off the login form
-            expect(self.password_locator()).not_to_be_visible(timeout=2000)
+        raise AssertionError(
+            f"Dashboard not ready within {timeout_ms} ms "
+            f"(url={self.page.url!r}, menubar_visible={m_ok}, welcome_panel_visible={p_ok})"
+        )
