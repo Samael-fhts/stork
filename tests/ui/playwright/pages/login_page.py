@@ -82,12 +82,17 @@ class LoginPage:
 
         self.sign_in_button().click()
 
-    def logout(self, username: str = None):
+    def logout(self, username: str = None, timeout_ms: int = 10_000):
         """Logs out the current user."""
         if username:
             self.page.get_by_role("button", name=f"Logout ({username})").click()
         else:
             self.page.get_by_role("button", name="Logout").click()
+
+            self.page.wait_for_url("**/login*", timeout=timeout_ms)
+
+            expect(self.username_locator()).to_be_visible(timeout=3000)
+            expect(self.password_locator()).to_be_visible(timeout=3000)
 
     def is_password_change_required(self, timeout_ms: int = 2000) -> bool:
         """Detect if the forced password-change dialog is present."""
