@@ -124,15 +124,21 @@ class LoginPage:
             .filter(has_text=re.compile(r"Welcome to Stork", re.I))
             .first
         )
+        events_panel = (
+            self.page.locator("[data-pc-name='panel']")
+            .filter(has_text=re.compile(r"Events", re.I))
+            .first
+        )
 
         deadline = time.monotonic() + (timeout_ms / 1000.0)
-        m_ok = p_ok = False
+        m_ok = p_ok = e_ok = False
 
         while time.monotonic() < deadline:
             url_ok = "/dashboard" in self.page.url
             m_ok = menubar.is_visible()
             p_ok = welcome_panel.is_visible()
-            if url_ok and m_ok and p_ok:
+            e_ok = events_panel.is_visible()
+            if url_ok and m_ok and p_ok and e_ok:
                 return
             time.sleep(0.05)
 
@@ -142,5 +148,5 @@ class LoginPage:
 
         raise AssertionError(
             f"Dashboard not ready within {timeout_ms} ms "
-            f"(url={self.page.url!r}, menubar_visible={m_ok}, welcome_panel_visible={p_ok})"
+            f"(url={self.page.url!r}, menubar_visible={m_ok}, welcome_panel_visible={p_ok}, events_panel_visible={e_ok})"
         )
