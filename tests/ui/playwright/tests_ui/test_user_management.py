@@ -32,7 +32,7 @@ def test_create_read_only_user_and_verify_role(page):
         last="UserRO",
         role="read-only",
         password=NEW_ADMIN_PASS,
-        force_change_password=False,  # explicitly disable forced change for this flow
+        force_change_password=False,
     )
 
     # Log out admin
@@ -45,9 +45,7 @@ def test_create_read_only_user_and_verify_role(page):
 
     # Verify: "Users" entry should NOT be visible under Configuration for read-only
     has_users = um.configuration_has_users_entry()
-    assert (
-        has_users is False
-    ), "read-only user should not see 'Users' in Configuration menu"
+    assert not has_users, "read-only should not see 'Users' in Configuration"
 
     # Verify role via Profile is read-only
     um.open_profile()
@@ -180,6 +178,33 @@ def test_delete_created_users_and_verify_totals(page):
 
     # Verify only 1 user remains
     um.total_users_should_be(1)
+
+    # Logout
+    lp.logout("admin")
+
+
+@pytest.mark.ui
+def test_delete_main_admin_shows_error(page):
+    lp = LoginPage(page)
+    um = UserManagementPage(page)
+
+    # Login as main admin
+    lp.open(BASE_URL)
+    lp.login(ADMIN_USER, NEW_ADMIN_PASS if NEW_ADMIN_PASS else ADMIN_PASS)
+    lp.await_dashboard()
+
+    # Go to Users
+    um.open_users()
+
+    # Attempt to delete the main admin user
+    page.get_by_role("link", name="admin", exact=True).click()
+    page.get_by_role("button", name="Delete").click()
+    page.get_by_role("button", name="Yes").click()
+
+    # Verify the error message
+    expect(page.get_by_text("Failed to delete user account", exact=True)).to_be_visible(
+        timeout=5000
+    )
 
     # Logout
     lp.logout("admin")

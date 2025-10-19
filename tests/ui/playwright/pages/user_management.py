@@ -1,5 +1,6 @@
 from playwright.sync_api import Page, expect
 import re
+import time
 
 
 class UserManagementPage:
@@ -40,16 +41,19 @@ class UserManagementPage:
 
         self.page.get_by_role("button", name="Save").click()
 
-    def configuration_has_users_entry(self) -> bool:
+    def configuration_has_users_entry(self, timeout_ms: int = 1500) -> bool:
 
         self.page.get_by_role("button", name="Navigation").click()
         self.page.locator("a").filter(has_text="Configuration").click()
+
         loc = self.page.locator("#users a")
-        try:
-            expect(loc).to_be_visible(timeout=1500)
-            return True
-        except Exception:
-            return False
+        deadline = time.monotonic() + (timeout_ms / 1000.0)
+
+        while time.monotonic() < deadline:
+            if loc.is_visible():
+                return True
+            time.sleep(0.05)
+        return False
 
     def open_profile(self):
 
