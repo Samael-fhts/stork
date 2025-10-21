@@ -1,6 +1,6 @@
 import re
 import time
-from playwright.sync_api import Page, expect, TimeoutError as PWTimeout
+from playwright.sync_api import Page, expect
 
 
 class LoginPage:
