@@ -167,20 +167,21 @@ func addIPReservations(tx *pg.Tx, host *Host) error {
 }
 
 // Adds new host, its reservations and identifiers into the database in
-// a transaction.
-func addHost(tx *pg.Tx, host *Host) error {
+// a transaction. Returns new host ID.
+func addHost(tx *pg.Tx, host *Host) (int64, error){
 	// Add the host and fetch its id.
 	_, err := tx.Model(host).Insert()
 	if err != nil {
 		err = pkgerrors.Wrapf(err, "problem adding new host")
-		return err
+		return 0, err
 	}
 	// Associate the host with the given id with its identifiers.
 	err = addHostIdentifiers(tx, host)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	hostID := host.ID
+	return hostID, nil
 }
 
 // Updates a host, its reservations and identifiers in the database
@@ -668,25 +669,28 @@ func addHostReferences(tx *pg.Tx, host *Host) error {
 
 // Attempts to add a host, its local hosts and IP reservations within an
 // existing transaction.
-func addHostWithReferences(tx *pg.Tx, host *Host) error {
-	err := addHost(tx, host)
+func addHostWithReferences(tx *pg.Tx, host *Host) (int64, error) {
+	hostID, err := addHost(tx, host)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	err = addHostReferences(tx, host)
-	return err
+	return hostID, err
 }
 
 // Attempts to add a host, its local hosts and IP reservations within a
 // transaction. If the dbi does not point to a transaction, a new transaction
 // is started.
-func AddHost(dbi dbops.DBI, host *Host) error {
+func AddHost(dbi dbops.DBI, host *Host) (hostID int64, err error) {
 	if db, ok := dbi.(*pg.DB); ok {
-		return db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
-			return addHostWithReferences(tx, host)
+		err = db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
+			hostID, err = addHostWithReferences(tx, host)
+			return err
 		})
+		return
 	}
-	return addHostWithReferences(dbi.(*pg.Tx), host)
+	hostID, err = addHostWithReferences(dbi.(*pg.Tx), host)
+	return
 }
 
 // Dissociates a daemon from the hosts. The dataSource designates a data
@@ -754,7 +758,7 @@ func commitHostsIntoDB(tx *pg.Tx, hosts []Host, subnetID int64) (err error) {
 	for i := range hosts {
 		hosts[i].SubnetID = subnetID
 		if hosts[i].ID == 0 {
-			err = addHostWithReferences(tx, &hosts[i])
+			_, err = addHostWithReferences(tx, &hosts[i])
 			if err != nil {
 				err = pkgerrors.WithMessagef(err, "unable to add detected host to the database")
 				return err

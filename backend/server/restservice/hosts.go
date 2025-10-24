@@ -365,12 +365,12 @@ func (r *RestAPI) CreateHostBegin(ctx context.Context, params dhcp.CreateHostBeg
 // returns the HTTP error code if an error occurs or 0 when there is no error.
 // In addition it returns an error string to be included in the HTTP response
 // or an empty string if there is no error.
-func (r *RestAPI) commonCreateOrUpdateHostSubmit(ctx context.Context, transactionID int64, restHost *models.Host, applyFunc func(context.Context, *dbmodel.Host) (context.Context, error)) (int, string) {
+func (r *RestAPI) commonCreateOrUpdateHostSubmit(ctx context.Context, transactionID int64, restHost *models.Host, applyFunc func(context.Context, *dbmodel.Host) (context.Context, error)) (int, int64, string) {
 	// Make sure that the host information is present.
 	if restHost == nil {
 		msg := "Host information not specified"
 		log.Errorf("Problem with submitting a host reservation because the host information is missing")
-		return http.StatusBadRequest, msg
+		return http.StatusBadRequest, 0, msg
 	}
 	// Retrieve the context from the config manager.
 	_, user := r.SessionManager.Logged(ctx)
@@ -378,7 +378,7 @@ func (r *RestAPI) commonCreateOrUpdateHostSubmit(ctx context.Context, transactio
 	if cctx == nil {
 		msg := "Transaction for host reservation expired"
 		log.Errorf("Problem with recovering transaction context for transaction ID %d and user ID %d", transactionID, user.ID)
-		return http.StatusNotFound, msg
+		return http.StatusNotFound, 0, msg
 	}
 
 	// Convert host information from REST API to database format.
@@ -386,49 +386,65 @@ func (r *RestAPI) commonCreateOrUpdateHostSubmit(ctx context.Context, transactio
 	if err != nil {
 		msg := fmt.Sprintf("Error parsing specified host reservation: %s", err)
 		log.WithError(err).Error(msg)
-		return http.StatusBadRequest, msg
+		return http.StatusBadRequest, 0, msg
 	}
 	err = host.PopulateDaemons(r.DB)
 	if err != nil {
 		msg := "Specified host is associated with daemons that no longer exist"
 		log.WithError(err).Error(msg)
-		return http.StatusNotFound, msg
+		return http.StatusNotFound, 0, msg
 	}
 	err = host.PopulateSubnet(r.DB)
 	if err != nil {
 		msg := "Problem with retrieving subnet association with the host"
 		log.WithError(err).Error(msg)
-		return http.StatusInternalServerError, msg
+		return http.StatusInternalServerError, 0, msg
 	}
 	// Apply the host information (create Kea commands).
 	cctx, err = applyFunc(cctx, host)
 	if err != nil {
 		msg := fmt.Sprintf("Problem with applying host information: %s", err)
 		log.WithError(err).Error(msg)
-		return http.StatusInternalServerError, msg
+		return http.StatusInternalServerError, 0, msg
 	}
 	// Send the commands to Kea servers.
 	cctx, err = r.ConfigManager.Commit(cctx)
 	if err != nil {
 		msg := fmt.Sprintf("Problem with committing host information: %s", err)
 		log.WithError(err).Error(msg)
-		return http.StatusConflict, msg
+		return http.StatusConflict, 0, msg
+	}
+	hostID := restHost.ID
+	if hostID == 0 {
+		recipe, err := config.GetRecipeForUpdate[kea.ConfigRecipe](cctx, 0)
+		if err != nil {
+			msg := "Problem recovering host ID from the context"
+			log.WithError(err).Error(msg)
+			return http.StatusInternalServerError, 0, msg
+		}
+		if recipe.HostID != nil {
+			hostID = *recipe.HostID
+		}
 	}
 	// Everything ok. Cleanup and send OK to the client.
 	r.ConfigManager.Done(cctx)
-	return 0, ""
+	return 0, hostID, ""
 }
 
 // Implements the POST call to apply and commit host reservation (hosts/new/transaction/{id}/submit).
 func (r *RestAPI) CreateHostSubmit(ctx context.Context, params dhcp.CreateHostSubmitParams) middleware.Responder {
-	if code, msg := r.commonCreateOrUpdateHostSubmit(ctx, params.ID, params.Host, r.ConfigManager.GetKeaModule().ApplyHostAdd); code != 0 {
+	code, hostID, msg := r.commonCreateOrUpdateHostSubmit(ctx, params.ID, params.Host, r.ConfigManager.GetKeaModule().ApplyHostAdd)
+	if code != 0 {
 		// Error case.
 		rsp := dhcp.NewCreateHostSubmitDefault(code).WithPayload(&models.APIError{
 			Message: &msg,
 		})
 		return rsp
 	}
-	rsp := dhcp.NewCreateHostSubmitOK()
+	content := &models.CreateHostSubmitResponse{
+		HostID: hostID,
+	}
+	rsp := dhcp.NewCreateHostSubmitOK().WithPayload(content)
 	return rsp
 }
 
@@ -544,7 +560,7 @@ func (r *RestAPI) UpdateHostBegin(ctx context.Context, params dhcp.UpdateHostBeg
 
 // Implements the POST call and commit an updated host reservation (hosts/{hostId}/transaction/{id}/submit).
 func (r *RestAPI) UpdateHostSubmit(ctx context.Context, params dhcp.UpdateHostSubmitParams) middleware.Responder {
-	if code, msg := r.commonCreateOrUpdateHostSubmit(ctx, params.ID, params.Host, r.ConfigManager.GetKeaModule().ApplyHostUpdate); code != 0 {
+	if code, _, msg := r.commonCreateOrUpdateHostSubmit(ctx, params.ID, params.Host, r.ConfigManager.GetKeaModule().ApplyHostUpdate); code != 0 {
 		// Error case.
 		rsp := dhcp.NewUpdateHostSubmitDefault(code).WithPayload(&models.APIError{
 			Message: &msg,

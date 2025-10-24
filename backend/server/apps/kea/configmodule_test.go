@@ -1233,7 +1233,8 @@ func TestCommitHostUpdate(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, dbmodel.AddHost(db, host))
+	_, err := dbmodel.AddHost(db, host)
+	require.NoError(t, err)
 
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents()
@@ -1256,7 +1257,7 @@ func TestCommitHostUpdate(t *testing.T) {
 			HostBeforeUpdate: host,
 		},
 	}
-	err := state.SetRecipeForUpdate(0, &recipe)
+	err = state.SetRecipeForUpdate(0, &recipe)
 	require.NoError(t, err)
 	ctx = context.WithValue(ctx, config.StateContextKey, *state)
 
@@ -1452,7 +1453,8 @@ func TestCommitScheduledHostUpdate(t *testing.T) {
 			},
 		},
 	}
-	require.NoError(t, dbmodel.AddHost(db, host))
+	_, err := dbmodel.AddHost(db, host)
+	require.NoError(t, err)
 
 	agents := agentcommtest.NewKeaFakeAgents()
 	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
@@ -1470,7 +1472,7 @@ func TestCommitScheduledHostUpdate(t *testing.T) {
 		Lastname: "test",
 		Name:     "test",
 	}
-	_, err := dbmodel.CreateUser(db, user)
+	_, err = dbmodel.CreateUser(db, user)
 	require.NoError(t, err)
 	require.NotZero(t, user.ID)
 

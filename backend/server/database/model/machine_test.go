@@ -944,7 +944,7 @@ func TestDeleteMachineWithKeaDaemonOrphans(t *testing.T) {
 			},
 		},
 	}
-	err = AddHost(db, host)
+	_, err = AddHost(db, host)
 	require.NoError(t, err)
 
 	// Deleting the machine should cause deletion of the associated shared

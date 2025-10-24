@@ -987,7 +987,7 @@ func TestLoadAndCountItems(t *testing.T) {
 			},
 		}
 
-		err := dbmodel.AddHost(db, host)
+		_, err := dbmodel.AddHost(db, host)
 		require.NoError(t, err)
 	}
 
@@ -1097,7 +1097,7 @@ func TestLoadAndCountItemsWithFilter(t *testing.T) {
 			host.SubnetID = subnet.ID
 		}
 
-		err := dbmodel.AddHost(db, host)
+		_, err := dbmodel.AddHost(db, host)
 		require.NoError(t, err)
 	}
 

@@ -238,6 +238,13 @@
         items:
           type: string
 
+  CreateHostSubmitResponse:
+    type: object
+    properties:
+      hostId:
+        type: integer
+        format: int64
+
   UpdateHostBeginResponse:
     type: object
     properties:
