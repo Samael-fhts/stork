@@ -30,6 +30,7 @@ import { getErrorMessage, stringToHex } from '../utils'
 import { SelectableClientClass } from '../forms/selectable-client-class'
 import { hasDifferentLocalHostData } from '../hosts'
 import { GenericFormService } from '../forms/generic-form.service'
+import { lastValueFrom } from 'rxjs'
 
 /**
  * A form validator checking if a subnet has been selected for
@@ -1235,15 +1236,14 @@ export class HostFormComponent implements OnInit, OnDestroy {
             return
         }
         // Submit new host.
-        this._dhcpApi
-            .createHostSubmit(this.form.transactionID, host)
-            .toPromise()
-            .then(() => {
+        lastValueFrom(this._dhcpApi.createHostSubmit(this.form.transactionID, host))
+            .then((response) => {
                 this._messageService.add({
                     severity: 'success',
                     summary: 'Host reservation successfully added',
                 })
                 // Notify the parent component about successful submission.
+                this.form.hostID = response.hostId
                 this.formSubmit.emit(this.form)
             })
             .catch((err) => {

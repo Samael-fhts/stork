@@ -30,6 +30,11 @@ export class HostForm implements FormState {
     transactionID: number = 0
 
     /**
+     * A host reservation id of the created host.
+     */
+    hostID: number = 0
+
+    /**
      * An error to begin the transaction returned by the server.
      */
     initError: string
