@@ -37,7 +37,7 @@ func GetLogTargetByID(db dbops.DBI, id int64) (*LogTarget, error) {
 	return &logTarget, nil
 }
 
-// Deletes a log targets by IDs. Keeps the log targets with IDs in keepIDs slice.
+// Deletes log targets by daemon ID except the log targets with IDs in keepIDs slice.
 func deleteLogTargetByDaemonIDExcept(db dbops.DBI, daemonID int64, keepIDs []int64) error {
 	q := db.Model(&LogTarget{}).
 		Where("log_target.daemon_id = ?", daemonID)
