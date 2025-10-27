@@ -792,9 +792,8 @@ func deleteDaemon(tx *pg.Tx, daemon *Daemon) error {
 	return nil
 }
 
-// Deletes a daemon from the database. It deletes the daemon and all
-// associated access points, log targets, KeaDaemon, KeaDHCPDaemon and Bind9Daemon
-// if they are not nil.
+// Deletes a daemon from the database with all associated access points,
+// log targets, KeaDaemon, KeaDHCPDaemon and Bind9Daemon, if they are not nil.
 func DeleteDaemon(dbi dbops.DBI, daemon *Daemon) error {
 	if db, ok := dbi.(*pg.DB); ok {
 		return db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
