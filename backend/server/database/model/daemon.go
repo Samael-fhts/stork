@@ -410,16 +410,35 @@ func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *stri
 
 // Get daemons by their name.
 func GetDaemonsByName(dbi pg.DBI, names ...daemonname.Name) (daemons []Daemon, err error) {
-	err = dbi.Model(&daemons).
+	q := dbi.Model(&daemons).
 		Relation(DaemonRelationAccessPoints).
 		Relation(DaemonRelationMachine).
-		Relation(DaemonRelationKeaDHCPDaemon).
-		Relation(DaemonRelationHAService).
-		Relation(DaemonRelationBind9Daemon).
-		Relation(DaemonRelationPDNSDaemon).
 		Where("daemon.name IN (?)", pg.In(names)).
-		OrderExpr("daemon.id ASC").
-		Select()
+		OrderExpr("daemon.id ASC")
+
+	for _, daemonName := range names {
+		q = q.WhereOr("name = ?", daemonName)
+		switch daemonName {
+		case daemonname.DHCPv4, daemonname.DHCPv6:
+			q = q.Relation(DaemonRelationHAService)
+			q = q.Relation(DaemonRelationKeaDHCPDaemon)
+		case daemonname.CA, daemonname.D2, daemonname.NetConf:
+			q = q.Relation(DaemonRelationKeaDaemon)
+		case daemonname.Bind9:
+			q = q.Relation(DaemonRelationBind9Daemon)
+		case daemonname.PDNS:
+			q = q.Relation(DaemonRelationPDNSDaemon)
+		}
+	}
+
+	if len(names) == 0 {
+		q = q.Relation(DaemonRelationHAService).
+			Relation(DaemonRelationKeaDHCPDaemon).
+			Relation(DaemonRelationBind9Daemon).
+			Relation(DaemonRelationPDNSDaemon)
+	}
+
+	err = q.Select()
 
 	if errors.Is(err, pg.ErrNoRows) {
 		return daemons, nil
