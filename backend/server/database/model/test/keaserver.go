@@ -43,7 +43,7 @@ func (server *KeaServer) Configure(config string) error {
 	if err != nil {
 		return err
 	}
-	err = d.SetConfigFromJSON([]byte(config))
+	err = d.SetKeaConfigFromJSON([]byte(config))
 	if err != nil {
 		return err
 	}

@@ -699,11 +699,11 @@ func getHATestConfigWithSubnets(rootName, thisServerName, mode string, peerNames
 		subnetsConfigRaw = dhcp6
 	}
 
-	// Create a temporary daemon to use SetConfigFromJSON
+	// Create a temporary daemon to use SetKeaConfigFromJSON
 	tempDaemon := &dbmodel.Daemon{
 		KeaDaemon: &dbmodel.KeaDaemon{},
 	}
-	_ = tempDaemon.SetConfigFromJSON([]byte(subnetsConfigRaw))
+	_ = tempDaemon.SetKeaConfigFromJSON([]byte(subnetsConfigRaw))
 	subnetsConfig := tempDaemon.KeaDaemon.Config
 
 	// We are now going to insert hook libraries from one config into another config.

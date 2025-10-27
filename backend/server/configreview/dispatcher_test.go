@@ -149,7 +149,7 @@ func TestPopulateKeaReports(t *testing.T) {
 			Port:    8080,
 		},
 	})
-	err = daemon1.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
+	err = daemon1.SetKeaConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
@@ -161,7 +161,7 @@ func TestPopulateKeaReports(t *testing.T) {
 			Port:    8080,
 		},
 	})
-	err = daemon2.SetConfigFromJSON([]byte(`{"Dhcp6": { }}`))
+	err = daemon2.SetKeaConfigFromJSON([]byte(`{"Dhcp6": { }}`))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon2)
 	require.NoError(t, err)
@@ -446,7 +446,7 @@ func TestCascadeReview(t *testing.T) {
 			Port:    8080,
 		},
 	})
-	err = daemon1.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
+	err = daemon1.SetKeaConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
@@ -458,7 +458,7 @@ func TestCascadeReview(t *testing.T) {
 			Port:    8080,
 		},
 	})
-	err = daemon2.SetConfigFromJSON([]byte(`{"Control-agent": { }}`))
+	err = daemon2.SetKeaConfigFromJSON([]byte(`{"Control-agent": { }}`))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon2)
 	require.NoError(t, err)
@@ -572,7 +572,7 @@ func TestTriggers(t *testing.T) {
 			Port:    8080,
 		},
 	})
-	err = daemon1.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
+	err = daemon1.SetKeaConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon1)
 	require.NoError(t, err)
@@ -584,7 +584,7 @@ func TestTriggers(t *testing.T) {
 			Port:    8080,
 		},
 	})
-	err = daemon2.SetConfigFromJSON([]byte(`{"Dhcp6": { }}`))
+	err = daemon2.SetKeaConfigFromJSON([]byte(`{"Dhcp6": { }}`))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon2)
 	require.NoError(t, err)

@@ -410,7 +410,7 @@ func TestMigrationFrom57To58DifferentHostData(t *testing.T) {
 		}}
 
 		daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
-		_ = daemon.SetConfigFromJSON([]byte(`{
+		_ = daemon.SetKeaConfigFromJSON([]byte(`{
 			"Dhcp4": {
 				"client-classes": [
 					{

@@ -69,7 +69,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 	configJSON, _ := json.Marshal(configRaw)
-	err = d4.SetConfigFromJSON(configJSON)
+	err = d4.SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d4)
@@ -190,7 +190,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 	configJSON, _ = json.Marshal(configRaw)
-	err = d6.SetConfigFromJSON(configJSON)
+	err = d6.SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 	err = AddDaemon(db, d6)
 	require.NoError(t, err)
@@ -253,7 +253,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 	configJSON, _ = json.Marshal(configRaw)
-	err = d46v4.SetConfigFromJSON(configJSON)
+	err = d46v4.SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d46v4)
@@ -293,7 +293,7 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 	configJSON, _ = json.Marshal(configRaw)
-	err = d46v6.SetConfigFromJSON(configJSON)
+	err = d46v6.SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d46v6)
@@ -552,7 +552,7 @@ func TestGetSubnetsByPageNoSubnets(t *testing.T) {
 		"Dhcp4": &map[string]interface{}{},
 	}
 	configJSON, _ := json.Marshal(configRaw)
-	err = d4.SetConfigFromJSON(configJSON)
+	err = d4.SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d4)
@@ -613,7 +613,7 @@ func TestGetSharedNetworksByPageBasic(t *testing.T) {
 		},
 	}
 	configJSON, _ := json.Marshal(configRaw)
-	err = d4.SetConfigFromJSON(configJSON)
+	err = d4.SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d4)
@@ -704,7 +704,7 @@ func TestGetSharedNetworksByPageBasic(t *testing.T) {
 		},
 	}
 	configJSON, _ = json.Marshal(configRaw)
-	err = d6.SetConfigFromJSON(configJSON)
+	err = d6.SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, d6)

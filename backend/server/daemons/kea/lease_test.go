@@ -1005,7 +1005,7 @@ func TestFindLeases(t *testing.T) {
 
 	// Create DHCPv4 daemon
 	daemon1v4 := dbmodel.NewDaemon(machine1, daemonname.DHCPv4, true, accessPoints)
-	err = daemon1v4.SetConfigFromJSON([]byte(`{
+	err = daemon1v4.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
 				{
@@ -1020,7 +1020,7 @@ func TestFindLeases(t *testing.T) {
 
 	// Create DHCPv6 daemon
 	daemon1v6 := dbmodel.NewDaemon(machine1, daemonname.DHCPv6, true, accessPoints)
-	err = daemon1v6.SetConfigFromJSON([]byte(`{
+	err = daemon1v6.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
 				{
@@ -1054,7 +1054,7 @@ func TestFindLeases(t *testing.T) {
 
 	// Create DHCPv4 daemon for machine2
 	daemon2v4 := dbmodel.NewDaemon(machine2, daemonname.DHCPv4, true, accessPoints2)
-	err = daemon2v4.SetConfigFromJSON([]byte(`{
+	err = daemon2v4.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
 				{
@@ -1088,7 +1088,7 @@ func TestFindLeases(t *testing.T) {
 
 	// Create DHCPv6 daemon for machine3
 	daemon3v6 := dbmodel.NewDaemon(machine3, daemonname.DHCPv6, true, accessPoints3)
-	err = daemon3v6.SetConfigFromJSON([]byte(`{
+	err = daemon3v6.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
 				{
@@ -1211,7 +1211,7 @@ func TestFindLeasesTooShortDUID(t *testing.T) {
 	// Create old version daemon (2.0.2)
 	daemonOld := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPointsOld)
 	daemonOld.Version = "2.0.2"
-	err := daemonOld.SetConfigFromJSON([]byte(`{
+	err := daemonOld.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
 				{
@@ -1236,7 +1236,7 @@ func TestFindLeasesTooShortDUID(t *testing.T) {
 	// Create modern version daemon (2.7.2)
 	daemonModern := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPointsModern)
 	daemonModern.Version = "2.7.2"
-	err = daemonModern.SetConfigFromJSON([]byte(`{
+	err = daemonModern.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
 				{
@@ -1295,7 +1295,7 @@ func TestFindDeclinedLeases(t *testing.T) {
 
 	// Create DHCPv4 daemon
 	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
-	err = daemon4.SetConfigFromJSON([]byte(`{
+	err = daemon4.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
 				{
@@ -1310,7 +1310,7 @@ func TestFindDeclinedLeases(t *testing.T) {
 
 	// Create DHCPv6 daemon
 	daemon6 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPoints)
-	err = daemon6.SetConfigFromJSON([]byte(`{
+	err = daemon6.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
 				{
@@ -1402,7 +1402,7 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 	// Create DHCPv4 daemon with version 2.3.7
 	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 	daemon4.Version = "2.3.7"
-	err = daemon4.SetConfigFromJSON([]byte(`{
+	err = daemon4.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
 				{
@@ -1418,7 +1418,7 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 	// Create DHCPv6 daemon with version 2.3.7
 	daemon6 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPoints)
 	daemon6.Version = "2.3.7"
-	err = daemon6.SetConfigFromJSON([]byte(`{
+	err = daemon6.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
 				{
@@ -1509,7 +1509,7 @@ func TestFindDeclinedLeasesNoLeaseCmds(t *testing.T) {
 
 	// Create DHCPv4 daemon without lease_cmds hooks
 	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
-	err = daemon4.SetConfigFromJSON([]byte(`{
+	err = daemon4.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {}
 	}`))
 	require.NoError(t, err)
@@ -1518,7 +1518,7 @@ func TestFindDeclinedLeasesNoLeaseCmds(t *testing.T) {
 
 	// Create DHCPv6 daemon without lease_cmds hooks
 	daemon6 := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPoints)
-	err = daemon6.SetConfigFromJSON([]byte(`{
+	err = daemon6.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {}
 	}`))
 	require.NoError(t, err)
@@ -1564,7 +1564,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 		},
 	}
 	daemon1 := dbmodel.NewDaemon(machine1, daemonname.DHCPv6, true, accessPoints1)
-	err = daemon1.SetConfigFromJSON([]byte(`{
+	err = daemon1.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
 				{
@@ -1588,7 +1588,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 	}
 
 	daemon2v4 := dbmodel.NewDaemon(machine2, daemonname.DHCPv4, true, accessPoints2)
-	err = daemon2v4.SetConfigFromJSON([]byte(`{
+	err = daemon2v4.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
 				{
@@ -1602,7 +1602,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 	require.NoError(t, err)
 
 	daemon2v6 := dbmodel.NewDaemon(machine2, daemonname.DHCPv6, true, accessPoints2)
-	err = daemon2v6.SetConfigFromJSON([]byte(`{
+	err = daemon2v6.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp6": {
 			"hooks-libraries": [
 				{

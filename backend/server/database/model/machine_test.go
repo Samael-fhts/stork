@@ -210,7 +210,7 @@ func TestGetMachineByIDWithRelations(t *testing.T) {
 			Key:     "abcd",
 		},
 	})
-	err := daemonKea.SetConfigFromJSON([]byte(`{
+	err := daemonKea.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"valid-lifetime": 1234,
 			"secret": "hidden"

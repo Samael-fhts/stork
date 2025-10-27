@@ -514,7 +514,7 @@ func TestStoreHugeKeaConfigInDatabase(t *testing.T) {
 
 	configJSON, _ := json.Marshal(keaConfig)
 	daemon := NewDaemon(machine, daemonname.DHCPv4, true, nil)
-	err = daemon.SetConfigFromJSON(configJSON)
+	err = daemon.SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 
 	err = AddDaemon(db, daemon)

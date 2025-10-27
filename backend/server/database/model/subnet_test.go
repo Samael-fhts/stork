@@ -1618,7 +1618,7 @@ func BenchmarkAddDaemonToSubnet(b *testing.B) {
 			Port:    8000,
 		},
 	})
-	daemon.SetConfigFromJSON(rawConfigBytes)
+	daemon.SetKeaConfigFromJSON(rawConfigBytes)
 	err = AddDaemon(db, daemon)
 	require.NoError(b, err)
 

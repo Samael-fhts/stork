@@ -40,7 +40,7 @@ func createReviewContext(t *testing.T, db *dbops.PgDB, configStr string, keaVers
 	})
 	daemon.ID = 1
 	daemon.Version = keaVersion
-	err := daemon.SetConfigFromJSON([]byte(configStr))
+	err := daemon.SetKeaConfigFromJSON([]byte(configStr))
 	require.NoError(t, err)
 
 	ctx := newReviewContext(db, daemon, []Trigger{ManualRun}, nil)
@@ -70,7 +70,7 @@ func createHostInDatabase(t *testing.T, db *dbops.PgDB, configStr, subnetPrefix 
 
 	// Create the daemon.
 	daemon := dbmodel.NewDaemon(machine, daemonName, true, nil)
-	err = daemon.SetConfigFromJSON([]byte(configStr))
+	err = daemon.SetKeaConfigFromJSON([]byte(configStr))
 	require.NoError(t, err)
 
 	err = dbmodel.AddDaemon(db, daemon)
@@ -2179,7 +2179,7 @@ func TestSubnetsOverlappingReportErrorForNonDHCPDaemon(t *testing.T) {
 func TestSubnetsOverlappingReportForNonOverlappingSubnets(t *testing.T) {
 	// Arrange
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
-	_ = daemon.SetConfigFromJSON([]byte(`{
+	_ = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "subnet4": []
         }
@@ -2200,7 +2200,7 @@ func TestSubnetsOverlappingReportForSingleOverlap(t *testing.T) {
 	// Arrange
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
-	_ = daemon.SetConfigFromJSON([]byte(`{
+	_ = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "subnet4": [
                 {
@@ -2233,7 +2233,7 @@ func TestSubnetsOverlappingReportForSingleOverlapAndNoSubnetIDs(t *testing.T) {
 	// Arrange
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
-	_ = daemon.SetConfigFromJSON([]byte(`{
+	_ = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "subnet4": [
                 {
@@ -2278,7 +2278,7 @@ func TestSubnetsOverlappingReportForMultipleOverlap(t *testing.T) {
 			"subnet4": subnetsConfig,
 		},
 	})
-	_ = daemon.SetConfigFromJSON(config)
+	_ = daemon.SetKeaConfigFromJSON(config)
 
 	ctx := newReviewContext(nil, daemon,
 		Triggers{ManualRun}, func(i int64, err error) {})
@@ -2301,7 +2301,7 @@ func TestSubnetsOverlappingReportForMultipleOverlap(t *testing.T) {
 func TestSubnetsOverlappingForMissingSubnetNode(t *testing.T) {
 	// Arrange
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
-	_ = daemon.SetConfigFromJSON([]byte(`{
+	_ = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": { }
     }`))
 	ctx := newReviewContext(nil, daemon,
@@ -2320,7 +2320,7 @@ func TestSubnetsOverlappingForSharedNetworks(t *testing.T) {
 	// Arrange
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
-	_ = daemon.SetConfigFromJSON([]byte(`{
+	_ = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "shared-networks": [
                 {
@@ -2418,7 +2418,7 @@ func TestCanonicalPrefixes(t *testing.T) {
 	// Arrange
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
-	_ = daemon.SetConfigFromJSON([]byte(`{
+	_ = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "subnet4": [
                 {
@@ -2471,7 +2471,7 @@ func TestCanonicalPrefixesForValidPrefixes(t *testing.T) {
 	// Arrange
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
-	_ = daemon.SetConfigFromJSON([]byte(`{
+	_ = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "subnet4": [
                 {
@@ -4782,7 +4782,7 @@ func BenchmarkReservationsOutOfPoolConfig(b *testing.B) {
 	}
 
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
-	_ = daemon.SetConfigFromJSON(configBytes)
+	_ = daemon.SetKeaConfigFromJSON(configBytes)
 
 	// The benchmark starts here.
 	b.ResetTimer()
@@ -4897,7 +4897,7 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 	}
 
 	daemon = dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
-	err = daemon.SetConfigFromJSON(configBytes)
+	err = daemon.SetKeaConfigFromJSON(configBytes)
 	if err != nil {
 		b.Fatalf("failed to set config: %+v", err)
 	}

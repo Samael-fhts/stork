@@ -204,7 +204,7 @@ func TestFindLeases4(t *testing.T) {
 			]
 		}
 	}`
-	err = daemon.SetConfigFromJSON([]byte(config))
+	err = daemon.SetKeaConfigFromJSON([]byte(config))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
@@ -312,7 +312,7 @@ func TestFindLeases6(t *testing.T) {
 			]
 		}
 	}`
-	err = daemon.SetConfigFromJSON([]byte(config))
+	err = daemon.SetKeaConfigFromJSON([]byte(config))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
@@ -441,7 +441,7 @@ func TestFindLeasesEmptyText(t *testing.T) {
 			]
 		}
 	}`
-	err = daemon.SetConfigFromJSON([]byte(config))
+	err = daemon.SetKeaConfigFromJSON([]byte(config))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
@@ -504,7 +504,7 @@ func TestFindDeclinedLeases(t *testing.T) {
 			]
 		}
 	}`
-	err = daemon4.SetConfigFromJSON([]byte(config4))
+	err = daemon4.SetKeaConfigFromJSON([]byte(config4))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
@@ -520,7 +520,7 @@ func TestFindDeclinedLeases(t *testing.T) {
 			]
 		}
 	}`
-	err = daemon6.SetConfigFromJSON([]byte(config6))
+	err = daemon6.SetKeaConfigFromJSON([]byte(config6))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)
@@ -629,7 +629,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 			]
 		}
 	}`
-	err = daemon4.SetConfigFromJSON([]byte(config4))
+	err = daemon4.SetKeaConfigFromJSON([]byte(config4))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon4)
 	require.NoError(t, err)
@@ -645,7 +645,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 			]
 		}
 	}`
-	err = daemon6.SetConfigFromJSON([]byte(config6))
+	err = daemon6.SetKeaConfigFromJSON([]byte(config6))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, daemon6)
 	require.NoError(t, err)

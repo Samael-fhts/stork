@@ -108,7 +108,7 @@ func TestStatePullerPullData(t *testing.T) {
 		Port:    1234,
 		Key:     "",
 	}})
-	err = d.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
+	err = d.SetKeaConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, d)
 	require.NoError(t, err)
@@ -189,7 +189,7 @@ func TestDaemonCompare(t *testing.T) {
 // have changed.
 func TestConditionallyBeginKeaConfigReviews(t *testing.T) {
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{})
-	err := daemon.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
+	err := daemon.SetKeaConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	require.NoError(t, err)
 	state := kea.DaemonStateMeta{IsConfigChanged: true}
 

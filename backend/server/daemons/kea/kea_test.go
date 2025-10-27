@@ -235,7 +235,7 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 		AgentPort: 1111,
 	}, daemonname.CA, false, accessPoints)
 
-	err := daemon.SetConfigFromJSON([]byte(`{
+	err := daemon.SetKeaConfigFromJSON([]byte(`{
         "Control-agent": {
             "loggers": [
                 {
@@ -307,7 +307,7 @@ func TestGetDaemonHooksFrom1Daemon(t *testing.T) {
 	}
 
 	// Set configuration with hooks
-	err := daemon.SetConfigFromJSON([]byte(`{
+	err := daemon.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {
 			"hooks-libraries": [
 				{

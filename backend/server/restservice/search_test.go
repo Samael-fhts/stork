@@ -83,7 +83,7 @@ func TestSearchRecords(t *testing.T) {
 			}]
 		}
 	}`)
-	err = d4.SetConfigFromJSON(config4)
+	err = d4.SetKeaConfigFromJSON(config4)
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, d4)
 	require.NoError(t, err)
@@ -131,7 +131,7 @@ func TestSearchRecords(t *testing.T) {
 			}]
 		}
 	}`)
-	err = d6.SetConfigFromJSON(config6)
+	err = d6.SetKeaConfigFromJSON(config6)
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, d6)
 	require.NoError(t, err)
@@ -165,7 +165,7 @@ func TestSearchRecords(t *testing.T) {
 			}]
 		}
 	}`)
-	err = d46_4.SetConfigFromJSON(config46_4)
+	err = d46_4.SetKeaConfigFromJSON(config46_4)
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, d46_4)
 	require.NoError(t, err)
@@ -197,7 +197,7 @@ func TestSearchRecords(t *testing.T) {
 			}]
 		}
 	}`)
-	err = d46_6.SetConfigFromJSON(config46_6)
+	err = d46_6.SetKeaConfigFromJSON(config46_6)
 	require.NoError(t, err)
 	err = dbmodel.AddDaemon(db, d46_6)
 	require.NoError(t, err)

@@ -41,7 +41,7 @@ func createDaemonsWithSubnets(t *testing.T, db *dbops.PgDB, index int64, v4Confi
 			},
 		}
 		daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
-		err = daemon4.SetConfigFromJSON([]byte(v4Config))
+		err = daemon4.SetKeaConfigFromJSON([]byte(v4Config))
 		require.NoError(t, err)
 		daemons = append(daemons, daemon4)
 	}
@@ -56,7 +56,7 @@ func createDaemonsWithSubnets(t *testing.T, db *dbops.PgDB, index int64, v4Confi
 			},
 		}
 		daemon6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, accessPoints)
-		err = daemon6.SetConfigFromJSON([]byte(v6Config))
+		err = daemon6.SetKeaConfigFromJSON([]byte(v6Config))
 		require.NoError(t, err)
 		daemons = append(daemons, daemon6)
 	}
@@ -432,7 +432,7 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
                 ]
             }
         }`
-	err = daemons[0].SetConfigFromJSON([]byte(v4Config0))
+	err = daemons[0].SetKeaConfigFromJSON([]byte(v4Config0))
 	require.NoError(t, err)
 
 	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
@@ -474,7 +474,7 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
                 ]
             }
         }`
-	err = daemons[0].SetConfigFromJSON([]byte(v4Config1))
+	err = daemons[0].SetKeaConfigFromJSON([]byte(v4Config1))
 	require.NoError(t, err)
 
 	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
@@ -486,7 +486,7 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
 	require.Empty(t, networks)
 
 	// Revert to the original config.
-	err = daemons[0].SetConfigFromJSON([]byte(v4Config0))
+	err = daemons[0].SetKeaConfigFromJSON([]byte(v4Config0))
 	require.NoError(t, err)
 	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
@@ -546,7 +546,7 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
                 ]
             }
         }`
-	err = daemonsList[0][0].SetConfigFromJSON([]byte(v4Config))
+	err = daemonsList[0][0].SetKeaConfigFromJSON([]byte(v4Config))
 	require.NoError(t, err)
 
 	err = CommitDaemonsIntoDB(db, daemonsList[0], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
@@ -561,7 +561,7 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
 	require.Len(t, subnets[1].LocalSubnets, 1)
 
 	// Update the second daemon to use the second subnet.
-	err = daemonsList[1][0].SetConfigFromJSON([]byte(v4Config))
+	err = daemonsList[1][0].SetKeaConfigFromJSON([]byte(v4Config))
 	require.NoError(t, err)
 	err = CommitDaemonsIntoDB(db, daemonsList[1], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
@@ -633,7 +633,7 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
                 ]
             }
         }`
-	err = daemonsList[0][0].SetConfigFromJSON([]byte(v4Config))
+	err = daemonsList[0][0].SetKeaConfigFromJSON([]byte(v4Config))
 	require.NoError(t, err)
 
 	err = CommitDaemonsIntoDB(db, daemonsList[0], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
@@ -646,7 +646,7 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
 	require.Len(t, hosts, 2)
 
 	// Update the second daemon to use the second reservation.
-	err = daemonsList[1][0].SetConfigFromJSON([]byte(v4Config))
+	err = daemonsList[1][0].SetKeaConfigFromJSON([]byte(v4Config))
 	require.NoError(t, err)
 	err = CommitDaemonsIntoDB(db, daemonsList[1], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 	require.NoError(t, err)
@@ -700,7 +700,7 @@ func TestDetectNetworkUpdateAddressPool(t *testing.T) {
 	// Update the config.
 	v4Config["Dhcp4"].(m)["subnet4"].([]m)[0]["pools"].([]m)[0]["pool"] = "192.0.2.1 - 192.0.2.42"
 	v4ConfigJSON, _ = json.Marshal(v4Config)
-	err := daemons[0].SetConfigFromJSON(v4ConfigJSON)
+	err := daemons[0].SetKeaConfigFromJSON(v4ConfigJSON)
 	require.NoError(t, err)
 	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 
@@ -743,7 +743,7 @@ func TestDetectNetworkUpdateClientClass(t *testing.T) {
 	// Update the config.
 	v4Config["Dhcp4"].(m)["subnet4"].([]m)[0]["client-class"] = "bar"
 	v4ConfigJSON, _ = json.Marshal(v4Config)
-	err = daemons[0].SetConfigFromJSON(v4ConfigJSON)
+	err = daemons[0].SetKeaConfigFromJSON(v4ConfigJSON)
 	require.NoError(t, err)
 	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 
@@ -789,7 +789,7 @@ func TestDetectNetworkUpdateDelegatedPrefixPool(t *testing.T) {
 	config["Dhcp6"].(m)["subnet6"].([]m)[0]["pd-pools"].([]m)[0]["prefix-len"] = 72
 	config["Dhcp6"].(m)["subnet6"].([]m)[0]["pd-pools"].([]m)[0]["delegated-len"] = 92
 	configJSON, _ = json.Marshal(config)
-	err := daemons[0].SetConfigFromJSON(configJSON)
+	err := daemons[0].SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
 	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
 

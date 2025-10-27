@@ -1039,7 +1039,7 @@ func TestPullHAStatusHub(t *testing.T) {
         }
     }`)
 
-	err = dhcp4.SetConfigFromJSON(configData)
+	err = dhcp4.SetKeaConfigFromJSON(configData)
 	require.NoError(t, err)
 
 	err = dbmodel.AddDaemon(db, dhcp4)

@@ -853,7 +853,7 @@ func (d *Daemon) GetHAOverview() (overviews []DaemonServiceOverview) {
 // it extracts some configuration information and populates to the daemon structures,
 // e.g. logging configuration. The config should be a pointer to the keaconfig.Config
 // structure. The config_hash is a hash created from the specified configuration.
-func (d *Daemon) setConfigWithHash(config *keaconfig.Config, configHash string) error {
+func (d *Daemon) setKeaConfigWithHash(config *keaconfig.Config, configHash string) error {
 	if d.KeaDaemon != nil {
 		existingLogTargets := d.LogTargets
 		d.LogTargets = []*LogTarget{}
@@ -883,7 +883,7 @@ func (d *Daemon) setConfigWithHash(config *keaconfig.Config, configHash string) 
 
 // Sets new configuration specified as JSON string. The config is set only if
 // its hash is different from the existing configuration hash.
-func (d *Daemon) SetConfigFromJSON(config []byte) error {
+func (d *Daemon) SetKeaConfigFromJSON(config []byte) error {
 	if d.KeaDaemon == nil {
 		// Not a Kea daemon.
 		return errors.New("not a Kea daemon")
@@ -900,7 +900,7 @@ func (d *Daemon) SetConfigFromJSON(config []byte) error {
 		return err
 	}
 
-	return d.setConfigWithHash(parsedConfig, hash)
+	return d.setKeaConfigWithHash(parsedConfig, hash)
 }
 
 // Returns local subnet ID for a given subnet prefix. If subnets have been indexed,

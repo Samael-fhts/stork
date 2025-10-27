@@ -59,7 +59,7 @@ func initDatabase(db *pg.DB) *dbmodel.Machine {
 	_ = dbmodel.AddDaemon(db, daemon1)
 	_ = dbmodel.AddDaemon(db, daemon2)
 
-	_ = daemon1.SetConfigFromJSON([]byte(`{
+	_ = daemon1.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "valid-lifetime": 1234,
 			"secret": "hidden"

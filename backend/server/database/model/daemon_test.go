@@ -87,7 +87,7 @@ func TestUpdateKeaDHCPDaemon(t *testing.T) {
 	daemon.Name = daemonname.DHCPv6
 	daemon.Active = false
 	daemon.Version = "2.0.0"
-	err = daemon.SetConfigFromJSON([]byte(`{
+	err = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "valid-lifetime": 1234
         }
@@ -244,7 +244,7 @@ func TestGetDaemonByID(t *testing.T) {
 	daemon := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 
 	// Set initial configuration with one logger.
-	err = daemon.SetConfigFromJSON([]byte(`{
+	err = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -535,12 +535,12 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 
 	// Create daemons.
 	daemon1 := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
-	daemon1.SetConfigFromJSON([]byte(`{"Dhcp4": { }}`))
+	daemon1.SetKeaConfigFromJSON([]byte(`{"Dhcp4": { }}`))
 	err = AddDaemon(db, daemon1)
 	require.NoError(t, err)
 
 	daemon2 := NewDaemon(m, daemonname.DHCPv6, true, []*AccessPoint{})
-	daemon2.SetConfigFromJSON([]byte(`{"Dhcp6": { }}`))
+	daemon2.SetKeaConfigFromJSON([]byte(`{"Dhcp6": { }}`))
 	err = AddDaemon(db, daemon2)
 	require.NoError(t, err)
 
@@ -634,7 +634,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 
 	// Set initial configuration with one logger.
-	err := daemon.SetConfigFromJSON([]byte(`{
+	err := daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -663,7 +663,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 
 	// Set new configuration with one new logger and one logger with modified
 	// data.
-	err = daemon.SetConfigFromJSON([]byte(`{
+	err = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -709,7 +709,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 	daemon.LogTargets[1].DaemonID = 1
 
 	// Check that the same data can be refreshed.
-	err = daemon.SetConfigFromJSON([]byte(`{
+	err = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -738,7 +738,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 	require.Len(t, daemon.LogTargets, 2)
 
 	// Check that the number of loggers can be reduced.
-	err = daemon.SetConfigFromJSON([]byte(`{
+	err = daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -759,7 +759,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 }
 
 // This test verifies that the config hash is setting configuration as string.
-func TestSetConfigFromJSONWithHash(t *testing.T) {
+func TestSetKeaConfigFromJSONWithHash(t *testing.T) {
 	machine := &Machine{
 		ID:        1,
 		Address:   "localhost",
@@ -768,7 +768,7 @@ func TestSetConfigFromJSONWithHash(t *testing.T) {
 	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 
 	// Set initial configuration with one logger.
-	err := daemon.SetConfigFromJSON([]byte(`{
+	err := daemon.SetKeaConfigFromJSON([]byte(`{
         "Dhcp4": {
             "loggers": [
                 {
@@ -798,7 +798,7 @@ func TestSetConfig(t *testing.T) {
 	}
 	daemon := NewDaemon(machine, daemonname.DHCPv4, true, []*AccessPoint{})
 
-	err := daemon.SetConfigFromJSON([]byte(`{"Dhcp4": {}}`))
+	err := daemon.SetKeaConfigFromJSON([]byte(`{"Dhcp4": {}}`))
 	require.NoError(t, err)
 
 	require.NotNil(t, daemon.KeaDaemon)
@@ -847,7 +847,7 @@ func TestGetLocalSubnetID(t *testing.T) {
 		Protocol: "http",
 	}}
 	daemon := NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
-	err := daemon.SetConfigFromJSON([]byte(`{
+	err := daemon.SetKeaConfigFromJSON([]byte(`{
 		"Dhcp4": {
             "subnet4": [
 				{
@@ -1011,12 +1011,13 @@ func TestGetRpsStatsAsFloats(t *testing.T) {
 // I used it to compare performance in relation to the number of daemon
 // relations included.
 //
-// goos: darwin, goarch: arm64, cpu: Apple M4 Pro
 // WithAllRelations     6991    160582 ns/op    9843 B/op     123 allocs/op
 // OnlyKeaRelation	    9717    112593 ns/op    7810 B/op     103 allocs/op
 // OnlyBind9Relation   12734     93699 ns/op    7115 B/op      98 allocs/op
 // OnlyPDNSRelation    12949     92653 ns/op    6748 B/op      97 allocs/op
 // WithoutRelations    15116     78878 ns/op    5707 B/op      87 allocs/op
+//
+// Generated on goos: darwin, goarch: arm64, cpu: Apple M4 Pro.
 func BenchmarkGetDaemonByID(b *testing.B) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(b)
 	defer teardown()

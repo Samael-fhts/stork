@@ -70,14 +70,14 @@ func TestGetDaemonConfigForKeaDaemonWithAssignedConfiguration(t *testing.T) {
 		"Dhcp4": { }
     }`)
 
-	err = daemon4.SetConfigFromJSON(configDHCP4)
+	err = daemon4.SetKeaConfigFromJSON(configDHCP4)
 	require.NoError(t, err)
 
 	configDHCP6 := []byte(`{
 		"Dhcp6": { }
     }`)
 
-	err = daemon6.SetConfigFromJSON(configDHCP6)
+	err = daemon6.SetKeaConfigFromJSON(configDHCP6)
 	require.NoError(t, err)
 
 	err = dbmodel.AddDaemon(db, daemon4)
@@ -181,7 +181,7 @@ func TestGetDaemonConfigWithSecretsForSuperAdmin(t *testing.T) {
 		}
     }`)
 
-	err = daemon4.SetConfigFromJSON(configDhcp4)
+	err = daemon4.SetKeaConfigFromJSON(configDhcp4)
 	require.NoError(t, err)
 
 	err = dbmodel.AddDaemon(db, daemon4)
@@ -274,7 +274,7 @@ func TestGetDaemonConfigWithoutSecretsForAdmin(t *testing.T) {
 		}
     }`)
 
-	err = daemon4.SetConfigFromJSON(configDhcp4)
+	err = daemon4.SetKeaConfigFromJSON(configDhcp4)
 	require.NoError(t, err)
 
 	err = dbmodel.AddDaemon(db, daemon4)
@@ -358,7 +358,7 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 		"Dhcp4": { }
     }`)
 
-	err = daemon4.SetConfigFromJSON(configDhcp4)
+	err = daemon4.SetKeaConfigFromJSON(configDhcp4)
 	require.NoError(t, err)
 
 	daemon4.Active = false
@@ -367,7 +367,7 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 		"Dhcp6": { }
     }`)
 
-	err = daemon6.SetConfigFromJSON(configDhcp6)
+	err = daemon6.SetKeaConfigFromJSON(configDhcp6)
 	require.NoError(t, err)
 
 	daemon6.Monitored = false
@@ -925,7 +925,7 @@ func TestPutDaemonConfigReview(t *testing.T) {
 
 	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
 
-	err = daemon4.SetConfigFromJSON(configDhcp4)
+	err = daemon4.SetKeaConfigFromJSON(configDhcp4)
 	require.NoError(t, err)
 
 	err = dbmodel.AddDaemon(db, daemon4)

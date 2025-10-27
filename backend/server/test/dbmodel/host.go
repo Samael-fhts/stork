@@ -38,7 +38,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*
 			dbmodel.NewDaemon(m, daemonname.DHCPv6, true, accessPoints),
 		}
 
-		err = daemons[0].SetConfigFromJSON([]byte(`{
+		err = daemons[0].SetKeaConfigFromJSON([]byte(`{
             "Dhcp4": {
 				"client-classes": [
 					{
@@ -63,7 +63,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*
         }`))
 		require.NoError(t, err)
 
-		err = daemons[1].SetConfigFromJSON([]byte(`{
+		err = daemons[1].SetKeaConfigFromJSON([]byte(`{
             "Dhcp6": {
 				"client-classes": [
 					{
