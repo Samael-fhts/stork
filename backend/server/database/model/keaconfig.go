@@ -110,7 +110,7 @@ func (c *KeaConfig) ScanValue(rd types.Reader, n int) error {
 	return json.Unmarshal(jsonBytes, c)
 }
 
-// Creates new instance from the pointer to the map of interfaces.
+// Creates new instance from the pointer to the config.
 func newKeaConfig(config *keaconfig.Config) *KeaConfig {
 	if config == nil {
 		return nil
