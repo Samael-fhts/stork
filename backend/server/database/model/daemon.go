@@ -720,10 +720,15 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 		}
 	}
 
+	return updateDaemonRelations(dbi, daemon)
+}
+
+// Updates the daemon-related entities.
+func updateDaemonRelations(dbi dbops.DBI, daemon *Daemon) error {
 	// Update the access points.
 	for _, accessPoint := range daemon.AccessPoints {
 		accessPoint.DaemonID = daemon.ID
-		err = AddOrUpdateAccessPoint(dbi, accessPoint)
+		err := AddOrUpdateAccessPoint(dbi, accessPoint)
 		if err != nil {
 			return errors.WithMessagef(err, "problem adding or updating access point %v for daemon %d",
 				accessPoint, daemon.ID)
@@ -734,7 +739,7 @@ func updateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 	for _, accessPoint := range daemon.AccessPoints {
 		accessPointTypes = append(accessPointTypes, accessPoint.Type)
 	}
-	err = DeleteAccessPoints(dbi, daemon.ID, accessPointTypes)
+	err := DeleteAccessPoints(dbi, daemon.ID, accessPointTypes)
 	if err != nil {
 		return errors.WithMessagef(err, "problem deleting access points for daemon %d", daemon.ID)
 	}
