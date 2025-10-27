@@ -72,7 +72,7 @@ func TestGetLogTargetByID(t *testing.T) {
 }
 
 // Test that log targets can be deleted by daemon ID except for specified IDs.
-func TestDeleteLogTargetByDaemonIDExcept(t *testing.T) {
+func TestDeleteLogTargetsByDaemonIDExcept(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
@@ -123,7 +123,7 @@ func TestDeleteLogTargetByDaemonIDExcept(t *testing.T) {
 	_ = AddDaemon(db, daemon2)
 
 	// Act
-	err = deleteLogTargetByDaemonIDExcept(db, daemon1.ID, []int64{daemon1.LogTargets[1].ID})
+	err = deleteLogTargetsByDaemonIDExcept(db, daemon1.ID, []int64{daemon1.LogTargets[1].ID})
 
 	// Assert
 	require.NoError(t, err)
@@ -141,7 +141,7 @@ func TestDeleteLogTargetByDaemonIDExcept(t *testing.T) {
 }
 
 // Test that all log targets of a daemon can be deleted.
-func TestDeleteLogTargetByDaemonIDAll(t *testing.T) {
+func TestDeleteLogTargetsByDaemonIDAll(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
@@ -192,7 +192,7 @@ func TestDeleteLogTargetByDaemonIDAll(t *testing.T) {
 	_ = AddDaemon(db, daemon2)
 
 	// Act
-	err = deleteLogTargetByDaemonIDExcept(db, daemon1.ID, []int64{})
+	err = deleteLogTargetsByDaemonIDExcept(db, daemon1.ID, []int64{})
 
 	// Assert
 	require.NoError(t, err)

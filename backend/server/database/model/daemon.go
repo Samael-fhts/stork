@@ -750,7 +750,7 @@ func updateDaemonRelations(dbi dbops.DBI, daemon *Daemon) error {
 			logTargetIDs = append(logTargetIDs, t.ID)
 		}
 	}
-	err = deleteLogTargetByDaemonIDExcept(dbi, daemon.ID, logTargetIDs)
+	err = deleteLogTargetsByDaemonIDExcept(dbi, daemon.ID, logTargetIDs)
 	if err != nil {
 		return errors.WithMessagef(err, "problem deleting log targets for updated daemon %d",
 			daemon.ID)
