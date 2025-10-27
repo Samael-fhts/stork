@@ -642,7 +642,7 @@ func addDaemon(tx *pg.Tx, daemon *Daemon) error {
 	// Add log targets.
 	for _, logTarget := range daemon.LogTargets {
 		logTarget.DaemonID = daemon.ID
-		err = AddLogTarget(tx, logTarget)
+		err = addLogTarget(tx, logTarget)
 		if err != nil {
 			return errors.WithMessagef(err, "problem adding log target %v for daemon %d",
 				logTarget, daemon.ID)
@@ -751,7 +751,7 @@ func updateDaemonRelations(dbi dbops.DBI, daemon *Daemon) error {
 			logTargetIDs = append(logTargetIDs, t.ID)
 		}
 	}
-	err = DeleteLogTargetByDaemonID(dbi, daemon.ID, logTargetIDs)
+	err = deleteLogTargetByDaemonIDExcept(dbi, daemon.ID, logTargetIDs)
 	if err != nil {
 		return errors.WithMessagef(err, "problem deleting log targets for updated daemon %d",
 			daemon.ID)
@@ -760,7 +760,7 @@ func updateDaemonRelations(dbi dbops.DBI, daemon *Daemon) error {
 	// Insert or update log targets.
 	for i := range daemon.LogTargets {
 		daemon.LogTargets[i].DaemonID = daemon.ID
-		err = AddOrUpdateLogTarget(dbi, daemon.LogTargets[i])
+		err = addOrUpdateLogTarget(dbi, daemon.LogTargets[i])
 		if err != nil {
 			return errors.WithMessagef(err, "problem altering log target %v for daemon %d",
 				daemon.LogTargets[i], daemon.ID)

@@ -38,7 +38,7 @@ func GetLogTargetByID(db dbops.DBI, id int64) (*LogTarget, error) {
 }
 
 // Deletes a log targets by IDs. Keeps the log targets with IDs in keepIDs slice.
-func DeleteLogTargetByDaemonID(db dbops.DBI, daemonID int64, keepIDs []int64) error {
+func deleteLogTargetByDaemonIDExcept(db dbops.DBI, daemonID int64, keepIDs []int64) error {
 	q := db.Model(&LogTarget{}).
 		Where("log_target.daemon_id = ?", daemonID)
 	if len(keepIDs) > 0 {
@@ -49,14 +49,17 @@ func DeleteLogTargetByDaemonID(db dbops.DBI, daemonID int64, keepIDs []int64) er
 }
 
 // Adds a log target to the database.
-func AddLogTarget(db dbops.DBI, logTarget *LogTarget) error {
+func addLogTarget(db dbops.DBI, logTarget *LogTarget) error {
 	_, err := db.Model(logTarget).Insert()
 	return pkgerrors.Wrapf(err, "problem adding log target %+v", logTarget)
 }
 
 // Updates a log target in the database.
-func UpdateLogTarget(db dbops.DBI, logTarget *LogTarget) error {
-	result, err := db.Model(logTarget).WherePK().Update()
+func updateLogTarget(db dbops.DBI, logTarget *LogTarget) error {
+	result, err := db.Model(logTarget).
+		ExcludeColumn("created_at").
+		WherePK().
+		Update()
 	if err != nil {
 		err = pkgerrors.Wrapf(err, "problem updating log target %+v", logTarget)
 	} else if result.RowsAffected() <= 0 {
@@ -68,9 +71,9 @@ func UpdateLogTarget(db dbops.DBI, logTarget *LogTarget) error {
 // Adds or updates a log target in the database.
 // If the log target has no id yet, it means that it is not yet present in the
 // database and should be inserted. Otherwise, it is updated.
-func AddOrUpdateLogTarget(db dbops.DBI, logTarget *LogTarget) error {
+func addOrUpdateLogTarget(db dbops.DBI, logTarget *LogTarget) error {
 	if logTarget.ID > 0 {
-		return UpdateLogTarget(db, logTarget)
+		return updateLogTarget(db, logTarget)
 	}
-	return AddLogTarget(db, logTarget)
+	return addLogTarget(db, logTarget)
 }
