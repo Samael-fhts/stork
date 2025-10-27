@@ -954,8 +954,7 @@ func (d Daemon) GetMachineID() int64 {
 }
 
 // The virtual app is a solution to preserve backward compatibility with the
-// legacy REST API. It mimics how the legacy App instance could look like for
-// a given daemon.
+// legacy REST API. It mimics a legacy App instance for a given daemon.
 type VirtualApp struct {
 	ID   int64
 	Name string
