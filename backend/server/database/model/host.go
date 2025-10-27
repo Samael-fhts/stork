@@ -362,8 +362,7 @@ func GetHostsByDaemonID(dbi dbops.DBI, daemonID int64, dataSource HostDataSource
 		}).
 		Relation("Subnet.LocalSubnets").
 		OrderExpr("id ASC").
-		Where("lh.daemon_id = ?", daemonID).
-		DistinctOn("host.id")
+		Where("lh.daemon_id = ?", daemonID)
 
 	// Optionally filter by a data source.
 	if dataSource.IsSpecified() {
