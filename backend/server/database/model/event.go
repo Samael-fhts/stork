@@ -74,15 +74,14 @@ func AddEvent(db *pg.DB, event *Event) error {
 // limit specify the beginning of the page and the maximum size of the
 // page. Limit has to be greater then 0, otherwise error is returned.
 // The level indicates the lowest level of events that should be
-// returned (0 - info, 1 - warning, 2 - error). daemonType and appType
-// allows selecting events only from given type of app ('kea',
-// 'bind9') or daemon (e.g. 'named' or 'dhcp4'. machineID and userID
-// allows selecting events connected with indicated machine or
-// user. sortField allows indicating sort column in database and
+// returned (0 - info, 1 - warning, 2 - error). daemon
+// allows selecting events only from given daemon (e.g. 'named' or 'dhcp4'.
+// machineID and userID allows selecting events connected with indicated
+// machine or user. sortField allows indicating sort column in database and
 // sortDir allows selection the order of sorting. If sortField is
 // empty then id is used for sorting. If SortDirAny is used then ASC
 // order is used.
-func GetEventsByPage(db *pg.DB, offset int64, limit int64, level EventLevel, daemonType *string, machineID *int64, userID *int64, sortField string, sortDir SortDirEnum) ([]Event, int64, error) {
+func GetEventsByPage(db *pg.DB, offset int64, limit int64, level EventLevel, daemonName *string, machineID *int64, userID *int64, sortField string, sortDir SortDirEnum) ([]Event, int64, error) {
 	if limit == 0 {
 		return nil, 0, pkgerrors.New("limit should be greater than 0")
 	}
@@ -93,9 +92,9 @@ func GetEventsByPage(db *pg.DB, offset int64, limit int64, level EventLevel, dae
 	if level > 0 {
 		q = q.Where("level >= ?", level)
 	}
-	if daemonType != nil {
+	if daemonName != nil {
 		q = q.Join("JOIN daemon ON daemon.id = CAST (relations->>'DaemonID' AS INTEGER)")
-		q = q.Where("daemon.name = ?", daemonType)
+		q = q.Where("daemon.name = ?", *daemonName)
 	}
 	if machineID != nil {
 		q = q.Where("CAST (relations->>'MachineID' AS INTEGER) = ?", *machineID)

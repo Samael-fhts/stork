@@ -169,8 +169,8 @@ func TestEvent(t *testing.T) {
 	require.Nil(t, events[0].SSEStreams)
 
 	// no events
-	unknownDaemonType := "unknownDaemonType"
-	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, &unknownDaemonType, nil, &u, "", SortDirAny)
+	unknownDaemonName := "unknownDaemon"
+	events, total, err = GetEventsByPage(db, 0, 10, EvInfo, &unknownDaemonName, nil, &u, "", SortDirAny)
 	require.NoError(t, err)
 	require.EqualValues(t, 0, total)
 	require.NotNil(t, events)
