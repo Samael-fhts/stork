@@ -1,5 +1,6 @@
 from playwright.sync_api import Page, expect
 
+
 class MachinesPage:
     def __init__(self, page: Page):
         self.page = page
@@ -14,10 +15,14 @@ class MachinesPage:
 
     # Sections: Unauthorized / Authorized
     def switch_to_unauthorized(self):
-        self.page.locator("#unauthorized-select-button").get_by_text("Unauthorized").click()
+        self.page.locator("#unauthorized-select-button").get_by_text(
+            "Unauthorized"
+        ).click()
 
     def switch_to_authorized(self):
-        self.page.locator("#unauthorized-select-button").get_by_text("Authorized", exact=True).click()
+        self.page.locator("#unauthorized-select-button").get_by_text(
+            "Authorized", exact=True
+        ).click()
 
     def search(self, text: str):
         self.page.get_by_role("textbox", name="Search machines").click()
@@ -30,10 +35,14 @@ class MachinesPage:
         self.page.get_by_role("button", name=" Refresh List").click()
 
     def expect_no_results_row(self):
-        expect(self.page.get_by_role("cell", name=" No machines found. Clear")).to_be_visible(timeout=3000)
+        expect(
+            self.page.get_by_role("cell", name=" No machines found. Clear")
+        ).to_be_visible(timeout=3000)
 
     def click_clear_in_no_results_row(self):
-        self.page.get_by_role("row", name=" No machines found. Clear").get_by_role("button").click()
+        self.page.get_by_role("row", name=" No machines found. Clear").get_by_role(
+            "button"
+        ).click()
 
     def select_machine_row(self, row_text: str):
         self.page.get_by_role("row", name=row_text).get_by_role("checkbox").check()
@@ -66,17 +75,20 @@ class MachinesPage:
 
     def wait_for_row(self, row_text: str, timeout_ms: int = 3000):
         """Ensure the target row is present before acting on it."""
-        self.page.get_by_role("row", name=row_text, exact=True).wait_for(timeout=timeout_ms)
+        self.page.get_by_role("row", name=row_text, exact=True).wait_for(
+            timeout=timeout_ms
+        )
 
     def open_actions_menu(self):
         self.page.locator("#show-machines-menu-1").click()
-
 
     def actions_authorize_from_menu(self):
         self.page.get_by_role("menuitem", name="Authorize").locator("a").click()
 
     def actions_refresh_state_from_menu(self):
-        self.page.get_by_role("menuitem", name="Refresh machine state").locator("a").click()
+        self.page.get_by_role("menuitem", name="Refresh machine state").locator(
+            "a"
+        ).click()
 
     def actions_download_archive_from_menu(self):
         with self.page.expect_download() as dl:
@@ -93,7 +105,9 @@ class MachinesPage:
         self.page.get_by_role("button", name=" Installing Stork Agent on a").click()
 
     def expect_install_dialog_title(self):
-        expect(self.page.get_by_text("Agent Installation Instructions", exact=True)).to_be_visible(timeout=3000)
+        expect(
+            self.page.get_by_text("Agent Installation Instructions", exact=True)
+        ).to_be_visible(timeout=3000)
 
     def assert_docs_link_opens_new_tab(self):
         """Click the docs link and assert a new tab."""
@@ -106,7 +120,9 @@ class MachinesPage:
             popup.close()
 
     def expect_wget_snippet_visible(self):
-        expect(self.page.get_by_text("wget http://localhost:42080/")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_text("wget http://localhost:42080/")).to_be_visible(
+            timeout=3000
+        )
 
     def click_copy_first(self):
         self.page.get_by_role("button", name="").first.click()
@@ -122,7 +138,9 @@ class MachinesPage:
         ) as resp_info:
             self.page.get_by_role("button", name=" Regenerate").click()
         resp = resp_info.value
-        assert resp.ok, f"Regenerate token failed: {resp.status} {getattr(resp, 'status_text', lambda: '')()}"
+        assert (
+            resp.ok
+        ), f"Regenerate token failed: {resp.status} {getattr(resp, 'status_text', lambda: '')()}"
 
     def close_install_dialog(self):
         self.page.get_by_role("button", name=" Close").click()

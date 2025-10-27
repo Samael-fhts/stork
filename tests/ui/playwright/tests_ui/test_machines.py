@@ -1,14 +1,13 @@
 import os
-import re
 import pytest
-from playwright.sync_api import expect
 from tests.ui.playwright.pages.login_page import LoginPage
 from tests.ui.playwright.pages.machines import MachinesPage
 
-BASE_URL       = os.getenv("STORK_BASE_URL", "http://localhost:42080")
-ADMIN_USER     = os.getenv("STORK_ADMIN_USER", "admin")
-ADMIN_PASS     = os.getenv("STORK_ADMIN_PASS", "admin")
+BASE_URL = os.getenv("STORK_BASE_URL", "http://localhost:42080")
+ADMIN_USER = os.getenv("STORK_ADMIN_USER", "admin")
+ADMIN_PASS = os.getenv("STORK_ADMIN_PASS", "admin")
 NEW_ADMIN_PASS = os.getenv("STORK_NEW_PASS", "A123456a!")
+
 
 @pytest.mark.ui
 @pytest.mark.usefixtures("clean_env")
@@ -67,6 +66,7 @@ def test_machines_unauthorized_to_authorized_flow(page):
     # Logout
     lp.logout("admin")
 
+
 @pytest.mark.ui
 @pytest.mark.usefixtures("clean_env")
 def test_machines_authorize_via_actions_and_cleanup(page):
@@ -98,13 +98,14 @@ def test_machines_authorize_via_actions_and_cleanup(page):
     mp.actions_refresh_state_from_menu()
 
     mp.open_actions_menu()
-    _download = mp.actions_download_archive_from_menu()
+    mp.actions_download_archive_from_menu()
 
     mp.open_actions_menu()
     mp.actions_remove_machine_from_menu()
 
     # Logout
     lp.logout("admin")
+
 
 @pytest.mark.ui
 def test_machines_installing_agent_dialog(page):
