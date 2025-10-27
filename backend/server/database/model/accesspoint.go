@@ -1,8 +1,6 @@
 package dbmodel
 
 import (
-	"errors"
-
 	"github.com/go-pg/pg/v10"
 	pkgerrors "github.com/pkg/errors"
 	dbops "isc.org/stork/server/database"
@@ -29,26 +27,8 @@ const (
 	AccessPointStatistics = "statistics"
 )
 
-// Get an access point by daemon id and access point type.
-func GetAccessPoint(db dbops.DBI, daemonID int64, accessPointType string) (*AccessPoint, error) {
-	accessPoint := &AccessPoint{DaemonID: daemonID, Type: accessPointType}
-	err := db.Model(accessPoint).WherePK().Select()
-
-	if errors.Is(err, pg.ErrNoRows) {
-		return nil, nil
-	} else if err != nil {
-		return nil, pkgerrors.Wrapf(
-			err,
-			"problem getting access point of daemon: %d and with type: %s",
-			daemonID,
-			accessPointType,
-		)
-	}
-	return accessPoint, nil
-}
-
 // Add or update an access point in the database.
-func AddOrUpdateAccessPoint(db dbops.DBI, accessPoint *AccessPoint) error {
+func addOrUpdateAccessPoint(db dbops.DBI, accessPoint *AccessPoint) error {
 	// If the access point already exists, update it.
 	_, err := db.Model(accessPoint).WherePK().OnConflict("(daemon_id, type) DO UPDATE").Insert()
 	if err != nil {
@@ -61,25 +41,10 @@ func AddOrUpdateAccessPoint(db dbops.DBI, accessPoint *AccessPoint) error {
 	return nil
 }
 
-// Deletes an access point by daemon id and access point type.
-func DeleteAccessPoint(db dbops.DBI, daemonID int64, accessPointType string) error {
-	accessPoint := &AccessPoint{DaemonID: daemonID, Type: accessPointType}
-	_, err := db.Model(accessPoint).WherePK().Delete()
-	if err != nil {
-		return pkgerrors.Wrapf(
-			err,
-			"problem deleting access point of daemon: %d and with type: %s",
-			daemonID,
-			accessPointType,
-		)
-	}
-	return nil
-}
-
 // Deletes all access points for a given daemon that doesn't match the provided
 // types. If `keepTypes` is empty, all access points for the daemon will be
 // deleted.
-func DeleteAccessPoints(db dbops.DBI, daemonID int64, keepTypes []string) error {
+func deleteAccessPointsExcept(db dbops.DBI, daemonID int64, keepTypes []string) error {
 	accessPoint := &AccessPoint{DaemonID: daemonID}
 	query := db.Model(accessPoint).Where("daemon_id = ?", daemonID)
 
