@@ -820,6 +820,9 @@ func TestShallowCopyKeaDaemon(t *testing.T) {
 	require.NotNil(t, copy.KeaDaemon)
 	require.NotSame(t, daemon, copy)
 	require.NotSame(t, daemon.KeaDaemon, copy.KeaDaemon)
+	require.Equal(t, daemon, copy)
+	require.Equal(t, daemon.Machine, copy.Machine)
+	require.Equal(t, daemon.MachineID, copy.MachineID)
 
 	// Repeat the same test but this time the KeaDaemon is nil.
 	daemon = &Daemon{}
