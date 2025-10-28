@@ -98,7 +98,7 @@ func GetMachineByAddressAndAgentPort(db *pg.DB, address string, agentPort int64)
 	q := db.Model(&machine)
 	q = q.Where("address = ?", address)
 	q = q.Where("agent_port = ?", agentPort)
-	q = q.Relation("Daemons.AccessPoints")
+	q = q.Relation(string(MachineRelationDaemonAccessPoints))
 	err := q.Select()
 	if errors.Is(err, pg.ErrNoRows) {
 		return nil, nil
@@ -185,7 +185,7 @@ func getMachineByID(db *pg.DB, id int64, relations []string) (*Machine, error) {
 func RefreshMachineFromDB(db *pg.DB, machine *Machine) error {
 	machine.Daemons = []*Daemon{}
 	q := db.Model(machine).Where("id = ?", machine.ID)
-	q = q.Relation("Daemons.AccessPoints")
+	q = q.Relation(string(MachineRelationDaemonAccessPoints))
 	err := q.Select()
 	if err != nil {
 		return pkgerrors.Wrapf(err, "problem getting machine %v", machine.ID)

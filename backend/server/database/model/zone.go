@@ -344,7 +344,7 @@ func GetZoneCountStatsByDaemon(db pg.DBI, daemonID int64) (*ZoneCountStats, erro
 // Retrieves a zone by its ID.
 func GetZoneByID(db pg.DBI, id int64) (*Zone, error) {
 	var zone Zone
-	err := db.Model(&zone).Relation("LocalZones").Where("id = ?", id).Select()
+	err := db.Model(&zone).Relation(string(ZoneRelationLocalZones)).Where("id = ?", id).Select()
 	if err != nil {
 		if errors.Is(err, pg.ErrNoRows) {
 			return nil, nil

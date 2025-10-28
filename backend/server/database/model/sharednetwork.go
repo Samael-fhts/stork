@@ -46,6 +46,7 @@ const (
 	SharedNetworkRelationLocalSharedNetworksKeaDaemon    SharedNetworkRelation = "LocalSharedNetworks.Daemon.KeaDaemon"
 	SharedNetworkRelationLocalSharedNetworksAccessPoints SharedNetworkRelation = "LocalSharedNetworks.Daemon.AccessPoints"
 	SharedNetworkRelationLocalSharedNetworksMachine      SharedNetworkRelation = "LocalSharedNetworks.Daemon.Machine"
+	SharedNetworkRelationSubnets                         SharedNetworkRelation = "Subnets"
 	SharedNetworkRelationLocalSubnets                    SharedNetworkRelation = "Subnets.LocalSubnets"
 	SharedNetworkRelationSubnetsAddressPools             SharedNetworkRelation = "Subnets.LocalSubnets.AddressPools"
 	SharedNetworkRelationSubnetsPrefixPools              SharedNetworkRelation = "Subnets.LocalSubnets.PrefixPools"
@@ -280,8 +281,8 @@ func DeleteDaemonsFromSharedNetwork(dbi dbops.DBI, sharedNetworkID int64) error 
 func GetAllSharedNetworks(dbi dbops.DBI, family int) ([]SharedNetwork, error) {
 	networks := []SharedNetwork{}
 	q := dbi.Model(&networks).
-		Relation("LocalSharedNetworks.Daemon.AccessPoints").
-		Relation("LocalSharedNetworks.Daemon.Machine")
+		Relation(string(SharedNetworkRelationLocalSharedNetworksAccessPoints)).
+		Relation(string(SharedNetworkRelationLocalSharedNetworksMachine))
 
 	if family == 4 || family == 6 {
 		q = q.Where("inet_family = ?", family)
@@ -369,8 +370,8 @@ func GetSharedNetworksByPage(dbi dbops.DBI, offset, limit, daemonID, family int6
 	}
 	q = q.DistinctOn(distinctOnFields)
 
-	q = q.Relation("LocalSharedNetworks.Daemon.AccessPoints").
-		Relation("LocalSharedNetworks.Daemon.Machine")
+	q = q.Relation(string(SharedNetworkRelationLocalSharedNetworksAccessPoints)).
+		Relation(string(SharedNetworkRelationLocalSharedNetworksMachine))
 
 	// If any of the filtering parameters are specified we need to explicitly join
 	// the subnets table so as we can access its columns in the Where clause.
@@ -382,11 +383,11 @@ func GetSharedNetworksByPage(dbi dbops.DBI, offset, limit, daemonID, family int6
 		q = q.Join("JOIN local_subnet AS ls").JoinOn("s.id = ls.subnet_id")
 	}
 	// Include address pools, prefix pools and the local subnet info in the results.
-	q = q.Relation("Subnets", func(q *orm.Query) (*orm.Query, error) {
+	q = q.Relation(string(SharedNetworkRelationSubnets), func(q *orm.Query) (*orm.Query, error) {
 		return q.Order("prefix ASC"), nil
 	}).
-		Relation("Subnets.LocalSubnets.Daemon.AccessPoints").
-		Relation("Subnets.LocalSubnets.Daemon.Machine")
+		Relation(string(SharedNetworkRelationSubnetsAccessPoints)).
+		Relation(string(SharedNetworkRelationSubnetsMachine))
 
 	// Let's be liberal and allow other values than 0 too. The only special
 	// ones are 4 and 6.
