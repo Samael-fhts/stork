@@ -318,19 +318,7 @@ func getAllMachinesWithRelations(db *pg.DB, authorized *bool, relations ...Machi
 
 // Get all machines from database without involving any DB relations. This is to have as lightweight DB query as possible. It can be filtered by authorized field.
 func GetAllMachinesNoRelations(db *pg.DB, authorized *bool) ([]Machine, error) {
-	var machines []Machine
-
-	// prepare query
-	q := db.Model(&machines)
-	if authorized != nil {
-		q = q.Where("authorized = ?", *authorized)
-	}
-	err := q.Select()
-	if err != nil && errors.Is(err, pg.ErrNoRows) {
-		return nil, pkgerrors.Wrapf(err, "problem getting machines")
-	}
-
-	return machines, nil
+	return getAllMachinesWithRelations(db, authorized)
 }
 
 // Returns the number of unauthorized machines.
