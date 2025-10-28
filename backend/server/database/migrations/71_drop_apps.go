@@ -283,18 +283,16 @@ func init() {
 				PRIMARY KEY (app_id, type);
 
 			-- Add foreign key constraints for access_point
-			ALTER TABLE access_point ADD CONSTRAINT access_point_app_id_fkey
+			ALTER TABLE access_point ADD CONSTRAINT access_point_app_id
 				FOREIGN KEY (app_id)
-				REFERENCES app(id)
-				MATCH FULL
-				ON UPDATE CASCADE
+				REFERENCES app (id) MATCH SIMPLE
+				ON UPDATE NO ACTION
 				ON DELETE CASCADE;
 
-			ALTER TABLE access_point ADD CONSTRAINT access_point_machine_id_fkey
+			ALTER TABLE access_point ADD CONSTRAINT access_point_machine_id
 				FOREIGN KEY (machine_id)
-				REFERENCES machine(id)
-				MATCH FULL
-				ON UPDATE CASCADE
+				REFERENCES machine (id) MATCH SIMPLE
+				ON UPDATE NO ACTION
 				ON DELETE CASCADE;
 
 			-- Drop the daemon_id foreign key from access_point
