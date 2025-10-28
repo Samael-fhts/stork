@@ -210,7 +210,7 @@ func init() {
 					ELSE 'kea'
 				END AS "type",
 				d.active,
-				json_object('version' VALUE d.version, 'extendedVersion' VALUE d.extended_version) AS meta,
+				json_build_object('version', d.version, 'extendedVersion', d.extended_version) AS meta,
 				'app-' || ap.address || '-' || ap.port AS "name"
 			FROM daemon d
 			RIGHT JOIN (
