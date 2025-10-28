@@ -390,13 +390,3 @@ func (machine *Machine) GetAgentPort() int64 {
 func (machine *Machine) GetHostname() string {
 	return machine.State.Hostname
 }
-
-// Returns a daemon by its name. If the daemon does not exist, it returns nil.
-func (machine *Machine) GetDaemonByName(name daemonname.Name) *Daemon {
-	for _, daemon := range machine.Daemons {
-		if daemon.Name == name {
-			return daemon
-		}
-	}
-	return nil
-}
