@@ -863,32 +863,33 @@ func TestDeleteMachineWithKeaDaemonOrphans(t *testing.T) {
 
 // Test deleting a machine and cascaded deletion of the orphaned
 // objects such as zones.
-func TestDeleteMachineWithBind9DaemonOrphans(t *testing.T) {
+func TestDeleteMachineWithDNSDaemonsOrphans(t *testing.T) {
+	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
 	// Add a machine.
-	m := &Machine{
+	machine := &Machine{
 		Address:   "localhost",
 		AgentPort: 8080,
 	}
-	err := AddMachine(db, m)
-	require.NoError(t, err)
+	_ = AddMachine(db, machine)
 
-	// Add a daemon.
-	daemon := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
-	err = AddDaemon(db, daemon)
-	require.NoError(t, err)
+	// Add daemons.
+	bind9Daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{})
+	_ = AddDaemon(db, bind9Daemon)
+	pdnsDaemon := NewDaemon(machine, daemonname.PDNS, true, []*AccessPoint{})
+	_ = AddDaemon(db, pdnsDaemon)
 
-	m, err = GetMachineByID(db, m.ID)
-	require.NoError(t, err)
+	// Re-fetch the machine instance.
+	machine, _ = GetMachineByID(db, machine.ID)
 
-	// Add a zone.
+	// Add zones.
 	zone := &Zone{
-		Name: "example.org",
+		Name: "exampleA.org",
 		LocalZones: []*LocalZone{
 			{
-				DaemonID: daemon.ID,
+				DaemonID: bind9Daemon.ID,
 				Class:    "IN",
 				Type:     "master",
 				Serial:   1,
@@ -896,11 +897,27 @@ func TestDeleteMachineWithBind9DaemonOrphans(t *testing.T) {
 			},
 		},
 	}
-	err = AddZones(db, zone)
-	require.NoError(t, err)
+	_ = AddZones(db, zone)
 
+	zone = &Zone{
+		Name: "exampleB.com",
+		LocalZones: []*LocalZone{
+			{
+				DaemonID: pdnsDaemon.ID,
+				Class:    "IN",
+				Type:     "master",
+				Serial:   1,
+				LoadedAt: time.Now(),
+			},
+		},
+	}
+	_ = AddZones(db, zone)
+
+	// Act
 	// Deleting the machine should cause deletion of the associated zone.
-	err = DeleteMachine(db, m)
+	err := DeleteMachine(db, machine)
+
+	// Assert
 	require.NoError(t, err)
 
 	returnedZones, _, err := GetZones(db, GetZonesFilter{})
