@@ -296,7 +296,6 @@ func init() {
 				ON DELETE CASCADE;
 
 			-- Drop the daemon_id foreign key from access_point
-			ALTER TABLE access_point DROP CONSTRAINT access_point_daemon_id_fkey;
 			ALTER TABLE access_point DROP COLUMN daemon_id;
 			
 			-- === MACHINE ===
