@@ -62,6 +62,16 @@ const (
 	StatNameAssignedOutOfPoolPDs StatName = "assigned-out-of-pool-pds"
 )
 
+// Identifier of the relations between a subnet and other tables.
+type SubnetRelation string
+
+const (
+	SubnetRelationSharedNetwork SubnetRelation = "SharedNetwork"
+	SubnetRelationLocalSubnets  SubnetRelation = "LocalSubnets"
+	SubnetRelationAddressPools  SubnetRelation = "LocalSubnets.AddressPools"
+	SubnetRelationPrefixPools   SubnetRelation = "LocalSubnets.PrefixPools"
+)
+
 // Custom statistic type to redefine JSON marshalling.
 type Stats map[StatName]any
 
@@ -709,11 +719,11 @@ func GetSubnetsByPage(dbi dbops.DBI, offset, limit int64, filters *SubnetsByPage
 	}
 	// Include pools, shared network the subnets belong to, local subnet info
 	// and the associated daemons in the results.
-	q = q.Relation("SharedNetwork").
-		Relation("LocalSubnets.AddressPools", func(q *orm.Query) (*orm.Query, error) {
+	q = q.Relation(string(SubnetRelationSharedNetwork)).
+		Relation(string(SubnetRelationAddressPools), func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("address_pool.id ASC"), nil
 		}).
-		Relation("LocalSubnets.PrefixPools", func(q *orm.Query) (*orm.Query, error) {
+		Relation(string(SubnetRelationPrefixPools), func(q *orm.Query) (*orm.Query, error) {
 			return q.Order("prefix_pool.id ASC"), nil
 		}).
 		Relation("LocalSubnets.Daemon.AccessPoints").
@@ -771,9 +781,9 @@ func GetSubnetsWithLocalSubnets(dbi dbops.DBI) ([]*Subnet, error) {
 	q := dbi.Model(&subnets)
 	// only selected columns are returned for performance reasons
 	q = q.Column("id", "shared_network_id", "prefix")
-	q = q.Relation("LocalSubnets")
-	q = q.Relation("LocalSubnets.AddressPools")
-	q = q.Relation("LocalSubnets.PrefixPools")
+	q = q.Relation(string(SubnetRelationLocalSubnets))
+	q = q.Relation(string(SubnetRelationAddressPools))
+	q = q.Relation(string(SubnetRelationPrefixPools))
 	q = q.Order("shared_network_id ASC")
 
 	err := q.Select()
