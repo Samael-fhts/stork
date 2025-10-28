@@ -214,7 +214,7 @@ func (rpsWorker *RpsWorker) updateKeaDaemonRpsStats(daemon *dbmodel.Daemon) erro
 	daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS2 = calculateRps(rps2)
 
 	// Update the daemon statistics.
-	log.Printf("Updating KeaDHCPDaemonStats: %+v", daemon.KeaDaemon.KeaDHCPDaemon.Stats)
+	log.Infof("Updating KeaDHCPDaemonStats: %+v", daemon.KeaDaemon.KeaDHCPDaemon.Stats)
 	return dbmodel.UpdateDaemon(rpsWorker.db, daemon)
 }
 
