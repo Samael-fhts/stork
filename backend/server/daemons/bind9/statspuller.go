@@ -76,5 +76,5 @@ func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error
 	if err != nil {
 		return err
 	}
-	return dbmodel.UpdateDaemon(statsPuller.DB, daemon)
+	return dbmodel.UpdateDaemonStatistics(statsPuller.DB, daemon)
 }

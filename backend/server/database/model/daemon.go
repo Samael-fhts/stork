@@ -780,6 +780,44 @@ func UpdateDaemon(dbi dbops.DBI, daemon *Daemon) error {
 	return updateDaemon(dbi.(*pg.Tx), daemon)
 }
 
+// Updates a daemon statistics information only.
+func updateDaemonStatistics(dbi dbops.DBI, daemon *Daemon) error {
+	if daemon.Bind9Daemon != nil {
+		result, err := dbi.Model(daemon.Bind9Daemon).WherePK().Update()
+		if err != nil {
+			return errors.Wrapf(err, "problem updating BIND 9-specific information for daemon %d",
+				daemon.ID)
+		} else if result.RowsAffected() <= 0 {
+			return errors.Wrapf(ErrNotExists, "BIND 9 daemon with ID %d does not exist", daemon.Bind9Daemon.ID)
+		}
+	}
+
+	if daemon.KeaDaemon != nil && daemon.KeaDaemon.KeaDHCPDaemon != nil {
+		result, err := dbi.Model(daemon.KeaDaemon.KeaDHCPDaemon).WherePK().Update()
+		if err != nil {
+			return errors.Wrapf(err, "problem updating Kea DHCP-specific information for daemon %d",
+				daemon.ID)
+		} else if result.RowsAffected() <= 0 {
+			return errors.Wrapf(ErrNotExists, "Kea DHCP daemon with ID %d does not exist",
+				daemon.KeaDaemon.KeaDHCPDaemon.ID)
+		}
+
+	}
+
+	return nil
+}
+
+// Updates a daemon statistics information only. Wraps the update in a
+// transaction if necessary.
+func UpdateDaemonStatistics(dbi dbops.DBI, daemon *Daemon) error {
+	if db, ok := dbi.(*pg.DB); ok {
+		return db.RunInTransaction(context.Background(), func(tx *pg.Tx) error {
+			return updateDaemonStatistics(tx, daemon)
+		})
+	}
+	return updateDaemonStatistics(dbi.(*pg.Tx), daemon)
+}
+
 // Deletes a daemon from the database and its references.
 func deleteDaemon(tx *pg.Tx, daemon *Daemon) error {
 	result, err := tx.Model(daemon).WherePK().Delete()

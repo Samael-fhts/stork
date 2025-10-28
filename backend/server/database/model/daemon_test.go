@@ -157,6 +157,82 @@ func TestUpdateBind9Daemon(t *testing.T) {
 	require.EqualValues(t, 123, updatedDaemon.Bind9Daemon.Stats.ZoneCount)
 }
 
+// Test that the daemon statistics are properly updated.
+func TestUpdateDaemonStatistics(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{Address: "localhost", AgentPort: 8080}
+	_ = AddMachine(db, m)
+
+	t.Run("KeaDHCPDaemon", func(t *testing.T) {
+		daemon := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
+		_ = AddDaemon(db, daemon)
+		daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS1 = 42
+		daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS2 = 24
+		daemon.Active = false
+
+		// Act
+		err := UpdateDaemonStatistics(db, daemon)
+
+		// Assert
+		require.NoError(t, err)
+		daemon, _ = GetDaemonByID(db, daemon.ID)
+		require.EqualValues(t, 42, daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS1)
+		require.EqualValues(t, 24, daemon.KeaDaemon.KeaDHCPDaemon.Stats.RPS2)
+		require.True(t, daemon.Active)
+	})
+
+	t.Run("KeaDaemon", func(t *testing.T) {
+		daemon := NewDaemon(m, daemonname.CA, true, []*AccessPoint{})
+		_ = AddDaemon(db, daemon)
+		daemon.Active = false
+
+		// Act
+		err := UpdateDaemonStatistics(db, daemon)
+
+		// Assert
+		require.NoError(t, err)
+		daemon, _ = GetDaemonByID(db, daemon.ID)
+		require.Nil(t, daemon.KeaDaemon.KeaDHCPDaemon)
+		require.True(t, daemon.Active)
+	})
+
+	t.Run("Bind9Daemon", func(t *testing.T) {
+		daemon := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
+		_ = AddDaemon(db, daemon)
+		daemon.Bind9Daemon.Stats.ZoneCount = 42
+		daemon.Bind9Daemon.Stats.NamedStats.BootTime = "2024-01-01T12:00:00Z"
+		daemon.Active = false
+
+		// Act
+		err := UpdateDaemonStatistics(db, daemon)
+
+		// Assert
+		require.NoError(t, err)
+		daemon, _ = GetDaemonByID(db, daemon.ID)
+		require.EqualValues(t, 42, daemon.Bind9Daemon.Stats.ZoneCount)
+		require.Equal(t, "2024-01-01T12:00:00Z", daemon.Bind9Daemon.Stats.NamedStats.BootTime)
+		require.True(t, daemon.Active)
+	})
+
+	t.Run("PDNSDaemon", func(t *testing.T) {
+		daemon := NewDaemon(m, daemonname.PDNS, true, []*AccessPoint{})
+		_ = AddDaemon(db, daemon)
+		daemon.Active = false
+
+		// Act
+		err := UpdateDaemonStatistics(db, daemon)
+
+		// Assert
+		require.NoError(t, err)
+		daemon, _ = GetDaemonByID(db, daemon.ID)
+		require.True(t, daemon.Active)
+	})
+
+}
+
 // Returns all HA state names to which the daemon belongs and the
 // failure times.
 func TestGetHAOverview(t *testing.T) {
