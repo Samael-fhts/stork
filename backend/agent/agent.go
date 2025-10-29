@@ -40,7 +40,7 @@ type StorkAgent struct {
 	Host string
 	Port int
 	// Explicitly provided BIND 9 configuration path by user. It will be used
-	// to detect the BIND 9 app. It may be empty.
+	// to detect the BIND 9 daemon. It may be empty.
 	ExplicitBind9ConfigPath string
 	Monitor                 Monitor
 	// BIND9 HTTP stats client.
@@ -48,7 +48,7 @@ type StorkAgent struct {
 	// PowerDNS webserver client.
 	pdnsClient *pdnsClient
 	// An HTTP client configuration used to create the HTTP clients for
-	// particular Kea applications.
+	// particular Kea daemons.
 	// If the agent is registered, it will use the GRPC credentials obtained
 	// from the server as TLS client certificate.
 	KeaHTTPClientConfig HTTPClientConfig
@@ -471,7 +471,7 @@ func (sa *StorkAgent) GetPowerDNSServerInfo(ctx context.Context, req *agentapi.G
 	if daemon == nil {
 		st := status.Newf(codes.FailedPrecondition, "PowerDNS server %s:%d not found", req.WebserverAddress, req.WebserverPort)
 		ds, err := st.WithDetails(&errdetails.ErrorInfo{
-			Reason: "APP_NOT_FOUND",
+			Reason: "DAEMON_NOT_FOUND",
 		})
 		if err != nil {
 			// If this unlikely error occurs, it is better to return the original
@@ -663,7 +663,7 @@ func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.Se
 	if inventory == nil {
 		// This is also an exceptional case. All DNS servers should have the
 		// zone inventory initialized.
-		return status.New(codes.FailedPrecondition, "attempted to receive DNS zones from an app for which zone inventory was not instantiated").Err()
+		return status.New(codes.FailedPrecondition, "attempted to receive DNS zones from a daemon for which zone inventory was not instantiated").Err()
 	}
 	// Set filtering rules based on the request.
 	var filter *bind9stats.ZoneFilter
@@ -755,7 +755,7 @@ func (sa *StorkAgent) ReceiveZoneRRs(req *agentapi.ReceiveZoneRRsReq, server grp
 	if inventory == nil {
 		// This is also an exceptional case. All DNS servers should have the
 		// zone inventory initialized.
-		return status.New(codes.FailedPrecondition, "attempted to receive DNS zone RRs from an app for which zone inventory was not instantiated").Err()
+		return status.New(codes.FailedPrecondition, "attempted to receive DNS zone RRs from a daemon for which zone inventory was not instantiated").Err()
 	}
 	respChan, err := inventory.requestAXFR(req.ZoneName, req.ViewName)
 	if err != nil {

@@ -665,7 +665,7 @@ func TestForwardRndcCommandError(t *testing.T) {
 }
 
 // Test rndc command when there is no daemon.
-func TestForwardRndcCommandNoApp(t *testing.T) {
+func TestForwardRndcCommandNoDaemon(t *testing.T) {
 	sa, ctx, teardown := setupAgentTest()
 	defer teardown()
 
@@ -1470,11 +1470,11 @@ func TestReceiveZonesNilZoneInventory(t *testing.T) {
 		ViewName:       "_default",
 		LoadedAfter:    time.Date(2024, 2, 3, 15, 19, 0, 0, time.UTC).Unix(),
 	}, mock)
-	require.Contains(t, err.Error(), "attempted to receive DNS zones from an app for which zone inventory was not instantiated")
+	require.Contains(t, err.Error(), "attempted to receive DNS zones from a daemon for which zone inventory was not instantiated")
 }
 
-// Test that an error is returned when the app is not a DNS server.
-func TestReceiveZonesUnsupportedApp(t *testing.T) {
+// Test that an error is returned when the daemon is not a DNS server.
+func TestReceiveZonesUnsupportedDaemon(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
@@ -1506,7 +1506,7 @@ func TestReceiveZonesUnsupportedApp(t *testing.T) {
 		ControlPort:    1234,
 	}, mock)
 	require.Error(t, err)
-	require.Contains(t, err.Error(), "attempted to receive DNS zones from an unsupported app")
+	require.Contains(t, err.Error(), "attempted to receive DNS zones from an unsupported daemon")
 }
 
 // Test that specific error is returned when the zone inventory was not initialized
@@ -1914,7 +1914,7 @@ func TestReceiveZoneRRsNilZoneInventory(t *testing.T) {
 		ZoneName:       "example.com",
 		ViewName:       "trusted",
 	}, mock)
-	require.Contains(t, err.Error(), "attempted to receive DNS zone RRs from an app for which zone inventory was not instantiated")
+	require.Contains(t, err.Error(), "attempted to receive DNS zone RRs from a daemon for which zone inventory was not instantiated")
 }
 
 // Test that specific error is returned when the zone inventory was not initialized
@@ -2165,7 +2165,7 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 
 // Test that the correct error is returned when the specified PowerDNS
 // server was not found by the control address and port.
-func TestGetPowerDNSServerInfoNoApp(t *testing.T) {
+func TestGetPowerDNSServerInfoNoDaemon(t *testing.T) {
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
 
@@ -2188,7 +2188,7 @@ func TestGetPowerDNSServerInfoNoApp(t *testing.T) {
 	require.Len(t, details, 1)
 	info, ok := details[0].(*errdetails.ErrorInfo)
 	require.True(t, ok)
-	require.Equal(t, "APP_NOT_FOUND", info.Reason)
+	require.Equal(t, "DAEMON_NOT_FOUND", info.Reason)
 }
 
 // Test that the correct error is returned when the API key is not configured
