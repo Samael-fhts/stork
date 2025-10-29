@@ -159,10 +159,22 @@ class MachinesPage:
         self.page.get_by_role("button", name="").first.click()
 
     def regenerate_token_and_wait(self):
-        """
-        Click 'Regenerate' and assert the backend call was made.
-        No toast is shown, so we verify the PUT /api/machines-server-token response is OK.
-        """
+        """Regenerates the server token and verifies the result without exposing the token:
+        1) Snapshot current token value from the Agent Installation dialog input.
+        2) Click 'Regenerate' and assert PUT /api/machines-server-token succeeds.
+        3) Read the new token and assert it is non-empty and different.
+        4) Click 'Copy server token to clipboard' and assert clipboard == new token.
+
+          Note: token values are never printed or logged."""
+        # 1) read current token
+        token_input = (
+            self.page.get_by_role("dialog", name="Agent Installation")
+            .locator("input")
+            .first
+        )
+        old_token = token_input.input_value()
+
+        # 2) regenerate and assert backend call
         with self.page.expect_response(
             lambda r: r.request.method == "PUT"
             and r.url.endswith("/api/machines-server-token")
@@ -172,6 +184,19 @@ class MachinesPage:
         assert (
             resp.ok
         ), f"Regenerate token failed: {resp.status} {getattr(resp, 'status_text', lambda: '')()}"
+
+        # 3) verify token changed
+        new_token = token_input.input_value()
+        assert new_token, "New token is empty"
+        assert new_token != old_token, "Token was not regenerated (value unchanged)"
+
+        # 4) verify clipboard copy matches the new token
+        self.page.context.grant_permissions(["clipboard-read", "clipboard-write"])
+        self.page.locator("[ptooltip='Copy server token to clipboard']").click()
+        clipboard_value = self.page.evaluate("navigator.clipboard.readText()")
+        assert (
+            clipboard_value == new_token
+        ), "Copied token does not match the current token"
 
     def close_install_dialog(self):
         self.page.get_by_role("button", name=re.compile(r"\bClose\b", re.I)).click()
