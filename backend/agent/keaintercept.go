@@ -101,7 +101,7 @@ func (i *keaInterceptor) registerSync(callback func(*StorkAgent, *keactrl.Respon
 // callback is invoked separately for each daemon which responded to the command.
 // The result of the callbacks may to affect the response forwarded to the Stork Server.
 // Synchronous handler is executed before asynchronous one.
-func (i *keaInterceptor) syncHandle(agent *StorkAgent, request keactrl.Command, response keactrl.Response) (keactrl.Response, error) {
+func (i *keaInterceptor) syncHandle(agent *StorkAgent, request keactrl.SerializableCommand, response keactrl.Response) (keactrl.Response, error) {
 	changedResponse, err := i.handle(i.syncTargets, agent, request, response)
 	err = errors.WithMessage(err, "Failed to execute synchronous handlers")
 	return changedResponse, err
@@ -113,7 +113,7 @@ func (i *keaInterceptor) syncHandle(agent *StorkAgent, request keactrl.Command, 
 // which can be run independently from the agent. The agent may send back the
 // response to the server while these callbacks are invoked. The result of the
 // callbacks do not affect the response forwarded to the Stork Server.
-func (i *keaInterceptor) asyncHandle(agent *StorkAgent, request keactrl.Command, response keactrl.Response) {
+func (i *keaInterceptor) asyncHandle(agent *StorkAgent, request keactrl.SerializableCommand, response keactrl.Response) {
 	// We don't want to run the handlers concurrently in case they update the same
 	// data structures. Also, we want to avoid registration of handlers while we're
 	// here.
@@ -128,23 +128,24 @@ func (i *keaInterceptor) asyncHandle(agent *StorkAgent, request keactrl.Command,
 
 // Common part of asynchronous and synchronous handlers. Returns the serialized
 // response after modifications performed by callbacks or error.
-func (i *keaInterceptor) handle(targets map[keactrl.CommandName]*keaInterceptorTarget, agent *StorkAgent, command keactrl.Command, response keactrl.Response) (keactrl.Response, error) {
+func (i *keaInterceptor) handle(targets map[keactrl.CommandName]*keaInterceptorTarget, agent *StorkAgent, command keactrl.SerializableCommand, response keactrl.Response) (keactrl.Response, error) {
 	// Check if there is any handler registered for this command.
-	target, ok := targets[command.Command]
+	target, ok := targets[command.GetCommand()]
 	if !ok {
 		return response, nil
 	}
 
 	// Check what daemons the callbacks need to be invoked for.
-	switch len(command.Daemons) {
+	daemons := command.GetDaemonsList()
+	switch len(daemons) {
 	case 0:
 		// No daemon specified, this field is required by Stork agent.
-		return keactrl.Response{}, errors.Errorf("no daemon specified in the command %s", command.Command)
+		return keactrl.Response{}, errors.Errorf("no daemon specified in the command %s", command.GetCommand())
 	case 1:
 		// Only one daemon specified, so we can proceed.
 	default:
 		// More than one daemon specified. This is not supported.
-		return keactrl.Response{}, errors.Errorf("multiple daemons specified in the command %s", command.Command)
+		return keactrl.Response{}, errors.Errorf("multiple daemons specified in the command %s", command.GetCommand())
 	}
 
 	// Invoke callbacks for each handler registered for this command.
@@ -155,7 +156,7 @@ func (i *keaInterceptor) handle(targets map[keactrl.CommandName]*keaInterceptorT
 		if callback != nil {
 			err := callback(agent, &processedResponse)
 			if err != nil {
-				err = errors.WithMessagef(err, "Callback returned an error for command %s", command.Command)
+				err = errors.WithMessagef(err, "Callback returned an error for command %s", command.GetCommand())
 				return keactrl.Response{}, err
 			}
 		}

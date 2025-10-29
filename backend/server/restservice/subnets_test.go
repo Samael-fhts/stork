@@ -3586,6 +3586,7 @@ func TestUpdateSubnet6BeginSubmitRemoveFromSharedNetwork(t *testing.T) {
 	require.Len(t, fa.RecordedCommands, 3)
 
 	for i, c := range fa.RecordedCommands {
+		marshalled, _ := c.Marshal()
 		switch i {
 		case 0:
 			require.JSONEq(t,
@@ -3607,8 +3608,7 @@ func TestUpdateSubnet6BeginSubmitRemoveFromSharedNetwork(t *testing.T) {
 						}
 					]
 				}
-			}`,
-				func() string { data, _ := c.Marshal(); return string(data) }())
+			}`, string(marshalled))
 		case 1:
 			require.JSONEq(t,
 				`{
@@ -3618,15 +3618,14 @@ func TestUpdateSubnet6BeginSubmitRemoveFromSharedNetwork(t *testing.T) {
 						"name": "foo",
 						"id": 1
 					}
-				}`,
-				func() string { data, _ := c.Marshal(); return string(data) }())
+				}`, string(marshalled))
 		default:
 			require.JSONEq(t,
 				`{
 						"command": "config-write",
 						"service": [ "dhcp6" ]
 				}`,
-				func() string { data, _ := c.Marshal(); return string(data) }())
+				string(marshalled))
 		}
 	}
 

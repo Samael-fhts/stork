@@ -602,7 +602,7 @@ func newFakeKeaSender() *fakeKeaSender {
 }
 
 // Increment call counter and return fixed data.
-func (s *fakeKeaSender) sendCommand(ctx context.Context, command *keactrl.Command, response any) error {
+func (s *fakeKeaSender) sendCommand(ctx context.Context, command keactrl.SerializableCommand, response any) error {
 	s.callCount++
 	if s.err != nil {
 		return s.err

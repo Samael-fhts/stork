@@ -32,26 +32,14 @@ type KeaDaemon struct {
 }
 
 // Sends a command to Kea and returns a response.
-func (d *KeaDaemon) sendCommand(ctx context.Context, command *keactrl.Command, response any) error {
+func (d *KeaDaemon) sendCommand(ctx context.Context, command keactrl.SerializableCommand, response any) error {
 	if d.connector == nil {
 		return errors.New("cannot send command to Kea because no control access point is configured")
-	}
-
-	// Stork requires that command has exactly one target daemon.
-	// However, Kea CA expects that if the command is targeted to itself,
-	// the Daemons field must be empty.
-	isCATarget := len(command.Daemons) == 1 && command.Daemons[0] == daemonname.CA
-	if isCATarget {
-		command.Daemons = nil
 	}
 
 	commandBytes, err := command.Marshal()
 	if err != nil {
 		return errors.WithMessagef(err, "failed to marshal command to JSON")
-	}
-
-	if isCATarget {
-		command.Daemons = []daemonname.Name{daemonname.CA}
 	}
 
 	// Send the command to the Kea server.

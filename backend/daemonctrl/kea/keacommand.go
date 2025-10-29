@@ -8,6 +8,7 @@ import (
 
 	"github.com/pkg/errors"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	storkutil "isc.org/stork/util"
 )
 
 // Kea command name type.
@@ -45,9 +46,9 @@ type SerializableCommand interface {
 // Represents a command sent to Kea including command name, daemons list
 // (service list in Kea terms) and arguments.
 type Command struct {
-	Command   CommandName       `json:"command"`
-	Daemons   []daemonname.Name `json:"service,omitempty"`
-	Arguments interface{}       `json:"arguments,omitempty"`
+	Command   CommandName                `json:"command"`
+	Daemons   []daemonname.Name          `json:"service,omitempty"`
+	Arguments *storkutil.RawMessageOrAny `json:"arguments,omitempty"`
 }
 
 // Common fields in each received Kea response.
@@ -125,47 +126,33 @@ type ExaminableResponse interface {
 	GetArguments() json.RawMessage
 }
 
-// Given the command pointer it returns existing arguments map or creates
-// a new arguments map, if it doesn't exist yet. It panics when the existing
-// arguments are not a map.
-func createOrGetArguments(command *Command) (mapArgs map[string]any) {
-	if command.Arguments == nil {
-		mapArgs = make(map[string]any)
-		command.Arguments = mapArgs
-		return
-	}
-	var ok bool
-	mapArgs, ok = command.Arguments.(map[string]any)
-	if !ok {
-		panic("command arguments are not a map")
-	}
-	return
-}
-
 // Creates new Kea command from specified command name, daemons list and arguments.
 // The arguments are required to be a map or struct.
 func newCommand(command CommandName, daemon daemonname.Name, arguments any) *Command {
 	if len(command) == 0 {
 		return nil
 	}
+
 	if arguments != nil {
-		argsType := reflect.TypeOf(arguments)
-		switch argsType.Kind() {
-		case reflect.Map, reflect.Struct:
-			break
-		case reflect.Ptr:
-			if argsType.Elem().Kind() != reflect.Struct {
+		if _, ok := arguments.(json.RawMessage); !ok {
+			argsType := reflect.TypeOf(arguments)
+			switch argsType.Kind() {
+			case reflect.Map, reflect.Struct:
+				break
+			case reflect.Ptr:
+				if argsType.Elem().Kind() != reflect.Struct {
+					return nil
+				}
+			default:
 				return nil
 			}
-		default:
-			return nil
 		}
 	}
 
 	cmd := &Command{
 		Command:   command,
 		Daemons:   []daemonname.Name{daemon},
-		Arguments: arguments,
+		Arguments: storkutil.NewRawMessageOrAny(arguments),
 	}
 	return cmd
 }
@@ -186,35 +173,6 @@ func NewCommandBase(command CommandName, daemon daemonname.Name) *Command {
 	return newCommand(command, daemon, nil)
 }
 
-// Appends argument to the command. If the arguments are nil, the
-// map of arguments is instantiated by this function. If the arguments
-// are not a map, this function panics. Otherwise, the specified argument
-// is set in the arguments map under the specified name.
-func (c Command) WithArgument(name string, value any) *Command {
-	command := c
-	mapValue := createOrGetArguments(&command)
-	mapValue[name] = value
-	return &command
-}
-
-// Appends an array of arguments to the command. If the arguments are nil,
-// the map of arguments is instantiated by this function. If the arguments
-// are not a map, this function panics. Otherwise, an array of values is
-// set in the arguments map under the specified name.
-func (c Command) WithArrayArgument(name string, value ...any) *Command {
-	command := c
-	mapValue := createOrGetArguments(&command)
-	mapValue[name] = value
-	return &command
-}
-
-// Sets arguments for a command and returns a command copy.
-func (c Command) WithArguments(arguments any) *Command {
-	command := c
-	command.Arguments = arguments
-	return &command
-}
-
 // Returns command name.
 func (c Command) GetCommand() CommandName {
 	return c.Command
@@ -227,10 +185,23 @@ func (c Command) GetDaemonsList() []daemonname.Name {
 
 // Marshals the command to JSON.
 func (c Command) Marshal() ([]byte, error) {
+	// Stork requires that command has exactly one target daemon.
+	// However, Kea CA expects that if the command is targeted to itself,
+	// the Daemons field must be empty.
+	isCATarget := len(c.Daemons) == 1 && c.Daemons[0] == daemonname.CA
+	if isCATarget {
+		c.Daemons = nil
+	}
+
 	data, err := json.Marshal(c)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to marshal Kea command: %s", c.Command)
 	}
+
+	if isCATarget {
+		c.Daemons = append(c.Daemons, daemonname.CA)
+	}
+
 	return data, nil
 }
 

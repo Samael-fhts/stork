@@ -16,5 +16,5 @@ const (
 )
 
 func NewCommandConfigSet(config *keaconfig.Config, daemonName daemonname.Name) *Command {
-	return NewCommandBase(ConfigSet, daemonName).WithArguments(config)
+	return newCommand(ConfigSet, daemonName, config)
 }

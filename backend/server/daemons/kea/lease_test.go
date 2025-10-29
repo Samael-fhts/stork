@@ -817,10 +817,10 @@ func TestGetLeases4Empty(t *testing.T) {
 	require.Empty(t, leases)
 
 	// Ensure that MAC address was converted to the format expected by Kea.
-	arguments := agents.RecordedCommands[0].(*keactrl.Command).Arguments
+	arguments := agents.GetCommandArguments(0)
 	require.NotNil(t, arguments)
-	require.Contains(t, arguments.(map[string]interface{}), "hw-address")
-	require.Equal(t, "00:00:00:00:00:00", (arguments.(map[string]interface{}))["hw-address"])
+	require.Contains(t, arguments, "hw-address")
+	require.Equal(t, "00:00:00:00:00:00", arguments["hw-address"])
 }
 
 // Test the scenario in sending lease6-get-by-hostname command to Kea when
@@ -1164,10 +1164,10 @@ func TestFindLeases(t *testing.T) {
 
 	// In addition, ensure that the HW address was converted to the format
 	// expected by Kea.
-	arguments := agents.RecordedCommands[0].(*keactrl.Command).Arguments
+	arguments := agents.GetCommandArguments(0)
 	require.NotNil(t, arguments)
-	require.Contains(t, arguments.(map[string]interface{}), "hw-address")
-	require.Equal(t, "01:02:03:04:05:06", (arguments.(map[string]interface{}))["hw-address"])
+	require.Contains(t, arguments, "hw-address")
+	require.Equal(t, "01:02:03:04:05:06", arguments["hw-address"])
 
 	agents = agentcommtest.NewFakeAgents(mockLeases4GetEmpty, nil)
 
@@ -1355,16 +1355,16 @@ func TestFindDeclinedLeases(t *testing.T) {
 	require.Equal(t, keactrl.Lease6GetByDUID, agents.RecordedCommands[1].GetCommand())
 
 	// Ensure that the hw-address sent in the first command is empty.
-	arguments := agents.RecordedCommands[0].(*keactrl.Command).Arguments
+	arguments := agents.GetCommandArguments(0)
 	require.NotNil(t, arguments)
-	require.Contains(t, arguments.(map[string]interface{}), "hw-address")
-	require.Empty(t, (arguments.(map[string]interface{}))["hw-address"])
+	require.Contains(t, arguments, "hw-address")
+	require.Empty(t, arguments["hw-address"])
 
 	// Ensure that the DUID sent in the second command is empty ("00:00:00").
-	arguments = agents.RecordedCommands[1].(*keactrl.Command).Arguments
+	arguments = agents.GetCommandArguments(1)
 	require.NotNil(t, arguments)
-	require.Contains(t, arguments.(map[string]interface{}), "duid")
-	require.Equal(t, "00:00:00", (arguments.(map[string]interface{}))["duid"])
+	require.Contains(t, arguments, "duid")
+	require.Equal(t, "00:00:00", arguments["duid"])
 
 	// Simulate an error in the first response. The daemon returning an error should
 	// be recorded, but the DHCPv6 lease should still be returned.
@@ -1463,16 +1463,16 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 	require.Equal(t, keactrl.Lease6GetByDUID, agents.RecordedCommands[1].GetCommand())
 
 	// Ensure that the hw-address sent in the first command is empty.
-	arguments := agents.RecordedCommands[0].(*keactrl.Command).Arguments
+	arguments := agents.GetCommandArguments(0)
 	require.NotNil(t, arguments)
-	require.Contains(t, arguments.(map[string]interface{}), "hw-address")
-	require.Empty(t, (arguments.(map[string]interface{}))["hw-address"])
+	require.Contains(t, arguments, "hw-address")
+	require.Empty(t, arguments["hw-address"])
 
 	// Ensure that the DUID sent in the second command is empty ("0").
-	arguments = agents.RecordedCommands[1].(*keactrl.Command).Arguments
+	arguments = agents.GetCommandArguments(1)
 	require.NotNil(t, arguments)
-	require.Contains(t, arguments.(map[string]interface{}), "duid")
-	require.Equal(t, "0", (arguments.(map[string]interface{}))["duid"])
+	require.Contains(t, arguments, "duid")
+	require.Equal(t, "0", arguments["duid"])
 
 	// Simulate an error in the first response. The daemon returning an error should
 	// be recorded, but the DHCPv6 lease should still be returned.

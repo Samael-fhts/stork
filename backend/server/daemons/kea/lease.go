@@ -67,7 +67,7 @@ func validateGetLeasesResponse(commandName keactrl.CommandName, result keactrl.R
 // If the lease is found, the pointer to it is returned. If the lease does not
 // exist, a nil pointer and nil error are returned.
 func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, ipAddress string) (lease *dbmodel.Lease, err error) {
-	command := keactrl.NewCommandLease4Get(ipAddress, daemonname.DHCPv4)
+	command := keactrl.NewCommandLease4Get(ipAddress)
 	var response Lease4GetResponse
 	ctx := context.Background()
 	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{command}, &response)
@@ -94,7 +94,7 @@ func GetLease4ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daem
 // it is returned. If the lease does not exist, a nil pointer and nil error
 // are returned.
 func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, leaseType keactrl.LeaseType, ipAddress string) (lease *dbmodel.Lease, err error) {
-	command := keactrl.NewCommandLease6Get(leaseType, ipAddress, daemonname.DHCPv6)
+	command := keactrl.NewCommandLease6Get(leaseType, ipAddress)
 	var response Lease6GetResponse
 	ctx := context.Background()
 	respResult, err := agents.ForwardToKeaOverHTTP(ctx, daemon, []keactrl.SerializableCommand{command}, &response)
@@ -128,48 +128,42 @@ func GetLease6ByIPAddress(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daem
 func getLeasesByProperties(agents agentcomm.ConnectedAgents, daemon *dbmodel.Daemon, propertyValue string, commandNames ...keactrl.CommandName) (leases []dbmodel.Lease, warns bool, err error) {
 	var commands []keactrl.SerializableCommand
 	for _, commandName := range commandNames {
-		var propertyName string
-		sentPropertyValue := propertyValue
+		var command *keactrl.Command
+		propertyValue := propertyValue // Make a copy to ensure changes do not affect other commands.
 		switch commandName {
 		case keactrl.Lease4GetByHWAddress:
 			// Searching by empty MAC address is allowed when trying to find declined leases.
 			// If the value is non-empty, it has to be properly formatted.
-			if len(sentPropertyValue) > 0 {
+			if len(propertyValue) > 0 {
 				// When searching by MAC address we must ensure that it has the format
 				// expected by Kea, i.e. 01:02:03:04:05:06.
-				if formattedPropertyValue, ok := storkutil.FormatMACAddress(sentPropertyValue); ok {
-					sentPropertyValue = formattedPropertyValue
+				if formattedPropertyValue, ok := storkutil.FormatMACAddress(propertyValue); ok {
+					propertyValue = formattedPropertyValue
 				} else {
 					return leases, false, errors.Errorf("invalid format of the property %s used to get leases by MAC address from Kea", propertyValue)
 				}
 			}
-			propertyName = "hw-address"
+			command = keactrl.NewCommandLease4GetByHWAddress(propertyValue)
 		case keactrl.Lease4GetByClientID:
-			propertyName = "client-id"
+			command = keactrl.NewCommandLease4GetByClientID(propertyValue)
 		case keactrl.Lease6GetByDUID:
 			// Kea does not accept empty DUIDs. Empty DUID in Kea is represented by 1 zero byte (Kea < 2.3.8) or 3 zero bytes (Kea >= 2.3.8).
-			if len(sentPropertyValue) == 0 {
+			if len(propertyValue) == 0 {
 				semver := storkutil.ParseSemanticVersionOrLatest(daemon.Version)
 				if semver.LessThan(storkutil.NewSemanticVersion(2, 3, 8)) {
-					sentPropertyValue = "0"
+					propertyValue = "0"
 				} else {
-					sentPropertyValue = "00:00:00"
+					propertyValue = "00:00:00"
 				}
 			}
-			propertyName = "duid"
+			command = keactrl.NewCommandLease6GetByDUID(propertyValue)
 		case keactrl.Lease4GetByHostname:
-			if err != nil {
-				return leases, false, err
-			}
-			propertyName = "hostname"
+			command = keactrl.NewCommandLease4GetByHostname(propertyValue)
 		case keactrl.Lease6GetByHostname:
-			propertyName = "hostname"
+			command = keactrl.NewCommandLease6GetByHostname(propertyValue)
 		default:
 			continue
 		}
-
-		command := keactrl.NewCommandBase(commandName, daemon.Name).
-			WithArgument(propertyName, sentPropertyValue)
 		commands = append(commands, command)
 	}
 

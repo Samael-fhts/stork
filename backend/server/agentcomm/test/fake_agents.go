@@ -111,13 +111,41 @@ func (fa *FakeAgents) GetState(ctx context.Context, machine dbmodel.MachineTag) 
 	return &state, nil
 }
 
+// Returns the received command by FakeAgents with a specific index or nil if
+// no command has been received yet or the index is out of range.
+func (fa *FakeAgents) GetCommand(index int) *keactrl.Command {
+	if index < 0 || index >= len(fa.RecordedCommands) {
+		return nil
+	}
+	return fa.RecordedCommands[index].(*keactrl.Command)
+}
+
 // Returns last received command by FakeAgents or nil if no command
 // has been received yet.
 func (fa *FakeAgents) GetLastCommand() *keactrl.Command {
-	if len(fa.RecordedCommands) == 0 {
+	return fa.GetCommand(len(fa.RecordedCommands) - 1)
+}
+
+// Returns arguments of the received command by FakeAgents with a specific
+// index or nil if no command has been received yet.
+func (fa *FakeAgents) GetCommandArguments(index int) map[string]any {
+	command := fa.GetCommand(index)
+	if command == nil {
 		return nil
 	}
-	return fa.RecordedCommands[len(fa.RecordedCommands)-1].(*keactrl.Command)
+
+	var arguments map[string]any
+	err := command.Arguments.UnmarshalInto(&arguments)
+	if err != nil {
+		return nil
+	}
+	return arguments
+}
+
+// Returns arguments of the last received command by FakeAgents or nil if no
+// command has been received yet.
+func (fa *FakeAgents) GetLastCommandArguments() map[string]any {
+	return fa.GetCommandArguments(len(fa.RecordedCommands) - 1)
 }
 
 // FakeAgents specific implementation of the function to forward a command

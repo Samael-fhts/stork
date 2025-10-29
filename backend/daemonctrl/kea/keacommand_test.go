@@ -11,10 +11,11 @@ const valuesSetCommand CommandName = "values-set"
 
 // Test successful creation of the Kea command with daemons and arguments.
 func TestNewCommand(t *testing.T) {
-	cmd := NewCommandBase(valuesSetCommand, daemonname.DHCPv4).
-		WithArgument("value-a", 1).
-		WithArgument("value-b", 2).
-		WithArrayArgument("value-c", 1, 2, 3)
+	cmd := newCommand(valuesSetCommand, daemonname.DHCPv4, map[string]any{
+		"value-a": 1,
+		"value-b": 2,
+		"value-c": []any{1, 2, 3},
+	})
 
 	require.NotNil(t, cmd)
 	require.NotNil(t, cmd.Daemons)
@@ -23,10 +24,14 @@ func TestNewCommand(t *testing.T) {
 	require.Equal(t, valuesSetCommand, cmd.Command)
 	require.Len(t, cmd.Daemons, 1)
 	require.Contains(t, cmd.Daemons, daemonname.DHCPv4)
-	require.Contains(t, cmd.Arguments.(map[string]any), "value-a")
-	require.Contains(t, cmd.Arguments.(map[string]any), "value-b")
-	require.Contains(t, cmd.Arguments.(map[string]any), "value-c")
-	require.NotContains(t, cmd.Arguments.(map[string]any), "value-d")
+	var arguments map[string]any
+	err := cmd.Arguments.UnmarshalInto(&arguments)
+	require.NoError(t, err)
+	require.IsType(t, map[string]any{}, arguments)
+	require.Contains(t, arguments, "value-a")
+	require.Contains(t, arguments, "value-b")
+	require.Contains(t, arguments, "value-c")
+	require.NotContains(t, arguments, "value-d")
 }
 
 // Test successful creation of the Kea command with arguments specified as a structure.
@@ -48,7 +53,10 @@ func TestNewCommandWithStructArgs(t *testing.T) {
 	require.Equal(t, valuesSetCommand, cmd.Command)
 	require.Len(t, cmd.Daemons, 1)
 	require.Contains(t, cmd.Daemons, daemonname.DHCPv4)
-	require.Equal(t, args, cmd.Arguments)
+	var outputArgs argsType
+	err := cmd.Arguments.UnmarshalInto(&outputArgs)
+	require.NoError(t, err)
+	require.Equal(t, args, outputArgs)
 }
 
 // Test successful creation of the Kea command with arguments specified as a pointer
@@ -67,7 +75,10 @@ func TestNewCommandWithStructPtrArgs(t *testing.T) {
 	require.Equal(t, valuesSetCommand, cmd.Command)
 	require.Len(t, cmd.Daemons, 1)
 	require.Contains(t, cmd.Daemons, daemonname.DHCPv4)
-	require.Equal(t, &args, cmd.Arguments)
+	var outputArgs argsType
+	err := cmd.Arguments.UnmarshalInto(&outputArgs)
+	require.NoError(t, err)
+	require.Equal(t, args, outputArgs)
 }
 
 // Test that the command is not created when the arguments have an invalid type.
@@ -97,8 +108,11 @@ func TestNewCommandFromJSON(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, Subnet4Get, command.Command)
 	require.NotNil(t, command.Arguments)
-	require.Contains(t, command.Arguments, "subnet-id")
-	require.EqualValues(t, 10, (command.Arguments.(map[string]any))["subnet-id"])
+	var arguments map[string]any
+	err = command.Arguments.UnmarshalInto(&arguments)
+	require.NoError(t, err)
+	require.Contains(t, arguments, "subnet-id")
+	require.EqualValues(t, 10, arguments["subnet-id"])
 	require.NotNil(t, command.Daemons)
 	require.Contains(t, command.Daemons, daemonname.DHCPv4)
 }
@@ -115,20 +129,22 @@ func TestNewCommandFromJSONNoService(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, Subnet4Get, command.Command)
 	require.NotNil(t, command.Arguments)
-	require.Contains(t, command.Arguments, "subnet-id")
-	require.EqualValues(t, 11, (command.Arguments.(map[string]any))["subnet-id"])
+	var arguments map[string]any
+	err = command.Arguments.UnmarshalInto(&arguments)
+	require.NoError(t, err)
+	require.Contains(t, arguments, "subnet-id")
+	require.EqualValues(t, 11, arguments["subnet-id"])
 	require.Nil(t, command.Daemons)
 }
 
 // Test instantiating a command with no arguments.
 func TestNewCommandWithNoArgs(t *testing.T) {
-	command := NewCommandBase(ListCommands, daemonname.DHCPv4).
-		WithArgument("daemon", daemonname.DHCPv6)
+	command := NewCommandBase(ListCommands, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Equal(t, ListCommands, command.Command)
 	require.Len(t, command.Daemons, 1)
 	require.Equal(t, daemonname.DHCPv4, command.Daemons[0])
-	require.NotNil(t, command.Arguments)
+	require.Nil(t, command.Arguments)
 }
 
 // Test instantiating a command with no arguments and no daemons.
@@ -147,9 +163,10 @@ func TestNewCommandWithNoArgsNoDaemons(t *testing.T) {
 
 // Test creating a new command with non-array arguments.
 func TestNewCommandWithArgs(t *testing.T) {
-	command := NewCommandBase(CommandName("test"), daemonname.DHCPv4).
-		WithArgument("element", 5).
-		WithArgument("element2", "foo")
+	command := newCommand(CommandName("test"), daemonname.DHCPv4, map[string]any{
+		"element":  5,
+		"element2": "foo",
+	})
 	require.NotNil(t, command)
 	marshaledBytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -165,9 +182,10 @@ func TestNewCommandWithArgs(t *testing.T) {
 
 // Tests creating a new command with array argument.
 func TestNewCommandWithArrayArgs(t *testing.T) {
-	command := NewCommandBase(CommandName("test"), daemonname.DHCPv4).
-		WithArrayArgument("element", 5, 9).
-		WithArrayArgument("element2", "foo")
+	command := newCommand(CommandName("test"), daemonname.DHCPv4, map[string]any{
+		"element":  []any{5, 9},
+		"element2": []any{"foo"},
+	})
 	require.NotNil(t, command)
 	marshaledBytes, err := command.Marshal()
 	require.NoError(t, err)
@@ -181,59 +199,14 @@ func TestNewCommandWithArrayArgs(t *testing.T) {
 	}`, string(marshaledBytes))
 }
 
-// Test that creating new command panics when the existing arguments are not
-// a map.
-func TestNewCommandWithNonMapArguments(t *testing.T) {
-	command := Command{
-		Command:   CommandName("test"),
-		Arguments: []string{},
-	}
-	require.NotNil(t, command)
-	require.Panics(t, func() { command.WithArgument("foo", "bar") })
-}
-
-// Test setting and overriding command arguments.
-func TestNewCommandWithArguments(t *testing.T) {
-	// Create a command with no arguments.
-	command := NewCommandBase(CommandName("test"), daemonname.DHCPv4)
-	require.NotNil(t, command)
-
-	// Assign some arguments.
-	command = command.WithArguments(map[string]any{
-		"foo": "bar",
-	})
-	marshaledBytes, err := command.Marshal()
-	require.NoError(t, err)
-	require.JSONEq(t, `{
-		"command": "test",
-		"service": ["dhcp4"],
-		"arguments": {
-			"foo": "bar"
-		}
-	}`, string(marshaledBytes))
-
-	// Override the arguments.
-	command = command.WithArguments(map[string]any{
-		"baz": 5,
-	})
-	marshaledBytes, err = command.Marshal()
-	require.NoError(t, err)
-	require.JSONEq(t, `{
-		"command": "test",
-		"service": ["dhcp4"],
-		"arguments": {
-			"baz": 5
-		}
-	}`, string(marshaledBytes))
-}
-
 // Test that JSON representation of the command is created correctly when
 // both daemon name (service in Kea terms) and arguments are present.
 func TestKeaCommandMarshal(t *testing.T) {
-	cmd := NewCommandBase(valuesSetCommand, daemonname.DHCPv4).
-		WithArgument("value-a", 1).
-		WithArgument("value-b", 2).
-		WithArrayArgument("value-c", 1, 2, 3)
+	cmd := newCommand(valuesSetCommand, daemonname.DHCPv4, map[string]any{
+		"value-a": 1,
+		"value-b": 2,
+		"value-c": []any{1, 2, 3},
+	})
 	require.NotNil(t, cmd)
 
 	marshaled, err := cmd.Marshal()

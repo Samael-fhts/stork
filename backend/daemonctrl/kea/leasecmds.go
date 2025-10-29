@@ -21,13 +21,39 @@ const (
 )
 
 // Creates lease4-get command.
-func NewCommandLease4Get(ipAddress string, daemon daemonname.Name) *Command {
-	return NewCommandBase(Lease4Get, daemon).WithArgument("ip-address", ipAddress)
+func NewCommandLease4Get(ipAddress string) *Command {
+	return newCommand(Lease4Get, daemonname.DHCPv4, map[string]any{"ip-address": ipAddress})
 }
 
 // Creates lease6-get command.
-func NewCommandLease6Get(leaseType LeaseType, ipAddress string, daemon daemonname.Name) *Command {
-	return NewCommandBase(Lease6Get, daemon).
-		WithArgument("type", leaseType).
-		WithArgument("ip-address", ipAddress)
+func NewCommandLease6Get(leaseType LeaseType, ipAddress string) *Command {
+	return newCommand(Lease6Get, daemonname.DHCPv6, map[string]any{
+		"type":       leaseType,
+		"ip-address": ipAddress,
+	})
+}
+
+// Creates lease4-get-by-hw-address command.
+func NewCommandLease4GetByHWAddress(hwAddress string) *Command {
+	return newCommand(Lease4GetByHWAddress, daemonname.DHCPv4, map[string]any{"hw-address": hwAddress})
+}
+
+// Creates lease4-get-by-client-id command.
+func NewCommandLease4GetByClientID(clientID string) *Command {
+	return newCommand(Lease4GetByClientID, daemonname.DHCPv4, map[string]any{"client-id": clientID})
+}
+
+// Creates lease6-get-by-duid command.
+func NewCommandLease6GetByDUID(duid string) *Command {
+	return newCommand(Lease6GetByDUID, daemonname.DHCPv6, map[string]any{"duid": duid})
+}
+
+// Creates lease4-get-by-hostname command.
+func NewCommandLease4GetByHostname(hostname string) *Command {
+	return newCommand(Lease4GetByHostname, daemonname.DHCPv4, map[string]any{"hostname": hostname})
+}
+
+// Creates lease6-get-by-hostname command.
+func NewCommandLease6GetByHostname(hostname string) *Command {
+	return newCommand(Lease6GetByHostname, daemonname.DHCPv6, map[string]any{"hostname": hostname})
 }

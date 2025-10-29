@@ -29,36 +29,38 @@ const (
 
 // Creates network4-add command.
 func NewCommandNetwork4Add(sharedNetwork *keaconfig.SharedNetwork4, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Network4Add, daemonName).WithArrayArgument("shared-networks", sharedNetwork)
+	return newCommand(Network4Add, daemonName, map[string]any{"shared-networks": []any{sharedNetwork}})
 }
 
 // Creates network6-add command.
 func NewCommandNetwork6Add(sharedNetwork *keaconfig.SharedNetwork6, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Network6Add, daemonName).WithArrayArgument("shared-networks", sharedNetwork)
+	return newCommand(Network6Add, daemonName, map[string]any{"shared-networks": []any{sharedNetwork}})
 }
 
 // Creates network4-del command.
 func NewCommandNetwork4Del(sharedNetwork *keaconfig.SubnetCmdsDeletedSharedNetwork, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Network4Del, daemonName).WithArguments(sharedNetwork)
+	return newCommand(Network4Del, daemonName, sharedNetwork)
 }
 
 // Creates network6-del command.
 func NewCommandNetwork6Del(sharedNetwork *keaconfig.SubnetCmdsDeletedSharedNetwork, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Network6Del, daemonName).WithArguments(sharedNetwork)
+	return newCommand(Network6Del, daemonName, sharedNetwork)
 }
 
 // Creates network4-subnet-add command.
 func NewCommandNetwork4SubnetAdd(sharedNetworkName string, localSubnetID int64, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Network4SubnetAdd, daemonName).
-		WithArgument("id", localSubnetID).
-		WithArgument("name", sharedNetworkName)
+	return newCommand(Network4SubnetAdd, daemonName, map[string]any{
+		"id":   localSubnetID,
+		"name": sharedNetworkName,
+	})
 }
 
 // Creates network6-subnet-add command.
 func NewCommandNetwork6SubnetAdd(sharedNetworkName string, localSubnetID int64, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Network6SubnetAdd, daemonName).
-		WithArgument("id", localSubnetID).
-		WithArgument("name", sharedNetworkName)
+	return newCommand(Network6SubnetAdd, daemonName, map[string]any{
+		"id":   localSubnetID,
+		"name": sharedNetworkName,
+	})
 }
 
 // Creates network4-subnet-del command.
@@ -80,19 +82,20 @@ func NewCommandNetworkSubnetDel(family int, sharedNetworkName string, localSubne
 	default:
 		commandName = Network6SubnetDel
 	}
-	return NewCommandBase(commandName, daemonName).
-		WithArgument("id", localSubnetID).
-		WithArgument("name", sharedNetworkName)
+	return newCommand(commandName, daemonName, map[string]any{
+		"id":   localSubnetID,
+		"name": sharedNetworkName,
+	})
 }
 
 // Creates subnet4-add command.
 func NewCommandSubnet4Add(subnet *keaconfig.Subnet4, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Subnet4Add, daemonName).WithArrayArgument("subnet4", subnet)
+	return newCommand(Subnet4Add, daemonName, map[string]any{"subnet4": []any{subnet}})
 }
 
 // Creates subnet6-add command.
 func NewCommandSubnet6Add(subnet *keaconfig.Subnet6, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Subnet6Add, daemonName).WithArrayArgument("subnet6", subnet)
+	return newCommand(Subnet6Add, daemonName, map[string]any{"subnet6": []any{subnet}})
 }
 
 // Creates subnet4-del command.
@@ -114,16 +117,15 @@ func NewCommandSubnetDel(family int, subnet *keaconfig.SubnetCmdsDeletedSubnet, 
 	default:
 		commandName = Subnet6Del
 	}
-	return NewCommandBase(commandName, daemonName).
-		WithArgument("id", subnet.ID)
+	return newCommand(commandName, daemonName, map[string]any{"id": subnet.ID})
 }
 
 // Creates subnet4-update command.
 func NewCommandSubnet4Update(subnet *keaconfig.Subnet4, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Subnet4Update, daemonName).WithArrayArgument("subnet4", subnet)
+	return newCommand(Subnet4Update, daemonName, map[string]any{"subnet4": []any{subnet}})
 }
 
 // Creates subnet6-update command.
 func NewCommandSubnet6Update(subnet *keaconfig.Subnet6, daemonName daemonname.Name) *Command {
-	return NewCommandBase(Subnet6Update, daemonName).WithArrayArgument("subnet6", subnet)
+	return newCommand(Subnet6Update, daemonName, map[string]any{"subnet6": []any{subnet}})
 }
