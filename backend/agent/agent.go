@@ -655,7 +655,7 @@ func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.Se
 		// include the detailed error message.
 		return status.New(
 			codes.InvalidArgument,
-			fmt.Sprintf("attempted to receive DNS zones from an unsupported app: %s", daemon.GetName()),
+			fmt.Sprintf("attempted to receive DNS zones from an unsupported daemon: %s", daemon.GetName()),
 		).Err()
 	}
 
