@@ -6,7 +6,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -299,7 +300,7 @@ func TestFindLeases6(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv6, true, accessPoints)
@@ -428,7 +429,7 @@ func TestFindLeasesEmptyText(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
@@ -489,7 +490,7 @@ func TestFindDeclinedLeases(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 

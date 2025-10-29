@@ -10,7 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	bind9config "isc.org/stork/daemoncfg/bind9"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
 )

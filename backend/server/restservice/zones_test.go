@@ -16,7 +16,8 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	dnsconfig "isc.org/stork/daemoncfg/dnsconfig"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -74,7 +75,7 @@ func TestGetZones(t *testing.T) {
 			Address:  "localhost",
 			Port:     8080,
 			Key:      "",
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		}
 
 		daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})
@@ -433,7 +434,7 @@ func TestGetZonesFetch(t *testing.T) {
 			Address:  "localhost",
 			Port:     8080,
 			Key:      "",
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		}
 
 		daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})

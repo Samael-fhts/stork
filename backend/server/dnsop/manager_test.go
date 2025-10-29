@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	dnsconfig "isc.org/stork/daemoncfg/dnsconfig"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	bind9stats "isc.org/stork/daemondata/bind9stats"
 	agentcomm "isc.org/stork/server/agentcomm"
 	appstest "isc.org/stork/server/daemons/test"

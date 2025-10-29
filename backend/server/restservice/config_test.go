@@ -8,7 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configreview"
@@ -154,7 +155,7 @@ func TestGetDaemonConfigWithSecretsForSuperAdmin(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -445,7 +446,7 @@ func TestGetDaemonConfigForKeaDaemonWithoutAssignedConfiguration(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -684,7 +685,7 @@ func TestGetDaemonConfigReports(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -920,7 +921,7 @@ func TestPutDaemonConfigReview(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -1051,7 +1052,7 @@ func TestPutDaemonConfigReviewNoConfig(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon4 := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -1162,7 +1163,7 @@ func TestGetDaemonConfigCheckers(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -1326,7 +1327,7 @@ func TestPutDaemonConfigCheckerPreferencesAPIResponse(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -1376,7 +1377,7 @@ func TestPutNewDaemonConfigCheckers(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -1426,7 +1427,7 @@ func TestPutDaemonConfigCheckerPreferencesUpdate(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})

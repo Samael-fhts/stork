@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 )
 
 // Test that the Kea Control Agent configuration without comments is parsed.
@@ -392,7 +393,7 @@ func TestKeaControlAgentConfigurationDoNotUseSecureProtocol(t *testing.T) {
 			// Assert
 			require.Len(t, controlSockets, 1)
 			controlSocket := controlSockets[0]
-			require.Equal(t, "http", controlSocket.GetProtocol())
+			require.Equal(t, protocoltype.HTTP, controlSocket.GetProtocol())
 		})
 	}
 }

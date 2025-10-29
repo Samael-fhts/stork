@@ -6,7 +6,8 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -108,14 +109,14 @@ func TestStatsPullerPullStats(t *testing.T) {
 			Address:  "127.0.0.1",
 			Port:     953,
 			Key:      "abcd",
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		},
 		{
 			Type:     dbmodel.AccessPointStatistics,
 			Address:  "127.0.0.1",
 			Port:     8000,
 			Key:      "abcd",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	})
 	err = CommitDaemonIntoDB(db, daemon1, fec)
@@ -136,14 +137,14 @@ func TestStatsPullerPullStats(t *testing.T) {
 			Address:  "127.0.0.1",
 			Port:     953,
 			Key:      "abcd",
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		},
 		{
 			Type:     dbmodel.AccessPointStatistics,
 			Address:  "127.0.0.1",
 			Port:     8000,
 			Key:      "abcd",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	})
 	err = CommitDaemonIntoDB(db, daemon2, fec)
@@ -235,14 +236,14 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 			Address:  "127.0.0.1",
 			Port:     953,
 			Key:      "abcd",
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		},
 		{
 			Type:     dbmodel.AccessPointStatistics,
 			Address:  "127.0.0.1",
 			Port:     8000,
 			Key:      "abcd",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	})
 	err = CommitDaemonIntoDB(db, daemon, fec)
@@ -304,14 +305,14 @@ func TestStatsPullerPullStatsForPartiallyDetectedDaemon(t *testing.T) {
 			Address:  "127.0.0.1",
 			Port:     953,
 			Key:      "abcd",
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		},
 		{
 			Type:     dbmodel.AccessPointStatistics,
 			Address:  "127.0.0.1",
 			Port:     8000,
 			Key:      "abcd",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	})
 	// Don't set the Bind9Daemon to simulate a partially detected daemon

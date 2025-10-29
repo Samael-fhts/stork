@@ -242,8 +242,8 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 				Address:           point.Address,
 				Port:              point.Port,
 				Key:               point.Key,
-				Protocol:          point.Protocol,
-				UseSecureProtocol: point.Protocol == "https",
+				Protocol:          string(point.Protocol),
+				UseSecureProtocol: point.Protocol.IsSecure(),
 			})
 		}
 

@@ -18,7 +18,8 @@ import (
 	"google.golang.org/grpc/status"
 	agentapi "isc.org/stork/api"
 	"isc.org/stork/daemoncfg/dnsconfig"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	dbmodel "isc.org/stork/server/database/model"
@@ -597,7 +598,7 @@ func TestForwardToNamedStats(t *testing.T) {
 				Type:     AccessPointStatistics,
 				Address:  "localhost",
 				Port:     8000,
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		}, agentapi.ForwardToNamedStatsReq_SERVER, &actualResponse)
 	require.NoError(t, err)

@@ -10,7 +10,8 @@ import (
 	log "github.com/sirupsen/logrus"
 	bind9config "isc.org/stork/daemoncfg/bind9"
 	pdnsconfig "isc.org/stork/daemoncfg/pdns"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	storkutil "isc.org/stork/util"
 )
 
@@ -19,23 +20,13 @@ type AgentManager interface {
 	AllowLog(path string)
 }
 
-// Supported protocol types.
-type ProtocolType string
-
-const (
-	ProtocolTypeHTTP   ProtocolType = "http"
-	ProtocolTypeHTTPS  ProtocolType = "https"
-	ProtocolTypeSocket ProtocolType = "unix"
-	ProtocolTypeRNDC   ProtocolType = "rndc"
-)
-
 // An access point for an application to retrieve information such
 // as status or metrics.
 type AccessPoint struct {
 	Type     string
 	Address  string
 	Port     int64
-	Protocol string
+	Protocol protocoltype.ProtocolType
 	Key      string
 }
 
@@ -53,7 +44,7 @@ func (ap *AccessPoint) String() string {
 	var b strings.Builder
 	b.WriteString(ap.Type)
 	b.WriteString(": ")
-	b.WriteString(storkutil.HostWithPortURL(ap.Address, ap.Port, ap.Protocol))
+	b.WriteString(storkutil.HostWithPortURL(ap.Address, ap.Port, string(ap.Protocol)))
 	if ap.Type == AccessPointControl {
 		b.WriteString(" (auth key: ")
 		if ap.Key != "" {

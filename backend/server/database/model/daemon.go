@@ -11,7 +11,8 @@ import (
 	"github.com/go-pg/pg/v10/orm"
 	errors "github.com/pkg/errors"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/daemondata/bind9stats"
 	dbops "isc.org/stork/server/database"
 )
@@ -140,7 +141,7 @@ func (d Daemon) GetAccessPoint(accessPointType string) (ap *AccessPoint, err err
 }
 
 // Returns daemon control access point members.
-func (d Daemon) GetControlAccessPoint() (address string, port int64, key string, protocol string, err error) {
+func (d Daemon) GetControlAccessPoint() (address string, port int64, key string, protocol protocoltype.ProtocolType, err error) {
 	var ap *AccessPoint
 	ap, err = d.GetAccessPoint(AccessPointControl)
 	if err == nil {
@@ -153,7 +154,7 @@ func (d Daemon) GetControlAccessPoint() (address string, port int64, key string,
 }
 
 // Returns daemon statistics access point members.
-func (d Daemon) GetStatisticsAccessPoint() (address string, port int64, key string, protocol string, err error) {
+func (d Daemon) GetStatisticsAccessPoint() (address string, port int64, key string, protocol protocoltype.ProtocolType, err error) {
 	var ap *AccessPoint
 	ap, err = d.GetAccessPoint(AccessPointStatistics)
 	if err == nil {

@@ -9,7 +9,7 @@ import (
 
 	"github.com/go-pg/pg/v10/types"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	storkutil "isc.org/stork/util"
 )
 

@@ -14,7 +14,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	bind9config "isc.org/stork/daemoncfg/bind9"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	storkutil "isc.org/stork/util"
 )
 
@@ -679,7 +680,7 @@ func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, e
 			Address:  ctrlAddress,
 			Port:     ctrlPort,
 			Key:      rndcKey,
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		},
 	}
 
@@ -691,7 +692,7 @@ func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, e
 			Type:     AccessPointStatistics,
 			Address:  address,
 			Port:     port,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		})
 		client := NewBind9StatsClient()
 		// For larger deployments, it may take several minutes to retrieve the

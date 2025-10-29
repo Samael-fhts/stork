@@ -1,6 +1,6 @@
 package keactrl
 
-import "isc.org/stork/daemonctrl/daemonname"
+import "isc.org/stork/daemonctrl/constants/daemonname"
 
 // Lease type specified in the commands.
 type LeaseType string

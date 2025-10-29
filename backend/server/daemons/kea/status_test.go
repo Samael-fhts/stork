@@ -9,7 +9,8 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -566,7 +567,7 @@ func TestGetDHCPStatus(t *testing.T) {
 			Address:  "",
 			Port:     1234,
 			Key:      "",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 
@@ -677,7 +678,7 @@ func TestGetDHCPStatusNoHA(t *testing.T) {
 			Address:  "",
 			Port:     1234,
 			Key:      "",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 
@@ -769,7 +770,7 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 			Address:  "",
 			Port:     1234,
 			Key:      "",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 
@@ -984,7 +985,7 @@ func TestPullHAStatusHub(t *testing.T) {
 			Address:  "",
 			Port:     1234,
 			Key:      "",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 

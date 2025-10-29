@@ -7,7 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -193,7 +194,7 @@ func TestGetDaemonStateWith2Daemons(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "192.0.2.0",
 			Port:     1234,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 
@@ -349,7 +350,7 @@ func TestCommitDaemonIntoDB(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "",
 			Port:     1234,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 	daemon := dbmodel.NewDaemon(machine, daemonname.CA, true, accessPoints)
@@ -362,7 +363,7 @@ func TestCommitDaemonIntoDB(t *testing.T) {
 
 	// now change access point (different port) and trigger updating daemon in database
 	daemon.AccessPoints[0].Port = 2345
-	daemon.AccessPoints[0].Protocol = "https"
+	daemon.AccessPoints[0].Protocol = protocoltype.HTTPS
 	states = []DaemonStateMeta{{IsConfigChanged: true}}
 	err = CommitDaemonsIntoDB(db, daemons, fec, states, lookup)
 	require.NoError(t, err)
@@ -372,5 +373,5 @@ func TestCommitDaemonIntoDB(t *testing.T) {
 	require.NotNil(t, returned)
 	require.Len(t, returned.AccessPoints, 1)
 	require.EqualValues(t, 2345, returned.AccessPoints[0].Port)
-	require.Equal(t, "https", returned.AccessPoints[0].Protocol)
+	require.Equal(t, protocoltype.HTTPS, returned.AccessPoints[0].Protocol)
 }

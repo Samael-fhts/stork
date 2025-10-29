@@ -10,7 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 )
 
 //go:embed testdata/bind9-prom-server-stats.json
@@ -28,14 +29,14 @@ func (fdm *PromFakeBind9DaemonMonitor) GetDaemons() []Daemon {
 			Type:     AccessPointStatistics,
 			Address:  "localhost",
 			Port:     1234,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 		{
 			Type:     AccessPointControl,
 			Address:  "localhost",
 			Port:     953,
 			Key:      "abcd",
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		},
 	}
 	bd := &Bind9Daemon{

@@ -1,6 +1,11 @@
 package keaconfig
 
-import "isc.org/stork/daemonctrl/daemonname"
+import (
+	log "github.com/sirupsen/logrus"
+
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
+)
 
 // A structure representing the configuration of multiple control sockets
 // in the Kea Control Agent. They are used to manage Kea daemons remotely.
@@ -86,8 +91,14 @@ type ControlSocket struct {
 
 // Indicates the name of the protocol used by the control socket:
 // "unix", "http" or "https".
-func (cs ControlSocket) GetProtocol() string {
-	return cs.SocketType
+func (cs ControlSocket) GetProtocol() protocoltype.ProtocolType {
+	protocolType, err := protocoltype.Parse(cs.SocketType)
+	if err != nil {
+		// It should never happen.
+		log.WithError(err).Warn("unknown socket type, defaulting to 'unix'")
+		return protocoltype.Socket
+	}
+	return protocolType
 }
 
 // Returns a port number or the default port if the port is not set.

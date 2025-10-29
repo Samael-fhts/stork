@@ -20,7 +20,7 @@ import (
 
 	"isc.org/stork"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	"isc.org/stork/daemondata/bind9stats"
 	"isc.org/stork/pki"
 	"isc.org/stork/server/agentcomm"
@@ -1165,7 +1165,7 @@ func baseAppToRestAPI(virtualApp *dbmodel.VirtualApp, daemons []*dbmodel.Daemon)
 			Type:              point.Type,
 			Address:           point.Address,
 			Port:              point.Port,
-			UseSecureProtocol: point.Protocol == "https",
+			UseSecureProtocol: point.Protocol.IsSecure(),
 		})
 	}
 	app.AccessPoints = accessPoints

@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"sync"
 
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	dbmodel "isc.org/stork/server/database/model"
 )
 

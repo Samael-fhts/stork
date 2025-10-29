@@ -13,7 +13,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 )
 
@@ -28,14 +29,14 @@ func newFakeMonitorWithDefaults(interceptor func(client *http.Client)) *FakeMoni
 						Type:     AccessPointControl,
 						Address:  "0.1.2.3",
 						Port:     1234,
-						Protocol: "http",
+						Protocol: protocoltype.HTTP,
 					}},
 				},
 				connector: newKeaConnector(AccessPoint{
 					Type:     AccessPointControl,
 					Address:  "0.1.2.3",
 					Port:     1234,
-					Protocol: "http",
+					Protocol: protocoltype.HTTP,
 				}, HTTPClientConfig{Interceptor: interceptor}),
 			},
 			&KeaDaemon{
@@ -45,14 +46,14 @@ func newFakeMonitorWithDefaults(interceptor func(client *http.Client)) *FakeMoni
 						Type:     AccessPointControl,
 						Address:  "0.1.2.3",
 						Port:     1234,
-						Protocol: "http",
+						Protocol: protocoltype.HTTP,
 					}},
 				},
 				connector: newKeaConnector(AccessPoint{
 					Type:     AccessPointControl,
 					Address:  "0.1.2.3",
 					Port:     1234,
-					Protocol: "http",
+					Protocol: protocoltype.HTTP,
 				}, HTTPClientConfig{Interceptor: interceptor}),
 			},
 		},

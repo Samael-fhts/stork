@@ -17,7 +17,8 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	storkutil "isc.org/stork/util"
 )
@@ -476,7 +477,7 @@ type keaConnector interface {
 // Factory function to create a keaConnector based on the access point
 // configuration.
 func newKeaConnector(accessPoint AccessPoint, httpClientConfig HTTPClientConfig) keaConnector {
-	if accessPoint.Protocol == "unix" {
+	if accessPoint.Protocol == protocoltype.Socket {
 		socketPath := accessPoint.Address
 		return &keaSocketConnector{socketPath: socketPath}
 	}
@@ -485,7 +486,7 @@ func newKeaConnector(accessPoint AccessPoint, httpClientConfig HTTPClientConfig)
 	url := storkutil.HostWithPortURL(
 		accessPoint.Address,
 		accessPoint.Port,
-		accessPoint.Protocol,
+		string(accessPoint.Protocol),
 	)
 	return &keaHTTPConnector{
 		url:        url,

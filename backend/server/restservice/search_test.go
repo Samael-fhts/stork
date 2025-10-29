@@ -6,7 +6,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -118,7 +119,7 @@ func TestSearchRecords(t *testing.T) {
 		Address:  "",
 		Port:     1116,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	d6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{accessPoint6})

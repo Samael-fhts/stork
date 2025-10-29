@@ -15,7 +15,8 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
@@ -218,7 +219,7 @@ func TestGetMachineAndDaemonsState(t *testing.T) {
 		Address:  "1.2.3.4",
 		Port:     123,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	err = dbmodel.AddDaemon(db, keaDaemon)
@@ -246,7 +247,7 @@ func TestGetMachineAndDaemonsState(t *testing.T) {
 					Address:  "1.2.3.4",
 					Port:     123,
 					Key:      "",
-					Protocol: "http",
+					Protocol: protocoltype.HTTP,
 				}},
 				Machine: m,
 			},
@@ -296,7 +297,7 @@ func TestGetMachineAndPowerDNSState(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "1.2.3.4",
 		Port:     124,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	pdnsDaemon := dbmodel.NewDaemon(machine, daemonname.PDNS, true, []*dbmodel.AccessPoint{accessPoint})
 	pdnsDaemon.Pid = 123
@@ -331,7 +332,7 @@ func TestGetMachineAndPowerDNSState(t *testing.T) {
 						Address:  "1.2.3.4",
 						Port:     124,
 						Key:      "",
-						Protocol: "http",
+						Protocol: protocoltype.HTTP,
 					}},
 				},
 			},
@@ -1391,7 +1392,7 @@ func TestRestGetApp(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{accessPoint})
 	err = dbmodel.AddDaemon(db, keaDaemon)
@@ -1459,7 +1460,7 @@ func TestGetPowerDNSApp(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	pdnsDaemon := dbmodel.NewDaemon(m, daemonname.PDNS, true, []*dbmodel.AccessPoint{accessPoint})
 	pdnsDaemon.PDNSDaemon = &dbmodel.PDNSDaemon{
@@ -1523,7 +1524,7 @@ func TestRestGetApps(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	s1 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	s1.KeaDaemon = &dbmodel.KeaDaemon{}
@@ -1556,7 +1557,7 @@ func TestRestGetApps(t *testing.T) {
 		Address:  "",
 		Port:     5300,
 		Key:      "defg",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	pdnsDaemon := dbmodel.NewDaemon(m, daemonname.PDNS, true, []*dbmodel.AccessPoint{pdnsAccessPoint})
 	pdnsDaemon.PDNSDaemon = &dbmodel.PDNSDaemon{
@@ -1809,7 +1810,7 @@ func TestGetAppsDirectory(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	err = dbmodel.AddDaemon(db, keaDaemon)
@@ -1889,7 +1890,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	keaDaemon1 := dbmodel.NewDaemon(m1, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint1})
 	keaDaemon1.Monitored = true
@@ -1902,7 +1903,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     2345,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	keaDaemon2 := dbmodel.NewDaemon(m2, daemonname.CA, true, []*dbmodel.AccessPoint{keaAccessPoint2})
 	keaDaemon2.Monitored = true
@@ -1915,7 +1916,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     3456,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	bind9Daemon := dbmodel.NewDaemon(m3, daemonname.Bind9, true, []*dbmodel.AccessPoint{bind9AccessPoint})
 	bind9Daemon.Monitored = true
@@ -2078,7 +2079,7 @@ func TestGetAppsCommunicationIssuesNotMonitored(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	keaDaemon.Monitored = false
@@ -2131,7 +2132,7 @@ func TestRestGetAppServicesStatus(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	err = dbmodel.AddDaemon(db, keaDaemon)
@@ -2496,7 +2497,7 @@ func TestRestGetAppsStats(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	s1 := dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	s1.KeaDaemon = &dbmodel.KeaDaemon{}
@@ -2556,7 +2557,7 @@ func TestGetDhcpOverview(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "localhost",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	dhcp4Daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	dhcp4Daemon.Monitored = true
@@ -2753,7 +2754,7 @@ func TestUpdateDaemon(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     1234,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	keaDaemon.Monitored = true

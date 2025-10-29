@@ -8,7 +8,8 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -923,7 +924,7 @@ func TestGetLocalSubnetID(t *testing.T) {
 		Address:  "",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}}
 	daemon := NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
 	err := daemon.SetKeaConfigFromJSON([]byte(`{

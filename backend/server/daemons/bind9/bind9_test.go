@@ -9,7 +9,8 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/server/agentcomm"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -38,14 +39,14 @@ func TestGetDaemonState(t *testing.T) {
 			Address:  "127.0.0.1",
 			Port:     953,
 			Key:      "abcd",
-			Protocol: "rndc",
+			Protocol: protocoltype.RNDC,
 		},
 		{
 			Type:     dbmodel.AccessPointStatistics,
 			Address:  "127.0.0.1",
 			Port:     8000,
 			Key:      "abcd",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	})
 

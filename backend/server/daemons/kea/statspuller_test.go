@@ -11,7 +11,8 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
@@ -792,7 +793,7 @@ func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Servi
 			Address:  "192.0.2.66",
 			Port:     8000,
 			Key:      "",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 
@@ -825,7 +826,7 @@ func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Servi
 			Address:  "192.0.2.133",
 			Key:      "",
 			Port:     8000,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 
@@ -1203,7 +1204,7 @@ func TestProcessAppResponsesForResponseWithBigNumbers(t *testing.T) {
 			Address:  "localhost",
 			Port:     8080,
 			Key:      "",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 

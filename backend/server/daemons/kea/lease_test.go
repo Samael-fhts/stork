@@ -6,7 +6,8 @@ import (
 
 	require "github.com/stretchr/testify/require"
 
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	keadata "isc.org/stork/daemondata/kea"
 	"isc.org/stork/server/agentcomm"
@@ -1503,7 +1504,7 @@ func TestFindDeclinedLeasesNoLeaseCmds(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 
@@ -1583,7 +1584,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8001,
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 

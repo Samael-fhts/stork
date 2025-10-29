@@ -17,7 +17,8 @@ import (
 
 	bind9config "isc.org/stork/daemoncfg/bind9"
 	pdnsconfig "isc.org/stork/daemoncfg/pdns"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/testutil"
 )
 
@@ -80,7 +81,7 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 						Type:     AccessPointControl,
 						Address:  "1.2.3.1",
 						Port:     1234,
-						Protocol: "http",
+						Protocol: protocoltype.HTTP,
 					},
 				},
 			},
@@ -93,14 +94,14 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 						Type:     AccessPointControl,
 						Address:  "2.3.4.4",
 						Port:     2345,
-						Protocol: "http",
+						Protocol: protocoltype.HTTP,
 						Key:      "abcd",
 					},
 					{
 						Type:     AccessPointStatistics,
 						Address:  "2.3.4.5",
 						Port:     2346,
-						Protocol: "http",
+						Protocol: protocoltype.HTTP,
 					},
 				},
 			},
@@ -208,7 +209,7 @@ func TestReadKeaConfigOk(t *testing.T) {
 	require.Equal(t, "host.example.org", address)
 
 	protocol := controlSocket.GetProtocol()
-	require.Equal(t, "http", protocol)
+	require.Equal(t, protocoltype.HTTP, protocol)
 }
 
 // Test that the Kea, BIND 9 and PowerDNS daemons are detected properly.

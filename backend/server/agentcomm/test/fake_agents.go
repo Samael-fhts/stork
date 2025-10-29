@@ -131,7 +131,7 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm
 	}
 
 	caAddress, caPort, _, caUseSecureProtocol, _ := daemon.GetControlAccessPoint()
-	caURL := storkutil.HostWithPortURL(caAddress, caPort, caUseSecureProtocol)
+	caURL := storkutil.HostWithPortURL(caAddress, caPort, string(caUseSecureProtocol))
 
 	fa.RecordedURLs = append(fa.RecordedURLs, caURL)
 
@@ -169,7 +169,7 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm
 // call to NewFakeAgents.
 func (fa *FakeAgents) ForwardToNamedStats(ctx context.Context, daemon agentcomm.ControlledDaemon, requestType agentcomm.ForwardToNamedStatsRequestType, statsOutput interface{}) error {
 	statsAddress, statsPort, _, statsUseSecureProtocol, _ := daemon.GetStatisticsAccessPoint()
-	fa.RecordedStatsURL = storkutil.HostWithPortURL(statsAddress, statsPort, statsUseSecureProtocol)
+	fa.RecordedStatsURL = storkutil.HostWithPortURL(statsAddress, statsPort, string(statsUseSecureProtocol))
 
 	// Generate response.
 	if fa.mockNamedFunc != nil {

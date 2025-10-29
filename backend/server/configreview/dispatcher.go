@@ -10,7 +10,7 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"

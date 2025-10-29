@@ -17,7 +17,8 @@ import (
 
 	agentapi "isc.org/stork/api"
 	"isc.org/stork/daemoncfg/dnsconfig"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
@@ -34,7 +35,7 @@ type AccessPoint struct {
 	Address  string
 	Port     int64
 	Key      string
-	Protocol string
+	Protocol protocoltype.ProtocolType
 }
 
 // Currently supported types are: "control" and "statistics".
@@ -46,8 +47,8 @@ const (
 // An interface to a daemon that can receive commands from Stork.
 // Kea daemon receiving control commands is an example.
 type ControlledDaemon interface {
-	GetControlAccessPoint() (string, int64, string, string, error)
-	GetStatisticsAccessPoint() (string, int64, string, string, error)
+	GetControlAccessPoint() (string, int64, string, protocoltype.ProtocolType, error)
+	GetStatisticsAccessPoint() (string, int64, string, protocoltype.ProtocolType, error)
 	GetMachineTag() dbmodel.MachineTag
 	GetName() daemonname.Name
 }
@@ -76,7 +77,7 @@ func (d *Daemon) GetName() daemonname.Name {
 
 // Returns the control access point of the daemon. It returns an error if
 // no control access point is found.
-func (d *Daemon) GetControlAccessPoint() (string, int64, string, string, error) {
+func (d *Daemon) GetControlAccessPoint() (string, int64, string, protocoltype.ProtocolType, error) {
 	for _, ap := range d.AccessPoints {
 		if ap.Type == AccessPointControl {
 			return ap.Address, ap.Port, ap.Key, ap.Protocol, nil
@@ -87,7 +88,7 @@ func (d *Daemon) GetControlAccessPoint() (string, int64, string, string, error) 
 
 // Returns the statistics access point of the daemon. It returns an error if
 // no statistics access point is found.
-func (d *Daemon) GetStatisticsAccessPoint() (string, int64, string, string, error) {
+func (d *Daemon) GetStatisticsAccessPoint() (string, int64, string, protocoltype.ProtocolType, error) {
 	for _, ap := range d.AccessPoints {
 		if ap.Type == AccessPointStatistics {
 			return ap.Address, ap.Port, ap.Key, ap.Protocol, nil
@@ -420,19 +421,23 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 				Key:     point.Key,
 			}
 
-			if point.Protocol == "" {
+			if point.Protocol == string(protocoltype.Unspecified) {
 				// For backward compatibility, if the protocol is not set,
 				// assume HTTP or HTTPS based on the UseSecureProtocol flag.
 				switch {
 				case daemonName == daemonname.Bind9 && point.Type == AccessPointControl:
-					accessPoint.Protocol = "rndc"
+					accessPoint.Protocol = protocoltype.RNDC
 				case point.UseSecureProtocol: //nolint:staticcheck,deprecated
-					accessPoint.Protocol = "https"
+					accessPoint.Protocol = protocoltype.HTTPS
 				default:
-					accessPoint.Protocol = "http"
+					accessPoint.Protocol = protocoltype.HTTP
 				}
 			} else {
-				accessPoint.Protocol = point.Protocol
+				protocol, err := protocoltype.Parse(point.Protocol)
+				if err != nil {
+					return nil, err
+				}
+				accessPoint.Protocol = protocol
 			}
 
 			accessPoints = append(accessPoints, accessPoint)
@@ -608,7 +613,7 @@ func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, daem
 	if err_ != nil {
 		return errors.WithMessage(err_, "failed to get statistics access point for daemon")
 	}
-	statsURL := storkutil.HostWithPortURL(statsAddress, statsPort, protocol)
+	statsURL := storkutil.HostWithPortURL(statsAddress, statsPort, string(protocol))
 
 	// Prepare the on-wire representation of the commands.
 	req := &agentapi.ForwardToNamedStatsReq{
@@ -783,7 +788,7 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 		}).Warnf("No Kea control access point found for daemon %s on machine %d", daemon.GetName(), daemon.GetMachineTag().GetID())
 		return nil, err
 	}
-	controlAccessPointURL := storkutil.HostWithPortURL(controlAddress, controlPort, controlProtocol)
+	controlAccessPointURL := storkutil.HostWithPortURL(controlAddress, controlPort, string(controlProtocol))
 
 	// Prepare the on-wire representation of the commands.
 	req := &agentapi.ForwardToKeaOverHTTPReq{

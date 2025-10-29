@@ -10,7 +10,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	"isc.org/stork/server/daemons/kea"
 	dbops "isc.org/stork/server/database"
 	"isc.org/stork/server/database/maintenance"

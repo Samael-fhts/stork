@@ -10,7 +10,8 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
@@ -587,7 +588,7 @@ func TestCommitHostAdd(t *testing.T) {
 							Type:     dbmodel.AccessPointControl,
 							Address:  "192.0.2.1",
 							Port:     1234,
-							Protocol: "http",
+							Protocol: protocoltype.HTTP,
 						},
 					},
 				},
@@ -603,7 +604,7 @@ func TestCommitHostAdd(t *testing.T) {
 							Type:     dbmodel.AccessPointControl,
 							Address:  "192.0.2.2",
 							Port:     2345,
-							Protocol: "http",
+							Protocol: protocoltype.HTTP,
 						},
 					},
 				},
@@ -1018,7 +1019,7 @@ func TestCommitHostUpdate(t *testing.T) {
 							Type:     dbmodel.AccessPointControl,
 							Address:  "192.0.2.1",
 							Port:     1234,
-							Protocol: "http",
+							Protocol: protocoltype.HTTP,
 						},
 					},
 				},
@@ -1034,7 +1035,7 @@ func TestCommitHostUpdate(t *testing.T) {
 							Type:     dbmodel.AccessPointControl,
 							Address:  "192.0.2.2",
 							Port:     2345,
-							Protocol: "http",
+							Protocol: protocoltype.HTTP,
 						},
 					},
 				},

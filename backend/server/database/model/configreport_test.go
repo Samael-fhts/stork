@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 
@@ -373,13 +373,13 @@ func TestInvalidConfigReport(t *testing.T) {
 			CheckerName: "",
 			Content:     newPtr("Here is the first test report"),
 			DaemonID:    daemon.ID,
-			RefDaemons: []*Daemon{daemon},
+			RefDaemons:  []*Daemon{daemon},
 		},
 		{
 			CheckerName: "test",
 			Content:     newPtr(""),
 			DaemonID:    daemon.ID,
-			RefDaemons: []*Daemon{daemon},
+			RefDaemons:  []*Daemon{daemon},
 		},
 		{
 			CheckerName: "test",

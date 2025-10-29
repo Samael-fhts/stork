@@ -28,7 +28,8 @@ import (
 
 	"isc.org/stork"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
 	"isc.org/stork/hooks"
@@ -70,7 +71,7 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 		Type:     AccessPointControl,
 		Address:  "localhost",
 		Port:     45634,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	fdm := FakeMonitor{
@@ -89,7 +90,7 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 						Type:     AccessPointControl,
 						Address:  "localhost",
 						Port:     45635,
-						Protocol: "rndc",
+						Protocol: protocoltype.RNDC,
 					}},
 				},
 			},
@@ -213,7 +214,7 @@ func TestGetState(t *testing.T) {
 				Type:     AccessPointControl,
 				Address:  "1.2.3.1",
 				Port:     1234,
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		},
 	})
@@ -231,7 +232,7 @@ func TestGetState(t *testing.T) {
 			Address:  "2.3.4.5",
 			Port:     2346,
 			Key:      "foo",
-			Protocol: "http",
+			Protocol: protocoltype.HTTP,
 		},
 	}
 
@@ -576,7 +577,7 @@ func TestForwardRndcCommandSuccess(t *testing.T) {
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
 				Port:     1234,
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		rndcClient: rndcClient,
@@ -639,7 +640,7 @@ func TestForwardRndcCommandError(t *testing.T) {
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
 				Port:     1234,
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		rndcClient: rndcClient,
@@ -700,7 +701,7 @@ func TestForwardRndcCommandEmpty(t *testing.T) {
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
 				Port:     1234,
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		rndcClient: rndcClient,
@@ -1086,7 +1087,7 @@ func TestReceiveZonesFilterByView(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1160,7 +1161,7 @@ func TestReceiveZonesPDNS(t *testing.T) {
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
 				Port:     1234,
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1248,7 +1249,7 @@ func TestReceiveRPZZones(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1329,7 +1330,7 @@ func TestReceiveZonesFilterByLoadedAfter(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1394,7 +1395,7 @@ func TestReceiveZonesFilterLowerBound(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1449,7 +1450,7 @@ func TestReceiveZonesNilZoneInventory(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: nil,
@@ -1487,7 +1488,7 @@ func TestReceiveZonesUnsupportedApp(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		},
 	})
@@ -1548,7 +1549,7 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1634,7 +1635,7 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1747,7 +1748,7 @@ func TestReceiveZoneRRs(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1845,7 +1846,7 @@ func TestReceiveZoneRRsPowerDNS(t *testing.T) {
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
 				Port:     1234,
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		},
 		zoneInventory: inventory,
@@ -1896,7 +1897,7 @@ func TestReceiveZoneRRsNilZoneInventory(t *testing.T) {
 				Type:     AccessPointControl,
 				Address:  "127.0.0.1",
 				Port:     1234,
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 	})
@@ -1969,7 +1970,7 @@ func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -2062,7 +2063,7 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 				Address:  "127.0.0.1",
 				Port:     1234,
 				Key:      "key",
-				Protocol: "rndc",
+				Protocol: protocoltype.RNDC,
 			}},
 		},
 		zoneInventory: inventory,
@@ -2137,7 +2138,7 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 				Address:  "localhost",
 				Port:     1234,
 				Key:      "stork",
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		},
 	})
@@ -2206,7 +2207,7 @@ func TestGetPowerDNSServerInfoNoAPIKey(t *testing.T) {
 				Address:  "localhost",
 				Port:     1234,
 				Key:      "",
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		},
 	})
@@ -2255,7 +2256,7 @@ func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
 				Address:  "localhost",
 				Port:     1234,
 				Key:      "stork",
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		},
 	})
@@ -2317,7 +2318,7 @@ func TestGetPowerDNSServerInfoStatisticsErrorResponse(t *testing.T) {
 				Address:  "localhost",
 				Port:     1234,
 				Key:      "stork",
-				Protocol: "http",
+				Protocol: protocoltype.HTTP,
 			}},
 		},
 	})

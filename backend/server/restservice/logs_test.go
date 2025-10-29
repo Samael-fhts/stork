@@ -7,7 +7,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
@@ -34,7 +35,7 @@ func TestGetLogTail(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -94,7 +95,7 @@ func TestLogTailBadParams(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 	}
 
 	daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})

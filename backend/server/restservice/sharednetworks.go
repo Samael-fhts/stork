@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/daemonname"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/daemons/kea"
 	dbmodel "isc.org/stork/server/database/model"

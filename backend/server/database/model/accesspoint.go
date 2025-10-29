@@ -3,6 +3,7 @@ package dbmodel
 import (
 	"github.com/go-pg/pg/v10"
 	pkgerrors "github.com/pkg/errors"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	dbops "isc.org/stork/server/database"
 )
 
@@ -18,7 +19,7 @@ type AccessPoint struct {
 	// by the Stork agent to authenticate to the Kea server.
 	// Otherwise it is empty string.
 	Key      string
-	Protocol string `pg:",use_zero"`
+	Protocol protocoltype.ProtocolType `pg:",use_zero"`
 }
 
 // Valid kinds of the access points.
