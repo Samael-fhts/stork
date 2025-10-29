@@ -1,4 +1,5 @@
 from playwright.sync_api import Page, expect
+import re
 
 
 class MachinesPage:
@@ -29,26 +30,33 @@ class MachinesPage:
         self.page.get_by_role("textbox", name="Search machines").fill(text)
 
     def clear_filters(self):
-        self.page.get_by_role("button", name=" Clear").click()
+        self.page.get_by_role("button", name=re.compile(r"\bClear\b", re.I)).click()
 
     def refresh_list(self):
-        self.page.get_by_role("button", name=" Refresh List").click()
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bRefresh\s+List\b", re.I)
+        ).click()
 
     def expect_no_results_row(self):
         expect(
-            self.page.get_by_role("cell", name=" No machines found. Clear")
+            self.page.get_by_role(
+                "cell", name=re.compile(r"No machines found\.\s*Clear", re.I)
+            )
         ).to_be_visible(timeout=3000)
 
     def click_clear_in_no_results_row(self):
-        self.page.get_by_role("row", name=" No machines found. Clear").get_by_role(
-            "button"
-        ).click()
+        row = self.page.get_by_role(
+            "row", name=re.compile(r"No machines found\.\s*Clear", re.I)
+        )
+        row.get_by_role("button", name=re.compile(r"\bClear\b", re.I)).click()
 
     def select_machine_row(self, row_text: str):
         self.page.get_by_role("row", name=row_text).get_by_role("checkbox").check()
 
     def authorize_selected(self):
-        self.page.get_by_role("button", name=" Authorize selected").click()
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bAuthorize\s+selected\b", re.I)
+        ).click()
 
     def open_machine(self, link_text: str):
         self.page.get_by_role("cell", name=link_text).click()
@@ -63,11 +71,15 @@ class MachinesPage:
         self.page.get_by_text(fragment).first.click()
 
     def get_latest_state(self):
-        self.page.get_by_role("button", name=" Get Latest State").click()
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bGet\s+Latest\s+State\b", re.I)
+        ).click()
 
     def dump_troubleshooting(self):
         with self.page.expect_download() as download_info:
-            self.page.get_by_role("button", name=" Dump Troubleshooting Data").click()
+            self.page.get_by_role(
+                "button", name=re.compile(r"\bDump\s+Troubleshooting\s+Data\b", re.I)
+            ).click()
         return download_info.value
 
     def back_to_machines_tab(self):
@@ -98,11 +110,13 @@ class MachinesPage:
     def actions_remove_machine_from_menu(self):
         self.page.get_by_title("Remove machine from Stork").click()
         self.page.get_by_text("Confirm", exact=True).click()
-        self.page.get_by_role("button", name=" Yes", exact=True).click()
+        self.page.get_by_role("button", name=re.compile(r"^\s*Yes\s*$", re.I)).click()
 
     # Installing Stork Agent dialog
     def open_install_dialog(self):
-        self.page.get_by_role("button", name=" Installing Stork Agent on a").click()
+        self.page.get_by_role(
+            "button", name=re.compile(r"Installing\s+Stork\s+Agent", re.I)
+        ).click()
 
     def expect_install_dialog_title(self):
         expect(
@@ -110,7 +124,16 @@ class MachinesPage:
         ).to_be_visible(timeout=3000)
 
     def assert_docs_link_opens_new_tab(self):
-        """Click the docs link and assert a new tab."""
+        """Clicks the “the Stork agent installation” link in the Install Agent dialog
+        and asserts that it opens in a new tab/window.
+        Scope:
+        - Verifies that a popup is created (new Page).
+        - Waits for the popup to reach 'domcontentloaded'.
+        - Closes the popup.
+        Out of scope:
+        - No content/URL validation of the target page (we only verify the redirect occurred).
+        """
+
         with self.page.expect_popup() as popup_info:
             self.page.get_by_role("link", name="the Stork agent installation").click()
         popup = popup_info.value
@@ -120,6 +143,14 @@ class MachinesPage:
             popup.close()
 
     def expect_wget_snippet_visible(self):
+        expect(self.page.get_by_text("wget http://localhost:42080/")).to_be_visible(
+            timeout=3000
+        )
+
+        """Asserts that the Install Agent dialog shows the shell snippet starting with:
+        'wget http://localhost:42080/'
+         This confirms the command block is rendered for the local controller."""
+
         expect(self.page.get_by_text("wget http://localhost:42080/")).to_be_visible(
             timeout=3000
         )
@@ -143,4 +174,4 @@ class MachinesPage:
         ), f"Regenerate token failed: {resp.status} {getattr(resp, 'status_text', lambda: '')()}"
 
     def close_install_dialog(self):
-        self.page.get_by_role("button", name=" Close").click()
+        self.page.get_by_role("button", name=re.compile(r"\bClose\b", re.I)).click()
