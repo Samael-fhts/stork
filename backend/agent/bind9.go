@@ -51,7 +51,7 @@ func (k *Bind9RndcKey) String() string {
 type Bind9Daemon struct {
 	daemon
 	rndcClient    *RndcClient // to communicate with BIND 9 via rndc
-	zoneInventory *zoneInventory
+	zoneInventory zoneInventory
 	pid           int32 // PID of the named process
 }
 
@@ -91,7 +91,7 @@ func (ba *Bind9Daemon) RefreshState(context.Context, AgentManager) error {
 }
 
 // Returns the zone inventory instance associated with the BIND 9 daemon.
-func (ba *Bind9Daemon) GetZoneInventory() *zoneInventory {
+func (ba *Bind9Daemon) GetZoneInventory() zoneInventory {
 	return ba.zoneInventory
 }
 
@@ -685,7 +685,7 @@ func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, e
 	}
 
 	// look for statistics channel address in config
-	var inventory *zoneInventory
+	var inventory zoneInventory
 	address, port := getStatisticsChannelFromBind9Config(cfgText)
 	if port > 0 && len(address) != 0 {
 		accessPoints = append(accessPoints, AccessPoint{

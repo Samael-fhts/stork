@@ -658,6 +658,30 @@ type ZoneInventoryMeta struct {
 	PopulatedAt time.Time
 }
 
+// Interface specifying operations that can be performed on the zone inventory.
+type zoneInventory interface {
+	// Returns current inventory state. It is safe for concurrent use.
+	getCurrentState() *zoneInventoryState
+	// Contacts a DNS server to fetch views and zones. Then, it processes the received
+	// data to group them into collections that are stored in memory and/or on disk.
+	// It returns a channel to which the caller can subscribe to receive a notification
+	// about completion of populating the inventory. The block parameter indicates whether
+	// or not the caller will wait for the completion notification.
+	populate(block bool) (chan zoneInventoryAsyncNotify, error)
+	// Returns the channel used to receive all zones and the corresponding
+	// views. This function is typically called in the implementation of the
+	// streaming gRPC response used to transfer the zone information to the
+	// server.
+	receiveZones(ctx context.Context, filter *bind9stats.ZoneFilter) (chan zoneInventoryReceiveZoneResult, error)
+	// Requests an AXFR (zone transfer) for the specified zone and view.
+	// It returns a channel to which the caller must subscribe to receive
+	// the AXFR results. The channel is closed by the zone inventory when
+	// the transfer is complete.
+	requestAXFR(zoneName, viewName string) (chan *zoneInventoryAXFRResponse, error)
+	// Stops the zone inventory and waits for the background tasks to complete.
+	stop()
+}
+
 // Zone inventory.
 //
 // It coordinates fetching the zone information from the monitored DNS servers,
@@ -674,7 +698,7 @@ type ZoneInventoryMeta struct {
 // Specifically, it returns the RRs to the Stork server via the gRPC stream.
 // The zone contents may be cached in the zone inventory to avoid excessive
 // DNS requests.
-type zoneInventory struct {
+type zoneInventoryImpl struct {
 	// The storage used to save the zone information.
 	storage zoneInventoryStorage
 	// Common interface to access DNS configuration from different DNS implementations.
@@ -708,6 +732,8 @@ type zoneInventory struct {
 	axfrWorkersActive bool
 }
 
+var _ zoneInventory = (*zoneInventoryImpl)(nil)
+
 // A message sent over the channels to notify that the long lasting
 // operation has completed. If the operation failed the err field
 // contains the error.
@@ -726,10 +752,10 @@ type zoneInventoryReceiveZoneResult struct {
 // Instantiates the inventory. If the specified storage saves the zone information on
 // disk this function prepares required directory structures. An error is returned if
 // creating these structures fails.
-func newZoneInventory(storage zoneInventoryStorage, config dnsConfigAccessor, client zoneFetcher, host string, port int64) *zoneInventory {
+func newZoneInventory(storage zoneInventoryStorage, config dnsConfigAccessor, client zoneFetcher, host string, port int64) *zoneInventoryImpl {
 	ctx, cancel := context.WithCancel(context.Background())
 	state := newZoneInventoryStateInitial()
-	inventory := &zoneInventory{
+	inventory := &zoneInventoryImpl{
 		storage: storage,
 		config:  config,
 		client:  client,
@@ -755,7 +781,7 @@ func newZoneInventory(storage zoneInventoryStorage, config dnsConfigAccessor, cl
 // Transitions the inventory to a new state. It returns a zoneInventoryBusyError if the
 // current state does not permit such a transition. A call to this function must be
 // protected by mutex.
-func (inventory *zoneInventory) transitionUnsafe(newState *zoneInventoryState) error {
+func (inventory *zoneInventoryImpl) transitionUnsafe(newState *zoneInventoryState) error {
 	state := inventory.getCurrentStateUnsafe()
 	if inventory.getCurrentStateUnsafe().isLongLasting() && newState.isLongLasting() {
 		return newZoneInventoryBusyError(state, newState)
@@ -766,7 +792,7 @@ func (inventory *zoneInventory) transitionUnsafe(newState *zoneInventoryState) e
 }
 
 // Transitions the inventory to a new state. It is safe for concurrent use.
-func (inventory *zoneInventory) transition(newState *zoneInventoryState) error {
+func (inventory *zoneInventoryImpl) transition(newState *zoneInventoryState) error {
 	inventory.mutex.Lock()
 	defer inventory.mutex.Unlock()
 	return inventory.transitionUnsafe(newState)
@@ -774,12 +800,12 @@ func (inventory *zoneInventory) transition(newState *zoneInventoryState) error {
 
 // Returns current inventory state. A cal to this function must be protected
 // by a mutex.
-func (inventory *zoneInventory) getCurrentStateUnsafe() *zoneInventoryState {
+func (inventory *zoneInventoryImpl) getCurrentStateUnsafe() *zoneInventoryState {
 	return inventory.visitedStates[inventory.state]
 }
 
 // Returns current inventory state. It is safe for concurrent use.
-func (inventory *zoneInventory) getCurrentState() *zoneInventoryState {
+func (inventory *zoneInventoryImpl) getCurrentState() *zoneInventoryState {
 	inventory.mutex.RLock()
 	defer inventory.mutex.RUnlock()
 	return inventory.getCurrentStateUnsafe()
@@ -787,7 +813,7 @@ func (inventory *zoneInventory) getCurrentState() *zoneInventoryState {
 
 // Returns visited inventory state by name. It returns nil if the state
 // with this name has not been visited.
-func (inventory *zoneInventory) getVisitedState(name zoneInventoryStateName) *zoneInventoryState {
+func (inventory *zoneInventoryImpl) getVisitedState(name zoneInventoryStateName) *zoneInventoryState {
 	inventory.mutex.RLock()
 	defer inventory.mutex.RUnlock()
 	return inventory.visitedStates[name]
@@ -798,7 +824,7 @@ func (inventory *zoneInventory) getVisitedState(name zoneInventoryStateName) *zo
 // It returns a channel to which the caller can subscribe to receive a notification
 // about completion of populating the inventory. The block parameter indicates whether
 // or not the caller will wait for the completion notification.
-func (inventory *zoneInventory) populate(block bool) (chan zoneInventoryAsyncNotify, error) {
+func (inventory *zoneInventoryImpl) populate(block bool) (chan zoneInventoryAsyncNotify, error) {
 	// Start populating the zones. This transition may fail if
 	// there is another long lasting operation running.
 	if err := inventory.transition(newZoneInventoryStatePopulating()); err != nil {
@@ -853,7 +879,7 @@ func (inventory *zoneInventory) populate(block bool) (chan zoneInventoryAsyncNot
 // to which the caller can subscribe to receive a notification about completion of
 // loading the inventory. The block parameter indicates whether or not the caller
 // will wait for the completion notification.
-func (inventory *zoneInventory) load(block bool) (chan zoneInventoryAsyncNotify, error) {
+func (inventory *zoneInventoryImpl) load(block bool) (chan zoneInventoryAsyncNotify, error) {
 	if _, ok := inventory.storage.(*zoneInventoryStorageMemory); ok {
 		// Disk storage is required because we're going to load the data
 		// from disk to memory.
@@ -903,7 +929,7 @@ func (inventory *zoneInventory) load(block bool) (chan zoneInventoryAsyncNotify,
 // views. This function is typically called in the implementation of the
 // streaming gRPC response used to transfer the zone information to the
 // server.
-func (inventory *zoneInventory) receiveZones(ctx context.Context, filter *bind9stats.ZoneFilter) (chan zoneInventoryReceiveZoneResult, error) {
+func (inventory *zoneInventoryImpl) receiveZones(ctx context.Context, filter *bind9stats.ZoneFilter) (chan zoneInventoryReceiveZoneResult, error) {
 	var err error
 	inventory.mutex.Lock()
 	state := inventory.getCurrentStateUnsafe()
@@ -978,7 +1004,7 @@ func (inventory *zoneInventory) receiveZones(ctx context.Context, filter *bind9s
 // Attempts to find zone information in the specified view. Depending on the
 // inventory storage it finds the zone information in memory or reads it from
 // disk.
-func (inventory *zoneInventory) getZoneInView(viewName, zoneName string) (*bind9stats.Zone, error) {
+func (inventory *zoneInventoryImpl) getZoneInView(viewName, zoneName string) (*bind9stats.Zone, error) {
 	state := inventory.getCurrentState()
 	if state.isInitial() || state.isErred() {
 		return nil, newZoneInventoryNotInitedError()
@@ -990,7 +1016,7 @@ func (inventory *zoneInventory) getZoneInView(viewName, zoneName string) (*bind9
 // It returns a channel to which the caller must subscribe to receive
 // the AXFR results. The channel is closed by the zone inventory when
 // the transfer is complete.
-func (inventory *zoneInventory) requestAXFR(zoneName, viewName string) (chan *zoneInventoryAXFRResponse, error) {
+func (inventory *zoneInventoryImpl) requestAXFR(zoneName, viewName string) (chan *zoneInventoryAXFRResponse, error) {
 	address, keyName, algorithm, secret, err := inventory.config.GetAXFRCredentials(viewName, zoneName)
 	if err != nil {
 		return nil, err
@@ -1005,7 +1031,7 @@ func (inventory *zoneInventory) requestAXFR(zoneName, viewName string) (chan *zo
 // Performs the zone transfer from the DNS server. The request contains
 // the response channel to which the results are sent. The caller must read
 // from the channel until it is closed.
-func (inventory *zoneInventory) runAXFR(request *zoneInventoryAXFRRequest) {
+func (inventory *zoneInventoryImpl) runAXFR(request *zoneInventoryAXFRRequest) {
 	// Close the response channel when transfer done.
 	defer request.safeClose()
 
@@ -1066,7 +1092,7 @@ func (inventory *zoneInventory) runAXFR(request *zoneInventoryAXFRRequest) {
 // Starts a pool of workers for running AXFR requests. This function must be
 // called only once. It is called internally during the zone inventory
 // initialization.
-func (inventory *zoneInventory) startAXFRWorkers(ctx context.Context) {
+func (inventory *zoneInventoryImpl) startAXFRWorkers(ctx context.Context) {
 	inventory.axfrWorkersActive = true
 	go func() {
 		defer func() {
@@ -1113,7 +1139,7 @@ func (inventory *zoneInventory) startAXFRWorkers(ctx context.Context) {
 }
 
 // Stops the AXFR workers and waits for them to complete their tasks.
-func (inventory *zoneInventory) stopAXFRWorkers() {
+func (inventory *zoneInventoryImpl) stopAXFRWorkers() {
 	// Stop the pool first to ensure that no new tasks are accepted.
 	inventory.axfrPool.Stop()
 	// Cancel the context to unblock the pending tasks.
@@ -1123,17 +1149,17 @@ func (inventory *zoneInventory) stopAXFRWorkers() {
 }
 
 // Returns a flag indicating if the AXFR workers are active.
-func (inventory *zoneInventory) isAXFRWorkersActive() bool {
+func (inventory *zoneInventoryImpl) isAXFRWorkersActive() bool {
 	return inventory.axfrWorkersActive
 }
 
 // This function waits for the asynchronous operations to complete.
-func (inventory *zoneInventory) awaitBackgroundTasks() {
+func (inventory *zoneInventoryImpl) awaitBackgroundTasks() {
 	inventory.wg.Wait()
 }
 
 // Stops the zone inventory and waits for the background tasks to complete.
-func (inventory *zoneInventory) stop() {
+func (inventory *zoneInventoryImpl) stop() {
 	inventory.stopAXFRWorkers()
 	inventory.awaitBackgroundTasks()
 }

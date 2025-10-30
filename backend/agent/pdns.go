@@ -31,7 +31,7 @@ type pdnsConfigParser interface {
 // PDNSDaemon implements the Daemon interface for PowerDNS.
 type PDNSDaemon struct {
 	daemon
-	zoneInventory *zoneInventory
+	zoneInventory zoneInventory
 }
 
 // Lifecycle method called once when the daemon is added to the monitor.
@@ -70,7 +70,7 @@ func (d *PDNSDaemon) Cleanup() error {
 }
 
 // Returns the zone inventory.
-func (d *PDNSDaemon) GetZoneInventory() *zoneInventory {
+func (d *PDNSDaemon) GetZoneInventory() zoneInventory {
 	return d.zoneInventory
 }
 

@@ -23,21 +23,39 @@ func TestPowerDNSAppGetBaseApp(t *testing.T) {
 	require.Equal(t, daemonname.PDNS, daemon.GetName())
 }
 
-// Test that the evaluation of the PowerDNS daemon doesn't return any errors.
-func TestPowerDNSDaemonEvaluation(t *testing.T) {
+// Test that the refreshing state of the PowerDNS daemon doesn't return any errors.
+func TestPowerDNSDaemonRefreshState(t *testing.T) {
+	// Arrange
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
 	agentManager := NewMockAgentManager(ctrl)
 
-	daemon := &PDNSDaemon{}
+	zoneInventory := NewMockZoneInventory(ctrl)
+	zoneInventory.EXPECT().populate(gomock.Any()).Return(nil, nil)
+	zoneInventory.EXPECT().getCurrentState().Return(&zoneInventoryState{})
+
+	daemon := &PDNSDaemon{zoneInventory: zoneInventory}
+
+	// Act
 	err := daemon.RefreshState(t.Context(), agentManager)
+
+	// Assert
 	require.NoError(t, err)
 }
 
 // Test that cleanup doesn't panic when zone inventory is nil.
 func TestPowerDNSDaemonCleanupNilZoneInventory(t *testing.T) {
-	daemon := &PDNSDaemon{}
+	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	zoneInventory := NewMockZoneInventory(ctrl)
+	zoneInventory.EXPECT().stop()
+
+	daemon := &PDNSDaemon{zoneInventory: zoneInventory}
+
+	// Act & Assert
 	require.NotPanics(t, func() {
 		err := daemon.Cleanup()
 		require.NoError(t, err)
@@ -47,7 +65,7 @@ func TestPowerDNSDaemonCleanupNilZoneInventory(t *testing.T) {
 // Test that the zone inventory can be accessed.
 func TestPowerDNSDaemonGetZoneInventory(t *testing.T) {
 	daemon := &PDNSDaemon{
-		zoneInventory: &zoneInventory{},
+		zoneInventory: &zoneInventoryImpl{},
 	}
 	require.Equal(t, daemon.zoneInventory, daemon.GetZoneInventory())
 }

@@ -15,25 +15,35 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=agent -destination=bind9mock_test.go -mock_names=bind9FileParser=MockBind9FileParser isc.org/stork/agent bind9FileParser
+//go:generate mockgen -package=agent -destination=bind9mock_test.go -mock_names=bind9FileParser=MockBind9FileParser,zoneInventory=MockZoneInventory isc.org/stork/agent bind9FileParser,zoneInventory
 
-// Test the function which extracts the list of log files from the Bind9
-// daemon by sending the request to the Kea Control Agent and the
-// daemons behind it.
+// Test the state is refreshed properly. It should fetch the zone inventory
+// data.
 func TestBind9RefreshState(t *testing.T) {
+	// Arrange
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	agentManager := NewMockAgentManager(ctrl)
 
-	daemon := &Bind9Daemon{}
+	zoneInventory := NewMockZoneInventory(ctrl)
+	zoneInventory.EXPECT().populate(gomock.Any()).Return(nil, nil)
+	zoneInventory.EXPECT().getCurrentState().Return(&zoneInventoryState{})
+
+	daemon := &Bind9Daemon{
+		zoneInventory: zoneInventory,
+	}
+
+	// Act
 	err := daemon.RefreshState(t.Context(), agentManager)
+
+	// Assert
 	require.NoError(t, err)
 }
 
 // Test that the zone inventory can be accessed.
 func TestBind9GetZoneInventory(t *testing.T) {
 	daemon := &Bind9Daemon{
-		zoneInventory: &zoneInventory{},
+		zoneInventory: &zoneInventoryImpl{},
 	}
 	inventory := daemon.GetZoneInventory()
 	require.Equal(t, daemon.zoneInventory, inventory)

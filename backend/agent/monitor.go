@@ -154,7 +154,7 @@ func (d *daemon) IsEqual(other Daemon) bool {
 // An interface representing the DNS daemon.
 type DNSDaemon interface {
 	Daemon
-	GetZoneInventory() *zoneInventory
+	GetZoneInventory() zoneInventory
 }
 
 // Converts a process name to a daemon name. If the process name
