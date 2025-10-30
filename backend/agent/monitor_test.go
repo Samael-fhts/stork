@@ -87,21 +87,23 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 			},
 		},
 		&Bind9Daemon{
-			daemon: daemon{
-				Name: daemonname.Bind9,
-				AccessPoints: []AccessPoint{
-					{
-						Type:     AccessPointControl,
-						Address:  "2.3.4.4",
-						Port:     2345,
-						Protocol: protocoltype.HTTP,
-						Key:      "abcd",
-					},
-					{
-						Type:     AccessPointStatistics,
-						Address:  "2.3.4.5",
-						Port:     2346,
-						Protocol: protocoltype.HTTP,
+			dnsDaemon: dnsDaemon{
+				daemon: daemon{
+					Name: daemonname.Bind9,
+					AccessPoints: []AccessPoint{
+						{
+							Type:     AccessPointControl,
+							Address:  "2.3.4.4",
+							Port:     2345,
+							Protocol: protocoltype.HTTP,
+							Key:      "abcd",
+						},
+						{
+							Type:     AccessPointStatistics,
+							Address:  "2.3.4.5",
+							Port:     2346,
+							Protocol: protocoltype.HTTP,
+						},
 					},
 				},
 			},
@@ -783,20 +785,22 @@ func TestDetectKeaDaemon(t *testing.T) {
 
 func TestGetAccessPoint(t *testing.T) {
 	bind9Daemon := &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{
-				{
-					Type:    AccessPointControl,
-					Address: "127.0.0.53",
-					Port:    int64(5353),
-					Key:     "hmac-sha256:abcd",
-				},
-				{
-					Type:    AccessPointStatistics,
-					Address: "127.0.0.80",
-					Port:    int64(80),
-					Key:     "",
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{
+					{
+						Type:    AccessPointControl,
+						Address: "127.0.0.53",
+						Port:    int64(5353),
+						Key:     "hmac-sha256:abcd",
+					},
+					{
+						Type:    AccessPointStatistics,
+						Address: "127.0.0.80",
+						Port:    int64(80),
+						Key:     "",
+					},
 				},
 			},
 		},
@@ -945,20 +949,24 @@ func TestPopulateZoneInventories(t *testing.T) {
 	require.True(t, ok)
 
 	daemon0 := &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+			},
+			zoneInventory: nil,
 		},
-		zoneInventory: nil,
 	}
 	zi1 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
 	zi1.start()
 	defer zi1.stop()
 
 	daemon1 := &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+			},
+			zoneInventory: zi1,
 		},
-		zoneInventory: zi1,
 	}
 
 	zi2 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
@@ -966,20 +974,24 @@ func TestPopulateZoneInventories(t *testing.T) {
 	defer zi2.stop()
 
 	daemon2 := &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+			},
+			zoneInventory: zi2,
 		},
-		zoneInventory: zi2,
 	}
 	zi3 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
 	zi3.start()
 	defer zi3.stop()
 
 	daemon3 := &PDNSDaemon{
-		daemon: daemon{
-			Name: daemonname.PDNS,
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.PDNS,
+			},
+			zoneInventory: zi3,
 		},
-		zoneInventory: zi3,
 	}
 	daemon4 := &KeaDaemon{
 		daemon: daemon{

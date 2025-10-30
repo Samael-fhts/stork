@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	bind9config "isc.org/stork/daemoncfg/bind9"
 	pdnsconfig "isc.org/stork/daemoncfg/pdns"
@@ -155,6 +156,48 @@ func (d *daemon) IsEqual(other Daemon) bool {
 type DNSDaemon interface {
 	Daemon
 	GetZoneInventory() zoneInventory
+}
+
+// An implementation providing common functionality for DNS daemons.
+type dnsDaemon struct {
+	daemon
+	zoneInventory zoneInventory
+}
+
+// Returns the zone inventory.
+func (d *dnsDaemon) GetZoneInventory() zoneInventory {
+	return d.zoneInventory
+}
+
+func (d *dnsDaemon) Bootstrap() error {
+	if d.zoneInventory != nil {
+		d.zoneInventory.start()
+	}
+	return nil
+}
+
+func (d *dnsDaemon) RefreshState(ctx context.Context, agentMgr AgentManager) error {
+	if d.zoneInventory == nil || d.zoneInventory.getCurrentState().isReady() {
+		return nil
+	}
+	var busyError *zoneInventoryBusyError
+	if _, err := d.zoneInventory.populate(false); err != nil {
+		switch {
+		case errors.As(err, &busyError):
+			// Inventory creation is in progress. This is not an error.
+			return nil
+		default:
+			return errors.WithMessage(err, "Failed to populate DNS zones inventory")
+		}
+	}
+	return nil
+}
+
+func (d *dnsDaemon) Cleanup() error {
+	if d.zoneInventory != nil {
+		d.zoneInventory.stop()
+	}
+	return nil
 }
 
 // The daemon monitor is responsible for detecting the daemons

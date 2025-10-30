@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path"
@@ -49,52 +48,9 @@ func (k *Bind9RndcKey) String() string {
 
 // It holds common and BIND 9 specific runtime information.
 type Bind9Daemon struct {
-	daemon
-	rndcClient    *RndcClient // to communicate with BIND 9 via rndc
-	zoneInventory zoneInventory
-	pid           int32 // PID of the named process
-}
-
-// The lifecycle method called once when the daemon is started.
-func (ba *Bind9Daemon) Bootstrap() error {
-	if ba.zoneInventory != nil {
-		ba.zoneInventory.start()
-	}
-	return nil
-}
-
-// The lifecycle method called once when the daemon is removed.
-// Stops the zone inventory.
-func (ba *Bind9Daemon) Cleanup() error {
-	if ba.zoneInventory != nil {
-		ba.zoneInventory.stop()
-	}
-	return nil
-}
-
-// The lifecycle method called periodically to refresh the daemon state.
-// It populates the zone inventory.
-func (ba *Bind9Daemon) RefreshState(context.Context, AgentManager) error {
-	zoneInventory := ba.GetZoneInventory()
-	if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
-		return nil
-	}
-	var busyError *zoneInventoryBusyError
-	if _, err := zoneInventory.populate(false); err != nil {
-		switch {
-		case errors.As(err, &busyError):
-			// Inventory creation is in progress. This is not an error.
-			return nil
-		default:
-			return errors.WithMessage(err, "Failed to populate DNS zones inventory")
-		}
-	}
-	return nil
-}
-
-// Returns the zone inventory instance associated with the BIND 9 daemon.
-func (ba *Bind9Daemon) GetZoneInventory() zoneInventory {
-	return ba.zoneInventory
+	dnsDaemon
+	rndcClient *RndcClient // to communicate with BIND 9 via rndc
+	pid        int32       // PID of the named process
 }
 
 // List of BIND 9 executables used during daemon detection.
@@ -723,13 +679,15 @@ func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, e
 
 	// prepare final BIND 9 daemon
 	daemon := &Bind9Daemon{
-		daemon: daemon{
-			Name:         daemonname.Bind9,
-			AccessPoints: accessPoints,
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name:         daemonname.Bind9,
+				AccessPoints: accessPoints,
+			},
+			zoneInventory: inventory,
 		},
-		rndcClient:    rndcClient,
-		zoneInventory: inventory,
-		pid:           p.getPid(),
+		rndcClient: rndcClient,
+		pid:        p.getPid(),
 	}
 
 	return daemon, nil

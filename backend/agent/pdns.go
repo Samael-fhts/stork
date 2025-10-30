@@ -1,7 +1,6 @@
 package agent
 
 import (
-	"context"
 	"path"
 	"regexp"
 	"strings"
@@ -30,51 +29,7 @@ type pdnsConfigParser interface {
 
 // PDNSDaemon implements the Daemon interface for PowerDNS.
 type PDNSDaemon struct {
-	daemon
-	zoneInventory zoneInventory
-}
-
-// Lifecycle method called once when the daemon is added to the monitor.
-// It starts the zone inventory background tasks.
-func (d *PDNSDaemon) Bootstrap() error {
-	if d.zoneInventory != nil {
-		d.zoneInventory.start()
-	}
-	return nil
-}
-
-// Lifecycle method called periodically by the monitor.
-// It populates the zone inventory.
-func (d *PDNSDaemon) RefreshState(context.Context, AgentManager) error {
-	zoneInventory := d.GetZoneInventory()
-	if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
-		return nil
-	}
-	var busyError *zoneInventoryBusyError
-	if _, err := zoneInventory.populate(false); err != nil {
-		switch {
-		case errors.As(err, &busyError):
-			// Inventory creation is in progress. This is not an error.
-			return nil
-		default:
-			return errors.WithMessage(err, "Failed to populate DNS zones inventory")
-		}
-	}
-	return nil
-}
-
-// Lifecycle method called once when the daemon is removed from the monitor.
-// Waits for the zone inventory to complete background tasks.
-func (d *PDNSDaemon) Cleanup() error {
-	if d.zoneInventory != nil {
-		d.zoneInventory.stop()
-	}
-	return nil
-}
-
-// Returns the zone inventory.
-func (d *PDNSDaemon) GetZoneInventory() zoneInventory {
-	return d.zoneInventory
+	dnsDaemon
 }
 
 // Detect the PowerDNS daemon by parsing the named process command line.
@@ -163,18 +118,20 @@ func detectPowerDNSDaemon(p supportedProcess, parser pdnsConfigParser) (Daemon, 
 
 	// Create the PowerDNS app.
 	daemon := &PDNSDaemon{
-		daemon: daemon{
-			Name: daemonname.PDNS,
-			AccessPoints: []AccessPoint{
-				{
-					Type:    AccessPointControl,
-					Address: *webserverAddress,
-					Port:    *webserverPort,
-					Key:     *key,
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.PDNS,
+				AccessPoints: []AccessPoint{
+					{
+						Type:    AccessPointControl,
+						Address: *webserverAddress,
+						Port:    *webserverPort,
+						Key:     *key,
+					},
 				},
 			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	}
 	return daemon, nil
 }

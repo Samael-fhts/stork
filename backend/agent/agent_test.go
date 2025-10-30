@@ -87,14 +87,16 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 				connector: connector,
 			},
 			&Bind9Daemon{
-				daemon: daemon{
-					Name: daemonname.Bind9,
-					AccessPoints: []AccessPoint{{
-						Type:     AccessPointControl,
-						Address:  "localhost",
-						Port:     45635,
-						Protocol: protocoltype.RNDC,
-					}},
+				dnsDaemon: dnsDaemon{
+					daemon: daemon{
+						Name: daemonname.Bind9,
+						AccessPoints: []AccessPoint{{
+							Type:     AccessPointControl,
+							Address:  "localhost",
+							Port:     45635,
+							Protocol: protocoltype.RNDC,
+						}},
+					},
 				},
 			},
 		},
@@ -240,9 +242,11 @@ func TestGetState(t *testing.T) {
 	}
 
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name:         daemonname.Bind9,
-			AccessPoints: accessPoints,
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name:         daemonname.Bind9,
+				AccessPoints: accessPoints,
+			},
 		},
 	})
 	fdm.Daemons = daemons
@@ -574,14 +578,16 @@ func TestForwardRndcCommandSuccess(t *testing.T) {
 
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Protocol: protocoltype.RNDC,
+				}},
+			},
 		},
 		rndcClient: rndcClient,
 	})
@@ -637,14 +643,16 @@ func TestForwardRndcCommandError(t *testing.T) {
 
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Protocol: protocoltype.RNDC,
+				}},
+			},
 		},
 		rndcClient: rndcClient,
 	})
@@ -698,14 +706,16 @@ func TestForwardRndcCommandEmpty(t *testing.T) {
 
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Protocol: protocoltype.RNDC,
+				}},
+			},
 		},
 		rndcClient: rndcClient,
 	})
@@ -1084,17 +1094,19 @@ func TestReceiveZonesFilterByView(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1160,16 +1172,18 @@ func TestReceiveZonesPDNS(t *testing.T) {
 	// Add a PowerDNS daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		daemon: daemon{
-			Name: daemonname.PDNS,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Protocol: protocoltype.HTTP,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.PDNS,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Protocol: protocoltype.HTTP,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1248,17 +1262,19 @@ func TestReceiveRPZZones(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1330,17 +1346,19 @@ func TestReceiveZonesFilterByLoadedAfter(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1396,17 +1414,19 @@ func TestReceiveZonesFilterLowerBound(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1451,17 +1471,19 @@ func TestReceiveZonesNilZoneInventory(t *testing.T) {
 	// Add a BIND9 daemon without zone inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: nil,
 		},
-		zoneInventory: nil,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1551,17 +1573,19 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1638,17 +1662,19 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1752,17 +1778,19 @@ func TestReceiveZoneRRs(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1852,16 +1880,18 @@ func TestReceiveZoneRRsPowerDNS(t *testing.T) {
 	// Add a PowerDNS daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		daemon: daemon{
-			Name: daemonname.PDNS,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Protocol: protocoltype.HTTP,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.PDNS,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Protocol: protocoltype.HTTP,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -1903,14 +1933,16 @@ func TestReceiveZoneRRsNilZoneInventory(t *testing.T) {
 	// Add a BIND9 daemon with the nil zone inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Protocol: protocoltype.RNDC,
+				}},
+			},
 		},
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
@@ -1976,17 +2008,19 @@ func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -2070,17 +2104,19 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		daemon: daemon{
-			Name: daemonname.Bind9,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "127.0.0.1",
-				Port:     1234,
-				Key:      "key",
-				Protocol: protocoltype.RNDC,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
 		},
-		zoneInventory: inventory,
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
 	fdm.Daemons = daemons
@@ -2145,15 +2181,17 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		daemon: daemon{
-			Name: daemonname.PDNS,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "localhost",
-				Port:     1234,
-				Key:      "stork",
-				Protocol: protocoltype.HTTP,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.PDNS,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "localhost",
+					Port:     1234,
+					Key:      "stork",
+					Protocol: protocoltype.HTTP,
+				}},
+			},
 		},
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
@@ -2214,15 +2252,17 @@ func TestGetPowerDNSServerInfoNoAPIKey(t *testing.T) {
 	// Add a PowerDNS daemon with no API key.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		daemon: daemon{
-			Name: daemonname.PDNS,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "localhost",
-				Port:     1234,
-				Key:      "",
-				Protocol: protocoltype.HTTP,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.PDNS,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "localhost",
+					Port:     1234,
+					Key:      "",
+					Protocol: protocoltype.HTTP,
+				}},
+			},
 		},
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
@@ -2263,15 +2303,17 @@ func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		daemon: daemon{
-			Name: daemonname.PDNS,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "localhost",
-				Port:     1234,
-				Key:      "stork",
-				Protocol: protocoltype.HTTP,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.PDNS,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "localhost",
+					Port:     1234,
+					Key:      "stork",
+					Protocol: protocoltype.HTTP,
+				}},
+			},
 		},
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
@@ -2325,15 +2367,17 @@ func TestGetPowerDNSServerInfoStatisticsErrorResponse(t *testing.T) {
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		daemon: daemon{
-			Name: daemonname.PDNS,
-			AccessPoints: []AccessPoint{{
-				Type:     AccessPointControl,
-				Address:  "localhost",
-				Port:     1234,
-				Key:      "stork",
-				Protocol: protocoltype.HTTP,
-			}},
+		dnsDaemon: dnsDaemon{
+			daemon: daemon{
+				Name: daemonname.PDNS,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "localhost",
+					Port:     1234,
+					Key:      "stork",
+					Protocol: protocoltype.HTTP,
+				}},
+			},
 		},
 	})
 	fdm, _ := sa.Monitor.(*FakeMonitor)
