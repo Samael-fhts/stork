@@ -37,6 +37,9 @@ type PDNSDaemon struct {
 // Lifecycle method called once when the daemon is added to the monitor.
 // It starts the zone inventory background tasks.
 func (d *PDNSDaemon) Bootstrap() error {
+	if d.zoneInventory != nil {
+		d.zoneInventory.start()
+	}
 	return nil
 }
 

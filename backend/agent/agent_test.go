@@ -1067,7 +1067,8 @@ func TestReceiveZonesFilterByView(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultBind9Config(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	// Populate the zones into inventory.
 	done, err := inventory.populate(false)
@@ -1142,7 +1143,8 @@ func TestReceiveZonesPDNS(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultPDNSConfig(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, pdnsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	// Populate the zones into inventory.
 	done, err := inventory.populate(false)
@@ -1232,7 +1234,8 @@ func TestReceiveRPZZones(t *testing.T) {
 	rpzMock.EXPECT().GetAPIKey().AnyTimes().Return("")
 
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), rpzMock, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	// Populate the zones into inventory.
 	done, err := inventory.populate(false)
@@ -1310,7 +1313,8 @@ func TestReceiveZonesFilterByLoadedAfter(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultBind9Config(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	// Populate the zones into inventory.
 	done, err := inventory.populate(false)
@@ -1375,7 +1379,8 @@ func TestReceiveZonesFilterLowerBound(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultBind9Config(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	// Populate the zones into inventory.
 	done, err := inventory.populate(false)
@@ -1537,7 +1542,8 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultBind9Config(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	sa, _, teardown := setupAgentTest()
 	defer teardown()
@@ -1610,7 +1616,8 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultBind9Config(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	done, err := inventory.populate(true)
 	require.NoError(t, err)
@@ -1695,7 +1702,8 @@ func TestReceiveZoneRRs(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultBind9Config(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	// Get the example zone contents from the file.
 	var rrs []string
@@ -1798,7 +1806,8 @@ func TestReceiveZoneRRsPowerDNS(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultPDNSConfig(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, pdnsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	// Get the example zone contents from the file.
 	var rrs []string
@@ -1945,7 +1954,8 @@ func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 	// Create zone inventory but do not populate it.
 	config := parseDefaultBind9Config(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	// Get the example zone contents from the file.
 	var rrs []string
@@ -2029,7 +2039,8 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	// Create zone inventory.
 	config := parseDefaultBind9Config(t)
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
-	defer inventory.awaitBackgroundTasks()
+	inventory.start()
+	defer inventory.stop()
 
 	done, err := inventory.populate(false)
 	require.NoError(t, err)

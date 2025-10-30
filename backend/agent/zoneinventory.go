@@ -678,6 +678,8 @@ type zoneInventory interface {
 	// the AXFR results. The channel is closed by the zone inventory when
 	// the transfer is complete.
 	requestAXFR(zoneName, viewName string) (chan *zoneInventoryAXFRResponse, error)
+	// Starts the zone inventory workers.
+	start()
 	// Stops the zone inventory and waits for the background tasks to complete.
 	stop()
 }
@@ -753,7 +755,6 @@ type zoneInventoryReceiveZoneResult struct {
 // disk this function prepares required directory structures. An error is returned if
 // creating these structures fails.
 func newZoneInventory(storage zoneInventoryStorage, config dnsConfigAccessor, client zoneFetcher, host string, port int64) *zoneInventoryImpl {
-	ctx, cancel := context.WithCancel(context.Background())
 	state := newZoneInventoryStateInitial()
 	inventory := &zoneInventoryImpl{
 		storage: storage,
@@ -768,13 +769,11 @@ func newZoneInventory(storage zoneInventoryStorage, config dnsConfigAccessor, cl
 		mutex:             sync.RWMutex{},
 		wg:                sync.WaitGroup{},
 		axfrReqChan:       make(chan *zoneInventoryAXFRRequest),
-		axfrReqCancel:     cancel,
+		axfrReqCancel:     nil, // Nothing to cancel yet.
 		axfrExecutor:      &zoneInventoryAXFRExecutorImpl{},
-		axfrPool:          storkutil.NewPausablePool(runtime.GOMAXPROCS(0) * 2),
+		axfrPool:          nil,
 		axfrWorkersActive: false,
 	}
-	// Start the workers performing AXFR requests.
-	inventory.startAXFRWorkers(ctx)
 	return inventory
 }
 
@@ -831,7 +830,13 @@ func (inventory *zoneInventoryImpl) populate(block bool) (chan zoneInventoryAsyn
 		return nil, err
 	}
 	// No zone transfers during zones population.
+	if inventory.axfrPool == nil {
+		err := errors.New("inventory is not started")
+		_ = inventory.transition(newZoneInventoryStatePopulatingErred(err))
+		return nil, err
+	}
 	if err := inventory.axfrPool.Pause(); err != nil {
+		_ = inventory.transition(newZoneInventoryStatePopulatingErred(err))
 		return nil, err
 	}
 
@@ -1141,9 +1146,11 @@ func (inventory *zoneInventoryImpl) startAXFRWorkers(ctx context.Context) {
 // Stops the AXFR workers and waits for them to complete their tasks.
 func (inventory *zoneInventoryImpl) stopAXFRWorkers() {
 	// Stop the pool first to ensure that no new tasks are accepted.
-	inventory.axfrPool.Stop()
-	// Cancel the context to unblock the pending tasks.
-	inventory.axfrReqCancel()
+	if inventory.axfrPool != nil {
+		inventory.axfrPool.Stop()
+		// Cancel the context to unblock the pending tasks.
+		inventory.axfrReqCancel()
+	}
 	// Set the flag to false to indicate that the workers are not active anymore.
 	inventory.axfrWorkersActive = false
 }
@@ -1156,6 +1163,15 @@ func (inventory *zoneInventoryImpl) isAXFRWorkersActive() bool {
 // This function waits for the asynchronous operations to complete.
 func (inventory *zoneInventoryImpl) awaitBackgroundTasks() {
 	inventory.wg.Wait()
+}
+
+// Starts the zone inventory and its workers.
+func (inventory *zoneInventoryImpl) start() {
+	// Start the workers performing AXFR requests.
+	inventory.axfrPool = storkutil.NewPausablePool(runtime.GOMAXPROCS(0) * 2)
+	ctx, cancel := context.WithCancel(context.Background())
+	inventory.startAXFRWorkers(ctx)
+	inventory.axfrReqCancel = cancel
 }
 
 // Stops the zone inventory and waits for the background tasks to complete.

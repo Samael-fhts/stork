@@ -57,7 +57,9 @@ type Bind9Daemon struct {
 
 // The lifecycle method called once when the daemon is started.
 func (ba *Bind9Daemon) Bootstrap() error {
-	// TODO: We could initialize zone inventory here.
+	if ba.zoneInventory != nil {
+		ba.zoneInventory.start()
+	}
 	return nil
 }
 

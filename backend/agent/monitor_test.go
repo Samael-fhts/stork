@@ -951,6 +951,9 @@ func TestPopulateZoneInventories(t *testing.T) {
 		zoneInventory: nil,
 	}
 	zi1 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
+	zi1.start()
+	defer zi1.stop()
+
 	daemon1 := &Bind9Daemon{
 		daemon: daemon{
 			Name: daemonname.Bind9,
@@ -959,6 +962,9 @@ func TestPopulateZoneInventories(t *testing.T) {
 	}
 
 	zi2 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
+	zi2.start()
+	defer zi2.stop()
+
 	daemon2 := &Bind9Daemon{
 		daemon: daemon{
 			Name: daemonname.Bind9,
@@ -966,6 +972,9 @@ func TestPopulateZoneInventories(t *testing.T) {
 		zoneInventory: zi2,
 	}
 	zi3 := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
+	zi3.start()
+	defer zi3.stop()
+
 	daemon3 := &PDNSDaemon{
 		daemon: daemon{
 			Name: daemonname.PDNS,
