@@ -157,27 +157,6 @@ type DNSDaemon interface {
 	GetZoneInventory() zoneInventory
 }
 
-// Converts a process name to a daemon name. If the process name
-// is not recognized, it returns an empty string.
-func convertProcessNameToDaemonName(procName string) daemonname.Name {
-	switch procName {
-	case "kea-dhcp4":
-		return daemonname.DHCPv4
-	case "kea-dhcp6":
-		return daemonname.DHCPv6
-	case "kea-d2":
-		return daemonname.D2
-	case "kea-ctrl-agent":
-		return daemonname.CA
-	case "named":
-		return daemonname.Bind9
-	case "pdns_server":
-		return daemonname.PDNS
-	default:
-		return ""
-	}
-}
-
 // The daemon monitor is responsible for detecting the daemons
 // running in the operating system and periodically refreshing their states.
 // They are available through assessors.
@@ -344,8 +323,7 @@ func (sm *monitor) detectDaemons(ctx context.Context) {
 	processes, _ := sm.processManager.ListProcesses()
 
 	for _, p := range processes {
-		procName, _ := p.getName()
-		daemonName := convertProcessNameToDaemonName(procName)
+		daemonName := p.getDaemonName()
 		if daemonName == "" {
 			// Process is not a supported daemon.
 			continue

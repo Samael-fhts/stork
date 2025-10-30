@@ -185,7 +185,7 @@ func detectKeaDaemons(ctx context.Context, p supportedProcess, httpClientConfig 
 		return nil, errors.Wrap(err, "cannot get process name")
 	}
 
-	daemonName := convertProcessNameToDaemonName(processName)
+	daemonName := p.getDaemonName()
 	if daemonName == "" {
 		return nil, errors.Errorf("unsupported Kea process: %s", processName)
 	}

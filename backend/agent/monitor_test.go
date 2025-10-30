@@ -233,6 +233,7 @@ func TestDetectDaemons(t *testing.T) {
 
 	keaProcess := NewMockSupportedProcess(ctrl)
 	keaProcess.EXPECT().getName().AnyTimes().Return("kea-ctrl-agent", nil)
+	keaProcess.EXPECT().getDaemonName().AnyTimes().Return(daemonname.CA)
 	keaProcess.EXPECT().getCmdline().AnyTimes().Return(fmt.Sprintf(
 		"kea-ctrl-agent -c %s", keaConfPath,
 	), nil)
@@ -242,6 +243,7 @@ func TestDetectDaemons(t *testing.T) {
 
 	bind9Process := NewMockSupportedProcess(ctrl)
 	bind9Process.EXPECT().getName().AnyTimes().Return("named", nil)
+	bind9Process.EXPECT().getDaemonName().AnyTimes().Return(daemonname.Bind9)
 	bind9Process.EXPECT().getCmdline().AnyTimes().Return("named -c /etc/named.conf", nil)
 	bind9Process.EXPECT().getCwd().AnyTimes().Return("/etc", nil)
 	bind9Process.EXPECT().getPid().AnyTimes().Return(int32(5678))
@@ -249,6 +251,7 @@ func TestDetectDaemons(t *testing.T) {
 
 	pdnsProcess := NewMockSupportedProcess(ctrl)
 	pdnsProcess.EXPECT().getName().AnyTimes().Return("pdns_server", nil)
+	pdnsProcess.EXPECT().getDaemonName().AnyTimes().Return(daemonname.PDNS)
 	pdnsProcess.EXPECT().getCmdline().AnyTimes().Return("pdns_server -c /etc/powerdns/pdns.conf", nil)
 	pdnsProcess.EXPECT().getCwd().AnyTimes().Return("/etc", nil)
 	pdnsProcess.EXPECT().getPid().AnyTimes().Return(int32(7890))
@@ -256,6 +259,7 @@ func TestDetectDaemons(t *testing.T) {
 
 	unknownProcess := NewMockSupportedProcess(ctrl)
 	unknownProcess.EXPECT().getName().AnyTimes().Return("unknown", nil)
+	unknownProcess.EXPECT().getDaemonName().AnyTimes().Return(daemonname.Name(""))
 	unknownProcess.EXPECT().getPid().AnyTimes().Return(int32(3456))
 	unknownProcess.EXPECT().getParentPid().AnyTimes().Return(int32(4567), nil)
 
@@ -368,6 +372,7 @@ func TestDetectDaemonsConfigNoStatistics(t *testing.T) {
 
 	bind9Process := NewMockSupportedProcess(ctrl)
 	bind9Process.EXPECT().getName().AnyTimes().Return("named", nil)
+	bind9Process.EXPECT().getDaemonName().AnyTimes().Return(daemonname.Bind9)
 	bind9Process.EXPECT().getCmdline().AnyTimes().Return("named -c /etc/named.conf", nil)
 	bind9Process.EXPECT().getCwd().AnyTimes().Return("/etc", nil)
 	bind9Process.EXPECT().getPid().AnyTimes().Return(int32(5678))
@@ -421,6 +426,7 @@ func TestDetectDaemonsContinueOnNotAvailableCommandLine(t *testing.T) {
 
 	bind9Process := NewMockSupportedProcess(ctrl)
 	bind9Process.EXPECT().getName().AnyTimes().Return("named", nil)
+	bind9Process.EXPECT().getDaemonName().AnyTimes().Return(daemonname.Bind9)
 	bind9Process.EXPECT().getCmdline().AnyTimes().Return("named -c /etc/named.conf", nil)
 	bind9Process.EXPECT().getCwd().Return("", errors.New("no current working directory"))
 	bind9Process.EXPECT().getPid().AnyTimes().Return(int32(5678))
@@ -457,6 +463,7 @@ func TestDetectDaemonsSkipOnNotAvailableCwd(t *testing.T) {
 
 	noCwdProcess := NewMockSupportedProcess(ctrl)
 	noCwdProcess.EXPECT().getName().AnyTimes().Return("kea-ctrl-agent", nil)
+	noCwdProcess.EXPECT().getDaemonName().AnyTimes().Return(daemonname.CA)
 	noCwdProcess.EXPECT().getCmdline().AnyTimes().Return("kea-ctrl-agent -c /etc/kea/kea.conf", nil)
 	noCwdProcess.EXPECT().getCwd().AnyTimes().Return("", errors.New("no current working directory"))
 	noCwdProcess.EXPECT().getPid().AnyTimes().Return(int32(1234))
@@ -464,6 +471,7 @@ func TestDetectDaemonsSkipOnNotAvailableCwd(t *testing.T) {
 
 	bind9Process := NewMockSupportedProcess(ctrl)
 	bind9Process.EXPECT().getName().AnyTimes().Return("named", nil)
+	bind9Process.EXPECT().getDaemonName().AnyTimes().Return(daemonname.Bind9)
 	bind9Process.EXPECT().getCmdline().AnyTimes().Return("named -c /etc/named.conf", nil)
 	bind9Process.EXPECT().getCwd().AnyTimes().Return("/etc", nil)
 	bind9Process.EXPECT().getPid().AnyTimes().Return(int32(5678))
@@ -725,6 +733,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 
 		process := NewMockSupportedProcess(ctrl)
 		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+		process.EXPECT().getDaemonName().Return(daemonname.CA)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("/usr/bin/kea-ctrl-agent -c %s", tmpFilePath), nil)
 		process.EXPECT().getCwd().Return("", nil)
 		daemon, err := detectKeaDaemons(t.Context(), process, httpClientConfig, commander)
@@ -734,6 +743,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 		// check kea daemon detection when kea conf file is relative to CWD of kea process
 		cwd, file := path.Split(tmpFilePath)
 		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+		process.EXPECT().getDaemonName().Return(daemonname.CA)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("kea-ctrl-agent -c %s", file), nil)
 		process.EXPECT().getCwd().Return(cwd, nil)
 		daemon, err = detectKeaDaemons(t.Context(), process, httpClientConfig, commander)
@@ -751,6 +761,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 		defer ctrl.Finish()
 		process := NewMockSupportedProcess(ctrl)
 		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+		process.EXPECT().getDaemonName().Return(daemonname.CA)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("/usr/bin/kea-ctrl-agent -c %s", tmpFilePath), nil)
 		process.EXPECT().getCwd().Return("", nil)
 
@@ -761,6 +772,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 		// check kea daemon detection when kea conf file is relative to CWD of kea process
 		cwd, file := path.Split(tmpFilePath)
 		process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+		process.EXPECT().getDaemonName().Return(daemonname.CA)
 		process.EXPECT().getCmdline().Return(fmt.Sprintf("kea-ctrl-agent -c %s", file), nil)
 		process.EXPECT().getCwd().Return(cwd, nil)
 		daemon, err = detectKeaDaemons(t.Context(), process, httpClientConfig, commander)

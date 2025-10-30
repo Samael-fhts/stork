@@ -3,6 +3,7 @@ package agent
 import (
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/v4/process"
+	"isc.org/stork/daemonctrl/constants/daemonname"
 )
 
 var (
@@ -18,6 +19,7 @@ type supportedProcess interface {
 	getName() (string, error)
 	getPid() int32
 	getParentPid() (int32, error)
+	getDaemonName() daemonname.Name
 }
 
 // Wrapper for gopsutil process. It implements the supportedProcess interface.
@@ -56,6 +58,32 @@ func (p *processWrapper) getName() (string, error) {
 	name, err := p.process.Name()
 	err = errors.Wrapf(err, "failed to get process name for pid %d", p.getPid())
 	return name, err
+}
+
+// Converts a process name to a daemon name. If the process name
+// is not recognized, it returns an empty string.
+func (p *processWrapper) getDaemonName() daemonname.Name {
+	processName, err := p.getName()
+	if err != nil {
+		return ""
+	}
+
+	switch processName {
+	case "kea-dhcp4":
+		return daemonname.DHCPv4
+	case "kea-dhcp6":
+		return daemonname.DHCPv6
+	case "kea-d2":
+		return daemonname.D2
+	case "kea-ctrl-agent":
+		return daemonname.CA
+	case "named":
+		return daemonname.Bind9
+	case "pdns_server":
+		return daemonname.PDNS
+	default:
+		return ""
+	}
 }
 
 // An interface for listing the supported processes. It can be mocked in the
