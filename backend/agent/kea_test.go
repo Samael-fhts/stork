@@ -35,8 +35,9 @@ func TestSendCommand(t *testing.T) {
 			Name:         daemonname.CA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
+	gock.InterceptClient(daemon.connector.(*keaHTTPConnector).httpClient.client)
 	var response keactrl.Response
 	err := daemon.sendCommand(t.Context(), command, &response)
 	require.NoError(t, err)
@@ -81,8 +82,9 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 			Name:         daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
+	gock.InterceptClient(daemon.connector.(*keaHTTPConnector).httpClient.client)
 
 	type versionGet struct {
 		keactrl.ResponseHeader
@@ -212,7 +214,8 @@ func TestKeaAllowedLogs(t *testing.T) {
 		JSON(dhcpV6Responses)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
-	connector := newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient})
+	connector := newKeaConnector(accessPoint, HTTPClientConfig{})
+	gock.InterceptClient(connector.(*keaHTTPConnector).httpClient.client)
 
 	monitor := &monitor{daemons: []Daemon{
 		&KeaDaemon{
@@ -351,7 +354,8 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 		JSON(dhcpV6Response)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
-	connector := newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient})
+	connector := newKeaConnector(accessPoint, HTTPClientConfig{})
+	gock.InterceptClient(connector.(*keaHTTPConnector).httpClient.client)
 
 	monitor := &monitor{daemons: []Daemon{
 		&KeaDaemon{
@@ -422,8 +426,9 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 			Name:         daemonname.CA,
 			AccessPoints: []AccessPoint{accessPoint},
 		},
-		connector: newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient}),
+		connector: newKeaConnector(accessPoint, HTTPClientConfig{}),
 	}
+	gock.InterceptClient(daemon.connector.(*keaHTTPConnector).httpClient.client)
 
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
