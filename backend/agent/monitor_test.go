@@ -389,7 +389,7 @@ func TestDetectDaemonsConfigNoStatistics(t *testing.T) {
 	// Create fake daemon to test that the monitor stops zone inventory
 	// when new daemons are detected.
 	fakeDaemon := NewMockDaemon(ctrl)
-	fakeDaemon.EXPECT().Evaluate(gomock.Any(), gomock.Any()).AnyTimes()
+	fakeDaemon.EXPECT().RefreshState(gomock.Any(), gomock.Any()).AnyTimes()
 	fakeDaemon.EXPECT().Cleanup().Times(1)
 	fakeDaemon.EXPECT().IsEqual(gomock.Any()).AnyTimes().Return(false)
 	fakeDaemon.EXPECT().String().AnyTimes().Return("fake-daemon")
@@ -546,7 +546,7 @@ func TestDetectAllowedLogsKeaUnreachable(t *testing.T) {
 	hm := NewHookManager()
 	sa := NewStorkAgent("foo", 42, monitor, bind9StatsClient, hm)
 
-	require.NotPanics(t, func() { monitor.evaluateDaemons(t.Context(), sa) })
+	require.NotPanics(t, func() { monitor.refreshDaemons(t.Context(), sa) })
 }
 
 // Returns a fixed output and no error for any data. The output contains the
@@ -967,7 +967,7 @@ func TestPopulateZoneInventories(t *testing.T) {
 		connector: newKeaConnector(AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634}, HTTPClientConfig{}),
 	}
 	daemonMonitor.daemons = append(daemonMonitor.daemons, daemon0, daemon1, daemon2, daemon3, daemon4)
-	daemonMonitor.evaluateDaemons(t.Context(), agentManager)
+	daemonMonitor.refreshDaemons(t.Context(), agentManager)
 
 	require.Eventually(t, func() bool {
 		for _, daemon := range daemonMonitor.daemons {

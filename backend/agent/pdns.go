@@ -42,7 +42,7 @@ func (d *PDNSDaemon) Bootstrap() error {
 
 // Lifecycle method called periodically by the monitor.
 // It populates the zone inventory.
-func (d *PDNSDaemon) Evaluate(context.Context, AgentManager) error {
+func (d *PDNSDaemon) RefreshState(context.Context, AgentManager) error {
 	zoneInventory := d.GetZoneInventory()
 	if zoneInventory == nil || zoneInventory.getCurrentState().isReady() {
 		return nil

@@ -79,7 +79,7 @@ type Daemon interface {
 	Cleanup() error
 	// Performs periodic processing of the daemon, e.g., detect logs or
 	// refresh zone inventory.
-	Evaluate(context.Context, AgentManager) error
+	RefreshState(context.Context, AgentManager) error
 	String() string
 }
 
@@ -243,8 +243,8 @@ func (sm *monitor) run(ctx context.Context, storkAgent AgentManager) {
 	// Run app detection one time immediately at startup.
 	sm.detectDaemons(ctx)
 
-	// Evaluate all detected daemons.
-	sm.evaluateDaemons(ctx, storkAgent)
+	// Refresh states of all detected daemons.
+	sm.refreshDaemons(ctx, storkAgent)
 
 	// Prepare ticker.
 	const detectionInterval = 10 * time.Second
@@ -262,7 +262,7 @@ func (sm *monitor) run(ctx context.Context, storkAgent AgentManager) {
 			ticker.Stop()
 
 			sm.detectDaemons(ctx)
-			sm.evaluateDaemons(ctx, storkAgent)
+			sm.refreshDaemons(ctx, storkAgent)
 
 			// Reset ticker.
 			ticker.Reset(detectionInterval)
@@ -425,10 +425,10 @@ func (sm *monitor) detectDaemons(ctx context.Context) {
 }
 
 // Evaluates the detected daemons.
-func (sm *monitor) evaluateDaemons(ctx context.Context, storkAgent AgentManager) {
+func (sm *monitor) refreshDaemons(ctx context.Context, storkAgent AgentManager) {
 	for _, d := range sm.daemons {
-		if err := d.Evaluate(ctx, storkAgent); err != nil {
-			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to evaluate daemon")
+		if err := d.RefreshState(ctx, storkAgent); err != nil {
+			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to refresh state of the daemon")
 		}
 	}
 }

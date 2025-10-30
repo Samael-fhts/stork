@@ -245,7 +245,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 	// One from CA, one from DHCPv4 and one from DHCPv6.
 	agentManager.EXPECT().AllowLog(gomock.Any()).Times(3)
 
-	monitor.evaluateDaemons(t.Context(), agentManager)
+	monitor.refreshDaemons(t.Context(), agentManager)
 
 	require.NoError(t, err)
 }
@@ -384,7 +384,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	// One from CA, one from DHCPv4 and one from DHCPv6.
 	agentManager.EXPECT().AllowLog(gomock.Any()).Times(3)
 
-	monitor.evaluateDaemons(t.Context(), agentManager)
+	monitor.refreshDaemons(t.Context(), agentManager)
 
 	require.NoError(t, err)
 }
@@ -429,7 +429,7 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 	defer ctrl.Finish()
 	agentManager := NewMockAgentManager(ctrl)
 
-	err = daemon.Evaluate(t.Context(), agentManager)
+	err = daemon.RefreshState(t.Context(), agentManager)
 	require.Error(t, err)
 }
 

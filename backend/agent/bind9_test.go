@@ -20,13 +20,13 @@ import (
 // Test the function which extracts the list of log files from the Bind9
 // daemon by sending the request to the Kea Control Agent and the
 // daemons behind it.
-func TestBind9Evaluate(t *testing.T) {
+func TestBind9RefreshState(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	agentManager := NewMockAgentManager(ctrl)
 
 	daemon := &Bind9Daemon{}
-	err := daemon.Evaluate(t.Context(), agentManager)
+	err := daemon.RefreshState(t.Context(), agentManager)
 	require.NoError(t, err)
 }
 
