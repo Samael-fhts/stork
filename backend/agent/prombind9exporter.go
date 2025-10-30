@@ -1193,7 +1193,7 @@ DAEMON_LOOP:
 		// get stats from named
 		sap := daemon.GetAccessPoint(AccessPointStatistics)
 		if sap == nil {
-			err := errors.Errorf("missing access statistics point for daemon: %s", daemon)
+			err := errors.Errorf("missing statistics access point for daemon: %s", daemon)
 			errs = append(errs, err)
 			continue
 		}
