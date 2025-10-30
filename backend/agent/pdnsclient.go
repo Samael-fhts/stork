@@ -41,9 +41,8 @@ type pdnsClientRequest struct {
 func newPDNSClientRequest(innerClient *resty.Client, apiKey string, host string, port int64) *pdnsClientRequest {
 	return &pdnsClientRequest{
 		innerClient: innerClient,
-		// TODO: Add support for HTTPS.
-		baseURL: setPDNSClientBasePath(storkutil.HostWithPortURL(host, port, "http")),
-		apiKey:  apiKey,
+		baseURL:     setPDNSClientBasePath(storkutil.HostWithPortURL(host, port, "http")),
+		apiKey:      apiKey,
 	}
 }
 
