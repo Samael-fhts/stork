@@ -378,7 +378,7 @@ func (sm *monitor) detectDaemons(ctx context.Context) {
 			// PowerDNS server.
 			detectedDaemon, err := detectPowerDNSDaemon(p, sm.pdnsConfigParser)
 			if err != nil {
-				log.WithError(err).Warn("Failed to detect PowerDNS server app")
+				log.WithError(err).Warn("Failed to detect PowerDNS server daemon")
 				continue
 			}
 			daemons = append(daemons, detectedDaemon)
