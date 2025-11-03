@@ -20,7 +20,7 @@ import (
 
 var (
 	_ Daemon          = (*Bind9Daemon)(nil)
-	_ DNSDaemon       = (*Bind9Daemon)(nil)
+	_ dnsDaemon       = (*Bind9Daemon)(nil)
 	_ bind9FileParser = (*bind9config.Parser)(nil)
 
 	// Patterns for detecting named process.
@@ -48,7 +48,7 @@ func (k *Bind9RndcKey) String() string {
 
 // It holds common and BIND 9 specific runtime information.
 type Bind9Daemon struct {
-	dnsDaemon
+	dnsDaemonImpl
 	rndcClient *RndcClient // to communicate with BIND 9 via rndc
 	pid        int32       // PID of the named process
 }
@@ -679,7 +679,7 @@ func detectBind9Daemon(p supportedProcess, executor storkutil.CommandExecutor, e
 
 	// prepare final BIND 9 daemon
 	daemon := &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name:         daemonname.Bind9,
 				AccessPoints: accessPoints,

@@ -30,7 +30,7 @@ func TestSendCommand(t *testing.T) {
 	command := keactrl.NewCommandBase(keactrl.ListCommands, daemonname.CA)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
-	daemon := &KeaDaemon{
+	daemon := &keaDaemon{
 		daemon: daemon{
 			Name:         daemonname.CA,
 			AccessPoints: []AccessPoint{accessPoint},
@@ -48,7 +48,7 @@ func TestSendCommand(t *testing.T) {
 func TestSendCommandNoAccessPoint(t *testing.T) {
 	command := keactrl.NewCommandBase(keactrl.ListCommands, daemonname.CA)
 
-	daemon := &KeaDaemon{
+	daemon := &keaDaemon{
 		daemon: daemon{
 			Name:         daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{},
@@ -77,7 +77,7 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 	command := keactrl.NewCommandBase(keactrl.VersionGet, daemonname.DHCPv4)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
-	daemon := &KeaDaemon{
+	daemon := &keaDaemon{
 		daemon: daemon{
 			Name:         daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{accessPoint},
@@ -101,7 +101,7 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 func TestSendCommandNoKea(t *testing.T) {
 	command := keactrl.NewCommandBase(keactrl.ListCommands, daemonname.CA)
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "http"}
-	daemon := &KeaDaemon{
+	daemon := &keaDaemon{
 		daemon: daemon{
 			Name:         daemonname.CA,
 			AccessPoints: []AccessPoint{accessPoint},
@@ -218,21 +218,21 @@ func TestKeaAllowedLogs(t *testing.T) {
 	gock.InterceptClient(connector.(*keaHTTPConnector).httpClient.client)
 
 	monitor := &monitor{daemons: []Daemon{
-		&KeaDaemon{
+		&keaDaemon{
 			daemon: daemon{
 				Name:         daemonname.CA,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
 		},
-		&KeaDaemon{
+		&keaDaemon{
 			daemon: daemon{
 				Name:         daemonname.DHCPv4,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
 		},
-		&KeaDaemon{
+		&keaDaemon{
 			daemon: daemon{
 				Name:         daemonname.DHCPv6,
 				AccessPoints: []AccessPoint{accessPoint},
@@ -358,21 +358,21 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	gock.InterceptClient(connector.(*keaHTTPConnector).httpClient.client)
 
 	monitor := &monitor{daemons: []Daemon{
-		&KeaDaemon{
+		&keaDaemon{
 			daemon: daemon{
 				Name:         daemonname.CA,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
 		},
-		&KeaDaemon{
+		&keaDaemon{
 			daemon: daemon{
 				Name:         daemonname.DHCPv4,
 				AccessPoints: []AccessPoint{accessPoint},
 			},
 			connector: connector,
 		},
-		&KeaDaemon{
+		&keaDaemon{
 			daemon: daemon{
 				Name:         daemonname.DHCPv6,
 				AccessPoints: []AccessPoint{accessPoint},
@@ -421,7 +421,7 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 		JSON(dhcpResponses)
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
-	daemon := &KeaDaemon{
+	daemon := &keaDaemon{
 		daemon: daemon{
 			Name:         daemonname.CA,
 			AccessPoints: []AccessPoint{accessPoint},
@@ -440,7 +440,7 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 
 // Test that cleaning up the daemon doesn't panic.
 func TestKeaDaemonCleanup(t *testing.T) {
-	daemon := &KeaDaemon{}
+	daemon := &keaDaemon{}
 	require.NotPanics(t, func() {
 		daemon.Cleanup()
 	})

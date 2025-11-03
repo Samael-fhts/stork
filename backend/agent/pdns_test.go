@@ -16,7 +16,7 @@ import (
 // Test that the BaseApp structure can be accessed.
 func TestPowerDNSAppGetBaseApp(t *testing.T) {
 	daemon := &PDNSDaemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
 			},
@@ -37,7 +37,7 @@ func TestPowerDNSDaemonRefreshState(t *testing.T) {
 	zoneInventory.EXPECT().populate(gomock.Any()).Return(nil, nil)
 	zoneInventory.EXPECT().getCurrentState().Return(&zoneInventoryState{})
 
-	daemon := &PDNSDaemon{dnsDaemon: dnsDaemon{zoneInventory: zoneInventory}}
+	daemon := &PDNSDaemon{dnsDaemonImpl: dnsDaemonImpl{zoneInventory: zoneInventory}}
 
 	// Act
 	err := daemon.RefreshState(t.Context(), agentManager)
@@ -55,7 +55,7 @@ func TestPowerDNSDaemonCleanupNilZoneInventory(t *testing.T) {
 	zoneInventory := NewMockZoneInventory(ctrl)
 	zoneInventory.EXPECT().stop()
 
-	daemon := &PDNSDaemon{dnsDaemon: dnsDaemon{zoneInventory: zoneInventory}}
+	daemon := &PDNSDaemon{dnsDaemonImpl: dnsDaemonImpl{zoneInventory: zoneInventory}}
 
 	// Act & Assert
 	require.NotPanics(t, func() {
@@ -66,7 +66,7 @@ func TestPowerDNSDaemonCleanupNilZoneInventory(t *testing.T) {
 
 // Test that the zone inventory can be accessed.
 func TestPowerDNSDaemonGetZoneInventory(t *testing.T) {
-	daemon := &PDNSDaemon{dnsDaemon: dnsDaemon{
+	daemon := &PDNSDaemon{dnsDaemonImpl: dnsDaemonImpl{
 		zoneInventory: &zoneInventoryImpl{},
 	}}
 	require.Equal(t, daemon.zoneInventory, daemon.GetZoneInventory())

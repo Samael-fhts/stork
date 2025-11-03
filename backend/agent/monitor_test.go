@@ -73,7 +73,7 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 	m := NewMonitor("", HTTPClientConfig{})
 
 	daemons := []Daemon{
-		&KeaDaemon{
+		&keaDaemon{
 			daemon: daemon{
 				Name: daemonname.CA,
 				AccessPoints: []AccessPoint{
@@ -87,7 +87,7 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 			},
 		},
 		&Bind9Daemon{
-			dnsDaemon: dnsDaemon{
+			dnsDaemonImpl: dnsDaemonImpl{
 				daemon: daemon{
 					Name: daemonname.Bind9,
 					AccessPoints: []AccessPoint{
@@ -540,7 +540,7 @@ func TestDetectAppsNoAppDetectedWarning(t *testing.T) {
 func TestDetectAllowedLogsKeaUnreachable(t *testing.T) {
 	monitor := &monitor{}
 	bind9StatsClient := NewBind9StatsClient()
-	monitor.daemons = append(monitor.daemons, &KeaDaemon{
+	monitor.daemons = append(monitor.daemons, &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
@@ -710,7 +710,7 @@ func makeKeaConfFileWithInclude() (string, func()) {
 func TestDetectKeaDaemon(t *testing.T) {
 	checkDaemon := func(daemons []Daemon) {
 		require.Len(t, daemons, 1)
-		keaDaemon, ok := daemons[0].(*KeaDaemon)
+		keaDaemon, ok := daemons[0].(*keaDaemon)
 		require.True(t, ok)
 		require.NotNil(t, keaDaemon)
 		require.Equal(t, daemonname.CA, keaDaemon.GetName())
@@ -785,7 +785,7 @@ func TestDetectKeaDaemon(t *testing.T) {
 
 func TestGetAccessPoint(t *testing.T) {
 	bind9Daemon := &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{
@@ -806,7 +806,7 @@ func TestGetAccessPoint(t *testing.T) {
 		},
 	}
 
-	keaDaemon := &KeaDaemon{
+	keaDaemon := &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
@@ -866,7 +866,7 @@ func TestDaemonGetAccessPoint(t *testing.T) {
 // Test that the daemon can be compared by their overall content.
 func TestDaemonEqual(t *testing.T) {
 	// Arrange
-	daemon1 := &KeaDaemon{
+	daemon1 := &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
@@ -874,7 +874,7 @@ func TestDaemonEqual(t *testing.T) {
 			},
 		},
 	}
-	daemon2 := &KeaDaemon{
+	daemon2 := &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
@@ -882,7 +882,7 @@ func TestDaemonEqual(t *testing.T) {
 			},
 		},
 	}
-	daemon3 := &KeaDaemon{
+	daemon3 := &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{
@@ -890,7 +890,7 @@ func TestDaemonEqual(t *testing.T) {
 			},
 		},
 	}
-	daemon4 := &KeaDaemon{
+	daemon4 := &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
@@ -901,7 +901,7 @@ func TestDaemonEqual(t *testing.T) {
 			},
 		},
 	}
-	daemon5 := &KeaDaemon{
+	daemon5 := &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.CA,
 			AccessPoints: []AccessPoint{
@@ -949,7 +949,7 @@ func TestPopulateZoneInventories(t *testing.T) {
 	require.True(t, ok)
 
 	daemon0 := &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 			},
@@ -961,7 +961,7 @@ func TestPopulateZoneInventories(t *testing.T) {
 	defer zi1.stop()
 
 	daemon1 := &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 			},
@@ -974,7 +974,7 @@ func TestPopulateZoneInventories(t *testing.T) {
 	defer zi2.stop()
 
 	daemon2 := &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 			},
@@ -986,14 +986,14 @@ func TestPopulateZoneInventories(t *testing.T) {
 	defer zi3.stop()
 
 	daemon3 := &PDNSDaemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
 			},
 			zoneInventory: zi3,
 		},
 	}
-	daemon4 := &KeaDaemon{
+	daemon4 := &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.CA,
 		},

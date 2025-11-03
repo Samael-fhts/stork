@@ -79,7 +79,7 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 
 	fdm := FakeMonitor{
 		Daemons: []Daemon{
-			&KeaDaemon{
+			&keaDaemon{
 				daemon: daemon{
 					Name:         daemonname.DHCPv4,
 					AccessPoints: []AccessPoint{keaAccessPoint},
@@ -87,7 +87,7 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 				connector: connector,
 			},
 			&Bind9Daemon{
-				dnsDaemon: dnsDaemon{
+				dnsDaemonImpl: dnsDaemonImpl{
 					daemon: daemon{
 						Name: daemonname.Bind9,
 						AccessPoints: []AccessPoint{{
@@ -212,7 +212,7 @@ func TestGetState(t *testing.T) {
 
 	// add some daemons to daemon monitor so GetState should return something
 	var daemons []Daemon
-	daemons = append(daemons, &KeaDaemon{
+	daemons = append(daemons, &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{{
@@ -242,7 +242,7 @@ func TestGetState(t *testing.T) {
 	}
 
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name:         daemonname.Bind9,
 				AccessPoints: accessPoints,
@@ -286,7 +286,7 @@ func TestGetState(t *testing.T) {
 	sa, ctx, teardown = setupAgentTest()
 	defer teardown()
 
-	daemon := fdm.GetDaemonByAccessPoint(AccessPointControl, "1.2.3.1", 1234).(*KeaDaemon)
+	daemon := fdm.GetDaemonByAccessPoint(AccessPointControl, "1.2.3.1", 1234).(*keaDaemon)
 	daemon.connector = newKeaConnector(daemon.AccessPoints[0], HTTPClientConfig{
 		BasicAuth: basicAuthCredentials{User: "foo", Password: "bar"},
 	})
@@ -578,7 +578,7 @@ func TestForwardRndcCommandSuccess(t *testing.T) {
 
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -643,7 +643,7 @@ func TestForwardRndcCommandError(t *testing.T) {
 
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -706,7 +706,7 @@ func TestForwardRndcCommandEmpty(t *testing.T) {
 
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1094,7 +1094,7 @@ func TestReceiveZonesFilterByView(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1172,7 +1172,7 @@ func TestReceiveZonesPDNS(t *testing.T) {
 	// Add a PowerDNS daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
 				AccessPoints: []AccessPoint{{
@@ -1262,7 +1262,7 @@ func TestReceiveRPZZones(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1346,7 +1346,7 @@ func TestReceiveZonesFilterByLoadedAfter(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1414,7 +1414,7 @@ func TestReceiveZonesFilterLowerBound(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1471,7 +1471,7 @@ func TestReceiveZonesNilZoneInventory(t *testing.T) {
 	// Add a BIND9 daemon without zone inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1510,7 +1510,7 @@ func TestReceiveZonesUnsupportedDaemon(t *testing.T) {
 
 	// Add a daemon that is not a DNS server.
 	var daemons []Daemon
-	daemons = append(daemons, &KeaDaemon{
+	daemons = append(daemons, &keaDaemon{
 		daemon: daemon{
 			Name: daemonname.DHCPv4,
 			AccessPoints: []AccessPoint{{
@@ -1573,7 +1573,7 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1662,7 +1662,7 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1778,7 +1778,7 @@ func TestReceiveZoneRRs(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -1880,7 +1880,7 @@ func TestReceiveZoneRRsPowerDNS(t *testing.T) {
 	// Add a PowerDNS daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
 				AccessPoints: []AccessPoint{{
@@ -1933,7 +1933,7 @@ func TestReceiveZoneRRsNilZoneInventory(t *testing.T) {
 	// Add a BIND9 daemon with the nil zone inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -2008,7 +2008,7 @@ func TestReceiveZoneRRsZoneInventoryNotInited(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -2104,7 +2104,7 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	// Add a BIND9 daemon with the inventory.
 	var daemons []Daemon
 	daemons = append(daemons, &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.Bind9,
 				AccessPoints: []AccessPoint{{
@@ -2181,7 +2181,7 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
 				AccessPoints: []AccessPoint{{
@@ -2252,7 +2252,7 @@ func TestGetPowerDNSServerInfoNoAPIKey(t *testing.T) {
 	// Add a PowerDNS daemon with no API key.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
 				AccessPoints: []AccessPoint{{
@@ -2303,7 +2303,7 @@ func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
 				AccessPoints: []AccessPoint{{
@@ -2367,7 +2367,7 @@ func TestGetPowerDNSServerInfoStatisticsErrorResponse(t *testing.T) {
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
 	daemons = append(daemons, &PDNSDaemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
 				AccessPoints: []AccessPoint{{

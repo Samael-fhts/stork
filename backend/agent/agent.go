@@ -563,7 +563,7 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 	}
 	logFields["daemon"] = daemon.String()
 
-	keaDaemon := daemon.(*KeaDaemon)
+	keaDaemon := daemon.(*keaDaemon)
 	if keaDaemon == nil {
 		response.Status.Code = agentapi.Status_ERROR
 		response.Status.Message = fmt.Sprintf("incorrect daemon found: %s instead of Kea", daemon.GetName())
@@ -649,7 +649,7 @@ func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.Se
 		return status.New(codes.NotFound, fmt.Sprintf("DNS daemon not found at %s:%d", req.ControlAddress, req.ControlPort)).Err()
 	}
 
-	dnsDaemon, ok := daemon.(DNSDaemon)
+	dnsDaemon, ok := daemon.(dnsDaemon)
 	if !ok {
 		// This is rather an exceptional case, so we don't necessarily need to
 		// include the detailed error message.
@@ -741,7 +741,7 @@ func (sa *StorkAgent) ReceiveZoneRRs(req *agentapi.ReceiveZoneRRsReq, server grp
 		return status.New(codes.NotFound, fmt.Sprintf("DNS daemon not found at %s:%d", req.ControlAddress, req.ControlPort)).Err()
 	}
 
-	dnsDaemon, ok := daemon.(DNSDaemon)
+	dnsDaemon, ok := daemon.(dnsDaemon)
 	if !ok {
 		// This is rather an exceptional case, so we don't necessarily need to
 		// include the detailed error message.

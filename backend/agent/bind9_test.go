@@ -30,7 +30,7 @@ func TestBind9RefreshState(t *testing.T) {
 	zoneInventory.EXPECT().getCurrentState().Return(&zoneInventoryState{})
 
 	daemon := &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			zoneInventory: zoneInventory,
 		},
 	}
@@ -45,7 +45,7 @@ func TestBind9RefreshState(t *testing.T) {
 // Test that the zone inventory can be accessed.
 func TestBind9GetZoneInventory(t *testing.T) {
 	daemon := &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			zoneInventory: &zoneInventoryImpl{},
 		},
 	}

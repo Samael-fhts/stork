@@ -40,7 +40,7 @@ func (fdm *PromFakeBind9DaemonMonitor) GetDaemons() []Daemon {
 		},
 	}
 	bd := &Bind9Daemon{
-		dnsDaemon: dnsDaemon{
+		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name:         daemonname.Bind9,
 				AccessPoints: accessPoints,

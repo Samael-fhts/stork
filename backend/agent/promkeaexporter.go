@@ -805,7 +805,7 @@ func (pke *PromKeaExporter) collectStats() error {
 			continue
 		}
 
-		keaDaemon := daemon.(*KeaDaemon)
+		keaDaemon := daemon.(*keaDaemon)
 
 		// Request to kea dhcp daemons for getting all stats.
 		request := keactrl.NewCommandBase(keactrl.StatisticGetAll, keaDaemon.GetName())

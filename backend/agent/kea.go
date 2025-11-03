@@ -23,16 +23,16 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-var _ Daemon = (*KeaDaemon)(nil)
+var _ Daemon = (*keaDaemon)(nil)
 
 // It holds common and Kea specific runtime information.
-type KeaDaemon struct {
+type keaDaemon struct {
 	daemon
 	connector keaConnector // to communicate with Kea daemon
 }
 
 // Sends a command to Kea and returns a response.
-func (d *KeaDaemon) sendCommand(ctx context.Context, command keactrl.SerializableCommand, response any) error {
+func (d *keaDaemon) sendCommand(ctx context.Context, command keactrl.SerializableCommand, response any) error {
 	if d.connector == nil {
 		return errors.New("cannot send command to Kea because no control access point is configured")
 	}
@@ -84,7 +84,7 @@ func collectKeaAllowedLogs(config *keaconfig.Config) []string {
 }
 
 // Fetches the Kea configuration from the daemon by sending config-get command.
-func (d *KeaDaemon) fetchConfig(ctx context.Context) (*keaconfig.Config, error) {
+func (d *keaDaemon) fetchConfig(ctx context.Context) (*keaconfig.Config, error) {
 	// Prepare config-get command to be sent to Kea Control Agent.
 	command := keactrl.NewCommandBase(keactrl.ConfigGet, d.GetName())
 	// Send the command to Kea.
@@ -292,7 +292,7 @@ func detectKeaDaemons(ctx context.Context, p supportedProcess, httpClientConfig 
 		connector = newKeaConnector(accessPoint, httpClientConfig)
 	}
 
-	thisDaemon := &KeaDaemon{
+	thisDaemon := &keaDaemon{
 		daemon: daemon{
 			Name:         daemonName,
 			AccessPoints: accessPoints,
@@ -317,7 +317,7 @@ func detectKeaDaemons(ctx context.Context, p supportedProcess, httpClientConfig 
 			}
 
 			// Add the detected daemon.
-			managedDaemon := &KeaDaemon{
+			managedDaemon := &keaDaemon{
 				daemon: daemon{
 					Name:         managedDaemonName,
 					AccessPoints: accessPoints,
@@ -430,14 +430,14 @@ func readClientCredentials(authentication *keaconfig.Authentication) ([]ClientCr
 
 // Lifecycle of the daemon.
 // Called once when the daemon is newly detected.
-func (d *KeaDaemon) Bootstrap() error {
+func (d *keaDaemon) Bootstrap() error {
 	return nil
 }
 
 // Called periodically to update the daemon state.
 // Gathers the configured log files for detected apps and enables them
 // for viewing from the UI.
-func (d *KeaDaemon) RefreshState(ctx context.Context, agent agentManager) error {
+func (d *keaDaemon) RefreshState(ctx context.Context, agent agentManager) error {
 	config, err := d.fetchConfig(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "cannot fetch Kea configuration")
@@ -451,7 +451,7 @@ func (d *KeaDaemon) RefreshState(ctx context.Context, agent agentManager) error 
 }
 
 // Called once before the daemon is removed.
-func (d *KeaDaemon) Cleanup() error {
+func (d *keaDaemon) Cleanup() error {
 	return nil
 }
 

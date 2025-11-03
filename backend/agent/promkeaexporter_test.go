@@ -21,7 +21,7 @@ import (
 func newFakeMonitorWithDefaults() *FakeMonitor {
 	fdm := &FakeMonitor{
 		Daemons: []Daemon{
-			&KeaDaemon{
+			&keaDaemon{
 				daemon: daemon{
 					Name: daemonname.DHCPv4,
 					AccessPoints: []AccessPoint{{
@@ -38,7 +38,7 @@ func newFakeMonitorWithDefaults() *FakeMonitor {
 					Protocol: protocoltype.HTTP,
 				}, HTTPClientConfig{}),
 			},
-			&KeaDaemon{
+			&keaDaemon{
 				daemon: daemon{
 					Name: daemonname.DHCPv6,
 					AccessPoints: []AccessPoint{{
@@ -59,7 +59,7 @@ func newFakeMonitorWithDefaults() *FakeMonitor {
 	}
 
 	for i := range fdm.Daemons {
-		gock.InterceptClient(fdm.Daemons[i].(*KeaDaemon).connector.(*keaHTTPConnector).httpClient.client)
+		gock.InterceptClient(fdm.Daemons[i].(*keaDaemon).connector.(*keaHTTPConnector).httpClient.client)
 	}
 
 	return fdm

@@ -153,30 +153,30 @@ func (d *daemon) IsEqual(other Daemon) bool {
 }
 
 // An interface representing the DNS daemon.
-type DNSDaemon interface {
+type dnsDaemon interface {
 	Daemon
 	GetZoneInventory() zoneInventory
 }
 
 // An implementation providing common functionality for DNS daemons.
-type dnsDaemon struct {
+type dnsDaemonImpl struct {
 	daemon
 	zoneInventory zoneInventory
 }
 
 // Returns the zone inventory.
-func (d *dnsDaemon) GetZoneInventory() zoneInventory {
+func (d *dnsDaemonImpl) GetZoneInventory() zoneInventory {
 	return d.zoneInventory
 }
 
-func (d *dnsDaemon) Bootstrap() error {
+func (d *dnsDaemonImpl) Bootstrap() error {
 	if d.zoneInventory != nil {
 		d.zoneInventory.start()
 	}
 	return nil
 }
 
-func (d *dnsDaemon) RefreshState(ctx context.Context, agentMgr agentManager) error {
+func (d *dnsDaemonImpl) RefreshState(ctx context.Context, agentMgr agentManager) error {
 	if d.zoneInventory == nil || d.zoneInventory.getCurrentState().isReady() {
 		return nil
 	}
@@ -193,7 +193,7 @@ func (d *dnsDaemon) RefreshState(ctx context.Context, agentMgr agentManager) err
 	return nil
 }
 
-func (d *dnsDaemon) Cleanup() error {
+func (d *dnsDaemonImpl) Cleanup() error {
 	if d.zoneInventory != nil {
 		d.zoneInventory.stop()
 	}
