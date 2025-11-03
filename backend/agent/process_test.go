@@ -14,15 +14,15 @@ func TestListProcesses(t *testing.T) {
 	defer ctrl.Finish()
 
 	// Process tree:
-	//  0
-	//  |      ?
-	//  5      |
-	// / \     7
-	// 1  4    |
-	// |       6
-	// 2
+	//  0 (root)
+	//  |                   
+	//  5 (supervisord)       ? (unknown)
+	// /         \            |
+	// 1 (CA)     4 (CA)      7 (unknown
+	// |                      |
+	// 2 (CA)                 6 (CA)
 	// |
-	// 3
+	// 3 (CA)
 
 	proc1 := NewMockSupportedProcess(ctrl)
 	proc1.EXPECT().getPid().AnyTimes().Return(int32(1))
