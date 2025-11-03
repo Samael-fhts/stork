@@ -648,3 +648,66 @@ func TestDownMigration2NullUserEmail(t *testing.T) {
 	require.NoError(t, err)
 	require.Zero(t, newVersion)
 }
+
+// Test that database with some existing data can be migrated to the latest
+// schema version.
+func TestMigrateToLatest(t *testing.T) {
+	// Arrange & Act
+	db, _, teardown := dbtest.SetupDatabaseTestCaseFromDump(t, "testdata/dump-demo-v2.3.0.sql")
+	defer teardown()
+
+	// Assert
+	// Check if the migration was successfully executed.
+	version, err := dbops.CurrentVersion(db)
+	require.NoError(t, err)
+	require.Equal(t, expectedSchemaVersion, version)
+
+	// The data must be preserved after the migration.
+	// Users.
+	users, _, err := dbmodel.GetUsersByPage(db, 0, 10, nil, "", dbmodel.SortDirAsc)
+	require.NoError(t, err)
+	require.Len(t, users, 2)
+	require.Equal(t, "admin", users[0].Login)
+	require.Equal(t, "internal", users[0].AuthenticationMethodID)
+	require.Equal(t, "admin", users[1].Login)
+	require.Equal(t, "ldap", users[1].AuthenticationMethodID)
+	// Machines.
+	machines, _, err := dbmodel.GetMachinesByPage(db, 0, 10, nil, nil, "", dbmodel.SortDirAny)
+	require.NoError(t, err)
+	require.Len(t, machines, 9)
+	require.Equal(t, "agent-kea6", machines[0].Address)
+	require.Equal(t, "agent-kea-ha3", machines[1].Address)
+	require.Equal(t, "agent-kea-ha2", machines[2].Address)
+	require.Equal(t, "agent-kea", machines[3].Address)
+	require.Equal(t, "agent-kea-ha1", machines[4].Address)
+	require.Equal(t, "agent-kea-large", machines[5].Address)
+	require.Equal(t, "agent-pdns", machines[6].Address)
+	require.Equal(t, "agent-bind9-2", machines[7].Address)
+	require.Equal(t, "agent-bind9", machines[8].Address)
+	// Daemons.
+	daemons, err := dbmodel.GetAllDaemons(db)
+	require.NoError(t, err)
+	require.Len(t, daemons, 21)
+
+	require.Len(t, machines[0].Daemons, 2)
+	require.Equal(t, daemonname.CA, machines[0].Daemons[0].Name)
+	require.True(t, machines[0].Daemons[0].Active)
+	require.Len(t, machines[0].Daemons[0].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "127.0.0.1",
+		Port:     8000,
+		Protocol: "http",
+		DaemonID: machines[0].Daemons[0].ID,
+	}, *machines[0].Daemons[0].AccessPoints[0])
+	require.Equal(t, daemonname.DHCPv6, machines[0].Daemons[1].Name)
+	require.True(t, machines[0].Daemons[1].Active)
+	require.Len(t, machines[0].Daemons[1].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "127.0.0.1",
+		Port:     8000,
+		Protocol: "http",
+		DaemonID: machines[0].Daemons[1].ID,
+	}, *machines[0].Daemons[1].AccessPoints[0])
+}
