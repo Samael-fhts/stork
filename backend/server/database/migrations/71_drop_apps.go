@@ -36,6 +36,15 @@ func init() {
 			ALTER TABLE access_point DROP CONSTRAINT access_point_pkey;
 			ALTER TABLE access_point ADD CONSTRAINT access_point_pkey
 				PRIMARY KEY (daemon_id, type);
+			-- Create access points for daemons that don't have any. Copy them
+			-- from the access points of the corresponding app.
+			INSERT INTO access_point
+			SELECT ap_copy.app_id, ap_copy."type", ap_copy.address, ap_copy.port,
+					ap_copy.key, ap_copy.use_secure_protocol, daemon.id AS daemon_id 
+			FROM daemon
+			LEFT JOIN access_point ap_existing ON ap_existing.daemon_id = daemon.id
+			LEFT JOIN access_point ap_copy ON ap_copy.app_id = daemon.app_id
+			WHERE ap_existing.daemon_id IS NULL AND ap_copy.daemon_id IS NOT NULL;
 			-- Drop the unnecessary reference to the app table.
 			ALTER TABLE access_point DROP COLUMN app_id;
 
