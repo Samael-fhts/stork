@@ -38,7 +38,7 @@ func init() {
 				PRIMARY KEY (daemon_id, type);
 			-- Create access points for daemons that don't have any. Copy them
 			-- from the access points of the corresponding app.
-			INSERT INTO access_point
+			INSERT INTO access_point(app_id, "type", address, port, "key", "use_secure_protocol", daemon_id)
 			SELECT ap_copy.app_id, ap_copy."type", ap_copy.address, ap_copy.port,
 					ap_copy.key, ap_copy.use_secure_protocol, daemon.id AS daemon_id 
 			FROM daemon

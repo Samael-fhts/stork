@@ -354,7 +354,7 @@ func assertHostsTheSame(t *testing.T, expected, actual []dbmodel.Host) {
 }
 
 // Test that the 58 migration passes if the local_host table is not empty.
-func TestMigrationFrom57To58(t *testing.T) {
+func TestMigrationFrom57(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
@@ -385,7 +385,7 @@ func TestMigrationFrom57To58(t *testing.T) {
 // Some data are lost: the association between particular IP reservation and
 // a daemon and the hostnames defined in the other local hosts than the first
 // one.
-func TestMigrationFrom57To58DifferentHostData(t *testing.T) {
+func TestMigrationFrom57DifferentHostData(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
@@ -493,7 +493,7 @@ func TestMigrationFrom57To58DifferentHostData(t *testing.T) {
 	// Act
 	// Down to the previous migration.
 	_, _, errDown := dbops.Migrate(db, "down", "57")
-	// And back to the 58 migration.
+	// And back to the latest migration.
 	_, _, errUp := dbops.Migrate(db, "up")
 
 	// Assert
@@ -829,4 +829,17 @@ func TestMigrateToLatest(t *testing.T) {
 	zones, _, err := dbmodel.GetZones(db, dbmodel.GetZonesFilter{})
 	require.NoError(t, err)
 	require.Len(t, zones, 120)
+}
+
+// Test that the down migrations are executed properly for non-empty database.
+func TestResetDatabaseWithData(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCaseFromDump(t, "testdata/dump-demo-v2.3.0.sql")
+	defer teardown()
+
+	// Act
+	_, _, err := dbops.Migrate(db, "down", "0")
+
+	// Assert
+	require.NoError(t, err)
 }
