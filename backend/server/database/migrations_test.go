@@ -651,6 +651,10 @@ func TestDownMigration2NullUserEmail(t *testing.T) {
 
 // Test that database with some existing data can be migrated to the latest
 // schema version.
+// The dump file used in this test was created with Stork v2.3.0 using the
+// demo. All machines except the one with many subnets were authorized.
+// The dump was created immediately after the machine states were processed,
+// and zones had been fetched without performing any other operations.
 func TestMigrateToLatest(t *testing.T) {
 	// Arrange & Act
 	db, _, teardown := dbtest.SetupDatabaseTestCaseFromDump(t, "testdata/dump-demo-v2.3.0.sql")
@@ -671,6 +675,7 @@ func TestMigrateToLatest(t *testing.T) {
 	require.Equal(t, "internal", users[0].AuthenticationMethodID)
 	require.Equal(t, "admin", users[1].Login)
 	require.Equal(t, "ldap", users[1].AuthenticationMethodID)
+
 	// Machines.
 	machines, _, err := dbmodel.GetMachinesByPage(db, 0, 10, nil, nil, "", dbmodel.SortDirAny)
 	require.NoError(t, err)
@@ -684,6 +689,7 @@ func TestMigrateToLatest(t *testing.T) {
 	require.Equal(t, "agent-pdns", machines[6].Address)
 	require.Equal(t, "agent-bind9-2", machines[7].Address)
 	require.Equal(t, "agent-bind9", machines[8].Address)
+
 	// Daemons.
 	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
@@ -710,4 +716,117 @@ func TestMigrateToLatest(t *testing.T) {
 		Protocol: "http",
 		DaemonID: machines[0].Daemons[1].ID,
 	}, *machines[0].Daemons[1].AccessPoints[0])
+
+	require.Len(t, machines[4].Daemons, 4)
+	require.Equal(t, daemonname.DHCPv6, machines[4].Daemons[0].Name)
+	require.False(t, machines[4].Daemons[0].Active)
+	require.Len(t, machines[4].Daemons[0].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "127.0.0.1",
+		Port:     8001,
+		Protocol: "http",
+		DaemonID: machines[4].Daemons[0].ID,
+	}, *machines[4].Daemons[0].AccessPoints[0])
+	require.Equal(t, daemonname.CA, machines[4].Daemons[1].Name)
+	require.True(t, machines[4].Daemons[1].Active)
+	require.Len(t, machines[4].Daemons[1].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "127.0.0.1",
+		Port:     8001,
+		Protocol: "http",
+		DaemonID: machines[4].Daemons[1].ID,
+	}, *machines[4].Daemons[1].AccessPoints[0])
+	require.Equal(t, daemonname.D2, machines[4].Daemons[2].Name)
+	require.False(t, machines[4].Daemons[2].Active)
+	require.Len(t, machines[4].Daemons[2].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "127.0.0.1",
+		Port:     8001,
+		Protocol: "http",
+		DaemonID: machines[4].Daemons[2].ID,
+	}, *machines[4].Daemons[2].AccessPoints[0])
+	require.Equal(t, daemonname.DHCPv4, machines[4].Daemons[3].Name)
+	require.True(t, machines[4].Daemons[3].Active)
+	require.Len(t, machines[4].Daemons[3].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "127.0.0.1",
+		Port:     8001,
+		Protocol: "http",
+		DaemonID: machines[4].Daemons[3].ID,
+	}, *machines[4].Daemons[3].AccessPoints[0])
+
+	require.Len(t, machines[8].Daemons, 1)
+	require.Equal(t, daemonname.Bind9, machines[8].Daemons[0].Name)
+	require.True(t, machines[8].Daemons[0].Active)
+	require.Len(t, machines[8].Daemons[0].AccessPoints, 2)
+	require.Equal(t, dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointStatistics,
+		Address:  "127.0.0.1",
+		Port:     8053,
+		Protocol: "http",
+		DaemonID: machines[8].Daemons[0].ID,
+	}, *machines[8].Daemons[0].AccessPoints[0])
+	require.Equal(t, dbmodel.AccessPoint{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "127.0.0.1",
+		Port:     953,
+		Protocol: "http",
+		Key:      "rndc-key:hmac-sha256:C0WsVMnbpYt3RxJEZCrmJmlRyQJp9vy2lKp887r19mY=",
+		DaemonID: machines[8].Daemons[0].ID,
+	}, *machines[8].Daemons[0].AccessPoints[1])
+
+	// Shared networks.
+	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
+	require.NoError(t, err)
+	require.Len(t, sharedNetworks, 4)
+
+	require.Equal(t, "frog", sharedNetworks[0].Name)
+	require.Equal(t, 4, sharedNetworks[0].Family)
+
+	require.Equal(t, "mouse", sharedNetworks[1].Name)
+	require.Equal(t, 4, sharedNetworks[1].Family)
+	require.Len(t, sharedNetworks[1].LocalSharedNetworks, 1)
+	require.Equal(t, machines[3].ID, sharedNetworks[1].LocalSharedNetworks[0].Daemon.MachineID)
+
+	require.Equal(t, "frog", sharedNetworks[2].Name)
+	require.Equal(t, 6, sharedNetworks[2].Family)
+
+	require.Equal(t, "esperanto", sharedNetworks[3].Name)
+	require.Equal(t, 4, sharedNetworks[3].Family)
+
+	// Subnets.
+	subnets, err := dbmodel.GetAllSubnets(db, 0)
+	require.NoError(t, err)
+	require.Len(t, subnets, 25)
+
+	require.Equal(t, "192.1.15.0/24", subnets[7].Prefix)
+	require.Equal(t, sharedNetworks[1].ID, subnets[7].SharedNetworkID)
+	require.Len(t, subnets[7].LocalSubnets, 1)
+	require.Equal(t, machines[3].ID, subnets[7].LocalSubnets[0].Daemon.MachineID)
+
+	// HA status.
+	services, err := dbmodel.GetDetailedAllServices(db)
+	require.NoError(t, err)
+	require.Len(t, services, 2)
+
+	require.Equal(t, "server3", services[0].HAService.Relationship)
+	require.Equal(t, services[0].HAService.SecondaryID, services[0].Daemons[0].ID)
+	require.Equal(t, machines[2].ID, services[0].Daemons[0].MachineID)
+	require.Equal(t, services[0].HAService.PrimaryID, services[0].Daemons[1].ID)
+	require.Equal(t, machines[1].ID, services[0].Daemons[1].MachineID)
+
+	require.Equal(t, "server2", services[1].HAService.Relationship)
+	require.Equal(t, services[1].HAService.PrimaryID, services[1].Daemons[0].ID)
+	require.Equal(t, machines[4].ID, services[1].Daemons[0].MachineID)
+	require.Equal(t, services[1].HAService.SecondaryID, services[1].Daemons[1].ID)
+	require.Equal(t, machines[2].ID, services[1].Daemons[1].MachineID)
+
+	// BIND zones.
+	zones, _, err := dbmodel.GetZones(db, dbmodel.GetZonesFilter{})
+	require.NoError(t, err)
+	require.Len(t, zones, 120)
 }
