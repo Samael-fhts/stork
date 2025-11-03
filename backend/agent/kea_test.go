@@ -870,3 +870,89 @@ func TestReadClientCredentials(t *testing.T) {
 		require.Equal(t, "dong", clients[4].Password)
 	})
 }
+
+// Test that the Kea CA prior to 3.0 is detected.
+func TestDetectKeaCAPrior3_0(t *testing.T) {
+	// Arrange
+	
+
+	// Act
+	
+
+	// Assert
+	
+}
+
+// Test that the Kea CA post 3.0 is detected.
+func TestDetectKeaCAPost3_0(t *testing.T) {
+	// Arrange
+	
+
+	// Act
+	
+
+	// Assert
+	
+}
+
+// Test that the Kea DHCP prior to 3.0 is not detected.
+func TestDetectKeaDHCPPrior3_0(t *testing.T) {
+	// Arrange
+	
+
+	// Act
+	
+
+	// Assert
+	
+}
+
+// Test that the Kea DHCP post 3.0 listening on socket is detected.
+func TestDetectKeaDHCPOnSocketPost3_0(t *testing.T) {
+	// Arrange
+	
+
+	// Act
+	
+
+	// Assert
+	
+}
+
+// Test that the Kea DHCP post 3.0 listening on HTTP is detected.
+func TestDetectKeaDHCPOnHTTPPost3_0(t *testing.T) {
+	// Arrange
+	
+
+	// Act
+	
+
+	// Assert
+	
+}
+
+// Test that the Kea CA with Basic Auth credentials is detected and the used
+// username is included in the access point.
+func TestDetectKeaCAWithCredentials(t *testing.T) {
+	// Arrange
+	
+
+	// Act
+	
+
+	// Assert
+	
+}
+
+// Test that the Kea DHCP with Basic Auth credentials is detected and the used
+// username is included in the access point.
+func TestDetectKeaDHCPWithCredentials(t *testing.T) {
+	// Arrange
+	
+
+	// Act
+	
+
+	// Assert
+	
+}
