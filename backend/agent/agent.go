@@ -868,6 +868,6 @@ func (sa *StorkAgent) Shutdown(reload bool) {
 }
 
 // Allows access to the specific log file by the log viewer.
-func (sa *StorkAgent) AllowLog(path string) {
+func (sa *StorkAgent) allowLog(path string) {
 	sa.logTailer.allow(path)
 }

@@ -58,7 +58,7 @@ func (fdm *PromFakeBind9DaemonMonitor) GetDaemonByAccessPoint(accessPointType st
 func (fdm *PromFakeBind9DaemonMonitor) Shutdown() {
 }
 
-func (fdm *PromFakeBind9DaemonMonitor) Start(context.Context, AgentManager) {
+func (fdm *PromFakeBind9DaemonMonitor) Start(context.Context, agentManager) {
 }
 
 // Check creating PromBind9Exporter, check if prometheus stats are set up.

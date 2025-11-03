@@ -17,8 +17,8 @@ import (
 )
 
 // Operations provided by the Stork agent to set up daemon-related configuration.
-type AgentManager interface {
-	AllowLog(path string)
+type agentManager interface {
+	allowLog(path string)
 }
 
 // An access point for an application to retrieve information such
@@ -80,7 +80,7 @@ type Daemon interface {
 	Cleanup() error
 	// Performs periodic processing of the daemon, e.g., detect logs or
 	// refresh zone inventory.
-	RefreshState(context.Context, AgentManager) error
+	RefreshState(context.Context, agentManager) error
 	String() string
 }
 
@@ -176,7 +176,7 @@ func (d *dnsDaemon) Bootstrap() error {
 	return nil
 }
 
-func (d *dnsDaemon) RefreshState(ctx context.Context, agentMgr AgentManager) error {
+func (d *dnsDaemon) RefreshState(ctx context.Context, agentMgr agentManager) error {
 	if d.zoneInventory == nil || d.zoneInventory.getCurrentState().isReady() {
 		return nil
 	}
@@ -206,7 +206,7 @@ func (d *dnsDaemon) Cleanup() error {
 type Monitor interface {
 	GetDaemons() []Daemon
 	GetDaemonByAccessPoint(apType, address string, port int64) Daemon
-	Start(context.Context, AgentManager)
+	Start(context.Context, agentManager)
 	Shutdown()
 }
 
@@ -249,14 +249,14 @@ func NewMonitor(explicitBind9ConfigPath string, keaHTTPClientConfig HTTPClientCo
 
 // This function starts the actual monitor. This start is delayed in case we want to only
 // do command line parameters parsing, e.g. to print version or help and quit.
-func (sm *monitor) Start(ctx context.Context, storkAgent AgentManager) {
+func (sm *monitor) Start(ctx context.Context, storkAgent agentManager) {
 	sm.wg.Add(1)
 	go sm.run(ctx, storkAgent)
 }
 
 // Run the main loop of the monitor. It continually detects the daemons
 // running on the host and refreshes their states.
-func (sm *monitor) run(ctx context.Context, storkAgent AgentManager) {
+func (sm *monitor) run(ctx context.Context, storkAgent agentManager) {
 	log.Printf("Started daemon monitor")
 
 	sm.running = true
@@ -446,7 +446,7 @@ func (sm *monitor) detectDaemons(ctx context.Context) {
 }
 
 // Evaluates the detected daemons.
-func (sm *monitor) refreshDaemons(ctx context.Context, storkAgent AgentManager) {
+func (sm *monitor) refreshDaemons(ctx context.Context, storkAgent agentManager) {
 	for _, d := range sm.daemons {
 		if err := d.RefreshState(ctx, storkAgent); err != nil {
 			log.WithError(err).WithField("daemon", d.String()).Warn("Failed to refresh state of the daemon")

@@ -437,7 +437,7 @@ func (d *KeaDaemon) Bootstrap() error {
 // Called periodically to update the daemon state.
 // Gathers the configured log files for detected apps and enables them
 // for viewing from the UI.
-func (d *KeaDaemon) RefreshState(ctx context.Context, agent AgentManager) error {
+func (d *KeaDaemon) RefreshState(ctx context.Context, agent agentManager) error {
 	config, err := d.fetchConfig(ctx)
 	if err != nil {
 		return errors.WithMessage(err, "cannot fetch Kea configuration")
@@ -445,7 +445,7 @@ func (d *KeaDaemon) RefreshState(ctx context.Context, agent AgentManager) error 
 	paths := collectKeaAllowedLogs(config)
 
 	for _, p := range paths {
-		agent.AllowLog(p)
+		agent.allowLog(p)
 	}
 	return nil
 }

@@ -23,7 +23,7 @@ import (
 )
 
 //go:generate mockgen -source process.go -package=agent -destination=processmock_test.go -mock_names=processLister=MockProcessLister,supportedProcess=MockSupportedProcess isc.org/agent supportedProcess processLister
-//go:generate mockgen -source monitor.go -package=agent -destination=monitormock_test.go isc.org/agent AgentManager
+//go:generate mockgen -source monitor.go -package=agent -destination=monitormock_test.go -mock_names=agentManager=MockAgentManager isc.org/agent agentManager
 
 const defaultBind9Config = `
 	key "foo" {
