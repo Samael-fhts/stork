@@ -1000,15 +1000,7 @@ func TestDetectKeaCAPost3_0(t *testing.T) {
     }`)
 	exePath, _ := sb.Join("kea-ctrl-agent")
 
-	// The HTTP response mock.
-	defer gock.Off()
-	gock.New("http://localhost:45634").
-		JSON(map[string]any{"command": "version-get", "service": []string{"d2"}}).
-		Post("/").
-		Reply(200).
-		JSON([]map[string]int{{"result": 0}})
-
-	httpConfig := HTTPClientConfig{Timeout: 42 * time.Minute, Interceptor: gock.InterceptClient}
+	httpConfig := HTTPClientConfig{}
 
 	// Kea CA process mock.
 	process := NewMockSupportedProcess(ctrl)
@@ -1042,6 +1034,7 @@ func TestDetectKeaCAPost3_0(t *testing.T) {
 	require.Equal(t, "localhost", accessPoint.Address)
 	require.EqualValues(t, 45634, accessPoint.Port)
 	require.Equal(t, protocoltype.HTTP, accessPoint.Protocol)
+	require.Empty(t, accessPoint.Key)
 }
 
 // Test that the Kea DHCP prior to 3.0 is not detected.
@@ -1193,11 +1186,79 @@ func TestDetectKeaDHCPOnHTTPPost3_0(t *testing.T) {
 // username is included in the access point.
 func TestDetectKeaCAWithCredentials(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	// Create a configuration file for Kea CA.
+	configPath, _ := sb.Write("kea-ctrl-agent.conf", `{
+        "Control-agent": {
+		    "http-host": "localhost",
+    		"http-port": 45634,
+            "control-sockets": {
+                "dhcp4": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-v4"
+                },
+                "dhcp6": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-v6"
+                },
+                "d2": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-d2"
+                }
+            },
+			"authentication": {
+				"type": "basic",
+				"realm": "kea-control-agent",
+				"clients": [
+					{
+						"user": "user",
+						"password": "password"
+					}
+				]
+			}
+        }
+    }`)
+	exePath, _ := sb.Join("kea-ctrl-agent")
+
+	httpConfig := HTTPClientConfig{}
+
+	// Kea CA process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.CA)
+	process.EXPECT().getCmdline().Return(
+		fmt.Sprintf("%s -c %s", exePath, configPath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return(sb.BasePath, nil)
+
+	// System calls mock.
+	commander := NewMockCommandExecutor(ctrl)
+	commander.EXPECT().Output(exePath, "-v").Return([]byte("3.0.0\n"), nil)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
+	require.False(t, gock.HasUnmatchedRequest())
+	require.NoError(t, err)
 
+	require.Len(t, daemons, 1)
+	require.Equal(t, daemonname.CA, daemons[0].GetName())
+
+	accessPoints := daemons[0].GetAccessPoints()
+	require.Len(t, accessPoints, 1)
+	accessPoint := accessPoints[0]
+	require.Equal(t, AccessPointControl, accessPoint.Type)
+	require.Equal(t, "localhost", accessPoint.Address)
+	require.EqualValues(t, 45634, accessPoint.Port)
+	require.Equal(t, protocoltype.HTTP, accessPoint.Protocol)
+	require.Equal(t, "user", accessPoint.Key)
 }
 
 // Test that the Kea DHCP with Basic Auth credentials is detected and the used
