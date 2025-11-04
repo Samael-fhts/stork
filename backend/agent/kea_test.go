@@ -1047,11 +1047,39 @@ func TestDetectKeaCAPost3_0(t *testing.T) {
 // Test that the Kea DHCP prior to 3.0 is not detected.
 func TestDetectKeaDHCPPrior3_0(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	configPath, _ := sb.Join("kea-dhcp4.conf")
+	exePath, _ := sb.Join("kea-dhcp4")
+
+	httpConfig := HTTPClientConfig{Timeout: 42 * time.Minute, Interceptor: gock.InterceptClient}
+
+	// Kea DHCP process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-dhcp4", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.DHCPv4)
+	process.EXPECT().getCmdline().Return(
+		fmt.Sprintf("%s -c %s", exePath, configPath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return(sb.BasePath, nil)
+
+	// System calls mock.
+	commander := NewMockCommandExecutor(ctrl)
+	commander.EXPECT().Output(exePath, "-v").Return([]byte("2.3.0\n"), nil)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
-
+	require.False(t, gock.HasUnmatchedRequest())
+	require.NoError(t, err)
+	// It detects no daemons.
+	require.Len(t, daemons, 0)
 }
 
 // Test that the Kea DHCP post 3.0 listening on socket is detected.
