@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"encoding/json"
+	"net/http"
 	"slices"
 	"testing"
 
@@ -18,7 +19,7 @@ import (
 )
 
 // Fake daemon monitor that returns some predefined list of daemons.
-func newFakeMonitorWithDefaults() *FakeMonitor {
+func newFakeMonitorWithDefaults(interceptor func(client *http.Client)) *FakeMonitor {
 	fdm := &FakeMonitor{
 		Daemons: []Daemon{
 			&keaDaemon{
@@ -36,7 +37,7 @@ func newFakeMonitorWithDefaults() *FakeMonitor {
 					Address:  "0.1.2.3",
 					Port:     1234,
 					Protocol: protocoltype.HTTP,
-				}, HTTPClientConfig{}),
+				}, HTTPClientConfig{Interceptor: interceptor}),
 			},
 			&keaDaemon{
 				daemon: daemon{
@@ -53,7 +54,7 @@ func newFakeMonitorWithDefaults() *FakeMonitor {
 					Address:  "0.1.2.3",
 					Port:     1234,
 					Protocol: protocoltype.HTTP,
-				}, HTTPClientConfig{}),
+				}, HTTPClientConfig{Interceptor: interceptor}),
 			},
 		},
 	}
@@ -67,8 +68,8 @@ func newFakeMonitorWithDefaults() *FakeMonitor {
 
 // Fake daemon monitor that returns some predefined list of daemons with only
 // DHCPv4 daemon configured and active.
-func newFakeMonitorWithDefaultsDHCPv4Only() *FakeMonitor {
-	fdm := newFakeMonitorWithDefaults()
+func newFakeMonitorWithDefaultsDHCPv4Only(interceptor func(client *http.Client)) *FakeMonitor {
+	fdm := newFakeMonitorWithDefaults(interceptor)
 	// Keep only the DHCPv4 daemon
 	fdm.Daemons = fdm.Daemons[:1]
 	return fdm
@@ -76,8 +77,8 @@ func newFakeMonitorWithDefaultsDHCPv4Only() *FakeMonitor {
 
 // Fake daemon monitor that returns some predefined list of daemons with only
 // DHCPv6 daemon configured and active.
-func newFakeMonitorWithDefaultsDHCPv6Only() *FakeMonitor {
-	fdm := newFakeMonitorWithDefaults()
+func newFakeMonitorWithDefaultsDHCPv6Only(interceptor func(client *http.Client)) *FakeMonitor {
+	fdm := newFakeMonitorWithDefaults(interceptor)
 	// Keep only the DHCPv6 daemon
 	fdm.Daemons = fdm.Daemons[1:]
 	return fdm
@@ -85,7 +86,7 @@ func newFakeMonitorWithDefaultsDHCPv6Only() *FakeMonitor {
 
 // Check creating PromKeaExporter, check if prometheus stats are set up.
 func TestNewPromKeaExporterBasic(t *testing.T) {
-	fam := newFakeMonitorWithDefaults()
+	fam := newFakeMonitorWithDefaults(nil)
 	pke := NewPromKeaExporter(t.Context(), "foo", 42, true, fam)
 	defer pke.Shutdown()
 
@@ -132,7 +133,7 @@ func TestPromKeaExporterStart(t *testing.T) {
 			"text": "Command not supported"
 		}]`)
 
-	fdm := newFakeMonitorWithDefaultsDHCPv4Only()
+	fdm := newFakeMonitorWithDefaultsDHCPv4Only(gock.InterceptClient)
 
 	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fdm)
 	defer pke.Shutdown()
@@ -204,7 +205,7 @@ func TestPromKeaExporterStartKeaPrior2_4_0(t *testing.T) {
 			"text": "Command not supported"
 		}]`)
 
-	fdm := newFakeMonitorWithDefaultsDHCPv6Only()
+	fdm := newFakeMonitorWithDefaultsDHCPv6Only(gock.InterceptClient)
 
 	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fdm)
 	defer pke.Shutdown()
@@ -262,7 +263,7 @@ func TestPromKeaExporterStartKea2_4_0DHCPv4(t *testing.T) {
 			"text": "Command not supported"
 		}]`)
 
-	fdm := newFakeMonitorWithDefaultsDHCPv4Only()
+	fdm := newFakeMonitorWithDefaultsDHCPv4Only(gock.InterceptClient)
 
 	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fdm)
 	defer pke.Shutdown()
@@ -329,7 +330,7 @@ func TestPromKeaExporterStartKea2_4_0DHCPv6(t *testing.T) {
 			"text": "Command not supported"
 		}]`)
 
-	fdm := newFakeMonitorWithDefaultsDHCPv6Only()
+	fdm := newFakeMonitorWithDefaultsDHCPv6Only(gock.InterceptClient)
 
 	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fdm)
 	defer pke.Shutdown()
@@ -547,7 +548,7 @@ func TestSubnetPrefixInPrometheusMetrics(t *testing.T) {
 			}
 		}]`)
 
-	fam := newFakeMonitorWithDefaults()
+	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
 
 	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fam)
 	defer pke.Shutdown()
@@ -728,7 +729,7 @@ func TestDisablePerSubnetStatsCollecting(t *testing.T) {
 					"subnet[7].pd-pool[0].assigned-addresses": [ [ 13, "2019-07-30 10:04:28.386740" ] ]
                 }}]`)
 
-	fam := newFakeMonitorWithDefaultsDHCPv4Only()
+	fam := newFakeMonitorWithDefaultsDHCPv4Only(gock.InterceptClient)
 
 	// Act
 	pke := NewPromKeaExporter(t.Context(), "foo", 1234, false, fam)
@@ -783,7 +784,7 @@ func TestCollectingGlobalStatistics(t *testing.T) {
 			"reclaimed-declined-addresses": [ [ 21, "2019-07-22 10:04:28.386740" ] ]
 		}}]`)
 
-	fam := newFakeMonitorWithDefaults()
+	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
 
 	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fam)
 	defer pke.Shutdown()
@@ -843,7 +844,7 @@ func TestEncounteredUnsupportedStatisticsAreAppendedToIgnoreList(t *testing.T) {
             }
 		}]`)
 
-	fam := newFakeMonitorWithDefaults()
+	fam := newFakeMonitorWithDefaults(gock.InterceptClient)
 
 	pke := NewPromKeaExporter(t.Context(), "my-host", 1234, true, fam)
 	defer pke.Shutdown()
@@ -860,7 +861,7 @@ func TestEncounteredUnsupportedStatisticsAreAppendedToIgnoreList(t *testing.T) {
 // Test that the Describe method does nothing.
 func TestDescribe(t *testing.T) {
 	// Arrange
-	fam := newFakeMonitorWithDefaults()
+	fam := newFakeMonitorWithDefaults(nil)
 	pke := NewPromKeaExporter(t.Context(), "foo", 1234, true, fam)
 	ch := make(chan *prometheus.Desc, 1)
 	defer close(ch)

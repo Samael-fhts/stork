@@ -63,7 +63,7 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 	pdnsClient := newPDNSClient()
 	gock.InterceptClient(pdnsClient.innerClient.GetClient())
 
-	httpClientConfig := HTTPClientConfig{SkipTLSVerification: true}
+	httpClientConfig := HTTPClientConfig{SkipTLSVerification: true, Interceptor: gock.InterceptClient}
 
 	cleanupCerts, _ := GenerateSelfSignedCerts()
 
@@ -74,9 +74,6 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 		Protocol: protocoltype.HTTP,
 	}
 
-	connector := newKeaConnector(keaAccessPoint, httpClientConfig)
-	gock.InterceptClient(connector.(*keaHTTPConnector).httpClient.client)
-
 	fdm := FakeMonitor{
 		Daemons: []Daemon{
 			&keaDaemon{
@@ -84,7 +81,7 @@ func setupAgentTestWithHooks(calloutCarriers []hooks.CalloutCarrier) (*StorkAgen
 					Name:         daemonname.DHCPv4,
 					AccessPoints: []AccessPoint{keaAccessPoint},
 				},
-				connector: connector,
+				connector: newKeaConnector(keaAccessPoint, httpClientConfig),
 			},
 			&Bind9Daemon{
 				dnsDaemonImpl: dnsDaemonImpl{
