@@ -2,18 +2,23 @@ package agent
 
 import (
 	"encoding/json"
+	"fmt"
 	"path"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"gopkg.in/h2non/gock.v1"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
 )
+
+//go:generate mockgen -package=agent -destination=commandexecutormock_test.go isc.org/stork/util CommandExecutor
 
 // Test the case that the command is successfully sent to Kea.
 func TestSendCommand(t *testing.T) {
@@ -866,88 +871,232 @@ func TestReadClientCredentials(t *testing.T) {
 	})
 }
 
-// Test that the Kea CA prior to 3.0 is detected.
+// Test that the Kea CA prior to 3.0 is detected. It should detect also all
+// daemons behind it.
 func TestDetectKeaCAPrior3_0(t *testing.T) {
 	// Arrange
-	
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	// Create a configuration file for Kea CA.
+	configPath, _ := sb.Write("kea-ctrl-agent.conf", `{
+        "Control-agent": {
+		    "http-host": "localhost",
+    		"http-port": 45634,
+            "control-sockets": {
+                "dhcp4": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-v4"
+                },
+                "dhcp6": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-v6"
+                },
+                "d2": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-d2"
+                }
+            }
+        }
+    }`)
+	exePath, _ := sb.Join("kea-ctrl-agent")
+
+	// The HTTP response mock.
+	defer gock.Off()
+	gock.New("http://localhost:45634").
+		JSON(map[string]any{"command": "version-get", "service": []string{"d2"}}).
+		Post("/").
+		Reply(200).
+		JSON([]map[string]int{{"result": 0}})
+
+	gock.New("http://localhost:45634").
+		JSON(map[string]any{"command": "version-get", "service": []string{"dhcp4"}}).
+		Post("/").
+		Reply(200).
+		JSON([]map[string]int{{"result": 0}})
+
+	gock.New("http://localhost:45634").
+		JSON(map[string]any{"command": "version-get", "service": []string{"dhcp6"}}).
+		Post("/").
+		Reply(200).
+		JSON([]map[string]int{{"result": 0}})
+
+	httpConfig := HTTPClientConfig{Timeout: 42 * time.Minute, Interceptor: gock.InterceptClient}
+
+	// Kea CA process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.CA)
+	process.EXPECT().getCmdline().Return(
+		fmt.Sprintf("%s -c %s", exePath, configPath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return(sb.BasePath, nil)
+
+	// System calls mock.
+	commander := NewMockCommandExecutor(ctrl)
+	commander.EXPECT().Output(exePath, "-v").Return([]byte("2.3.0\n"), nil)
 
 	// Act
-	
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
-	
+	require.False(t, gock.HasUnmatchedRequest())
+	require.NoError(t, err)
+
+	// It detects all daemons - CA and three daemons behind it.
+	require.Len(t, daemons, 4)
+	require.Equal(t, daemonname.CA, daemons[0].GetName())
+	require.Equal(t, daemonname.D2, daemons[1].GetName())
+	require.Equal(t, daemonname.DHCPv4, daemons[2].GetName())
+	require.Equal(t, daemonname.DHCPv6, daemons[3].GetName())
+
+	// All daemons have the same access point - the HTTP of the CA.
+	accessPoints := daemons[0].GetAccessPoints()
+	require.Equal(t, accessPoints, daemons[1].GetAccessPoints())
+	require.Equal(t, accessPoints, daemons[2].GetAccessPoints())
+	require.Equal(t, accessPoints, daemons[3].GetAccessPoints())
+	require.Len(t, accessPoints, 1)
+	accessPoint := accessPoints[0]
+	require.Equal(t, AccessPointControl, accessPoint.Type)
+	require.Equal(t, "localhost", accessPoint.Address)
+	require.EqualValues(t, 45634, accessPoint.Port)
+	require.Equal(t, protocoltype.HTTP, accessPoint.Protocol)
 }
 
 // Test that the Kea CA post 3.0 is detected.
 func TestDetectKeaCAPost3_0(t *testing.T) {
 	// Arrange
-	
 
 	// Act
-	
 
 	// Assert
-	
+
 }
 
 // Test that the Kea DHCP prior to 3.0 is not detected.
 func TestDetectKeaDHCPPrior3_0(t *testing.T) {
 	// Arrange
-	
 
 	// Act
-	
 
 	// Assert
-	
+
 }
 
 // Test that the Kea DHCP post 3.0 listening on socket is detected.
 func TestDetectKeaDHCPOnSocketPost3_0(t *testing.T) {
 	// Arrange
-	
 
 	// Act
-	
 
 	// Assert
-	
+
 }
 
 // Test that the Kea DHCP post 3.0 listening on HTTP is detected.
 func TestDetectKeaDHCPOnHTTPPost3_0(t *testing.T) {
 	// Arrange
-	
 
 	// Act
-	
 
 	// Assert
-	
+
 }
 
 // Test that the Kea CA with Basic Auth credentials is detected and the used
 // username is included in the access point.
 func TestDetectKeaCAWithCredentials(t *testing.T) {
 	// Arrange
-	
 
 	// Act
-	
 
 	// Assert
-	
+
 }
 
 // Test that the Kea DHCP with Basic Auth credentials is detected and the used
 // username is included in the access point.
 func TestDetectKeaDHCPWithCredentials(t *testing.T) {
 	// Arrange
-	
 
 	// Act
-	
 
 	// Assert
-	
+
+}
+
+// Test that the error is returned when the process name cannot be retrieved.
+func TestDetectKeaProcessNameUnavailable(t *testing.T) {
+	// Arrange
+
+	// Act
+
+	// Assert
+
+}
+
+// Test that the error is returned when the daemon name cannot be determined.
+func TestDetectKeaDaemonNameUnavailable(t *testing.T) {
+	// Arrange
+
+	// Act
+
+	// Assert
+
+}
+
+// Test that the error is returned when the command line cannot be determined.
+func TestDetectKeaCommandLineUnavailable(t *testing.T) {
+	// Arrange
+
+	// Act
+
+	// Assert
+
+}
+
+// Test that the Kea with default configuration path cannot be detected.
+func TestDetectKeaWithDefaultConfigurationPath(t *testing.T) {
+	// Arrange
+
+	// Act
+
+	// Assert
+
+}
+
+// Test that the error is returned if the Kea version doesn't follow the
+// semantic versioning.
+func TestDetectKeaUnparsableVersion(t *testing.T) {
+	// Arrange
+
+	// Act
+
+	// Assert
+
+}
+
+// Test that the Kea with relative configuration path is detected properly.
+func TestDetectKeaWithRelativeConfigurationPath(t *testing.T) {
+	// Arrange
+
+	// Act
+
+	// Assert
+
+}
+
+// Test that the error is returned when communication with Kea fails. It is
+// only applicable for Kea prior to 3.0.
+func TestDetectKeaCommunicationError(t *testing.T) {
+	// Arrange
+
+	// Act
+
+	// Assert
+
 }
