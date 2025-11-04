@@ -131,7 +131,9 @@ def _reset_db_and_server(base_url: str) -> None:
     try:
         _dc_cmd("run", "--no-deps", "register", "register", "--non-interactive")
     except subprocess.CalledProcessError as err:
-        print(f"[reset] 'register' helper failed; continuing for UI tests. Error: {err}")
+        print(
+            f"[reset] 'register' helper failed; continuing for UI tests. Error: {err}"
+        )
 
 
 # --- pytest fixtures ---------------------------------------------------------
