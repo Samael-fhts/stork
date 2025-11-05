@@ -309,10 +309,12 @@ func detectKeaDaemons(ctx context.Context, p supportedProcess, httpClientConfig 
 			command := keactrl.NewCommandBase(keactrl.VersionGet, managedDaemonName)
 			response := keactrl.Response{}
 			err = thisDaemon.sendCommand(ctx, command, &response)
+			if err == nil {
+				err = response.GetError()
+			}
 			if err != nil {
-				return nil, errors.WithMessage(err, "cannot send command to Kea Control Agent")
-			} else if response.GetError() != nil {
-				// Daemon is not active.
+				log.WithError(err).WithField("daemon", managedDaemonName).
+					Error("Cannot send version-get command to Kea daemon")
 				continue
 			}
 

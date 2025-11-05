@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"path"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 	"gopkg.in/h2non/gock.v1"
@@ -30,7 +32,7 @@ func TestSendCommand(t *testing.T) {
 		JSON(map[string]string{"command": "list-commands"}).
 		Post("/").
 		Reply(200).
-		JSON([]map[string]int{{"result": 0}})
+		JSON([]map[string]int{{"result": int(keactrl.ResponseSuccess)}})
 
 	command := keactrl.NewCommandBase(keactrl.ListCommands, daemonname.CA)
 
@@ -910,23 +912,23 @@ func TestDetectKeaCAPrior3_0(t *testing.T) {
 		JSON(map[string]any{"command": "version-get", "service": []string{"d2"}}).
 		Post("/").
 		Reply(200).
-		JSON([]map[string]int{{"result": 0}})
+		JSON([]map[string]int{{"result": int(keactrl.ResponseSuccess)}})
 
 	gock.New("http://localhost:45634").
 		JSON(map[string]any{"command": "version-get", "service": []string{"dhcp4"}}).
 		Post("/").
 		Reply(200).
-		JSON([]map[string]int{{"result": 0}})
+		JSON([]map[string]int{{"result": int(keactrl.ResponseSuccess)}})
 
 	gock.New("http://localhost:45634").
 		JSON(map[string]any{"command": "version-get", "service": []string{"dhcp6"}}).
 		Post("/").
 		Reply(200).
-		JSON([]map[string]int{{"result": 0}})
+		JSON([]map[string]int{{"result": int(keactrl.ResponseSuccess)}})
 
 	httpConfig := HTTPClientConfig{Timeout: 42 * time.Minute, Interceptor: gock.InterceptClient}
 
-	// Kea CA process mock.
+	// Kea process mock.
 	process := NewMockSupportedProcess(ctrl)
 	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
 	process.EXPECT().getDaemonName().Return(daemonname.CA)
@@ -1002,7 +1004,7 @@ func TestDetectKeaCAPost3_0(t *testing.T) {
 
 	httpConfig := HTTPClientConfig{}
 
-	// Kea CA process mock.
+	// Kea process mock.
 	process := NewMockSupportedProcess(ctrl)
 	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
 	process.EXPECT().getDaemonName().Return(daemonname.CA)
@@ -1095,7 +1097,7 @@ func TestDetectKeaDHCPOnSocketPost3_0(t *testing.T) {
 
 	httpConfig := HTTPClientConfig{}
 
-	// Kea CA process mock.
+	// Kea process mock.
 	process := NewMockSupportedProcess(ctrl)
 	process.EXPECT().getName().Return("kea-dhcp4", nil)
 	process.EXPECT().getDaemonName().Return(daemonname.DHCPv4)
@@ -1149,7 +1151,7 @@ func TestDetectKeaDHCPOnHTTPPost3_0(t *testing.T) {
 
 	httpConfig := HTTPClientConfig{}
 
-	// Kea CA process mock.
+	// Kea process mock.
 	process := NewMockSupportedProcess(ctrl)
 	process.EXPECT().getName().Return("kea-dhcp4", nil)
 	process.EXPECT().getDaemonName().Return(daemonname.DHCPv4)
@@ -1180,6 +1182,7 @@ func TestDetectKeaDHCPOnHTTPPost3_0(t *testing.T) {
 	require.Equal(t, "10.20.30.40", accessPoint.Address)
 	require.EqualValues(t, 8004, accessPoint.Port)
 	require.Equal(t, protocoltype.HTTPS, accessPoint.Protocol)
+	require.Empty(t, accessPoint.Key)
 }
 
 // Test that the Kea CA with Basic Auth credentials is detected and the used
@@ -1227,7 +1230,7 @@ func TestDetectKeaCAWithCredentials(t *testing.T) {
 
 	httpConfig := HTTPClientConfig{}
 
-	// Kea CA process mock.
+	// Kea process mock.
 	process := NewMockSupportedProcess(ctrl)
 	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
 	process.EXPECT().getDaemonName().Return(daemonname.CA)
@@ -1265,81 +1268,403 @@ func TestDetectKeaCAWithCredentials(t *testing.T) {
 // username is included in the access point.
 func TestDetectKeaDHCPWithCredentials(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	// Create a configuration file for Kea.
+	configPath, _ := sb.Write("kea-dhcp4.conf", `{
+        "Dhcp4": {
+			"control-socket": {
+				"socket-type": "https",
+				"socket-address": "10.20.30.40",
+				"socket-port": 8004
+		}}
+    }`)
+	exePath, _ := sb.Join("kea-dhcp4")
+
+	httpConfig := HTTPClientConfig{}
+
+	// Kea process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-dhcp4", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.DHCPv4)
+	process.EXPECT().getCmdline().Return(
+		fmt.Sprintf("%s -c %s", exePath, configPath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return(sb.BasePath, nil)
+
+	// System calls mock.
+	commander := NewMockCommandExecutor(ctrl)
+	commander.EXPECT().Output(exePath, "-v").Return([]byte("3.0.0\n"), nil)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
+	require.False(t, gock.HasUnmatchedRequest())
+	require.NoError(t, err)
 
+	require.Len(t, daemons, 1)
+	require.Equal(t, daemonname.DHCPv4, daemons[0].GetName())
+
+	accessPoints := daemons[0].GetAccessPoints()
+	require.Len(t, accessPoints, 1)
+	accessPoint := accessPoints[0]
+	require.Equal(t, AccessPointControl, accessPoint.Type)
+	require.Equal(t, "10.20.30.40", accessPoint.Address)
+	require.EqualValues(t, 8004, accessPoint.Port)
+	require.Equal(t, protocoltype.HTTPS, accessPoint.Protocol)
 }
 
 // Test that the error is returned when the process name cannot be retrieved.
 func TestDetectKeaProcessNameUnavailable(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	httpConfig := HTTPClientConfig{}
+
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("", errors.New("unable to get the process name"))
+
+	commander := NewMockCommandExecutor(ctrl)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
-
+	require.False(t, gock.HasUnmatchedRequest())
+	require.ErrorContains(t, err, "unable to get the process name")
+	require.Empty(t, daemons)
 }
 
 // Test that the error is returned when the daemon name cannot be determined.
 func TestDetectKeaDaemonNameUnavailable(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	httpConfig := HTTPClientConfig{}
+
+	// Kea process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.Name(""))
+
+	commander := NewMockCommandExecutor(ctrl)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
-
+	require.False(t, gock.HasUnmatchedRequest())
+	require.ErrorContains(t, err, "unsupported Kea process: kea-ctrl-agent")
+	require.Empty(t, daemons)
 }
 
 // Test that the error is returned when the command line cannot be determined.
 func TestDetectKeaCommandLineUnavailable(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	httpConfig := HTTPClientConfig{}
+
+	// Kea process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.CA)
+	process.EXPECT().getCmdline().Return(
+		"",
+		errors.New("unable to get the command line"),
+	)
+
+	commander := NewMockCommandExecutor(ctrl)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
+	require.False(t, gock.HasUnmatchedRequest())
+	require.ErrorContains(t, err, "unable to get the command line")
+	require.Empty(t, daemons)
+}
 
+// Test that the error is returned when the current working directory cannot be
+// determined.
+func TestDetectKeaCwdUnavailable(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	httpConfig := HTTPClientConfig{}
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	configPath, _ := sb.Join("kea-dhcp4.conf")
+	configPath, _ = filepath.Rel(sb.BasePath, configPath)
+
+	exePath, _ := sb.Join("kea-dhcp4")
+
+	// Kea process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.CA)
+	process.EXPECT().getCmdline().Return(
+		fmt.Sprintf("%s -c %s", exePath, configPath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return("", errors.New("unable to get the cwd"))
+
+	commander := NewMockCommandExecutor(ctrl)
+
+	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
+
+	// Assert
+	require.False(t, gock.HasUnmatchedRequest())
+	// Error should contain the relative configuration path.
+	require.ErrorContains(t, err, "-c kea-dhcp4.conf")
+	require.Empty(t, daemons)
 }
 
 // Test that the Kea with default configuration path cannot be detected.
 func TestDetectKeaWithDefaultConfigurationPath(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	// Create a configuration file for Kea.
+	exePath, _ := sb.Join("kea-dhcp4")
+
+	httpConfig := HTTPClientConfig{}
+
+	// Kea process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-dhcp4", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.DHCPv4)
+	process.EXPECT().getCmdline().Return(
+		// Config path is default.
+		fmt.Sprintf("%s", exePath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return(sb.BasePath, nil)
+
+	commander := NewMockCommandExecutor(ctrl)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
-
+	require.False(t, gock.HasUnmatchedRequest())
+	require.ErrorContains(t, err, "problem parsing Kea command line")
+	require.Empty(t, daemons)
 }
 
 // Test that the error is returned if the Kea version doesn't follow the
 // semantic versioning.
 func TestDetectKeaUnparsableVersion(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	configPath, _ := sb.Join("kea-ctrl-agent.conf")
+	exePath, _ := sb.Join("kea-ctrl-agent")
+
+	httpConfig := HTTPClientConfig{}
+
+	// Kea process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.CA)
+	process.EXPECT().getCmdline().Return(
+		fmt.Sprintf("%s -c %s", exePath, configPath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return(sb.BasePath, nil)
+
+	// System calls mock.
+	commander := NewMockCommandExecutor(ctrl)
+	commander.EXPECT().Output(exePath, "-v").Return([]byte("git+dirty\n"), nil)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
-
+	require.False(t, gock.HasUnmatchedRequest())
+	require.ErrorContains(t, err, "cannot parse Kea version: git+dirty")
+	require.Empty(t, daemons)
 }
 
 // Test that the Kea with relative configuration path is detected properly.
 func TestDetectKeaWithRelativeConfigurationPath(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	// Create a configuration file for Kea CA.
+	configPath, _ := sb.Write("kea-ctrl-agent.conf", `{
+        "Control-agent": {
+		    "http-host": "localhost",
+    		"http-port": 45634,
+            "control-sockets": {
+                "dhcp4": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-v4"
+                },
+                "dhcp6": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-v6"
+                },
+                "d2": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-d2"
+                }
+            }
+        }
+    }`)
+	configPath, _ = filepath.Rel(sb.BasePath, configPath)
+	exePath, _ := sb.Join("kea-ctrl-agent")
+
+	httpConfig := HTTPClientConfig{}
+
+	// Kea process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.CA)
+	process.EXPECT().getCmdline().Return(
+		fmt.Sprintf("%s -c %s", exePath, configPath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return(sb.BasePath, nil)
+
+	// System calls mock.
+	commander := NewMockCommandExecutor(ctrl)
+	commander.EXPECT().Output(exePath, "-v").Return([]byte("3.0.0\n"), nil)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
+	require.False(t, gock.HasUnmatchedRequest())
+	require.NoError(t, err)
 
+	// It detects only CA daemon.
+	require.Len(t, daemons, 1)
+	require.Equal(t, daemonname.CA, daemons[0].GetName())
+
+	accessPoints := daemons[0].GetAccessPoints()
+	require.Len(t, accessPoints, 1)
+	accessPoint := accessPoints[0]
+	require.Equal(t, AccessPointControl, accessPoint.Type)
+	require.Equal(t, "localhost", accessPoint.Address)
+	require.EqualValues(t, 45634, accessPoint.Port)
+	require.Equal(t, protocoltype.HTTP, accessPoint.Protocol)
+	require.Empty(t, accessPoint.Key)
 }
 
-// Test that the error is returned when communication with Kea fails. It is
-// only applicable for Kea prior to 3.0.
+// Test that the no error is returned when communication with Kea daemons
+// fails. It is only applicable for Kea prior to 3.0.
 func TestDetectKeaCommunicationError(t *testing.T) {
 	// Arrange
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+
+	// Create a configuration file for Kea CA.
+	configPath, _ := sb.Write("kea-ctrl-agent.conf", `{
+        "Control-agent": {
+		    "http-host": "localhost",
+    		"http-port": 45634,
+            "control-sockets": {
+                "dhcp4": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-v4"
+                },
+                "dhcp6": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-v6"
+                },
+                "d2": {
+                    "socket-type": "unix",
+                    "socket-name": "/path/to/the/unix/socket-d2"
+                }
+            }
+        }
+    }`)
+	exePath, _ := sb.Join("kea-ctrl-agent")
+
+	// The HTTP response mock.
+	defer gock.Off()
+	gock.New("http://localhost:45634").
+		JSON(map[string]any{"command": "version-get", "service": []string{"d2"}}).
+		Post("/").
+		Reply(200).
+		JSON([]map[string]int{{"result": int(keactrl.ResponseSuccess)}})
+
+	gock.New("http://localhost:45634").
+		JSON(map[string]any{"command": "version-get", "service": []string{"dhcp4"}}).
+		Post("/").
+		Reply(400).
+		JSON([]map[string]int{{"result": int(keactrl.ResponseError)}})
+
+	gock.New("http://localhost:45634").
+		JSON(map[string]any{"command": "version-get", "service": []string{"dhcp6"}}).
+		Post("/").
+		Reply(200).
+		JSON([]map[string]int{{"result": int(keactrl.ResponseCommandUnsupported)}})
+
+	httpConfig := HTTPClientConfig{Timeout: 42 * time.Minute, Interceptor: gock.InterceptClient}
+
+	// Kea process mock.
+	process := NewMockSupportedProcess(ctrl)
+	process.EXPECT().getName().Return("kea-ctrl-agent", nil)
+	process.EXPECT().getDaemonName().Return(daemonname.CA)
+	process.EXPECT().getCmdline().Return(
+		fmt.Sprintf("%s -c %s", exePath, configPath),
+		nil,
+	)
+	process.EXPECT().getCwd().Return(sb.BasePath, nil)
+
+	// System calls mock.
+	commander := NewMockCommandExecutor(ctrl)
+	commander.EXPECT().Output(exePath, "-v").Return([]byte("2.3.0\n"), nil)
 
 	// Act
+	daemons, err := detectKeaDaemons(t.Context(), process, httpConfig, commander)
 
 	// Assert
+	require.False(t, gock.HasUnmatchedRequest())
+	require.NoError(t, err)
 
+	// It detects only active daemons - CA and D2.
+	require.Len(t, daemons, 2)
+	require.Equal(t, daemonname.CA, daemons[0].GetName())
+	require.Equal(t, daemonname.D2, daemons[1].GetName())
+
+	// All daemons have the same access point - the HTTP of the CA.
+	accessPoints := daemons[0].GetAccessPoints()
+	require.Equal(t, accessPoints, daemons[1].GetAccessPoints())
+	require.Len(t, accessPoints, 1)
+	accessPoint := accessPoints[0]
+	require.Equal(t, AccessPointControl, accessPoint.Type)
+	require.Equal(t, "localhost", accessPoint.Address)
+	require.EqualValues(t, 45634, accessPoint.Port)
+	require.Equal(t, protocoltype.HTTP, accessPoint.Protocol)
 }
