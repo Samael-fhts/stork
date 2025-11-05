@@ -501,7 +501,7 @@ func testReservationGetPageReceived(t *testing.T, iterator *hostIterator) {
 	require.NotNil(t, recordedCommand.Arguments)
 	var recordedArguments map[string]any
 	err := recordedCommand.Arguments.UnmarshalInto(&recordedArguments)
-	require.NoError(t, err)	
+	require.NoError(t, err)
 	// The subnet-id is always required.
 	require.Contains(t, recordedArguments, "subnet-id")
 	// The limit is also always required.

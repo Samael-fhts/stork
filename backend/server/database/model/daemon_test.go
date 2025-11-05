@@ -231,7 +231,6 @@ func TestUpdateDaemonStatistics(t *testing.T) {
 		daemon, _ = GetDaemonByID(db, daemon.ID)
 		require.True(t, daemon.Active)
 	})
-
 }
 
 // Returns all HA state names to which the daemon belongs and the

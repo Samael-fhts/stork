@@ -802,7 +802,6 @@ func updateDaemonStatistics(dbi dbops.DBI, daemon *Daemon) error {
 			return errors.Wrapf(ErrNotExists, "Kea DHCP daemon with ID %d does not exist",
 				daemon.KeaDaemon.KeaDHCPDaemon.ID)
 		}
-
 	}
 
 	return nil

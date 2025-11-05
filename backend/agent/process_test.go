@@ -15,7 +15,7 @@ func TestListProcesses(t *testing.T) {
 
 	// Process tree:
 	//  0 (root)
-	//  |                   
+	//  |
 	//  5 (supervisord)       ? (unknown)
 	// /         \            |
 	// 1 (CA)     4 (CA)      7 (unknown

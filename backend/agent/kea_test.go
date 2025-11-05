@@ -1453,7 +1453,7 @@ func TestDetectKeaWithDefaultConfigurationPath(t *testing.T) {
 	process.EXPECT().getDaemonName().Return(daemonname.DHCPv4)
 	process.EXPECT().getCmdline().Return(
 		// Config path is default.
-		fmt.Sprintf("%s", exePath),
+		exePath,
 		nil,
 	)
 	process.EXPECT().getCwd().Return(sb.BasePath, nil)

@@ -24,8 +24,9 @@ def test_update_stork_from_the_latest_released_version(
     state = package_service.read_machine_state(machine.id)
 
     agent_version = version.parse_version_info(state.agent_version)[0]
-    server_version = version.parse_version_info(
-        package_service.read_version().version)[0]
+    server_version = version.parse_version_info(package_service.read_version().version)[
+        0
+    ]
     # We change the version in the release phase.
     # During the development the latest CloudSmith version equals to the
     # version in the GO files but during the release it is lower.
@@ -66,7 +67,8 @@ def test_update_stork_server_from_the_latest_released_version(
 
     agent_version_init = version.parse_version_info(state.agent_version)[0]
     server_version_init = version.parse_version_info(
-        package_service.read_version().version)[0]
+        package_service.read_version().version
+    )[0]
     # We change the version in the release phase.
     # During the development the latest CloudSmith version equals to the
     # version in the GO files but during the release it is lower.
@@ -77,9 +79,9 @@ def test_update_stork_server_from_the_latest_released_version(
 
     state = package_service.wait_for_next_machine_states(wait_for_apps=False)[0]
     agent_version_updated = version.parse_version_info(state.agent_version)[0]
-    server_version_updated = version.parse_version_info(package_service.read_version().version)[
-        0
-    ]
+    server_version_updated = version.parse_version_info(
+        package_service.read_version().version
+    )[0]
     assert agent_version_updated == agent_version_init
     assert server_version_updated == expected_version_info
 
@@ -106,7 +108,8 @@ def test_update_stork_agent_from_the_latest_released_version(
 
     agent_version_init = version.parse_version_info(state.agent_version)[0]
     server_version_init = version.parse_version_info(
-        package_service.read_version().version)[0]
+        package_service.read_version().version
+    )[0]
     # We change the version in the release phase.
     # During the development the latest CloudSmith version equals to the
     # version in the GO files but during the release it is lower.
@@ -117,8 +120,8 @@ def test_update_stork_agent_from_the_latest_released_version(
 
     state = package_service.wait_for_next_machine_states(wait_for_apps=False)[0]
     agent_version_updated = version.parse_version_info(state.agent_version)[0]
-    server_version_updated = version.parse_version_info(package_service.read_version().version)[
-        0
-    ]
+    server_version_updated = version.parse_version_info(
+        package_service.read_version().version
+    )[0]
     assert agent_version_updated == expected_version_info
     assert server_version_updated == server_version_init

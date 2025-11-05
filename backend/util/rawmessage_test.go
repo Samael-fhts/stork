@@ -74,7 +74,6 @@ func TestRawMessageOrAnyMarshalStruct(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	require.Equal(t, `{"key":"value"}`, string(bytes))
-
 }
 
 // Test that marshalling nil results in JSON null.

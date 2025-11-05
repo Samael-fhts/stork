@@ -21,8 +21,10 @@ type RawMessageOrAny struct {
 	value any
 }
 
-var _ json.Marshaler = (*RawMessageOrAny)(nil)
-var _ json.Unmarshaler = (*RawMessageOrAny)(nil)
+var (
+	_ json.Marshaler   = (*RawMessageOrAny)(nil)
+	_ json.Unmarshaler = (*RawMessageOrAny)(nil)
+)
 
 // Constructs a new object instance.
 func NewRawMessageOrAny(value any) *RawMessageOrAny {

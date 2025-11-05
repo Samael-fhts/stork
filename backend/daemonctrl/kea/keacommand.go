@@ -188,18 +188,13 @@ func (c Command) Marshal() ([]byte, error) {
 	// Stork requires that command has exactly one target daemon.
 	// However, Kea CA expects that if the command is targeted to itself,
 	// the Daemons field must be empty.
-	isCATarget := len(c.Daemons) == 1 && c.Daemons[0] == daemonname.CA
-	if isCATarget {
+	if len(c.Daemons) == 1 && c.Daemons[0] == daemonname.CA {
 		c.Daemons = nil
 	}
 
 	data, err := json.Marshal(c)
 	if err != nil {
 		return nil, errors.Wrapf(err, "failed to marshal Kea command: %s", c.Command)
-	}
-
-	if isCATarget {
-		c.Daemons = append(c.Daemons, daemonname.CA)
 	}
 
 	return data, nil

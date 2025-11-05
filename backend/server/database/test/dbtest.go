@@ -119,7 +119,7 @@ func createDatabaseTestCase() (settings *dbops.DatabaseSettings, maintenanceSett
 func restoreDatabaseTestCase(backupFilePath string) (settings *dbops.DatabaseSettings, maintenanceSettings *dbops.DatabaseSettings, err error) {
 	settings, maintenanceSettings, err = getDatabaseTestSettings()
 	if err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 
 	db, err := dbops.NewPgDBConn(maintenanceSettings)
@@ -132,7 +132,7 @@ func restoreDatabaseTestCase(backupFilePath string) (settings *dbops.DatabaseSet
 			Fatalf("Unable to create database instance")
 	}
 	if nil != err {
-		return
+		return settings, maintenanceSettings, err
 	}
 
 	defer db.Close()
@@ -140,12 +140,12 @@ func restoreDatabaseTestCase(backupFilePath string) (settings *dbops.DatabaseSet
 	dbName := fmt.Sprintf("%s%d", settings.DBName, rand.Int63()) //nolint:gosec
 
 	if err = maintenance.DropDatabaseIfExists(db, dbName); err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 
 	// Create empty database.
 	if _, err = maintenance.CreateDatabase(db, dbName); err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 
 	db.Close()
@@ -156,13 +156,13 @@ func restoreDatabaseTestCase(backupFilePath string) (settings *dbops.DatabaseSet
 	// Reconnect to the newly created database as a maintenance user.
 	db, err = dbops.NewPgDBConn(maintenanceSettings)
 	if err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 	defer db.Close()
 
 	// Create extensions.
 	if err = dbops.CreatePgCryptoExtension(db); err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 
 	// Grant all privileges on the database to the standard user.
@@ -182,13 +182,13 @@ func restoreDatabaseTestCase(backupFilePath string) (settings *dbops.DatabaseSet
 	// privileges are granted.
 	db, err = dbops.NewPgDBConn(settings)
 	if err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 	defer db.Close()
 
 	// Restore database from the backup file.
 	if err = maintenance.RestoreDatabaseFromDump(db, backupFilePath); err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 
 	// Close the session and reconnect to reset all temporary changes in the
@@ -198,14 +198,14 @@ func restoreDatabaseTestCase(backupFilePath string) (settings *dbops.DatabaseSet
 	db.Close()
 	db, err = dbops.NewPgDBConn(settings)
 	if err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 	defer db.Close()
 
 	// Migrate database to the latest schema version.
 	_, _, err = dbops.MigrateToLatest(db)
 	if err != nil {
-		return
+		return settings, maintenanceSettings, err
 	}
 
 	return settings, maintenanceSettings, nil
