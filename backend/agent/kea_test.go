@@ -47,6 +47,7 @@ func TestSendCommand(t *testing.T) {
 	var response keactrl.Response
 	err := daemon.sendCommand(t.Context(), command, &response)
 	require.NoError(t, err)
+	require.False(t, gock.HasUnmatchedRequest())
 }
 
 // Test the case that the command is not successfully sent to Kea because
@@ -73,7 +74,7 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 	defer gock.Off()
 	gock.New("http://localhost:45634").
 		MatchHeader("Content-Type", "application/json").
-		JSON(map[string]string{"command": "version-get"}).
+		JSON(map[string]any{"command": "version-get", "service": []string{"dhcp4"}}).
 		Post("/").
 		Reply(200).
 		JSON([]map[string]interface{}{
@@ -100,6 +101,7 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 	var response versionGet
 	err := daemon.sendCommand(t.Context(), command, &response)
 	require.Error(t, err)
+	require.False(t, gock.HasUnmatchedRequest())
 }
 
 // Test the case when Kea server is unreachable.
@@ -255,6 +257,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 	monitor.refreshDaemons(t.Context(), agentManager)
 
 	require.NoError(t, err)
+	require.False(t, gock.HasUnmatchedRequest())
 }
 
 // Test the function which extracts the list of log files from the Kea
@@ -394,34 +397,22 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 	monitor.refreshDaemons(t.Context(), agentManager)
 
 	require.NoError(t, err)
+	require.False(t, gock.HasUnmatchedRequest())
 }
 
-// This test verifies that an error is returned when the number of responses
-// from the Kea daemons is lower than the number of services specified in the
-// command.
-func TestKeaAllowedLogsFewerResponses(t *testing.T) {
+// This test verifies that an error is returned when the agent is unable to
+// fetch the Kea config.
+func TestKeaAllowedLogsConfigUnavailable(t *testing.T) {
 	defer gock.Off()
-
-	// Return only one response while the number of daemons is two.
-	dhcpResponsesJSON := `[
-        {
-            "result": 0,
-            "arguments": {
-                "Dhcp4": {
-                }
-            }
-        }
-    ]`
-	dhcpResponses := make([]map[string]interface{}, 1)
-	err := json.Unmarshal([]byte(dhcpResponsesJSON), &dhcpResponses)
-	require.NoError(t, err)
 
 	gock.New("https://localhost:45634").
 		MatchHeader("Content-Type", "application/json").
-		JSON(map[string]interface{}{"command": "config-get", "service": []string{"dhcp4", "dhcp6"}}).
+		JSON(map[string]interface{}{"command": "config-get"}).
 		Post("/").
 		Reply(200).
-		JSON(dhcpResponses)
+		JSON([]map[string]any{{
+			"result": keactrl.ResponseError,
+		}})
 
 	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
 	daemon := &keaDaemon{
@@ -436,8 +427,9 @@ func TestKeaAllowedLogsFewerResponses(t *testing.T) {
 	defer ctrl.Finish()
 	agentManager := NewMockAgentManager(ctrl)
 
-	err = daemon.RefreshState(t.Context(), agentManager)
+	err := daemon.RefreshState(t.Context(), agentManager)
 	require.Error(t, err)
+	require.False(t, gock.HasUnmatchedRequest())
 }
 
 // Test that cleaning up the daemon doesn't panic.
