@@ -164,9 +164,9 @@ func TestGetState(t *testing.T) {
 	expVer := "123"
 	rsp := agentapi.GetStateRsp{
 		AgentVersion: expVer,
-		Apps: []*agentapi.App{
+		Daemons: []*agentapi.Daemon{
 			{
-				Type:         string(daemonname.DHCPv4),
+				Name:         string(daemonname.DHCPv4),
 				AccessPoints: makeAccessPoint(AccessPointControl, "1.2.3.4", "", 1234),
 			},
 		},

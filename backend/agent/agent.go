@@ -232,7 +232,7 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 	load, _ := load.Avg()
 	loadStr := fmt.Sprintf("%.2f %.2f %.2f", load.Load1, load.Load5, load.Load15)
 
-	var apps []*agentapi.App
+	var daemons []*agentapi.Daemon
 
 	for _, daemon := range sa.Monitor.GetDaemons() {
 		var accessPoints []*agentapi.AccessPoint
@@ -247,15 +247,15 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 			})
 		}
 
-		apps = append(apps, &agentapi.App{
-			Type:         string(daemon.GetName()),
+		daemons = append(daemons, &agentapi.Daemon{
+			Name:         string(daemon.GetName()),
 			AccessPoints: accessPoints,
 		})
 	}
 
 	state := agentapi.GetStateRsp{
 		AgentVersion:         stork.Version,
-		Apps:                 apps,
+		Daemons:              daemons,
 		Hostname:             hostInfo.Hostname,
 		Cpus:                 int64(runtime.NumCPU()),
 		CpusLoad:             loadStr,

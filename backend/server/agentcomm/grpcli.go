@@ -396,11 +396,11 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 	}
 
 	var daemons []*Daemon
-	for _, app := range grpcState.Apps {
+	for _, daemon := range grpcState.Daemons {
 		var accessPoints []AccessPoint
 
 		var daemonName daemonname.Name
-		switch app.Type {
+		switch daemon.Name {
 		case "kea":
 			// For backward compatibility, if the daemon name is "kea", assume
 			// it is CA. This value was used in Stork agents prior 2.3.1.
@@ -410,10 +410,10 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 			// it is BIND9. This value was used in Stork agents prior 2.3.
 			daemonName = daemonname.Bind9
 		default:
-			daemonName = daemonname.Name(app.Type)
+			daemonName = daemonname.Name(daemon.Name)
 		}
 
-		for _, point := range app.AccessPoints {
+		for _, point := range daemon.AccessPoints {
 			accessPoint := AccessPoint{
 				Type:    point.Type,
 				Address: point.Address,

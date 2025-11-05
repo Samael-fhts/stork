@@ -205,7 +205,7 @@ func TestGetState(t *testing.T) {
 	rsp, err := sa.GetState(ctx, &agentapi.GetStateReq{})
 	require.NoError(t, err)
 	require.Equal(t, rsp.AgentVersion, stork.Version)
-	require.Empty(t, rsp.Apps)
+	require.Empty(t, rsp.Daemons)
 
 	// add some daemons to daemon monitor so GetState should return something
 	var daemons []Daemon
@@ -252,9 +252,9 @@ func TestGetState(t *testing.T) {
 	require.Equal(t, rsp.AgentVersion, stork.Version)
 	require.Equal(t, stork.Version, rsp.AgentVersion)
 	require.False(t, rsp.AgentUsesHTTPCredentials) //nolint:staticcheck,deprecated
-	require.Len(t, rsp.Apps, 2)
+	require.Len(t, rsp.Daemons, 2)
 
-	keaApp := rsp.Apps[0]
+	keaApp := rsp.Daemons[0]
 	require.Len(t, keaApp.AccessPoints, 1)
 	point := keaApp.AccessPoints[0]
 	require.Equal(t, AccessPointControl, point.Type)
@@ -263,7 +263,7 @@ func TestGetState(t *testing.T) {
 	require.EqualValues(t, 1234, point.Port)
 	require.Empty(t, point.Key)
 
-	bind9App := rsp.Apps[1]
+	bind9App := rsp.Daemons[1]
 	require.Len(t, bind9App.AccessPoints, 2)
 	// sorted by port
 	point = bind9App.AccessPoints[0]
