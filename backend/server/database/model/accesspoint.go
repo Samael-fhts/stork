@@ -44,7 +44,7 @@ func addOrUpdateAccessPoint(db dbops.DBI, accessPoint *AccessPoint) error {
 	return nil
 }
 
-// Deletes all access points for a given daemon that doesn't match the provided
+// Deletes all access points for a given daemon that don't match the provided
 // types. If `keepTypes` is empty, all access points for the daemon will be
 // deleted.
 func deleteAccessPointsExcept(db dbops.DBI, daemonID int64, keepTypes []AccessPointType) error {
