@@ -134,26 +134,19 @@ func (sn *SharedNetwork) GetSubnets(daemonID int64) (accessors []keaconfig.Subne
 // If any of the daemons does not exist or an error occurs, the shared network
 // is not updated.
 func (sn *SharedNetwork) PopulateDaemons(dbi dbops.DBI) error {
-	daemonIndex := make(map[int64]*Daemon)
 	var daemons []*Daemon
 	for _, lsn := range sn.LocalSharedNetworks {
 		// DaemonID is required for this function to run.
 		if lsn.DaemonID == 0 {
 			return pkgerrors.Errorf("problem with populating daemons: shared network %d lacks daemon ID", sn.ID)
 		}
-
-		daemon, ok := daemonIndex[lsn.DaemonID]
-		if !ok {
-			var err error
-			daemon, err = GetKeaDaemonByID(dbi, lsn.DaemonID)
-			if err != nil {
-				return pkgerrors.WithMessage(err, "problem with populating daemons")
-			}
-			// Daemon does not exist.
-			if daemon == nil {
-				return pkgerrors.Errorf("problem with populating daemons for shared network %d: daemon %d does not exist", sn.ID, lsn.DaemonID)
-			}
-			daemonIndex[lsn.DaemonID] = daemon
+		daemon, err := GetKeaDaemonByID(dbi, lsn.DaemonID)
+		if err != nil {
+			return pkgerrors.WithMessage(err, "problem with populating daemons")
+		}
+		// Daemon does not exist.
+		if daemon == nil {
+			return pkgerrors.Errorf("problem with populating daemons for shared network %d: daemon %d does not exist", sn.ID, lsn.DaemonID)
 		}
 		daemons = append(daemons, daemon)
 	}
