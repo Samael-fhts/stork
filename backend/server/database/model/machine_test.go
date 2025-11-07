@@ -920,7 +920,7 @@ func TestDeleteMachineWithDNSDaemonsOrphans(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 
-	returnedZones, _, err := GetZones(db, GetZonesFilter{})
+	returnedZones, _, err := GetZones(db, nil)
 	require.NoError(t, err)
 	require.Empty(t, returnedZones)
 }

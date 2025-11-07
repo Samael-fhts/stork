@@ -74,7 +74,7 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 	}
 
 	// Apply paging parameters and zone-specific filters.
-	filter := dbmodel.GetZonesFilter{
+	filter := &dbmodel.GetZonesFilter{
 		MachineID:  machineID,
 		DaemonName: daemonName,
 		Class:      params.Class,

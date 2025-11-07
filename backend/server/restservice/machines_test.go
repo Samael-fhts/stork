@@ -1309,7 +1309,7 @@ func TestDeleteMachine(t *testing.T) {
 	require.Equal(t, http.StatusNotFound, getStatusCode(*defaultRsp))
 
 	// Make sure that the zone associations are deleted.
-	zones, _, err := dbmodel.GetZones(db, dbmodel.GetZonesFilter{})
+	zones, _, err := dbmodel.GetZones(db, nil)
 	require.NoError(t, err)
 	require.Empty(t, zones)
 }
