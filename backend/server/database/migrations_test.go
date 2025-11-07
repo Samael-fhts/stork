@@ -656,7 +656,7 @@ func TestDownMigration2NullUserEmail(t *testing.T) {
 // demo. All machines except the one with many subnets were authorized.
 // The dump was created immediately after the machine states were processed,
 // and zones had been fetched without performing any other operations.
-func TestMigrateToLatest(t *testing.T) {
+func TestMigrateFromDemoV2_3_0ToLatest(t *testing.T) {
 	// Arrange & Act
 	db, _, teardown := dbtest.SetupDatabaseTestCaseFromDump(t, "testdata/dump-demo-v2.3.0.sql")
 	defer teardown()
