@@ -190,7 +190,7 @@ func (d *dnsDaemonImpl) RefreshState(ctx context.Context, agentMgr agentManager)
 			// Inventory creation is in progress. This is not an error.
 			return nil
 		default:
-			return errors.WithMessage(err, "Failed to populate DNS zones inventory")
+			return errors.WithMessage(err, "failed to populate DNS zone inventory")
 		}
 	}
 	return nil
