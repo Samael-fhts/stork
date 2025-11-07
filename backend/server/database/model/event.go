@@ -75,12 +75,11 @@ func AddEvent(db *pg.DB, event *Event) error {
 // page. Limit has to be greater then 0, otherwise error is returned.
 // The level indicates the lowest level of events that should be
 // returned (0 - info, 1 - warning, 2 - error). daemon
-// allows selecting events only from given daemon (e.g. 'named' or 'dhcp4'.
-// machineID and userID allows selecting events connected with indicated
-// machine or user. sortField allows indicating sort column in database and
-// sortDir allows selection the order of sorting. If sortField is
-// empty then id is used for sorting. If SortDirAny is used then ASC
-// order is used.
+// allows for selecting events for a given daemon (e.g. 'named' or 'dhcp4').
+// machineID and userID allows for selecting events pertaining to the specific
+// machine or user. sortField allows for selecting a sort column in database, and
+// sortDir selects the sortingorder. If the sortField is empty then id is used
+// for sorting. If SortDirAny is used then ASC order is used.
 func GetEventsByPage(db *pg.DB, offset int64, limit int64, level EventLevel, daemonName *string, machineID *int64, userID *int64, sortField string, sortDir SortDirEnum) ([]Event, int64, error) {
 	if limit == 0 {
 		return nil, 0, pkgerrors.New("limit should be greater than 0")
