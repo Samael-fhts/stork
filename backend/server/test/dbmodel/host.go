@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
@@ -30,7 +31,7 @@ func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*
 			Address:  "localhost",
 			Port:     int64(8080 + i),
 			Key:      "",
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		}}
 
 		daemons := []*dbmodel.Daemon{

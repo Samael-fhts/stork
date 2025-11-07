@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
@@ -241,7 +242,7 @@ func rpsTestAddMachine(t *testing.T, db *dbops.PgDB, dhcp4Active bool, dhcp6Acti
 		Type:     dbmodel.AccessPointControl,
 		Address:  "cool.example.org",
 		Port:     1234,
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}}
 
 	daemonV4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, dhcp4Active, accessPoints)

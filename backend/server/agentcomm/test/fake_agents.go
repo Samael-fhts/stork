@@ -158,8 +158,8 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm
 		return nil, errors.New("number of command responses does not match number of commands")
 	}
 
-	caAddress, caPort, _, caUseSecureProtocol, _ := daemon.GetControlAccessPoint()
-	caURL := storkutil.HostWithPortURL(caAddress, caPort, string(caUseSecureProtocol))
+	accessPoint, _ := daemon.GetAccessPoint(dbmodel.AccessPointControl)
+	caURL := storkutil.HostWithPortURL(accessPoint.Address, accessPoint.Port, string(accessPoint.Protocol))
 
 	fa.RecordedURLs = append(fa.RecordedURLs, caURL)
 
@@ -196,8 +196,8 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm
 // response to the command by calling the function specified in the
 // call to NewFakeAgents.
 func (fa *FakeAgents) ForwardToNamedStats(ctx context.Context, daemon agentcomm.ControlledDaemon, requestType agentcomm.ForwardToNamedStatsRequestType, statsOutput interface{}) error {
-	statsAddress, statsPort, _, statsUseSecureProtocol, _ := daemon.GetStatisticsAccessPoint()
-	fa.RecordedStatsURL = storkutil.HostWithPortURL(statsAddress, statsPort, string(statsUseSecureProtocol))
+	accessPoint, _ := daemon.GetAccessPoint(dbmodel.AccessPointStatistics)
+	fa.RecordedStatsURL = storkutil.HostWithPortURL(accessPoint.Address, accessPoint.Port, string(accessPoint.Protocol))
 
 	// Generate response.
 	if fa.mockNamedFunc != nil {
@@ -213,7 +213,14 @@ func (fa *FakeAgents) ForwardToNamedStats(ctx context.Context, daemon agentcomm.
 // to the command by calling the function specified in the call to
 // NewFakeAgents.
 func (fa *FakeAgents) ForwardRndcCommand(ctx context.Context, daemon agentcomm.ControlledDaemon, command string) (*agentcomm.RndcOutput, error) {
-	fa.RecordedAddress, fa.RecordedPort, fa.RecordedKey, _, _ = daemon.GetControlAccessPoint()
+	accessPoint, err := daemon.GetAccessPoint(dbmodel.AccessPointControl)
+	if err != nil {
+		return nil, err
+	}
+
+	fa.RecordedAddress = accessPoint.Address
+	fa.RecordedPort = accessPoint.Port
+	fa.RecordedKey = accessPoint.Key
 	fa.RecordedCommand = command
 
 	if fa.mockRndcOutput != "" {

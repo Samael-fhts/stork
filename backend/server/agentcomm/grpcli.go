@@ -28,16 +28,6 @@ import (
 
 var _ ConnectedAgents = (*connectedAgentsImpl)(nil)
 
-// An access point for a daemon to retrieve information such
-// as status or metrics.
-type AccessPoint struct {
-	Type     string
-	Address  string
-	Port     int64
-	Key      string
-	Protocol protocoltype.ProtocolType
-}
-
 // Currently supported types are: "control" and "statistics".
 const (
 	AccessPointControl    = "control"
@@ -47,8 +37,7 @@ const (
 // An interface to a daemon that can receive commands from Stork.
 // Kea daemon receiving control commands is an example.
 type ControlledDaemon interface {
-	GetControlAccessPoint() (string, int64, string, protocoltype.ProtocolType, error)
-	GetStatisticsAccessPoint() (string, int64, string, protocoltype.ProtocolType, error)
+	GetAccessPoint(apType dbmodel.AccessPointType) (*dbmodel.AccessPoint, error)
 	GetMachineTag() dbmodel.MachineTag
 	GetName() daemonname.Name
 }
@@ -63,7 +52,7 @@ type ControlledMachine interface {
 // daemon location.
 type Daemon struct {
 	Name         daemonname.Name
-	AccessPoints []AccessPoint
+	AccessPoints []dbmodel.AccessPoint
 	Machine      dbmodel.MachineTag
 }
 
@@ -77,24 +66,13 @@ func (d *Daemon) GetName() daemonname.Name {
 
 // Returns the control access point of the daemon. It returns an error if
 // no control access point is found.
-func (d *Daemon) GetControlAccessPoint() (string, int64, string, protocoltype.ProtocolType, error) {
+func (d *Daemon) GetAccessPoint(apType dbmodel.AccessPointType) (*dbmodel.AccessPoint, error) {
 	for _, ap := range d.AccessPoints {
-		if ap.Type == AccessPointControl {
-			return ap.Address, ap.Port, ap.Key, ap.Protocol, nil
+		if ap.Type == apType {
+			return &ap, nil
 		}
 	}
-	return "", 0, "", "", errors.Errorf("no control access point for daemon %s", d.Name)
-}
-
-// Returns the statistics access point of the daemon. It returns an error if
-// no statistics access point is found.
-func (d *Daemon) GetStatisticsAccessPoint() (string, int64, string, protocoltype.ProtocolType, error) {
-	for _, ap := range d.AccessPoints {
-		if ap.Type == AccessPointStatistics {
-			return ap.Address, ap.Port, ap.Key, ap.Protocol, nil
-		}
-	}
-	return "", 0, "", "", errors.Errorf("no statistics access point for daemon %s", d.Name)
+	return nil, errors.Errorf("no %s access point for daemon %s", apType, d.Name)
 }
 
 // Returns the machine tag of the daemon.
@@ -158,7 +136,7 @@ func (agents *connectedAgentsImpl) checkAgentCommState(stats *CommStats, reqData
 	return CommErrorNone, ""
 }
 
-func (agents *connectedAgentsImpl) checkBind9CommState(stats *CommStatsBind9, accessPointType string, resp any) (CommErrorTransition, string) {
+func (agents *connectedAgentsImpl) checkBind9CommState(stats *CommStatsBind9, accessPointType dbmodel.AccessPointType, resp any) (CommErrorTransition, string) {
 	var (
 		status  *agentapi.Status
 		details string
@@ -397,7 +375,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 
 	var daemons []*Daemon
 	for _, daemon := range grpcState.Daemons {
-		var accessPoints []AccessPoint
+		var accessPoints []dbmodel.AccessPoint
 
 		var daemonName daemonname.Name
 		switch daemon.Name {
@@ -414,8 +392,8 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 		}
 
 		for _, point := range daemon.AccessPoints {
-			accessPoint := AccessPoint{
-				Type:    point.Type,
+			accessPoint := dbmodel.AccessPoint{
+				Type:    dbmodel.AccessPointType(point.Type),
 				Address: point.Address,
 				Port:    point.Port,
 				Key:     point.Key,
@@ -487,7 +465,7 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 	agentPort := daemon.GetMachineTag().GetAgentPort()
 
 	// Get rndc control settings
-	ctrlAddress, ctrlPort, _, _, err := daemon.GetControlAccessPoint()
+	ap, err := daemon.GetAccessPoint(dbmodel.AccessPointControl)
 	if err != nil {
 		return nil, err
 	}
@@ -496,13 +474,13 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 
 	logFields := log.Fields{
 		"agent": addrPort,
-		"rndc":  net.JoinHostPort(ctrlAddress, strconv.FormatInt(ctrlPort, 10)),
+		"rndc":  net.JoinHostPort(ap.Address, strconv.FormatInt(ap.Port, 10)),
 	}
 
 	// Prepare the on-wire representation of the commands.
 	req := &agentapi.ForwardRndcCommandReq{
-		Address: ctrlAddress,
-		Port:    ctrlPort,
+		Address: ap.Address,
+		Port:    ap.Port,
 		RndcRequest: &agentapi.RndcRequest{
 			Request: command,
 		},
@@ -609,17 +587,17 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 // the statistics-channel of the named daemon.
 func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, daemon ControlledDaemon, requestType ForwardToNamedStatsRequestType, statsOutput any) error {
 	addrPort := net.JoinHostPort(daemon.GetMachineTag().GetAddress(), strconv.FormatInt(daemon.GetMachineTag().GetAgentPort(), 10))
-	statsAddress, statsPort, _, protocol, err_ := daemon.GetStatisticsAccessPoint()
+	ap, err_ := daemon.GetAccessPoint(dbmodel.AccessPointStatistics)
 	if err_ != nil {
 		return errors.WithMessage(err_, "failed to get statistics access point for daemon")
 	}
-	statsURL := storkutil.HostWithPortURL(statsAddress, statsPort, string(protocol))
+	statsURL := storkutil.HostWithPortURL(ap.Address, ap.Port, string(ap.Protocol))
 
 	// Prepare the on-wire representation of the commands.
 	req := &agentapi.ForwardToNamedStatsReq{
 		Url:          statsURL,
-		StatsAddress: statsAddress,
-		StatsPort:    statsPort,
+		StatsAddress: ap.Address,
+		StatsPort:    ap.Port,
 		RequestType:  requestType,
 	}
 	req.NamedStatsRequest = &agentapi.NamedStatsRequest{
@@ -780,15 +758,15 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 	agentPort := daemon.GetMachineTag().GetAgentPort()
 	agentURL := net.JoinHostPort(agentAddress, strconv.FormatInt(agentPort, 10))
 
-	controlAddress, controlPort, _, controlProtocol, err := daemon.GetControlAccessPoint()
+	accessPoint, err := daemon.GetAccessPoint(dbmodel.AccessPointControl)
 	if err != nil {
 		log.WithFields(log.Fields{
-			"address": controlAddress,
-			"port":    controlPort,
+			"address": accessPoint.Address,
+			"port":    accessPoint.Port,
 		}).Warnf("No Kea control access point found for daemon %s on machine %d", daemon.GetName(), daemon.GetMachineTag().GetID())
 		return nil, err
 	}
-	controlAccessPointURL := storkutil.HostWithPortURL(controlAddress, controlPort, string(controlProtocol))
+	controlAccessPointURL := storkutil.HostWithPortURL(accessPoint.Address, accessPoint.Port, string(accessPoint.Protocol))
 
 	// Prepare the on-wire representation of the commands.
 	req := &agentapi.ForwardToKeaOverHTTPReq{
@@ -918,13 +896,13 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 func (agents *connectedAgentsImpl) GetPowerDNSServerInfo(ctx context.Context, daemon ControlledDaemon) (*pdnsdata.ServerInfo, error) {
 	addrPort := net.JoinHostPort(daemon.GetMachineTag().GetAddress(), strconv.FormatInt(daemon.GetMachineTag().GetAgentPort(), 10))
 
-	address, port, _, _, err := daemon.GetControlAccessPoint()
+	accessPoint, err := daemon.GetAccessPoint(dbmodel.AccessPointControl)
 	if err != nil {
 		return nil, err
 	}
 	req := &agentapi.GetPowerDNSServerInfoReq{
-		WebserverAddress: address,
-		WebserverPort:    port,
+		WebserverAddress: accessPoint.Address,
+		WebserverPort:    accessPoint.Port,
 	}
 	agentResponse, err := agents.sendAndRecvViaQueue(addrPort, req)
 	if err != nil {
@@ -1020,7 +998,7 @@ func (agents *connectedAgentsImpl) ReceiveZones(ctx context.Context, daemon Cont
 		// Get control access point for the specified daemon. It will be sent
 		// in the request to the agent, so the agent can identify correct
 		// zone inventory.
-		ctrlAddress, ctrlPort, _, _, err := daemon.GetControlAccessPoint()
+		accessPoint, err := daemon.GetAccessPoint(dbmodel.AccessPointControl)
 		if err != nil {
 			_ = yield(nil, err)
 			return
@@ -1034,8 +1012,8 @@ func (agents *connectedAgentsImpl) ReceiveZones(ctx context.Context, daemon Cont
 		}
 		// Start creating the request.
 		request := &agentapi.ReceiveZonesReq{
-			ControlAddress: ctrlAddress,
-			ControlPort:    ctrlPort,
+			ControlAddress: accessPoint.Address,
+			ControlPort:    accessPoint.Port,
 		}
 		// Set filtering rules, if required.
 		if filter != nil {
@@ -1123,15 +1101,15 @@ func (agents *connectedAgentsImpl) ReceiveZoneRRs(ctx context.Context, daemon Co
 		// Get control access point for the specified daemon. It will be sent
 		// in the request to the agent, so the agent can identify correct
 		// zone inventory.
-		ctrlAddress, ctrlPort, _, _, err := daemon.GetControlAccessPoint()
+		accessPoint, err := daemon.GetAccessPoint(dbmodel.AccessPointControl)
 		if err != nil {
 			_ = yield(nil, err)
 			return
 		}
 
 		request := &agentapi.ReceiveZoneRRsReq{
-			ControlAddress: ctrlAddress,
-			ControlPort:    ctrlPort,
+			ControlAddress: accessPoint.Address,
+			ControlPort:    accessPoint.Port,
 			ZoneName:       zoneName,
 			ViewName:       viewName,
 		}

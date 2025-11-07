@@ -760,7 +760,7 @@ func prepareHAEnvironment(t *testing.T, db *pg.DB) (loadBalancing *dbmodel.Servi
 			Address:  "192.0.2.33",
 			Port:     8000,
 			Key:      "",
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 

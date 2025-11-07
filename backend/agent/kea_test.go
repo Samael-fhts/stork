@@ -220,7 +220,7 @@ func TestKeaAllowedLogs(t *testing.T) {
 		Reply(200).
 		JSON(dhcpV6Responses)
 
-	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: protocoltype.HTTPS}
 	connector := newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient})
 
 	monitor := &monitor{daemons: []Daemon{
@@ -360,7 +360,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
 		Reply(200).
 		JSON(dhcpV6Response)
 
-	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: protocoltype.HTTPS}
 	connector := newKeaConnector(accessPoint, HTTPClientConfig{Interceptor: gock.InterceptClient})
 
 	monitor := &monitor{daemons: []Daemon{
@@ -414,7 +414,7 @@ func TestKeaAllowedLogsConfigUnavailable(t *testing.T) {
 			"result": keactrl.ResponseError,
 		}})
 
-	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: "https"}
+	accessPoint := AccessPoint{Type: AccessPointControl, Address: "localhost", Port: 45634, Protocol: protocoltype.HTTPS}
 	daemon := &keaDaemon{
 		daemon: daemon{
 			Name:         daemonname.CA,

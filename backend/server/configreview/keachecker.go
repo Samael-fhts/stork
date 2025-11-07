@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
 )
@@ -1205,7 +1206,7 @@ func credentialsOverHTTPS(ctx *ReviewContext) (*Report, error) {
 	// It is always one listening control socket.
 	controlSocket := controlSockets[0]
 
-	if controlSocket.GetProtocol() == "https" {
+	if controlSocket.GetProtocol() == protocoltype.HTTPS {
 		// The TLS is configured. All is OK.
 		return nil, nil
 	}

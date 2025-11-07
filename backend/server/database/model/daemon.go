@@ -12,7 +12,6 @@ import (
 	errors "github.com/pkg/errors"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/daemonctrl/constants/daemonname"
-	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/daemondata/bind9stats"
 	dbops "isc.org/stork/server/database"
 )
@@ -131,39 +130,13 @@ type Daemon struct {
 }
 
 // GetAccessPoint returns the access point of the given access point type.
-func (d Daemon) GetAccessPoint(accessPointType string) (ap *AccessPoint, err error) {
+func (d Daemon) GetAccessPoint(accessPointType AccessPointType) (ap *AccessPoint, err error) {
 	for _, point := range d.AccessPoints {
 		if point.Type == accessPointType {
 			return point, nil
 		}
 	}
 	return nil, errors.Errorf("no access point of type %s found for daemon ID %d", accessPointType, d.ID)
-}
-
-// Returns daemon control access point members.
-func (d Daemon) GetControlAccessPoint() (address string, port int64, key string, protocol protocoltype.ProtocolType, err error) {
-	var ap *AccessPoint
-	ap, err = d.GetAccessPoint(AccessPointControl)
-	if err == nil {
-		address = ap.Address
-		port = ap.Port
-		key = ap.Key
-		protocol = ap.Protocol
-	}
-	return
-}
-
-// Returns daemon statistics access point members.
-func (d Daemon) GetStatisticsAccessPoint() (address string, port int64, key string, protocol protocoltype.ProtocolType, err error) {
-	var ap *AccessPoint
-	ap, err = d.GetAccessPoint(AccessPointStatistics)
-	if err == nil {
-		address = ap.Address
-		port = ap.Port
-		key = ap.Key
-		protocol = ap.Protocol
-	}
-	return
 }
 
 // Returns MachineTag interface to the machine owning the daemon.
@@ -735,7 +708,7 @@ func updateDaemonRelations(dbi dbops.DBI, daemon *Daemon) error {
 		}
 	}
 	// Remove access points that are not in the list.
-	accessPointTypes := []string{}
+	accessPointTypes := []AccessPointType{}
 	for _, accessPoint := range daemon.AccessPoints {
 		accessPointTypes = append(accessPointTypes, accessPoint.Type)
 	}

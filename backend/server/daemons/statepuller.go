@@ -116,7 +116,7 @@ func daemonCompare(dbDaemon dbmodel.Daemon, grpcDaemon *agentcomm.Daemon) bool {
 	if len(dbDaemon.AccessPoints) != len(grpcDaemon.AccessPoints) {
 		return false
 	}
-	accessPointIndex := map[string]*dbmodel.AccessPoint{}
+	accessPointIndex := map[dbmodel.AccessPointType]*dbmodel.AccessPoint{}
 	for _, pt := range dbDaemon.AccessPoints {
 		accessPointIndex[pt.Type] = pt
 	}

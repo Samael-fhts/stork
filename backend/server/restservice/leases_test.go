@@ -192,7 +192,7 @@ func TestFindLeases4(t *testing.T) {
 			Address:  "localhost",
 			Port:     8000,
 			Key:      "",
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 	daemon := dbmodel.NewDaemon(machine, daemonname.DHCPv4, true, accessPoints)
@@ -615,7 +615,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 

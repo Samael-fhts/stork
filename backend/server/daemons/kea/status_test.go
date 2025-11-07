@@ -618,7 +618,7 @@ func TestGetDHCPStatus178(t *testing.T) {
 			Address:  "",
 			Port:     1234,
 			Key:      "",
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 
@@ -714,7 +714,7 @@ func TestGetDHCPStatusError(t *testing.T) {
 			Address:  "",
 			Port:     1234,
 			Key:      "",
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 

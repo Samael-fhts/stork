@@ -158,7 +158,7 @@ func TestGetDaemonStateWith1Daemon(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "192.0.2.0",
 			Port:     1234,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 
@@ -227,7 +227,7 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "192.0.2.0",
 			Port:     1234,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 

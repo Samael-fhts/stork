@@ -1162,7 +1162,7 @@ func baseAppToRestAPI(virtualApp *dbmodel.VirtualApp, daemons []*dbmodel.Daemon)
 	var accessPoints []*models.AppAccessPoint
 	for _, point := range firstDaemon.AccessPoints {
 		accessPoints = append(accessPoints, &models.AppAccessPoint{
-			Type:              point.Type,
+			Type:              string(point.Type),
 			Address:           point.Address,
 			Port:              point.Port,
 			UseSecureProtocol: point.Protocol.IsSecure(),
@@ -2074,7 +2074,7 @@ func (r *RestAPI) GetAccessPointKey(ctx context.Context, params services.GetAcce
 		daemon = daemons[0]
 	}
 
-	accessPoint, err := daemon.GetAccessPoint(params.Type)
+	accessPoint, err := daemon.GetAccessPoint(dbmodel.AccessPointType(params.Type))
 	if err != nil {
 		msg := "Cannot retrieve access point from database"
 		log.WithError(err).Error(msg)

@@ -231,7 +231,7 @@ func TestGetMachineAndDaemonsState(t *testing.T) {
 		Address:  "1.2.3.4",
 		Port:     124,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	bind9Daemon := dbmodel.NewDaemon(m, daemonname.Bind9, true, []*dbmodel.AccessPoint{bind9AccessPoint})
 	err = dbmodel.AddDaemon(db, bind9Daemon)
@@ -242,7 +242,7 @@ func TestGetMachineAndDaemonsState(t *testing.T) {
 		Daemons: []*agentcomm.Daemon{
 			{
 				Name: daemonname.CA,
-				AccessPoints: []agentcomm.AccessPoint{{
+				AccessPoints: []dbmodel.AccessPoint{{
 					Type:     dbmodel.AccessPointControl,
 					Address:  "1.2.3.4",
 					Port:     123,
@@ -253,13 +253,21 @@ func TestGetMachineAndDaemonsState(t *testing.T) {
 			},
 			{
 				Name: daemonname.Bind9,
-				AccessPoints: []agentcomm.AccessPoint{{
-					Type:     dbmodel.AccessPointControl,
-					Address:  "1.2.3.4",
-					Port:     124,
-					Key:      "abcd",
-					Protocol: "https",
-				}},
+				AccessPoints: []dbmodel.AccessPoint{
+					{
+						Type:     dbmodel.AccessPointControl,
+						Address:  "1.2.3.4",
+						Port:     124,
+						Key:      "abcd",
+						Protocol: protocoltype.RNDC,
+					},
+					{
+						Type:     dbmodel.AccessPointStatistics,
+						Address:  "1.2.3.4",
+						Port:     125,
+						Protocol: protocoltype.HTTP,
+					},
+				},
 				Machine: m,
 			},
 		},
@@ -327,7 +335,7 @@ func TestGetMachineAndPowerDNSState(t *testing.T) {
 			Daemons: []*agentcomm.Daemon{
 				{
 					Name: daemonname.PDNS,
-					AccessPoints: []agentcomm.AccessPoint{{
+					AccessPoints: []dbmodel.AccessPoint{{
 						Type:     dbmodel.AccessPointControl,
 						Address:  "1.2.3.4",
 						Port:     124,
@@ -1341,7 +1349,7 @@ func TestGetApp(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "",
 		Port:     1234,
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{accessPoint})
 	err = dbmodel.AddDaemon(db, keaDaemon)
@@ -1415,7 +1423,7 @@ func TestRestGetApp(t *testing.T) {
 		Address:  "",
 		Port:     953,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	bind9Daemon := dbmodel.NewDaemon(m, daemonname.Bind9, true, []*dbmodel.AccessPoint{bind9AccessPoint})
 	bind9Daemon.Bind9Daemon = &dbmodel.Bind9Daemon{}
@@ -1544,7 +1552,7 @@ func TestRestGetApps(t *testing.T) {
 		Address:  "",
 		Port:     4321,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	s2 := dbmodel.NewDaemon(m, daemonname.Bind9, true, []*dbmodel.AccessPoint{bind9AccessPoint})
 	s2.Bind9Daemon = &dbmodel.Bind9Daemon{}
@@ -1722,7 +1730,7 @@ func TestRestGetBind9AppWithQueryStats(t *testing.T) {
 		Address:  "",
 		Port:     4321,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	daemon := dbmodel.NewDaemon(m, daemonname.Bind9, true, []*dbmodel.AccessPoint{bind9AccessPoint})
 	daemon.Bind9Daemon = &dbmodel.Bind9Daemon{
@@ -1822,7 +1830,7 @@ func TestGetAppsDirectory(t *testing.T) {
 		Address:  "",
 		Port:     4321,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	bind9Daemon := dbmodel.NewDaemon(m, daemonname.Bind9, true, []*dbmodel.AccessPoint{bind9AccessPoint})
 	bind9Daemon.Bind9Daemon = &dbmodel.Bind9Daemon{}
@@ -2393,7 +2401,7 @@ func TestRestGetAppServicesStatusPassiveBackup(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     1234,
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	err = dbmodel.AddDaemon(db, keaDaemon)
@@ -2510,7 +2518,7 @@ func TestRestGetAppsStats(t *testing.T) {
 		Address:  "",
 		Port:     4321,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	s2 := dbmodel.NewDaemon(m, daemonname.Bind9, false, []*dbmodel.AccessPoint{bind9AccessPoint})
 	s2.Bind9Daemon = &dbmodel.Bind9Daemon{}
@@ -2523,7 +2531,7 @@ func TestRestGetAppsStats(t *testing.T) {
 		Address:  "",
 		Port:     5432,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	s3 := dbmodel.NewDaemon(m, daemonname.PDNS, false, []*dbmodel.AccessPoint{pdnsAccessPoint})
 	s3.PDNSDaemon = &dbmodel.PDNSDaemon{}
@@ -2658,7 +2666,7 @@ func TestHAInDhcpOverview(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     1234,
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	keaDaemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{keaAccessPoint})
 	err = dbmodel.AddDaemon(db, keaDaemon)
@@ -3295,7 +3303,7 @@ func TestGetAccessPointKeyIsRestrictedToSuperAdmins(t *testing.T) {
 	// Act
 	rsp := rapi.GetAccessPointKey(ctx, services.GetAccessPointKeyParams{
 		AppID: 42,
-		Type:  dbmodel.AccessPointControl,
+		Type:  string(dbmodel.AccessPointControl),
 	})
 
 	// Assert
@@ -3321,7 +3329,7 @@ func TestGetAccessPointKeyForInvalidDatabase(t *testing.T) {
 	teardown()
 	rsp := rapi.GetAccessPointKey(ctx, services.GetAccessPointKeyParams{
 		AppID: 42,
-		Type:  dbmodel.AccessPointControl,
+		Type:  string(dbmodel.AccessPointControl),
 	})
 
 	// Assert
@@ -3347,7 +3355,7 @@ func TestGetAccessPointKeyForMissingEntry(t *testing.T) {
 	// Act
 	rsp := rapi.GetAccessPointKey(ctx, services.GetAccessPointKeyParams{
 		AppID: 42,
-		Type:  dbmodel.AccessPointControl,
+		Type:  string(dbmodel.AccessPointControl),
 	})
 
 	// Assert
@@ -3377,7 +3385,7 @@ func TestGetAccessPointKey(t *testing.T) {
 		Address:  "127.0.0.1",
 		Port:     8080,
 		Key:      "secret",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})
 	daemon.Bind9Daemon = &dbmodel.Bind9Daemon{}
@@ -3388,7 +3396,7 @@ func TestGetAccessPointKey(t *testing.T) {
 	// Act
 	rsp := rapi.GetAccessPointKey(ctx, services.GetAccessPointKeyParams{
 		AppID: app.ID,
-		Type:  dbmodel.AccessPointControl,
+		Type:  string(dbmodel.AccessPointControl),
 	})
 
 	// Assert

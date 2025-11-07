@@ -67,7 +67,7 @@ func TestSearchRecords(t *testing.T) {
 		Address:  "",
 		Port:     1114,
 		Key:      "",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 
 	d4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint1})
@@ -151,7 +151,7 @@ func TestSearchRecords(t *testing.T) {
 		Address:  "",
 		Port:     1146,
 		Key:      "",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 
 	d46_4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint46_4})
@@ -176,7 +176,7 @@ func TestSearchRecords(t *testing.T) {
 		Address:  "",
 		Port:     1147,
 		Key:      "",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 
 	d46_6 := dbmodel.NewDaemon(m, daemonname.DHCPv6, true, []*dbmodel.AccessPoint{accessPoint46_6})

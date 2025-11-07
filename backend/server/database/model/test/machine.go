@@ -6,6 +6,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	dbmodel "isc.org/stork/server/database/model"
 )
 
@@ -48,7 +49,7 @@ func (m *Machine) newKeaDaemon(name daemonname.Name) (*KeaServer, error) {
 		Address:  "localhost",
 		Port:     int64(getRandInt31()),
 		Key:      "",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}}
 
 	daemon := &dbmodel.Daemon{

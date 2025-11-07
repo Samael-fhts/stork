@@ -143,7 +143,7 @@ func TestDeleteAccessPoints(t *testing.T) {
 	_ = AddDaemon(db, daemon)
 
 	// Act
-	err := deleteAccessPointsExcept(db, daemon.ID, []string{AccessPointControl})
+	err := deleteAccessPointsExcept(db, daemon.ID, []AccessPointType{AccessPointControl})
 	require.NoError(t, err)
 
 	// Assert

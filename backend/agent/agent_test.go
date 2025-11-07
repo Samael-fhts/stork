@@ -227,7 +227,7 @@ func TestGetState(t *testing.T) {
 			Address:  "2.3.4.4",
 			Port:     2345,
 			Key:      "abcd",
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 		{
 			Type:     AccessPointStatistics,

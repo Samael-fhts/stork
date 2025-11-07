@@ -7,10 +7,18 @@ import (
 	dbops "isc.org/stork/server/database"
 )
 
+// Valid kinds of the access points.
+type AccessPointType string
+
+const (
+	AccessPointControl    AccessPointType = "control"
+	AccessPointStatistics AccessPointType = "statistics"
+)
+
 // A structure reflecting the access_point SQL table.
 type AccessPoint struct {
-	DaemonID int64  `pg:",pk"`
-	Type     string `pg:",pk"`
+	DaemonID int64           `pg:",pk"`
+	Type     AccessPointType `pg:",pk"`
 	Address  string
 	Port     int64
 	// For BIND 9 when the RNDC key is set, this value is: RNDC key name,
@@ -21,12 +29,6 @@ type AccessPoint struct {
 	Key      string
 	Protocol protocoltype.ProtocolType `pg:",use_zero"`
 }
-
-// Valid kinds of the access points.
-const (
-	AccessPointControl    = "control"
-	AccessPointStatistics = "statistics"
-)
 
 // Add or update an access point in the database.
 func addOrUpdateAccessPoint(db dbops.DBI, accessPoint *AccessPoint) error {
@@ -45,7 +47,7 @@ func addOrUpdateAccessPoint(db dbops.DBI, accessPoint *AccessPoint) error {
 // Deletes all access points for a given daemon that doesn't match the provided
 // types. If `keepTypes` is empty, all access points for the daemon will be
 // deleted.
-func deleteAccessPointsExcept(db dbops.DBI, daemonID int64, keepTypes []string) error {
+func deleteAccessPointsExcept(db dbops.DBI, daemonID int64, keepTypes []AccessPointType) error {
 	accessPoint := &AccessPoint{DaemonID: daemonID}
 	query := db.Model(accessPoint).Where("daemon_id = ?", daemonID)
 

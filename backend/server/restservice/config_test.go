@@ -59,7 +59,7 @@ func TestGetDaemonConfigForKeaDaemonWithAssignedConfiguration(t *testing.T) {
 			Address:  "localhost",
 			Port:     1234,
 			Key:      "",
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 
@@ -248,7 +248,7 @@ func TestGetDaemonConfigWithoutSecretsForAdmin(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 
 	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -348,7 +348,7 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 		Address:  "localhost",
 		Port:     1234,
 		Key:      "",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 
 	daemon4 := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{accessPoint})
@@ -502,7 +502,7 @@ func TestGetDaemonConfigForBind9Daemon(t *testing.T) {
 		Address:  "1.2.3.4",
 		Port:     124,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 
 	daemon := dbmodel.NewDaemon(m, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})
@@ -1006,7 +1006,7 @@ func TestPutDaemonConfigReviewNotKeaDaemon(t *testing.T) {
 		Address:  "1.2.3.4",
 		Port:     124,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}
 
 	daemon := dbmodel.NewDaemon(machine, daemonname.Bind9, true, []*dbmodel.AccessPoint{accessPoint})

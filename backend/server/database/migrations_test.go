@@ -11,6 +11,7 @@ import (
 	"github.com/go-pg/pg/v10"
 	"github.com/stretchr/testify/require"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/server/daemons/kea"
 	dbops "isc.org/stork/server/database"
 	"isc.org/stork/server/database/maintenance"
@@ -406,7 +407,7 @@ func TestMigrationFrom57DifferentHostData(t *testing.T) {
 			Address:  "localhost",
 			Port:     int64(8080 + i),
 			Key:      "",
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		}}
 
 		daemon := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
@@ -703,7 +704,7 @@ func TestMigrateToLatest(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     8000,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 		DaemonID: machines[0].Daemons[0].ID,
 	}, *machines[0].Daemons[0].AccessPoints[0])
 	require.Equal(t, daemonname.DHCPv6, machines[0].Daemons[1].Name)
@@ -713,7 +714,7 @@ func TestMigrateToLatest(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     8000,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 		DaemonID: machines[0].Daemons[1].ID,
 	}, *machines[0].Daemons[1].AccessPoints[0])
 
@@ -725,7 +726,7 @@ func TestMigrateToLatest(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     8001,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 		DaemonID: machines[4].Daemons[0].ID,
 	}, *machines[4].Daemons[0].AccessPoints[0])
 	require.Equal(t, daemonname.CA, machines[4].Daemons[1].Name)
@@ -735,7 +736,7 @@ func TestMigrateToLatest(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     8001,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 		DaemonID: machines[4].Daemons[1].ID,
 	}, *machines[4].Daemons[1].AccessPoints[0])
 	require.Equal(t, daemonname.D2, machines[4].Daemons[2].Name)
@@ -745,7 +746,7 @@ func TestMigrateToLatest(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     8001,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 		DaemonID: machines[4].Daemons[2].ID,
 	}, *machines[4].Daemons[2].AccessPoints[0])
 	require.Equal(t, daemonname.DHCPv4, machines[4].Daemons[3].Name)
@@ -755,7 +756,7 @@ func TestMigrateToLatest(t *testing.T) {
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     8001,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 		DaemonID: machines[4].Daemons[3].ID,
 	}, *machines[4].Daemons[3].AccessPoints[0])
 
@@ -767,14 +768,14 @@ func TestMigrateToLatest(t *testing.T) {
 		Type:     dbmodel.AccessPointStatistics,
 		Address:  "127.0.0.1",
 		Port:     8053,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 		DaemonID: machines[8].Daemons[0].ID,
 	}, *machines[8].Daemons[0].AccessPoints[0])
 	require.Equal(t, dbmodel.AccessPoint{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "127.0.0.1",
 		Port:     953,
-		Protocol: "http",
+		Protocol: protocoltype.HTTP,
 		Key:      "rndc-key:hmac-sha256:C0WsVMnbpYt3RxJEZCrmJmlRyQJp9vy2lKp887r19mY=",
 		DaemonID: machines[8].Daemons[0].ID,
 	}, *machines[8].Daemons[0].AccessPoints[1])

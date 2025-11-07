@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
@@ -58,7 +59,7 @@ func TestStatePullerPullData(t *testing.T) {
 			{
 				Name: daemonname.DHCPv4,
 				// access point is changing from 1.1.1.1 to 1.2.3.4
-				AccessPoints: []agentcomm.AccessPoint{{
+				AccessPoints: []dbmodel.AccessPoint{{
 					Type:    dbmodel.AccessPointControl,
 					Address: "1.2.3.4",
 					Port:    1234,
@@ -66,16 +67,23 @@ func TestStatePullerPullData(t *testing.T) {
 			},
 			{
 				Name: daemonname.Bind9,
-				AccessPoints: []agentcomm.AccessPoint{{
-					Type:    dbmodel.AccessPointControl,
-					Address: "1.2.3.4",
-					Port:    124,
-					Key:     "abcd",
-				}},
+				AccessPoints: []dbmodel.AccessPoint{
+					{
+						Type:    dbmodel.AccessPointControl,
+						Address: "1.2.3.4",
+						Port:    124,
+						Key:     "abcd",
+					},
+					{
+						Type:    dbmodel.AccessPointStatistics,
+						Address: "1.2.3.4",
+						Port:    5678,
+					},
+				},
 			},
 			{
 				Name: daemonname.PDNS,
-				AccessPoints: []agentcomm.AccessPoint{{
+				AccessPoints: []dbmodel.AccessPoint{{
 					Type:    dbmodel.AccessPointControl,
 					Address: "1.2.3.4",
 					Port:    134,
@@ -165,17 +173,17 @@ func TestDaemonCompare(t *testing.T) {
 		Address:  "1.1.1.1",
 		Port:     1234,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}}
 	require.False(t, daemonCompare(dbDaemon, daemon))
 
 	// the same access points so equal
-	daemon.AccessPoints = []agentcomm.AccessPoint{{
+	daemon.AccessPoints = []dbmodel.AccessPoint{{
 		Type:     dbmodel.AccessPointControl,
 		Address:  "1.1.1.1",
 		Port:     1234,
 		Key:      "abcd",
-		Protocol: "https",
+		Protocol: protocoltype.HTTPS,
 	}}
 	require.True(t, daemonCompare(dbDaemon, daemon))
 

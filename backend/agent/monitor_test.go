@@ -896,7 +896,7 @@ func TestDaemonEqual(t *testing.T) {
 			AccessPoints: []AccessPoint{
 				{
 					Type: AccessPointControl, Address: "localhost", Port: 1235,
-					Protocol: "https", Key: "key",
+					Protocol: protocoltype.HTTPS, Key: "key",
 				},
 			},
 		},

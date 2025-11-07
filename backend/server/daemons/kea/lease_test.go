@@ -505,7 +505,7 @@ func TestGetLease6ByIPAddress(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
@@ -555,7 +555,7 @@ func TestGetLease6ByPrefix(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
@@ -936,7 +936,7 @@ func TestGetLease6InvalidJSON(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
@@ -1000,7 +1000,7 @@ func TestFindLeases(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 
@@ -1290,7 +1290,7 @@ func TestFindDeclinedLeases(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 
@@ -1396,7 +1396,7 @@ func TestFindDeclinedLeasesPriorKea2_3_8(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 
@@ -1561,7 +1561,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
 			Port:     8000,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 	daemon1 := dbmodel.NewDaemon(machine1, daemonname.DHCPv6, true, accessPoints1)

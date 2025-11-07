@@ -8,6 +8,7 @@ import (
 	pkgerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
 	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/daemonctrl/constants/protocoltype"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/daemons/kea"
@@ -717,7 +718,7 @@ func TestSchedule(t *testing.T) {
 			Type:     dbmodel.AccessPointControl,
 			Address:  "cool.example.org",
 			Port:     1234,
-			Protocol: "https",
+			Protocol: protocoltype.HTTPS,
 		},
 	}
 

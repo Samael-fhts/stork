@@ -115,7 +115,7 @@ func GetMachineByAddressAndAgentPort(db *pg.DB, address string, agentPort int64)
 
 // Get a machine by the machine address and the access point port.
 // Optionally, it filters access points by type.
-func GetMachineByAddressAndAccessPointPort(db *pg.DB, machineAddress string, accessPointPort int64, accessPointType *string) (*Machine, error) {
+func GetMachineByAddressAndAccessPointPort(db *pg.DB, machineAddress string, accessPointPort int64, accessPointType *AccessPointType) (*Machine, error) {
 	machine := Machine{}
 	q := db.Model(&machine).
 		Relation(string(MachineRelationDaemonAccessPoints)).

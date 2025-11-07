@@ -45,7 +45,7 @@ type CommStats struct {
 	agentCommErrors map[string]int64
 	// Number of the communication errors with a specific access point of a
 	// particular kind of daemon.
-	daemonCommErrors map[daemonname.Name]map[string]int64
+	daemonCommErrors map[daemonname.Name]map[dbmodel.AccessPointType]int64
 	// A mutex to be used when the data is accessed or updated. This
 	// mutex is returned to the caller and the caller is responsible
 	// for locking and unlocking the mutex.
@@ -56,7 +56,7 @@ type CommStats struct {
 func NewAgentStats() *CommStats {
 	return &CommStats{
 		agentCommErrors:  make(map[string]int64),
-		daemonCommErrors: make(map[daemonname.Name]map[string]int64),
+		daemonCommErrors: make(map[daemonname.Name]map[dbmodel.AccessPointType]int64),
 		mutex:            &sync.RWMutex{},
 	}
 }
@@ -75,15 +75,15 @@ func encodeAsCommStatsRequestName(request any) string {
 
 // Increases an error count for a selected daemon type by 1.
 // Returns an updated count.
-func (stats *CommStats) increaseDaemonErrorCount(daemonName daemonname.Name, accessPointType string) int64 {
+func (stats *CommStats) increaseDaemonErrorCount(daemonName daemonname.Name, accessPointType dbmodel.AccessPointType) int64 {
 	return stats.increaseDaemonErrorCountBy(daemonName, accessPointType, 1)
 }
 
 // Increases an error count for a selected daemon type by
 // an arbitrary number. Returns an updated count.
-func (stats *CommStats) increaseDaemonErrorCountBy(daemonName daemonname.Name, accessPointType string, increment int64) int64 {
+func (stats *CommStats) increaseDaemonErrorCountBy(daemonName daemonname.Name, accessPointType dbmodel.AccessPointType, increment int64) int64 {
 	if _, ok := stats.daemonCommErrors[daemonName]; !ok {
-		stats.daemonCommErrors[daemonName] = make(map[string]int64)
+		stats.daemonCommErrors[daemonName] = make(map[dbmodel.AccessPointType]int64)
 	}
 	if _, ok := stats.daemonCommErrors[daemonName][accessPointType]; !ok {
 		stats.daemonCommErrors[daemonName][accessPointType] = 0
@@ -101,7 +101,7 @@ func (stats *CommStats) increaseDaemonErrorCountBy(daemonName daemonname.Name, a
 // caller for determining if there is a new communication problem or
 // the previous no gone. Based on that, the caller can issue
 // appropriate events.
-func (stats *CommStats) updateDaemonErrorCount(daemonName daemonname.Name, accessPointType string, newCount int64) CommErrorTransition {
+func (stats *CommStats) updateDaemonErrorCount(daemonName daemonname.Name, accessPointType dbmodel.AccessPointType, newCount int64) CommErrorTransition {
 	currentCount := stats.getDaemonErrorCount(daemonName, accessPointType)
 	switch {
 	case newCount == 0 && currentCount == 0:
@@ -129,7 +129,7 @@ func (stats *CommStats) IncreaseAgentErrorCount(request any) int64 {
 }
 
 // Resets the communication error count with a daemon to 0.
-func (stats *CommStats) resetDaemonErrorCount(daemonName daemonname.Name, accessPointType string) {
+func (stats *CommStats) resetDaemonErrorCount(daemonName daemonname.Name, accessPointType dbmodel.AccessPointType) {
 	if _, ok := stats.daemonCommErrors[daemonName]; !ok {
 		return
 	}
@@ -145,7 +145,7 @@ func (stats *CommStats) ResetAgentErrorCount(request any) {
 }
 
 // Returns a current communication error count with a daemon.
-func (stats *CommStats) getDaemonErrorCount(daemonName daemonname.Name, accessPointType string) int64 {
+func (stats *CommStats) getDaemonErrorCount(daemonName daemonname.Name, accessPointType dbmodel.AccessPointType) int64 {
 	if daemonCommErrors, ok := stats.daemonCommErrors[daemonName]; ok {
 		return daemonCommErrors[accessPointType]
 	}
@@ -220,18 +220,18 @@ type CommStatsBind9 struct {
 
 // Returns a number of communication errors with a BIND 9 daemon for a
 // particular channel.
-func (bs *CommStatsBind9) GetErrorCount(accessPointType string) int64 {
+func (bs *CommStatsBind9) GetErrorCount(accessPointType dbmodel.AccessPointType) int64 {
 	return bs.comm.getDaemonErrorCount(daemonname.Bind9, accessPointType)
 }
 
 // Increases communication error count with a BIND 9 daemon by 1. Returns
 // an updated count.
-func (bs *CommStatsBind9) IncreaseErrorCount(accessPointType string) int64 {
+func (bs *CommStatsBind9) IncreaseErrorCount(accessPointType dbmodel.AccessPointType) int64 {
 	return bs.comm.increaseDaemonErrorCount(daemonname.Bind9, accessPointType)
 }
 
 // Resets the communication error count with a BIND 9 daemon to 0.
-func (bs *CommStatsBind9) ResetErrorCount(accessPointType string) {
+func (bs *CommStatsBind9) ResetErrorCount(accessPointType dbmodel.AccessPointType) {
 	bs.comm.resetDaemonErrorCount(daemonname.Bind9, accessPointType)
 }
 
