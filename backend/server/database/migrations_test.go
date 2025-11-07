@@ -862,15 +862,15 @@ func TestMigrateFromDemoV2_3_0ToLatest(t *testing.T) {
 	require.Len(t, settings, 10)
 
 	expectSettings := map[string]any{
-		"kea_status_puller_interval": int64(30),
-		"grafana_url": "",
-		"grafana_dhcp4_dashboard_id": "hRf18FvWz",
-		"grafana_dhcp6_dashboard_id": "AQPHKJUGz",
-		"enable_machine_registration": true,
-		"state_puller_interval": int64(30),
-		"bind9_stats_puller_interval": int64(60),
-		"kea_stats_puller_interval": int64(60),
-		"kea_hosts_puller_interval": int64(60),
+		"kea_status_puller_interval":      int64(30),
+		"grafana_url":                     "",
+		"grafana_dhcp4_dashboard_id":      "hRf18FvWz",
+		"grafana_dhcp6_dashboard_id":      "AQPHKJUGz",
+		"enable_machine_registration":     true,
+		"state_puller_interval":           int64(30),
+		"bind9_stats_puller_interval":     int64(60),
+		"kea_stats_puller_interval":       int64(60),
+		"kea_hosts_puller_interval":       int64(60),
 		"enable_online_software_versions": true,
 	}
 

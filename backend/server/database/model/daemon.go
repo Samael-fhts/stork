@@ -319,7 +319,6 @@ func GetAllDaemonsWithRelations(dbi dbops.DBI, relations ...DaemonRelation) ([]D
 // sorting.
 //
 // If SortDirAny is used then ASC order is used.
-//
 func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *string, sortField string, sortDir SortDirEnum, daemonNames ...daemonname.Name) ([]Daemon, int64, error) {
 	if limit == 0 {
 		return nil, 0, errors.New("limit should be greater than 0")
