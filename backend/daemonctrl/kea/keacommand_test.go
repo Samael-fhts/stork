@@ -241,6 +241,29 @@ func TestKeaCommandMarshalCommandOnly(t *testing.T) {
 		string(marshaled))
 }
 
+// Test that the service (daemon list) is not included in the commands directed
+// to the Kea CA daemon.
+func TestKeaCommandMarshalServicesIsMissingForCA(t *testing.T) {
+	// Arrange
+	cmd := NewCommandBase(ListCommands, daemonname.CA)
+	// The command has non-empty daemon list before marshaling.
+	require.Len(t, cmd.Daemons, 1)
+	require.Equal(t, daemonname.CA, cmd.Daemons[0])
+
+	marshaled, err := cmd.Marshal()
+	require.NoError(t, err)
+	// There is no service field in the marshaled command.
+	require.JSONEq(t,
+		`{
+             "command":"list-commands"
+         }`,
+		string(marshaled))
+
+	// The daemon list should be unchanged after marshaling.
+	require.Len(t, cmd.Daemons, 1)
+	require.Equal(t, daemonname.CA, cmd.Daemons[0])
+}
+
 // Test that GetCommand() function returns the command name.
 func TestGetCommand(t *testing.T) {
 	command := NewCommandBase(ListCommands, daemonname.DHCPv4)
