@@ -155,7 +155,7 @@ func (d *daemon) IsEqual(other Daemon) bool {
 // An interface representing the DNS daemon.
 type dnsDaemon interface {
 	Daemon
-	GetZoneInventory() zoneInventory
+	getZoneInventory() zoneInventory
 }
 
 // An implementation providing common functionality for DNS daemons.
@@ -165,7 +165,7 @@ type dnsDaemonImpl struct {
 }
 
 // Returns the zone inventory.
-func (d *dnsDaemonImpl) GetZoneInventory() zoneInventory {
+func (d *dnsDaemonImpl) getZoneInventory() zoneInventory {
 	return d.zoneInventory
 }
 

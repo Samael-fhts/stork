@@ -49,7 +49,7 @@ func TestBind9GetZoneInventory(t *testing.T) {
 			zoneInventory: &zoneInventoryImpl{},
 		},
 	}
-	inventory := daemon.GetZoneInventory()
+	inventory := daemon.getZoneInventory()
 	require.Equal(t, daemon.zoneInventory, inventory)
 }
 

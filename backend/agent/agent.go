@@ -661,7 +661,7 @@ func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.Se
 		).Err()
 	}
 
-	inventory := dnsDaemon.GetZoneInventory()
+	inventory := dnsDaemon.getZoneInventory()
 	if inventory == nil {
 		// This is also an exceptional case. All DNS servers should have the
 		// zone inventory initialized.
@@ -753,7 +753,7 @@ func (sa *StorkAgent) ReceiveZoneRRs(req *agentapi.ReceiveZoneRRsReq, server grp
 		).Err()
 	}
 
-	inventory := dnsDaemon.GetZoneInventory()
+	inventory := dnsDaemon.getZoneInventory()
 	if inventory == nil {
 		// This is also an exceptional case. All DNS servers should have the
 		// zone inventory initialized.

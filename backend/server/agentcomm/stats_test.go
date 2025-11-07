@@ -166,7 +166,7 @@ func TestAgentCommStatsWrapperLock(t *testing.T) {
 	wrapper := NewCommStatsWrapper(stats)
 	require.NotNil(t, wrapper)
 	mutex := wrapper.GetStats().mutex
-	// The mutext should be locked for updates. This attempt should
+	// The mutex should be locked for updates. This attempt should
 	// fail and return false.
 	require.False(t, mutex.TryLock())
 	// Call Close to release the mutex lock. Protect against panics because

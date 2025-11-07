@@ -69,7 +69,7 @@ func TestPowerDNSDaemonGetZoneInventory(t *testing.T) {
 	daemon := &PDNSDaemon{dnsDaemonImpl: dnsDaemonImpl{
 		zoneInventory: &zoneInventoryImpl{},
 	}}
-	require.Equal(t, daemon.zoneInventory, daemon.GetZoneInventory())
+	require.Equal(t, daemon.zoneInventory, daemon.getZoneInventory())
 }
 
 // Test successfully detecting PowerDNS daemon.
@@ -99,7 +99,7 @@ func TestDetectPowerDNSDaemon(t *testing.T) {
 	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
 
 	pdnsDaemon := daemon.(*PDNSDaemon)
-	require.NotNil(t, pdnsDaemon.GetZoneInventory())
+	require.NotNil(t, pdnsDaemon.getZoneInventory())
 }
 
 // Test that the PowerDNS is correctly detected when no parameters are
@@ -130,7 +130,7 @@ func TestDetectPowerDNSDaemonNoConfigDir(t *testing.T) {
 	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
 
 	pdnsDaemon := daemon.(*PDNSDaemon)
-	require.NotNil(t, pdnsDaemon.GetZoneInventory())
+	require.NotNil(t, pdnsDaemon.getZoneInventory())
 }
 
 // Test that an error is returned when getting a process command line fails.
@@ -172,7 +172,7 @@ func TestDetectPowerDNSDaemonCwdError(t *testing.T) {
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
 	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
 	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
-	require.NotNil(t, daemon.(*PDNSDaemon).GetZoneInventory())
+	require.NotNil(t, daemon.(*PDNSDaemon).getZoneInventory())
 }
 
 // Test that the daemon can be detected when the chroot directory is used.
@@ -200,7 +200,7 @@ func TestDetectPowerDNSDaemonChroot(t *testing.T) {
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
 	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
 	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
-	require.NotNil(t, daemon.(*PDNSDaemon).GetZoneInventory())
+	require.NotNil(t, daemon.(*PDNSDaemon).getZoneInventory())
 }
 
 // Test that custom config directory and name can be specified while detecting
@@ -229,7 +229,7 @@ func TestDetectPowerDNSDaemonConfigDir(t *testing.T) {
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
 	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
 	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
-	require.NotNil(t, daemon.(*PDNSDaemon).GetZoneInventory())
+	require.NotNil(t, daemon.(*PDNSDaemon).getZoneInventory())
 }
 
 // Test that an error is returned when parsing the configuration file fails.
@@ -280,7 +280,7 @@ func TestDetectPowerDNSDaemonDefaultWebserver(t *testing.T) {
 	require.EqualValues(t, 8081, daemon.GetAccessPoints()[0].Port)
 	require.Equal(t, "127.0.0.1", daemon.GetAccessPoints()[0].Address)
 	require.Equal(t, "stork", daemon.GetAccessPoints()[0].Key)
-	require.NotNil(t, daemon.(*PDNSDaemon).GetZoneInventory())
+	require.NotNil(t, daemon.(*PDNSDaemon).getZoneInventory())
 }
 
 // Test that an error is returned when the API key is not specified in the
