@@ -370,10 +370,6 @@ func (sm *monitor) detectDaemons(ctx context.Context) {
 
 	for _, p := range processes {
 		daemonName := p.getDaemonName()
-		if daemonName == "" {
-			// Process is not a supported daemon.
-			continue
-		}
 
 		switch daemonName {
 		case daemonname.DHCPv4, daemonname.DHCPv6, daemonname.D2, daemonname.CA:

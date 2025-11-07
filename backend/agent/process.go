@@ -24,7 +24,8 @@ type supportedProcess interface {
 
 // Wrapper for gopsutil process. It implements the supportedProcess interface.
 type processWrapper struct {
-	process *process.Process
+	process    *process.Process
+	daemonName daemonname.Name
 }
 
 // Returns the process command line.
@@ -63,27 +64,7 @@ func (p *processWrapper) getName() (string, error) {
 // Converts a process name to a daemon name. If the process name
 // is not recognized, it returns an empty string.
 func (p *processWrapper) getDaemonName() daemonname.Name {
-	processName, err := p.getName()
-	if err != nil {
-		return ""
-	}
-
-	switch processName {
-	case "kea-dhcp4":
-		return daemonname.DHCPv4
-	case "kea-dhcp6":
-		return daemonname.DHCPv6
-	case "kea-d2":
-		return daemonname.D2
-	case "kea-ctrl-agent":
-		return daemonname.CA
-	case "named":
-		return daemonname.Bind9
-	case "pdns_server":
-		return daemonname.PDNS
-	default:
-		return ""
-	}
+	return p.daemonName
 }
 
 // An interface for listing the supported processes. It can be mocked in the
@@ -93,7 +74,10 @@ type processLister interface {
 }
 
 // A default implementation of the processLister interface.
-type processListerImpl struct{}
+type processListerImpl struct {
+	// Mapping between process name and its daemon name.
+	supportedProcesses map[string]daemonname.Name
+}
 
 // Lists the supported processes using gopsutil library.
 func (impl *processListerImpl) listProcesses() ([]supportedProcess, error) {
@@ -103,7 +87,19 @@ func (impl *processListerImpl) listProcesses() ([]supportedProcess, error) {
 	}
 	var listedProcesses []supportedProcess
 	for _, p := range processes {
-		listedProcesses = append(listedProcesses, &processWrapper{process: p})
+		name, err := p.Name()
+		if err != nil {
+			// No permission to get the process name.
+			continue
+		}
+		daemonName, isSupported := impl.supportedProcesses[name]
+		if !isSupported {
+			continue
+		}
+
+		listedProcesses = append(listedProcesses, &processWrapper{
+			process: p, daemonName: daemonName,
+		})
 	}
 	return listedProcesses, nil
 }
@@ -172,6 +168,15 @@ func (pm *ProcessManager) ListProcesses() ([]supportedProcess, error) {
 // Returns the ProcessManager instance.
 func NewProcessManager() *ProcessManager {
 	return &ProcessManager{
-		lister: &processListerImpl{},
+		lister: &processListerImpl{
+			supportedProcesses: map[string]daemonname.Name{
+				"kea-dhcp4":      daemonname.DHCPv4,
+				"kea-dhcp6":      daemonname.DHCPv6,
+				"kea-d2":         daemonname.D2,
+				"kea-ctrl-agent": daemonname.CA,
+				"named":          daemonname.Bind9,
+				"pdns_server":    daemonname.PDNS,
+			},
+		},
 	}
 }
