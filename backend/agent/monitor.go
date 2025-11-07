@@ -445,7 +445,7 @@ func (sm *monitor) detectDaemons(ctx context.Context) {
 	sm.daemons = newMonitorDaemons
 }
 
-// Evaluates the detected daemons.
+// Refreshes states of the detected daemons.
 func (sm *monitor) refreshDaemons(ctx context.Context, storkAgent agentManager) {
 	for _, d := range sm.daemons {
 		if err := d.RefreshState(ctx, storkAgent); err != nil {
