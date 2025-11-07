@@ -326,7 +326,7 @@ func TestDetectDaemons(t *testing.T) {
 	require.True(t, daemons[2].(*PDNSDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
 	require.True(t, daemons2[2].(*PDNSDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
 
-	// If the app access point changes, the inventory should be recreated.
+	// If the daemon access point changes, the inventory should be recreated.
 	for index, accessPoint := range monitor.daemons[1].(*Bind9Daemon).AccessPoints {
 		if accessPoint.Type == AccessPointControl {
 			// Change the access point port.
@@ -569,7 +569,7 @@ func newTestCommandExecutorDefault() *testCommandExecutor {
 
 // Check BIND 9 daemon detection when its conf file is absolute path.
 func TestDetectBind9DaemonAbsPath(t *testing.T) {
-	// check BIND 9 app detection
+	// check BIND 9 daemon detection
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 

@@ -11,7 +11,7 @@ type KeaServer struct {
 	DaemonID int64
 }
 
-// Creates new Kea app and a DHCPv4 server daemon in the database.
+// Creates new Kea daemon and a DHCPv4 server daemon in the database.
 func NewKeaDHCPv4Server(db *pg.DB) (*KeaServer, error) {
 	m, err := NewMachine(db)
 	if err != nil {
@@ -24,7 +24,7 @@ func NewKeaDHCPv4Server(db *pg.DB) (*KeaServer, error) {
 	return dhcp4, nil
 }
 
-// Creates new Kea app and a DHCPv6 server daemon in the database.
+// Creates new Kea daemon and a DHCPv6 server daemon in the database.
 func NewKeaDHCPv6Server(db *pg.DB) (*KeaServer, error) {
 	m, err := NewMachine(db)
 	if err != nil {

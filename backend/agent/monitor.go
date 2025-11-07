@@ -85,7 +85,7 @@ type Daemon interface {
 }
 
 // Daemon information. This structure is embedded
-// in app specific structures like KeaApp and Bind9App.
+// in daemon specific structures like KeaDaemon and Bind9Daemon.
 type daemon struct {
 	Name         daemonname.Name
 	AccessPoints []AccessPoint
@@ -212,7 +212,7 @@ type Monitor interface {
 
 type monitor struct {
 	requests                chan chan []Daemon // input to monitor, ie. channel for receiving requests
-	quit                    chan bool          // channel for stopping app monitor
+	quit                    chan bool          // channel for stopping daemon monitor
 	running                 bool
 	wg                      *sync.WaitGroup
 	commander               storkutil.CommandExecutor
@@ -262,7 +262,7 @@ func (sm *monitor) run(ctx context.Context, storkAgent agentManager) {
 	sm.running = true
 	defer sm.wg.Done()
 
-	// Run app detection one time immediately at startup.
+	// Run daemon detection one time immediately at startup.
 	sm.detectDaemons(ctx)
 
 	// Refresh states of all detected daemons.
@@ -291,7 +291,7 @@ func (sm *monitor) run(ctx context.Context, storkAgent agentManager) {
 
 		case <-sm.quit:
 			// exit run
-			log.Printf("Stopped app monitor")
+			log.Printf("Stopped daemon monitor")
 			sm.running = false
 			return
 		}

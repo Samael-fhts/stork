@@ -986,9 +986,9 @@ func TestApplyHostUpdate(t *testing.T) {
                  }`,
 				string(marshalled))
 		}
-		// Verify they are associated with appropriate apps.
-		app := commands[i].Daemon
-		require.Equal(t, app, host.LocalHosts[i%2].Daemon)
+		// Verify they are associated with appropriate daemons.
+		daemon := commands[i].Daemon
+		require.Equal(t, daemon, host.LocalHosts[i%2].Daemon)
 	}
 }
 

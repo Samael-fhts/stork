@@ -860,7 +860,7 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 		require.EqualValues(t, 10, service.HAService.SecondaryAnalyzedPackets)
 	}
 
-	// The second service for this app is the DHCPv6 service.
+	// The second service is the DHCPv6 service.
 	service = services[1]
 
 	require.NotNil(t, service.HAService)
@@ -928,7 +928,7 @@ func testPullHAStatus(t *testing.T, version178 bool) {
 		require.Zero(t, service.HAService.SecondaryAnalyzedPackets)
 	}
 
-	// The second service for this app is the DHCPv6 service. The status should
+	// The second service is the DHCPv6 service. The status should
 	// remain the same for the DHCPv6 server because we were unable to communicate
 	// with the server. The state may be overridden if the partner of that server
 	// returns a different state for this server.

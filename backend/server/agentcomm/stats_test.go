@@ -139,7 +139,7 @@ func TestGetTotalErrorCount(t *testing.T) {
 	require.EqualValues(t, 40, stats.GetTotalAgentErrorCount())
 }
 
-// Test returning Kea communication error stats for a selected app by ID.
+// Test returning Kea communication error stats for a selected daemon by ID.
 func TestGetKeaCommErrorStats(t *testing.T) {
 	stats := NewAgentStats()
 	keaStats := stats.GetKeaStats()
@@ -149,7 +149,7 @@ func TestGetKeaCommErrorStats(t *testing.T) {
 	require.Zero(t, stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
 }
 
-// Test returning BIND 9 communication error stats for a selected app by ID.
+// Test returning BIND 9 communication error stats for a selected daemon by ID.
 func TestGetBind9CommErrorStats(t *testing.T) {
 	stats := NewAgentStats()
 	bind9Stats := stats.GetBind9Stats()

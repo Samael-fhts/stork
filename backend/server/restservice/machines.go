@@ -1227,7 +1227,7 @@ func (r *RestAPI) appToRestAPI(daemons []*dbmodel.Daemon) *models.App {
 			models.AppPdns{},
 		}
 	case dbmodel.VirtualAppTypeBind9:
-		// The BIND9 app has always one daemon.
+		// The BIND9 daemon has always one daemon.
 		bind9Daemon := bind9DaemonToRestAPI(firstDaemon)
 		bind9Daemon.AgentCommErrors = agentErrors
 

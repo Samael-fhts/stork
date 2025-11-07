@@ -181,6 +181,6 @@ func CommitDaemonIntoDB(db *dbops.PgDB, daemon *dbmodel.Daemon, eventCenter even
 		err = dbmodel.UpdateDaemon(db, daemon)
 	}
 	// todo: perform any additional actions required after storing the
-	// app in the db.
+	// daemon in the db.
 	return err
 }

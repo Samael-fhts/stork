@@ -436,7 +436,7 @@ func (module *ConfigModule) ApplyHostUpdate(ctx context.Context, host *dbmodel.H
 		if err != nil {
 			return ctx, err
 		}
-		// Associate the command with an app receiving this command.
+		// Associate the command with a daemon receiving this command.
 		command := ConfigCommand{
 			Command: keactrl.NewCommandReservationDel(deleteArguments, lh.Daemon.Name),
 			Daemon:  lh.Daemon,
@@ -1003,7 +1003,7 @@ func (module *ConfigModule) ApplySharedNetworkDelete(ctx context.Context, shared
 
 		// Create command arguments.
 		arguments := deletedSharedNetwork
-		// Associate the command with an app receiving this command.
+		// Associate the command with a daemon receiving this command.
 		command := ConfigCommand{}
 		switch sharedNetwork.Family {
 		case 4:

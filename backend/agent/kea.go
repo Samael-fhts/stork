@@ -176,7 +176,7 @@ func readKeaConfig(path string) (*keaconfig.Config, error) {
 // starting with "stork." If there are no such credentials, it picks the first
 // one. See @readClientCredentials for details.
 //
-// It returns the Kea app instance or an error if the Kea is not recognized or
+// It returns the Kea daemon instance or an error if the Kea is not recognized or
 // any error occurs.
 func detectKeaDaemons(ctx context.Context, p supportedProcess, httpClientConfig HTTPClientConfig, commander storkutil.CommandExecutor) ([]Daemon, error) {
 	// Extract the daemon name from the process.

@@ -109,7 +109,7 @@ func runAgent(ctx context.Context, settings *generalSettings, reload bool) error
 		log.Info("The GRPC credentials will be used as the client TLS certificate when connecting to Kea")
 	}
 
-	// Start app monitor.
+	// Start daemon monitor.
 	appMonitor := agent.NewMonitor(settings.Bind9Path, keaHTTPClientConfig)
 
 	// Prepare agent gRPC handler
@@ -121,7 +121,7 @@ func runAgent(ctx context.Context, settings *generalSettings, reload bool) error
 		hookManager,
 	)
 
-	// Let's start the app monitor.
+	// Let's start the daemon monitor.
 	appMonitor.Start(ctx, storkAgent)
 
 	// Only start the exporters if they're enabled.

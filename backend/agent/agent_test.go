@@ -254,25 +254,25 @@ func TestGetState(t *testing.T) {
 	require.False(t, rsp.AgentUsesHTTPCredentials) //nolint:staticcheck,deprecated
 	require.Len(t, rsp.Daemons, 2)
 
-	keaApp := rsp.Daemons[0]
-	require.Len(t, keaApp.AccessPoints, 1)
-	point := keaApp.AccessPoints[0]
+	daemonKea := rsp.Daemons[0]
+	require.Len(t, daemonKea.AccessPoints, 1)
+	point := daemonKea.AccessPoints[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "1.2.3.1", point.Address)
 	require.False(t, point.UseSecureProtocol) //nolint:staticcheck,deprecated
 	require.EqualValues(t, 1234, point.Port)
 	require.Empty(t, point.Key)
 
-	bind9App := rsp.Daemons[1]
-	require.Len(t, bind9App.AccessPoints, 2)
+	daemonBind9 := rsp.Daemons[1]
+	require.Len(t, daemonBind9.AccessPoints, 2)
 	// sorted by port
-	point = bind9App.AccessPoints[0]
+	point = daemonBind9.AccessPoints[0]
 	require.Equal(t, AccessPointControl, point.Type)
 	require.Equal(t, "2.3.4.4", point.Address)
 	require.EqualValues(t, 2345, point.Port)
 	require.Equal(t, "abcd", point.Key)
 	require.True(t, point.UseSecureProtocol) //nolint:staticcheck,deprecated
-	point = bind9App.AccessPoints[1]
+	point = daemonBind9.AccessPoints[1]
 	require.Equal(t, AccessPointStatistics, point.Type)
 	require.Equal(t, "2.3.4.5", point.Address)
 	require.EqualValues(t, 2346, point.Port)

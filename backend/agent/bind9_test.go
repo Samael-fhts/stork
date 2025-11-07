@@ -329,7 +329,7 @@ func TestDetectBind9Step1ProcessCmdLine(t *testing.T) {
 	_, err := sandbox.Write("step1.conf", config1)
 	require.NoError(t, err)
 
-	// Check BIND 9 app detection.
+	// Check BIND 9 daemon detection.
 	executor := newTestCommandExecutor().
 		addCheckConfOutput(config1Path, config1)
 
@@ -367,7 +367,7 @@ func TestDetectBind9ChrootStep1ProcessCmdLine(t *testing.T) {
 	_, err := sandbox.Write(path.Join("chroot", config1Path), config1)
 	require.NoError(t, err)
 
-	// Check BIND 9 app detection.
+	// Check BIND 9 daemon detection.
 	executor := newTestCommandExecutor().
 		addCheckConfOutput(path.Join(chrootPath, config1Path), config1)
 
@@ -408,7 +408,7 @@ func TestDetectBind9Step2ExplicitPath(t *testing.T) {
 	_, err := sandbox.Write("testing.conf", config)
 	require.NoError(t, err)
 
-	// Check BIND 9 app detection.
+	// Check BIND 9 daemon detection.
 	executor := newTestCommandExecutor().
 		addCheckConfOutput(confPath, config)
 
@@ -450,7 +450,7 @@ func TestDetectBind9ChrootStep2ExplicitPath(t *testing.T) {
 	_, err := sandbox.Write(path.Join("chroot", confPath), config)
 	require.NoError(t, err)
 
-	// Check BIND 9 app detection.
+	// Check BIND 9 daemon detection.
 	executor := newTestCommandExecutor().
 		addCheckConfOutput(fullConfPath, config)
 
@@ -492,7 +492,7 @@ func TestDetectBind9ChrootStep2ExplicitPathNotPrefixed(t *testing.T) {
 	_, err := sandbox.Write(path.Join("chroot", confPath), config)
 	require.NoError(t, err)
 
-	// Check BIND 9 app detection.
+	// Check BIND 9 daemon detection.
 	executor := newTestCommandExecutor().
 		addCheckConfOutput(fullConfPath, config)
 

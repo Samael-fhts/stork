@@ -27,7 +27,7 @@ func TestRpsWorkerEmptyOrInvalidResponses(t *testing.T) {
 		`[{ "result": 1, "text": "Error response" }]`,
 	}
 
-	// Create a machine with one app and two kea daemons
+	// Create a machine with two kea daemons
 	dhcp4Daemon, dhcp6Daemon := rpsTestAddMachine(t, db, true, true)
 
 	// prepare stats puller
@@ -67,7 +67,7 @@ func TestRpsWorkerPullRps(t *testing.T) {
                            }}`, (callNo * 7)))
 	}
 
-	// Create a machine with one app and two kea daemons
+	// Create a machine with two kea daemons
 	dhcp4Daemon, dhcp6Daemon := rpsTestAddMachine(t, db, true, true)
 
 	// prepare stats puller
@@ -186,7 +186,7 @@ func TestRpsWorkerValuePermutations(t *testing.T) {
 		return (resp)
 	}
 
-	// Create a machine with one app and two daemons: dhcp4 active, dhcp6 false
+	// Create a machine with two daemons: dhcp4 active, dhcp6 false
 	dhcp4Daemon, _ := rpsTestAddMachine(t, db, true, false)
 
 	// prepare stats puller
@@ -226,7 +226,7 @@ func TestRpsWorkerValuePermutations(t *testing.T) {
 	}
 }
 
-// Convenience function that creates a machine with one Kea app and two daemons.
+// Convenience function that creates a machine with two Kea daemons.
 func rpsTestAddMachine(t *testing.T, db *dbops.PgDB, dhcp4Active bool, dhcp6Active bool) (*dbmodel.Daemon, *dbmodel.Daemon) {
 	// add one machine with one kea app
 	m := &dbmodel.Machine{

@@ -26,7 +26,7 @@ type TransactionStateAccessor interface {
 // A structure describing a single configuration update that may be applied
 // to multiple daemons. The T type is the Recipe type. Having this type
 // generic allows for using the Update structure for configuring different
-// app types.
+// daemon types.
 type Update[T any] struct {
 	// Type of the operation to perform, e.g. "kea.host_add".
 	Operation dbmodel.ConfigOperation

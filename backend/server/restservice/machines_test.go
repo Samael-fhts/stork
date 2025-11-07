@@ -286,7 +286,7 @@ func TestGetMachineAndDaemonsState(t *testing.T) {
 	require.Nil(t, okRsp.Payload.LastVisitedAt)
 }
 
-// Test that machine state includes PowerDNS app information and that this
+// Test that machine state includes PowerDNS daemon information and that this
 // information is correctly populated.
 func TestGetMachineAndPowerDNSState(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)

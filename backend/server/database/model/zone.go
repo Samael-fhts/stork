@@ -109,7 +109,7 @@ type GetZonesFilter struct {
 	Serial *string
 	// Filter by zone type (e.g., primary or secondary).
 	Types *GetZonesFilterZoneTypes
-	// Filter by partial zone name, app name or view.
+	// Filter by partial zone name, daemon name or view.
 	Text *string
 }
 
@@ -299,7 +299,7 @@ func GetZones(db pg.DBI, filter GetZonesFilter, relations ...ZoneRelation) ([]*Z
 	if filter.MachineID != nil {
 		q = q.Where("d.machine_id = ?", *filter.MachineID)
 	}
-	// Filter by zone name, app name or local zone view using partial matching.
+	// Filter by zone name, daemon name or local zone view using partial matching.
 	if filter.Text != nil {
 		// Ensure case-insensitive comparison against root and (root).
 		filterText := strings.ToLower(*filter.Text)

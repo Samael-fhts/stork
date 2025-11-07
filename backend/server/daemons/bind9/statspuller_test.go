@@ -277,7 +277,7 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 
 // Test that the stats puller doesn't crash if the BIND 9 process has been
 // detected but the communication with the named instance cannot be
-// established. In this case, the daemon reference in the app is nil.
+// established. In this case, the daemon reference in the daemon is nil.
 func TestStatsPullerPullStatsForPartiallyDetectedDaemon(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)

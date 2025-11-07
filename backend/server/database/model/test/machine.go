@@ -42,7 +42,7 @@ func NewMachine(db *pg.DB) (*Machine, error) {
 	return machine, nil
 }
 
-// Creates new Kea app instance in the machine.
+// Creates new Kea daemon instance in the machine.
 func (m *Machine) newKeaDaemon(name daemonname.Name) (*KeaServer, error) {
 	ap := []*dbmodel.AccessPoint{{
 		Type:     dbmodel.AccessPointControl,

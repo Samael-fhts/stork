@@ -393,7 +393,7 @@ func commitServicesIntoDB(tx *pg.Tx, services []Service, daemon *Daemon) error {
 			err = pkgerrors.WithMessagef(err, "problem committing services into the database")
 			return err
 		}
-		// Try to associate the app with the service. If the association already
+		// Try to associate the daemon with the service. If the association already
 		// exists this is no-op.
 		err = AddDaemonToService(tx, services[i].ID, daemon)
 		if err != nil {

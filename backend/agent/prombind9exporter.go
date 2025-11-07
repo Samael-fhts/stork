@@ -55,7 +55,7 @@ type PromBind9ExporterStats struct {
 }
 
 // Main structure for Prometheus BIND 9 Exporter. It holds its config,
-// references to app monitor, HTTP client, HTTP server, and mappings
+// references to daemon monitor, HTTP client, HTTP server, and mappings
 // between BIND 9 stats names to prometheus stats.
 type PromBind9Exporter struct {
 	Host string

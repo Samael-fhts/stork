@@ -13,8 +13,8 @@ import (
 
 //go:generate mockgen -package=agent -destination=pdnsmock_test.go -mock_names=pdnsConfigParser=MockPDNSConfigParser isc.org/stork/agent pdnsConfigParser
 
-// Test that the BaseApp structure can be accessed.
-func TestPowerDNSAppGetBaseApp(t *testing.T) {
+// Test that the daemon structure can be accessed.
+func TestPowerDNSDaemonGetBaseDaemon(t *testing.T) {
 	daemon := &PDNSDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{

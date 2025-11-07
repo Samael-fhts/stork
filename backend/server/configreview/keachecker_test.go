@@ -4855,7 +4855,7 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 		// Associate the daemon with the subnet.
 		err = dbmodel.AddDaemonToSubnet(db, &dbSubnet, daemon)
 		if err != nil {
-			b.Fatalf("failed to add app to subnet %s: %+v", dbSubnet.Prefix, err)
+			b.Fatalf("failed to add daemon to subnet %s: %+v", dbSubnet.Prefix, err)
 		}
 		// Add the host for this subnet.
 		host := &dbmodel.Host{
@@ -4881,7 +4881,7 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 		// Add the host.
 		err = dbmodel.AddHost(db, host)
 		if err != nil {
-			b.Fatalf("failed to add app to subnet %s: %+v", dbSubnet.Prefix, err)
+			b.Fatalf("failed to add host to subnet %s: %+v", dbSubnet.Prefix, err)
 		}
 	}
 

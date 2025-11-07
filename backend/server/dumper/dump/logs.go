@@ -35,7 +35,7 @@ func NewLogsDump(machine *dbmodel.Machine, logSources LogTailSource) *LogsDump {
 }
 
 // It iterates over all log targets for a specific machine
-// (the log targets of each daemon for each app in the machine)
+// (the log targets of each daemon for each daemon in the machine)
 // and fetches the tail of each log.
 // Each log target dump has attached the metadata and is dumped to a separate artifact.
 //

@@ -538,8 +538,8 @@ func TestDeleteService(t *testing.T) {
 	require.NoError(t, err)
 }
 
-// Test that a single app can be associated with the service.
-func TestAddAppToService(t *testing.T) {
+// Test that a single daemon can be associated with the service.
+func TestAddDaemonToService(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 

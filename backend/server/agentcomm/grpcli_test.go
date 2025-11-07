@@ -38,7 +38,7 @@ func (err *testError) Error() string {
 	return "test error"
 }
 
-// makeAccessPoint is an utility to make single element app access point slice.
+// makeAccessPoint is an utility to make single element daemon access point slice.
 func makeAccessPoint(tp, address, key string, port int64) (ap []*agentapi.AccessPoint) {
 	return append(ap, &agentapi.AccessPoint{
 		Type:    tp,
@@ -807,7 +807,7 @@ func TestKeaCmdsResultGetFirstError(t *testing.T) {
 
 // Test that an error is returned when specified access point does not exist.
 func TestReceiveZonesNonExistingAccessPoint(t *testing.T) {
-	// Create an app without the access point.
+	// Create an daemon without the access point.
 	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
@@ -1130,7 +1130,7 @@ func TestReceiveZones(t *testing.T) {
 
 // Test that an error is returned when specified access point does not exist.
 func TestReceiveZoneRRsNonExistingAccessPoint(t *testing.T) {
-	// Create an app without the access point.
+	// Create an daemon without the access point.
 	daemon := &dbmodel.Daemon{
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",

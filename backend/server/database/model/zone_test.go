@@ -199,7 +199,7 @@ func TestGetZones(t *testing.T) {
 	})
 
 	t.Run("relations", func(t *testing.T) {
-		// Include daemon and app tables.
+		// Include a daemon table.
 		zones, total, err := GetZones(db, GetZonesFilter{}, ZoneRelationLocalZonesMachine)
 		require.NoError(t, err)
 		require.Equal(t, 150, total)
