@@ -831,7 +831,7 @@ func (inventory *zoneInventoryImpl) populate(block bool) (chan zoneInventoryAsyn
 	}
 	// No zone transfers during zones population.
 	if inventory.axfrPool == nil {
-		err := errors.New("inventory is not started")
+		err := errors.New("zone inventory is not started")
 		_ = inventory.transition(newZoneInventoryStatePopulatingErred(err))
 		return nil, err
 	}
