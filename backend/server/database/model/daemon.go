@@ -308,17 +308,18 @@ func GetAllDaemonsWithRelations(dbi dbops.DBI, relations ...DaemonRelation) ([]D
 // The offset and limit specify the beginning of the page and the maximum size
 // of the page. Limit has to be greater then 0, otherwise error is returned.
 //
-// filterText allows filtering daemons by their name, version, extended_version,
+// filterText allows for filtering daemons by name, version, extended_version,
 // machine address and hostname.
 //
-// sortField allows indicating sort column in database and sortDir allows
-// selection the order of sorting. If sortField is empty then id is used for
+// daemonNames allows for filtering daemons by names. If no names are
+// provided then daemons of all names are returned.
+//
+// sortField select sorting column in database and sortDir selects
+// the sorting order. If sortField is empty then id is used for
 // sorting.
 //
 // If SortDirAny is used then ASC order is used.
 //
-// daemonNames allows filtering daemons by their names. If no names are
-// provided then daemons of all names are returned.
 func GetDaemonsByPage(dbi dbops.DBI, offset int64, limit int64, filterText *string, sortField string, sortDir SortDirEnum, daemonNames ...daemonname.Name) ([]Daemon, int64, error) {
 	if limit == 0 {
 		return nil, 0, errors.New("limit should be greater than 0")
