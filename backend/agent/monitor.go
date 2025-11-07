@@ -169,6 +169,7 @@ func (d *dnsDaemonImpl) GetZoneInventory() zoneInventory {
 	return d.zoneInventory
 }
 
+// Bootstrap the DNS daemon. It starts the zone inventory if available.
 func (d *dnsDaemonImpl) Bootstrap() error {
 	if d.zoneInventory != nil {
 		d.zoneInventory.start()
@@ -176,6 +177,8 @@ func (d *dnsDaemonImpl) Bootstrap() error {
 	return nil
 }
 
+// Refreshes the DNS daemon state. It populates the zone inventory if
+// it is not ready yet.
 func (d *dnsDaemonImpl) RefreshState(ctx context.Context, agentMgr agentManager) error {
 	if d.zoneInventory == nil || d.zoneInventory.getCurrentState().isReady() {
 		return nil
