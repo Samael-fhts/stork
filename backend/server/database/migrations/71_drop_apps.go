@@ -196,7 +196,7 @@ func init() {
 				ELSE false
 			END;
 			ALTER TABLE access_point DROP COLUMN protocol;
-			
+
 			-- === SETTING ===
 
 			-- Revert the setting name change
@@ -253,9 +253,9 @@ func init() {
 			-- Drop the machine_id foreign key from daemon
 			ALTER TABLE daemon DROP CONSTRAINT daemon_machine_id_fkey;
 			ALTER TABLE daemon DROP COLUMN machine_id;
-			
+
 			-- === ACCESS POINT ===
-			
+
 			-- Add app_id column back to access_point table
 			ALTER TABLE access_point ADD COLUMN app_id bigint;
 
@@ -306,9 +306,9 @@ func init() {
 
 			-- Drop the daemon_id foreign key from access_point
 			ALTER TABLE access_point DROP COLUMN daemon_id;
-			
+
 			-- === MACHINE ===
-			
+
 			-- Trigger function inserting control access point every time an
 			-- app created.
 			CREATE FUNCTION update_machine_id()
