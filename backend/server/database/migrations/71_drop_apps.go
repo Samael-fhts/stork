@@ -304,7 +304,7 @@ func init() {
 				ON UPDATE NO ACTION
 				ON DELETE CASCADE;
 
-			-- Drop the daemon_id foreign key from access_point
+			-- Drop the daemon_id column and corresponding foreign key from access_point
 			ALTER TABLE access_point DROP COLUMN daemon_id;
 
 			-- === MACHINE ===
