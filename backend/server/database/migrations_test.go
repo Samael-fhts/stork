@@ -809,6 +809,31 @@ func TestMigrateToLatest(t *testing.T) {
 	require.Len(t, subnets[7].LocalSubnets, 1)
 	require.Equal(t, machines[3].ID, subnets[7].LocalSubnets[0].Daemon.MachineID)
 
+	// Host reservations.
+	hosts, err := dbmodel.GetAllHosts(db, 0)
+	require.NoError(t, err)
+	require.Len(t, hosts, 37)
+
+	host := hosts[24]
+	require.Equal(t, 1, len(host.HostIdentifiers))
+	identifier := host.HostIdentifiers[0]
+	require.Equal(t, "hw-address", identifier.Type)
+	require.Equal(t, []byte{0x01, 0x01, 0x01, 0x01, 0x01, 0x01}, identifier.Value)
+	require.Len(t, host.LocalHosts, 4)
+
+	require.Equal(t, machines[4].Daemons[3].ID, host.LocalHosts[0].DaemonID)
+	require.Equal(t, dbmodel.HostDataSourceConfig, host.LocalHosts[0].DataSource)
+	require.Equal(t, "192.110.111.230/32", host.LocalHosts[0].IPReservations[0].Address)
+	require.Equal(t, machines[1].Daemons[1].ID, host.LocalHosts[1].DaemonID)
+	require.Equal(t, dbmodel.HostDataSourceAPI, host.LocalHosts[1].DataSource)
+	require.Equal(t, "192.110.111.230/32", host.LocalHosts[1].IPReservations[0].Address)
+	require.Equal(t, machines[2].Daemons[2].ID, host.LocalHosts[2].DaemonID)
+	require.Equal(t, dbmodel.HostDataSourceAPI, host.LocalHosts[1].DataSource)
+	require.Equal(t, "192.110.111.230/32", host.LocalHosts[1].IPReservations[0].Address)
+	require.Equal(t, machines[4].Daemons[3].ID, host.LocalHosts[3].DaemonID)
+	require.Equal(t, dbmodel.HostDataSourceAPI, host.LocalHosts[3].DataSource)
+	require.Equal(t, "192.110.111.230/32", host.LocalHosts[3].IPReservations[0].Address)
+
 	// HA status.
 	services, err := dbmodel.GetDetailedAllServices(db)
 	require.NoError(t, err)
