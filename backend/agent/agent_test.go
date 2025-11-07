@@ -1168,7 +1168,7 @@ func TestReceiveZonesPDNS(t *testing.T) {
 
 	// Add a PowerDNS daemon with the inventory.
 	var daemons []Daemon
-	daemons = append(daemons, &PDNSDaemon{
+	daemons = append(daemons, &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
@@ -1876,7 +1876,7 @@ func TestReceiveZoneRRsPowerDNS(t *testing.T) {
 
 	// Add a PowerDNS daemon with the inventory.
 	var daemons []Daemon
-	daemons = append(daemons, &PDNSDaemon{
+	daemons = append(daemons, &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
@@ -2177,7 +2177,7 @@ func TestGetPowerDNSServerInfo(t *testing.T) {
 
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
-	daemons = append(daemons, &PDNSDaemon{
+	daemons = append(daemons, &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
@@ -2248,7 +2248,7 @@ func TestGetPowerDNSServerInfoNoAPIKey(t *testing.T) {
 
 	// Add a PowerDNS daemon with no API key.
 	var daemons []Daemon
-	daemons = append(daemons, &PDNSDaemon{
+	daemons = append(daemons, &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
@@ -2299,7 +2299,7 @@ func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
 
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
-	daemons = append(daemons, &PDNSDaemon{
+	daemons = append(daemons, &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
@@ -2363,7 +2363,7 @@ func TestGetPowerDNSServerInfoStatisticsErrorResponse(t *testing.T) {
 
 	// Add a PowerDNS daemon.
 	var daemons []Daemon
-	daemons = append(daemons, &PDNSDaemon{
+	daemons = append(daemons, &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,

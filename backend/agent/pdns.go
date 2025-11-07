@@ -13,8 +13,8 @@ import (
 )
 
 var (
-	_ Daemon           = (*PDNSDaemon)(nil)
-	_ dnsDaemon        = (*PDNSDaemon)(nil)
+	_ Daemon           = (*pdnsDaemon)(nil)
+	_ dnsDaemon        = (*pdnsDaemon)(nil)
 	_ pdnsConfigParser = (*pdnsconfig.Parser)(nil)
 
 	// Pattern for detecting PowerDNS process.
@@ -27,8 +27,8 @@ type pdnsConfigParser interface {
 	ParseFile(path string) (*pdnsconfig.Config, error)
 }
 
-// PDNSDaemon implements the Daemon interface for PowerDNS.
-type PDNSDaemon struct {
+// Implements the Daemon interface for PowerDNS.
+type pdnsDaemon struct {
 	dnsDaemonImpl
 }
 
@@ -117,7 +117,7 @@ func detectPowerDNSDaemon(p supportedProcess, parser pdnsConfigParser) (Daemon, 
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), parsedConfig, client, *webserverAddress, *webserverPort)
 
 	// Create the PowerDNS app.
-	daemon := &PDNSDaemon{
+	daemon := &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,

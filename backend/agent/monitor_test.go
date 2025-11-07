@@ -322,9 +322,9 @@ func TestDetectDaemons(t *testing.T) {
 	require.Equal(t, daemons[1].(*Bind9Daemon).zoneInventory, daemons2[1].(*Bind9Daemon).zoneInventory)
 	require.True(t, daemons[1].(*Bind9Daemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
 	require.True(t, daemons2[1].(*Bind9Daemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
-	require.Equal(t, daemons[2].(*PDNSDaemon).zoneInventory, daemons2[2].(*PDNSDaemon).zoneInventory)
-	require.True(t, daemons[2].(*PDNSDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
-	require.True(t, daemons2[2].(*PDNSDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
+	require.Equal(t, daemons[2].(*pdnsDaemon).zoneInventory, daemons2[2].(*pdnsDaemon).zoneInventory)
+	require.True(t, daemons[2].(*pdnsDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
+	require.True(t, daemons2[2].(*pdnsDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
 
 	// If the daemon access point changes, the inventory should be recreated.
 	for index, accessPoint := range monitor.daemons[1].(*Bind9Daemon).AccessPoints {
@@ -333,10 +333,10 @@ func TestDetectDaemons(t *testing.T) {
 			monitor.daemons[1].(*Bind9Daemon).AccessPoints[index].Port = 5453
 		}
 	}
-	for index, accessPoint := range monitor.daemons[2].(*PDNSDaemon).AccessPoints {
+	for index, accessPoint := range monitor.daemons[2].(*pdnsDaemon).AccessPoints {
 		if accessPoint.Type == AccessPointControl {
 			// Change the access point port.
-			monitor.daemons[2].(*PDNSDaemon).AccessPoints[index].Port = 8082
+			monitor.daemons[2].(*pdnsDaemon).AccessPoints[index].Port = 8082
 		}
 	}
 
@@ -351,9 +351,9 @@ func TestDetectDaemons(t *testing.T) {
 	require.NotEqual(t, daemons[1].(*Bind9Daemon).zoneInventory, daemons3[1].(*Bind9Daemon).zoneInventory)
 	require.False(t, daemons[1].(*Bind9Daemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
 	require.True(t, daemons3[1].(*Bind9Daemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
-	require.NotEqual(t, daemons[2].(*PDNSDaemon).zoneInventory, daemons3[2].(*PDNSDaemon).zoneInventory)
-	require.False(t, daemons[2].(*PDNSDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
-	require.True(t, daemons3[2].(*PDNSDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
+	require.NotEqual(t, daemons[2].(*pdnsDaemon).zoneInventory, daemons3[2].(*pdnsDaemon).zoneInventory)
+	require.False(t, daemons[2].(*pdnsDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
+	require.True(t, daemons3[2].(*pdnsDaemon).zoneInventory.(*zoneInventoryImpl).isAXFRWorkersActive())
 }
 
 // Test that verifies that when the zone inventory is not initialized
@@ -985,7 +985,7 @@ func TestPopulateZoneInventories(t *testing.T) {
 	zi3.start()
 	defer zi3.stop()
 
-	daemon3 := &PDNSDaemon{
+	daemon3 := &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{
 				Name: daemonname.PDNS,
@@ -1008,7 +1008,7 @@ func TestPopulateZoneInventories(t *testing.T) {
 			switch concreteDaemon := daemon.(type) {
 			case *Bind9Daemon:
 				zoneInventory = concreteDaemon.zoneInventory
-			case *PDNSDaemon:
+			case *pdnsDaemon:
 				zoneInventory = concreteDaemon.zoneInventory
 			default:
 				continue
