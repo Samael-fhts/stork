@@ -499,9 +499,8 @@ func testReservationGetPageReceived(t *testing.T, iterator *hostIterator) {
 	require.Equal(t, keactrl.ReservationGetPage, recordedCommand.GetCommand())
 	// This command must always include some arguments.
 	require.NotNil(t, recordedCommand.Arguments)
-	var recordedArguments map[string]any
-	err := recordedCommand.Arguments.UnmarshalInto(&recordedArguments)
-	require.NoError(t, err)
+	recordedArguments, ok := recordedCommand.Arguments.(map[string]any)
+	require.True(t, ok)
 	// The subnet-id is always required.
 	require.Contains(t, recordedArguments, "subnet-id")
 	// The limit is also always required.

@@ -8,7 +8,6 @@ import (
 
 	"github.com/pkg/errors"
 	"isc.org/stork/daemonctrl/constants/daemonname"
-	storkutil "isc.org/stork/util"
 )
 
 // Kea command name type.
@@ -46,9 +45,110 @@ type SerializableCommand interface {
 // Represents a command sent to Kea including command name, daemons list
 // (service list in Kea terms) and arguments.
 type Command struct {
-	Command   CommandName                `json:"command"`
-	Daemons   []daemonname.Name          `json:"service,omitempty"`
-	Arguments *storkutil.RawMessageOrAny `json:"arguments,omitempty"`
+	Command   CommandName       `json:"command"`
+	Daemons   []daemonname.Name `json:"service,omitempty"`
+	Arguments any               `json:"arguments,omitempty"`
+}
+
+var _ SerializableCommand = (*Command)(nil)
+
+// Creates new Kea command from specified command name, daemons list and arguments.
+// The arguments are required to be a map or struct.
+func newCommand(command CommandName, daemon daemonname.Name, arguments any) *Command {
+	if len(command) == 0 {
+		return nil
+	}
+
+	if arguments != nil {
+		if _, ok := arguments.(json.RawMessage); !ok {
+			argsType := reflect.TypeOf(arguments)
+			switch argsType.Kind() {
+			case reflect.Map, reflect.Struct:
+				break
+			case reflect.Ptr:
+				if argsType.Elem().Kind() != reflect.Struct {
+					return nil
+				}
+			default:
+				return nil
+			}
+		}
+	}
+
+	cmd := &Command{
+		Command:   command,
+		Daemons:   []daemonname.Name{daemon},
+		Arguments: arguments,
+	}
+	return cmd
+}
+
+// Constructs new command with no arguments.
+func NewCommandBase(command CommandName, daemon daemonname.Name) *Command {
+	return newCommand(command, daemon, nil)
+}
+
+// Returns command name.
+func (c Command) GetCommand() CommandName {
+	return c.Command
+}
+
+// Returns daemon names specified within the command.
+func (c Command) GetDaemonsList() []daemonname.Name {
+	return c.Daemons
+}
+
+// Marshals the command to JSON.
+func (c Command) Marshal() ([]byte, error) {
+	// Stork requires that command has exactly one target daemon.
+	// However, Kea CA expects that if the command is targeted to itself,
+	// the Daemons field must be empty.
+	if len(c.Daemons) == 1 && c.Daemons[0] == daemonname.CA {
+		c.Daemons = nil
+	}
+
+	data, err := json.Marshal(c)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshal Kea command: %s", c.Command)
+	}
+
+	return data, nil
+}
+
+// Represents a command with non-serialized arguments.
+type CommandPartiallyMarshalled struct {
+	Command   CommandName       `json:"command"`
+	Daemons   []daemonname.Name `json:"service,omitempty"`
+	Arguments json.RawMessage   `json:"arguments,omitempty"`
+}
+
+var _ SerializableCommand = (*CommandPartiallyMarshalled)(nil)
+
+// Returns command name.
+func (c CommandPartiallyMarshalled) GetCommand() CommandName {
+	return c.Command
+}
+
+// Returns daemon names specified within the command.
+func (c CommandPartiallyMarshalled) GetDaemonsList() []daemonname.Name {
+	return c.Daemons
+}
+
+// Marshals the command to JSON.
+func (c CommandPartiallyMarshalled) Marshal() ([]byte, error) {
+	// Stork requires that command has exactly one target daemon.
+	// However, Kea CA expects that if the command is targeted to itself,
+	// the Daemons field must be empty.
+	if len(c.Daemons) == 1 && c.Daemons[0] == daemonname.CA {
+		c.Daemons = nil
+	}
+
+	data, err := json.Marshal(c)
+	if err != nil {
+		return nil, errors.Wrapf(err, "failed to marshal Kea command: %s", c.Command)
+	}
+
+	return data, nil
 }
 
 // Common fields in each received Kea response.
@@ -124,80 +224,6 @@ type ExaminableResponse interface {
 	GetResult() ResponseResult
 	GetText() string
 	GetArguments() json.RawMessage
-}
-
-// Creates new Kea command from specified command name, daemons list and arguments.
-// The arguments are required to be a map or struct.
-func newCommand(command CommandName, daemon daemonname.Name, arguments any) *Command {
-	if len(command) == 0 {
-		return nil
-	}
-
-	if arguments != nil {
-		if _, ok := arguments.(json.RawMessage); !ok {
-			argsType := reflect.TypeOf(arguments)
-			switch argsType.Kind() {
-			case reflect.Map, reflect.Struct:
-				break
-			case reflect.Ptr:
-				if argsType.Elem().Kind() != reflect.Struct {
-					return nil
-				}
-			default:
-				return nil
-			}
-		}
-	}
-
-	cmd := &Command{
-		Command:   command,
-		Daemons:   []daemonname.Name{daemon},
-		Arguments: storkutil.NewRawMessageOrAny(arguments),
-	}
-	return cmd
-}
-
-// Constructs new command from the JSON string.
-func NewCommandFromJSON(jsonCommand string) (*Command, error) {
-	cmd := Command{}
-	err := json.Unmarshal([]byte(jsonCommand), &cmd)
-	if err != nil {
-		err = errors.Wrapf(err, "failed to parse Kea command: %s", jsonCommand)
-		return nil, err
-	}
-	return &cmd, nil
-}
-
-// Constructs new command with no arguments.
-func NewCommandBase(command CommandName, daemon daemonname.Name) *Command {
-	return newCommand(command, daemon, nil)
-}
-
-// Returns command name.
-func (c Command) GetCommand() CommandName {
-	return c.Command
-}
-
-// Returns daemon names specified within the command.
-func (c Command) GetDaemonsList() []daemonname.Name {
-	return c.Daemons
-}
-
-// Marshals the command to JSON.
-func (c Command) Marshal() ([]byte, error) {
-	// Stork requires that command has exactly one target daemon.
-	// However, Kea CA expects that if the command is targeted to itself,
-	// the Daemons field must be empty.
-	if len(c.Daemons) == 1 && c.Daemons[0] == daemonname.CA {
-		c.Daemons = nil
-	}
-
-	data, err := json.Marshal(c)
-	if err != nil {
-		return nil, errors.Wrapf(err, "failed to marshal Kea command: %s", c.Command)
-	}
-
-	return data, nil
 }
 
 // Returns status code.

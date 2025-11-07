@@ -24,10 +24,8 @@ func TestNewCommand(t *testing.T) {
 	require.Equal(t, valuesSetCommand, cmd.Command)
 	require.Len(t, cmd.Daemons, 1)
 	require.Contains(t, cmd.Daemons, daemonname.DHCPv4)
-	var arguments map[string]any
-	err := cmd.Arguments.UnmarshalInto(&arguments)
-	require.NoError(t, err)
-	require.IsType(t, map[string]any{}, arguments)
+	arguments, ok := cmd.Arguments.(map[string]any)
+	require.True(t, ok)
 	require.Contains(t, arguments, "value-a")
 	require.Contains(t, arguments, "value-b")
 	require.Contains(t, arguments, "value-c")
@@ -41,22 +39,21 @@ func TestNewCommandWithStructArgs(t *testing.T) {
 		ValueB int
 		ValueC []int
 	}
-	args := argsType{
+	inputArguments := argsType{
 		ValueA: 2,
 		ValueB: 3,
 		ValueC: []int{5, 6, 7},
 	}
-	cmd := newCommand(valuesSetCommand, daemonname.DHCPv4, args)
+	cmd := newCommand(valuesSetCommand, daemonname.DHCPv4, inputArguments)
 	require.NotNil(t, cmd)
 	require.NotNil(t, cmd.Daemons)
 	require.NotNil(t, cmd.Arguments)
 	require.Equal(t, valuesSetCommand, cmd.Command)
 	require.Len(t, cmd.Daemons, 1)
 	require.Contains(t, cmd.Daemons, daemonname.DHCPv4)
-	var outputArgs argsType
-	err := cmd.Arguments.UnmarshalInto(&outputArgs)
-	require.NoError(t, err)
-	require.Equal(t, args, outputArgs)
+	outputArguments, ok := cmd.Arguments.(argsType)
+	require.True(t, ok)
+	require.Equal(t, inputArguments, outputArguments)
 }
 
 // Test successful creation of the Kea command with arguments specified as a pointer
@@ -68,16 +65,15 @@ func TestNewCommandWithStructPtrArgs(t *testing.T) {
 	args := argsType{
 		ValueA: 2,
 	}
-	cmd := newCommand(valuesSetCommand, daemonname.DHCPv4, &args)
+	cmd := newCommand(valuesSetCommand, daemonname.DHCPv4, args)
 	require.NotNil(t, cmd)
 	require.NotNil(t, cmd.Daemons)
 	require.NotNil(t, cmd.Arguments)
 	require.Equal(t, valuesSetCommand, cmd.Command)
 	require.Len(t, cmd.Daemons, 1)
 	require.Contains(t, cmd.Daemons, daemonname.DHCPv4)
-	var outputArgs argsType
-	err := cmd.Arguments.UnmarshalInto(&outputArgs)
-	require.NoError(t, err)
+	outputArgs, ok := cmd.Arguments.(argsType)
+	require.True(t, ok)
 	require.Equal(t, args, outputArgs)
 }
 
@@ -93,48 +89,6 @@ func TestNewCommandWithInvalidArgTypes(t *testing.T) {
 func TestNewCommandEmptyName(t *testing.T) {
 	cmd := NewCommandBase("", daemonname.DHCPv4)
 	require.Nil(t, cmd)
-}
-
-// Test parsing JSON into a command.
-func TestNewCommandFromJSON(t *testing.T) {
-	jsonCommand := `{
-        "command": "subnet4-get",
-        "service": [ "dhcp4" ],
-        "arguments": {
-            "subnet-id": 10
-        }
-    }`
-	command, err := NewCommandFromJSON(jsonCommand)
-	require.NoError(t, err)
-	require.Equal(t, Subnet4Get, command.Command)
-	require.NotNil(t, command.Arguments)
-	var arguments map[string]any
-	err = command.Arguments.UnmarshalInto(&arguments)
-	require.NoError(t, err)
-	require.Contains(t, arguments, "subnet-id")
-	require.EqualValues(t, 10, arguments["subnet-id"])
-	require.NotNil(t, command.Daemons)
-	require.Contains(t, command.Daemons, daemonname.DHCPv4)
-}
-
-// Test parsing JSON into a command when no service is specified.
-func TestNewCommandFromJSONNoService(t *testing.T) {
-	jsonCommand := `{
-        "command": "subnet4-get",
-        "arguments": {
-            "subnet-id": 11
-        }
-    }`
-	command, err := NewCommandFromJSON(jsonCommand)
-	require.NoError(t, err)
-	require.Equal(t, Subnet4Get, command.Command)
-	require.NotNil(t, command.Arguments)
-	var arguments map[string]any
-	err = command.Arguments.UnmarshalInto(&arguments)
-	require.NoError(t, err)
-	require.Contains(t, arguments, "subnet-id")
-	require.EqualValues(t, 11, arguments["subnet-id"])
-	require.Nil(t, command.Daemons)
 }
 
 // Test instantiating a command with no arguments.

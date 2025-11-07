@@ -134,9 +134,8 @@ func (fa *FakeAgents) GetCommandArguments(index int) map[string]any {
 		return nil
 	}
 
-	var arguments map[string]any
-	err := command.Arguments.UnmarshalInto(&arguments)
-	if err != nil {
+	arguments, ok := command.Arguments.(map[string]any)
+	if !ok {
 		return nil
 	}
 	return arguments

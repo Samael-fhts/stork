@@ -1237,5 +1237,4 @@ func TestGetDaemonsByName(t *testing.T) {
 		require.Nil(t, daemon.KeaDaemon)
 		require.Nil(t, daemon.Bind9Daemon)
 	})
-
 }
