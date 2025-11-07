@@ -931,6 +931,28 @@ func TestZoneInventoryPopulateAwaitBackgroundTasks(t *testing.T) {
 	require.Equal(t, zoneInventoryStatePopulated, inventory.getCurrentState().name)
 }
 
+// Test that the error is returned if the inventory is not started.
+func TestZoneInventoryPopulateInventoryNotStarted(t *testing.T) {
+	// Arrange
+	sandbox := testutil.NewSandbox()
+	defer sandbox.Close()
+
+	bind9StatsClient, off := setGetViewsResponseOK(t, map[string]any{})
+	defer off()
+
+	config := parseDefaultBind9Config(t)
+	storage, _ := newZoneInventoryStorageMemoryDisk(sandbox.BasePath)
+	inventory := newZoneInventory(storage, config, bind9StatsClient, "localhost", 5380)
+
+	// Act
+	done, err := inventory.populate(true)
+
+	// Assert
+	require.ErrorContains(t, err, "zone inventory is not started")
+	require.Nil(t, done)
+	require.Equal(t, zoneInventoryStatePopulatingErred, inventory.getCurrentState().name)
+}
+
 // Test loading the inventory from disk to memory.
 func TestZoneInventoryLoadMemoryDisk(t *testing.T) {
 	// Setup server response.
