@@ -98,8 +98,6 @@ message AccessPoint {
 }
 
 // Basic information about the detected daemon.
-// We preserved the old message name to keep the backward-compatibility with
-// older daemons.
 message Daemon {
   // Daemon name.
   // One of "ca", "dhcp4", "dhcp6", "d2", "netconf", "bind9", "pdns".
