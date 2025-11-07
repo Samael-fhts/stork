@@ -1135,3 +1135,107 @@ func BenchmarkGetDaemonByID(b *testing.B) {
 		_, _ = GetDaemonByID(db, int64(id))
 	}
 }
+
+// Test that the daemons can be fetched by their names.
+func TestGetDaemonsByName(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{
+		ID:        0,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	_ = AddMachine(db, m)
+
+	daemonNames := []daemonname.Name{
+		daemonname.CA,
+		daemonname.DHCPv4,
+		daemonname.DHCPv4,
+		daemonname.DHCPv4,
+		daemonname.DHCPv6,
+		daemonname.Bind9,
+		daemonname.PDNS,
+	}
+
+	for _, name := range daemonNames {
+		daemon := NewDaemon(m, name, true, []*AccessPoint{})
+		_ = AddDaemon(db, daemon)
+	}
+
+	t.Run("CA", func(t *testing.T) {
+		// Act
+		daemons, err := GetDaemonsByName(db, daemonname.CA)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, daemons, 1)
+		daemon := daemons[0]
+		require.Equal(t, daemonname.CA, daemon.Name)
+		require.NotNil(t, daemon.KeaDaemon)
+		require.Nil(t, daemon.KeaDaemon.KeaDHCPDaemon)
+		require.Nil(t, daemon.Bind9Daemon)
+		require.Nil(t, daemon.PDNSDaemon)
+	})
+
+	t.Run("DHCPv4", func(t *testing.T) {
+		// Act
+		daemons, err := GetDaemonsByName(db, daemonname.DHCPv4)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, daemons, 3)
+		for _, daemon := range daemons {
+			require.Equal(t, daemonname.DHCPv4, daemon.Name)
+			require.NotNil(t, daemon.KeaDaemon)
+			require.NotNil(t, daemon.KeaDaemon.KeaDHCPDaemon)
+			require.Nil(t, daemon.Bind9Daemon)
+			require.Nil(t, daemon.PDNSDaemon)
+		}
+	})
+
+	t.Run("DHCPv6", func(t *testing.T) {
+		// Act
+		daemons, err := GetDaemonsByName(db, daemonname.DHCPv6)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, daemons, 1)
+		daemon := daemons[0]
+		require.Equal(t, daemonname.DHCPv6, daemon.Name)
+		require.NotNil(t, daemon.KeaDaemon)
+		require.NotNil(t, daemon.KeaDaemon.KeaDHCPDaemon)
+		require.Nil(t, daemon.Bind9Daemon)
+		require.Nil(t, daemon.PDNSDaemon)
+	})
+
+	t.Run("BIND 9", func(t *testing.T) {
+		// Act
+		daemons, err := GetDaemonsByName(db, daemonname.Bind9)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, daemons, 1)
+		daemon := daemons[0]
+		require.Equal(t, daemonname.Bind9, daemon.Name)
+		require.NotNil(t, daemon.Bind9Daemon)
+		require.Nil(t, daemon.KeaDaemon)
+		require.Nil(t, daemon.PDNSDaemon)
+	})
+
+	t.Run("PDNS", func(t *testing.T) {
+		// Act
+		daemons, err := GetDaemonsByName(db, daemonname.PDNS)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, daemons, 1)
+		daemon := daemons[0]
+		require.Equal(t, daemonname.PDNS, daemon.Name)
+		require.NotNil(t, daemon.PDNSDaemon)
+		require.Nil(t, daemon.KeaDaemon)
+		require.Nil(t, daemon.Bind9Daemon)
+	})
+
+}
