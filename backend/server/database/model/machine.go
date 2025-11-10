@@ -106,6 +106,7 @@ func GetMachineByAddressAndAgentPort(db *pg.DB, address string, agentPort int64)
 		return nil, pkgerrors.Wrapf(err, "problem getting machine %s:%d", address, agentPort)
 	}
 
+	// TODO: Code implemented in below block is a temporary solution for virtual applications.
 	for _, daemon := range machine.Daemons {
 		daemon.Machine = &machine
 	}
@@ -135,6 +136,7 @@ func GetMachineByAddressAndAccessPointPort(db *pg.DB, machineAddress string, acc
 		return nil, pkgerrors.Wrapf(err, "problem getting machine by the '%s' machine address and the '%d' access point port", machineAddress, accessPointPort)
 	}
 
+	// TODO: Code implemented in below block is a temporary solution for virtual applications.
 	for _, daemon := range machine.Daemons {
 		daemon.Machine = &machine
 	}
@@ -174,6 +176,7 @@ func getMachineByID(db *pg.DB, id int64, relations []string) (*Machine, error) {
 		return nil, pkgerrors.Wrapf(err, "problem getting machine %v", id)
 	}
 
+	// TODO: Code implemented in below block is a temporary solution for virtual applications.
 	for _, daemon := range machine.Daemons {
 		daemon.Machine = &machine
 	}
@@ -191,6 +194,7 @@ func RefreshMachineFromDB(db *pg.DB, machine *Machine) error {
 		return pkgerrors.Wrapf(err, "problem getting machine %v", machine.ID)
 	}
 
+	// TODO: Code implemented in below block is a temporary solution for virtual applications.
 	for _, daemon := range machine.Daemons {
 		daemon.Machine = machine
 	}
@@ -269,6 +273,7 @@ func GetMachinesByPage(db *pg.DB, offset int64, limit int64, filterText *string,
 		return nil, 0, pkgerrors.Wrapf(err, "problem getting machines")
 	}
 
+	// TODO: Code implemented in below block is a temporary solution for virtual applications.
 	for _, machine := range machines {
 		for _, daemon := range machine.Daemons {
 			daemon.Machine = &machine
@@ -307,6 +312,7 @@ func getAllMachinesWithRelations(db *pg.DB, authorized *bool, relations ...Machi
 		return nil, pkgerrors.Wrapf(err, "problem getting machines")
 	}
 
+	// TODO: Code implemented in below block is a temporary solution for virtual applications.
 	for _, machine := range machines {
 		for _, daemon := range machine.Daemons {
 			daemon.Machine = &machine

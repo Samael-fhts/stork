@@ -59,6 +59,7 @@ func (d *LogsDump) Execute() error {
 				errStr = err.Error()
 			}
 
+			// TODO: Code implemented in below line is a temporary solution for virtual applications.
 			daemon.Machine = d.machine
 			app := daemon.GetVirtualApp()
 

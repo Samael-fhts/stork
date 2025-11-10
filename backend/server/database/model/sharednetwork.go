@@ -275,6 +275,7 @@ func GetAllSharedNetworks(dbi dbops.DBI, family int) ([]SharedNetwork, error) {
 	networks := []SharedNetwork{}
 	q := dbi.Model(&networks).
 		Relation(string(SharedNetworkRelationLocalSharedNetworksAccessPoints)).
+		// TODO: Code implemented in below line is a temporary solution for virtual applications.
 		Relation(string(SharedNetworkRelationLocalSharedNetworksMachine))
 
 	if family == 4 || family == 6 {
@@ -364,6 +365,7 @@ func GetSharedNetworksByPage(dbi dbops.DBI, offset, limit, daemonID, family int6
 	q = q.DistinctOn(distinctOnFields)
 
 	q = q.Relation(string(SharedNetworkRelationLocalSharedNetworksAccessPoints)).
+		// TODO: Code implemented in below line is a temporary solution for virtual applications.
 		Relation(string(SharedNetworkRelationLocalSharedNetworksMachine))
 
 	// If any of the filtering parameters are specified we need to explicitly join

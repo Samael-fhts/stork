@@ -9,6 +9,8 @@ import (
 	"isc.org/stork/daemonctrl/constants/daemonname"
 )
 
+// TODO: Code implemented in this file is a temporary solution for virtual applications.
+
 // The virtual app is a solution to preserve backward compatibility with the
 // legacy REST API. It mimics a legacy App instance for a given daemon.
 type VirtualApp struct {

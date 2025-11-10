@@ -94,6 +94,7 @@ type GetZonesFilter struct {
 	// Filter by DNS daemon name (e.g., "bind9").
 	DaemonName *daemonname.Name
 	// Filter by machine ID.
+	// TODO: Code implemented in below line is a temporary solution for virtual applications.
 	MachineID *int64
 	// Filter by class (typically, IN).
 	Class *string
@@ -268,9 +269,12 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 		filter.Types != nil && filter.Types.IsAnySpecified() ||
 		filter.RPZ != nil || filter.DaemonID != nil ||
 		filter.DaemonName != nil || filter.Text != nil ||
+		// TODO: Code implemented in below line is a temporary solution for virtual applications.
 		filter.MachineID != nil {
 		q = q.Join("JOIN local_zone AS lz").JoinOn("lz.zone_id = zone.id")
-		if filter.DaemonName != nil || filter.Text != nil || filter.MachineID != nil {
+		if filter.DaemonName != nil || filter.Text != nil ||
+			// TODO: Code implemented in below line is a temporary solution for virtual applications.
+			filter.MachineID != nil {
 			q = q.Join("JOIN daemon AS d").JoinOn("d.id = lz.daemon_id")
 		}
 	}
@@ -302,6 +306,7 @@ func GetZones(db pg.DBI, filter *GetZonesFilter, relations ...ZoneRelation) ([]*
 		q = q.Where("d.name ILIKE ?", "%"+*filter.DaemonName+"%")
 	}
 	// Filter by machine ID.
+	// TODO: Code implemented in below block is a temporary solution for virtual applications.
 	if filter.MachineID != nil {
 		q = q.Where("d.machine_id = ?", *filter.MachineID)
 	}
