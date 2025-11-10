@@ -1,6 +1,8 @@
 package agent
 
 import (
+	"slices"
+
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/v4/process"
 	"isc.org/stork/daemonctrl/constants/daemonname"
@@ -113,55 +115,27 @@ type ProcessManager struct {
 	lister processLister
 }
 
-// Lists processes and filters out their child processes.
+// Lists supported processes and filters out their child processes.
 func (pm *ProcessManager) ListProcesses() ([]supportedProcess, error) {
 	processes, err := pm.lister.listProcesses()
 	if err != nil {
 		return nil, err
 	}
-
-	// Creates an index of processes by their PID.
-	tree := make(map[int32]supportedProcess)
-	for _, p := range processes {
-		tree[p.getPid()] = p
-	}
-
-	// Finds top-level processes (i.e., processes without a parent in the list
-	// or processes whose parent has a different name).
 	var acceptedCandidates []supportedProcess
-
-	for _, process := range processes {
-		ppid, err := process.getParentPid()
+	for _, candidate := range processes {
+		// For each candidate process, check if the parent PID matches a
+		// PID of another process. If it does, the candidate is a child process
+		// and is not added to the list of accepted candidates.
+		ppid, err := candidate.getParentPid()
 		if err != nil {
-			// There is only one process without a parent: the init process.
-			// We are not interested in it.
 			continue
 		}
-		parentProcesses, exists := tree[ppid]
-		if !exists {
-			// No parent process found, so this is a top-level process.
-			acceptedCandidates = append(acceptedCandidates, process)
-			continue
-		}
-
-		parentName, err := parentProcesses.getName()
-		if err != nil {
-			// No permission to get the parent process name.
-			continue
-		}
-
-		processName, err := process.getName()
-		if err != nil {
-			// No permission to get the process name.
-			continue
-		}
-
-		if parentName != processName {
-			// Parent process has a different name, so this is a top-level process.
-			acceptedCandidates = append(acceptedCandidates, process)
+		if !slices.ContainsFunc(processes, func(p supportedProcess) bool {
+			return candidate.getPid() != p.getPid() && ppid == p.getPid()
+		}) {
+			acceptedCandidates = append(acceptedCandidates, candidate)
 		}
 	}
-
 	return acceptedCandidates, nil
 }
 
