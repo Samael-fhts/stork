@@ -277,7 +277,7 @@ func init() {
 			-- Set constraints for access_point
 			ALTER TABLE access_point ALTER COLUMN app_id SET NOT NULL;
 			ALTER TABLE access_point ALTER COLUMN machine_id SET NOT NULL;
-			
+
 			-- Remove duplicated access points (same app_id and type).
 			DELETE FROM access_point
 			WHERE daemon_id NOT IN (
