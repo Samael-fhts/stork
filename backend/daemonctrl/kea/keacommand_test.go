@@ -178,6 +178,23 @@ func TestKeaCommandMarshal(t *testing.T) {
 		string(marshaled))
 }
 
+// Test that the error is returned when the arguments cannot be marshaled to
+// JSON.
+func TestKeaCommandMarshalError(t *testing.T) {
+	// Arrange
+	payload := map[string]any{}
+	payload["payload"] = payload // Circular reference to cause marshaling error.
+
+	cmd := newCommand(valuesSetCommand, daemonname.DHCPv4, payload)
+
+	// Act
+	marshaled, err := cmd.Marshal()
+
+	// Assert
+	require.Error(t, err)
+	require.Nil(t, marshaled)
+}
+
 // Test that JSON representation of the command is created correctly when
 // arguments are specified in a structure.
 func TestKeaCommandMarshalWithStructArgs(t *testing.T) {
