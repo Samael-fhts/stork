@@ -196,6 +196,7 @@ func (d *dnsDaemonImpl) RefreshState(ctx context.Context, agentMgr agentManager)
 	return nil
 }
 
+// Called once before the daemon is removed. It stops the zone inventory.
 func (d *dnsDaemonImpl) Cleanup() error {
 	if d.zoneInventory != nil {
 		d.zoneInventory.stop()
