@@ -116,26 +116,26 @@ func (c Command) Marshal() ([]byte, error) {
 }
 
 // Represents a command with non-serialized arguments.
-type CommandPartiallyMarshalled struct {
+type CommandWithRawArguments struct {
 	Command   CommandName       `json:"command"`
 	Daemons   []daemonname.Name `json:"service,omitempty"`
 	Arguments json.RawMessage   `json:"arguments,omitempty"`
 }
 
-var _ SerializableCommand = (*CommandPartiallyMarshalled)(nil)
+var _ SerializableCommand = (*CommandWithRawArguments)(nil)
 
 // Returns command name.
-func (c CommandPartiallyMarshalled) GetCommand() CommandName {
+func (c CommandWithRawArguments) GetCommand() CommandName {
 	return c.Command
 }
 
 // Returns daemon names specified within the command.
-func (c CommandPartiallyMarshalled) GetDaemonsList() []daemonname.Name {
+func (c CommandWithRawArguments) GetDaemonsList() []daemonname.Name {
 	return c.Daemons
 }
 
 // Marshals the command to JSON.
-func (c CommandPartiallyMarshalled) Marshal() ([]byte, error) {
+func (c CommandWithRawArguments) Marshal() ([]byte, error) {
 	// Stork requires that command has exactly one target daemon.
 	// However, Kea CA expects that if the command is targeted to itself,
 	// the Daemons field must be empty.

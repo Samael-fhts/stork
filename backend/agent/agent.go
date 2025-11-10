@@ -577,7 +577,7 @@ func (sa *StorkAgent) ForwardToKeaOverHTTP(ctx context.Context, in *agentapi.For
 		}
 		// Unmarshal only the command header to find out the command name.
 		// The arguments are kept in raw form.
-		var keaCommand keactrl.CommandPartiallyMarshalled
+		var keaCommand keactrl.CommandWithRawArguments
 		if err := json.Unmarshal([]byte(keaRequest.Request), &keaCommand); err != nil {
 			log.WithFields(logFields).WithError(err).Error("Failed to parse Kea request")
 			grpcResponse.Status.Code = agentapi.Status_ERROR
