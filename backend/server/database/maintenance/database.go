@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"os"
+	"regexp"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
@@ -83,7 +84,33 @@ func RestoreDatabaseFromDump(db *pg.DB, dumpFilePath string) error {
 	// owner.
 	dump = bytes.ReplaceAll(dump, []byte("COMMENT ON SCHEMA public IS 'standard public schema';"), []byte(""))
 
-	_, err = db.Exec(string(dump))
+	// Some PostgreSQL versions may not support the database configuration
+	// parameters included in the dump file. Wipe them out if they are not
+	// supported.
+	for {
+		_, err = db.Exec(string(dump))
+
+		// Check if the error is about an unrecognized configuration parameter.
+		var pgErr pg.Error
+		if err == nil || !errors.As(err, &pgErr) {
+			break
+		}
+		if pgErr.Field('C') != "42704" { // undefined_object
+			break
+		}
+		pattern := regexp.MustCompile("^unrecognized configuration parameter \"(.+)\"$")
+		matches := pattern.FindStringSubmatch(pgErr.Field('M'))
+		if len(matches) != 2 {
+			// Unmatched error message. It must be similar problem but with the
+			// restoring query.
+			break
+		}
+		parameter := matches[1]
+		// Wipe out the unrecognized parameter from the dump file.
+		paramPattern := regexp.MustCompile(fmt.Sprintf(`SET %s = .+?;`, regexp.QuoteMeta(parameter)))
+		dump = paramPattern.ReplaceAll(dump, []byte(""))
+	}
+
 	if err != nil {
 		return errors.Wrapf(
 			err,

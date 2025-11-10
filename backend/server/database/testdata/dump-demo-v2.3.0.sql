@@ -18,6 +18,7 @@ SET check_function_bodies = false;
 SET xmloption = content;
 SET client_min_messages = warning;
 SET row_security = off;
+SET unsupported_parameter = 'unsupported';  -- Simulates an unsupported parameter in this PostgreSQL version.
 
 --
 -- TOC entry 5 (class 2615 OID 2200)
