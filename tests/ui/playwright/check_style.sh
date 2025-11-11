@@ -20,7 +20,7 @@ add_init_py() {
     -exec echo '{}/__init__.py' ';'
 }
 
-files_to_search='forge src tests'
+files_to_search='.'
 linters=''
 while test ${#} -gt 0; do
   if test "${1-}" = '--add-init.py'; then
@@ -48,7 +48,7 @@ fi
 cd "${script_path}"
 
 if test ${#} -eq 0; then
-  PY_FILES="$(find ${files_to_search} -name '*.py' -or -name 'forge' | sort -uV)"
+  PY_FILES="$(find ${files_to_search} -name '*.py' | sort -uV)"
   if test -z "${PY_FILES}"; then echo "No python scripts to check. Exiting early."; exit 0; fi
 else
   # Check only the given files.
