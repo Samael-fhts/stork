@@ -1,3 +1,8 @@
 pytest
 playwright
 pytest-playwright
+bandit
+pylint
+pycodestyle
+pydocstyle
+pydoctor
