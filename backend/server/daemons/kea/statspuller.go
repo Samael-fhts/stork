@@ -372,7 +372,7 @@ func (statsPuller *StatsPuller) getStatsFromDaemon(daemon *dbmodel.Daemon) error
 	if daemon.KeaDaemon == nil || !daemon.Active {
 		return nil
 	}
-	if daemon.Name != daemonname.DHCPv4 && daemon.Name != daemonname.DHCPv6 {
+	if !daemon.Name.IsDHCP() {
 		return nil
 	}
 
