@@ -9,7 +9,6 @@ import (
 	errors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constants/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/server/agentcomm"
 	dbops "isc.org/stork/server/database"
@@ -102,7 +101,7 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 
 	now := storkutil.UTCNow()
 
-	isDHCPDaemon := daemon.Name == daemonname.DHCPv4 || daemon.Name == daemonname.DHCPv6
+	isDHCPDaemon := daemon.Name.IsDHCP()
 
 	var versionGetResponse VersionGetResponse
 	var configGetResponse keactrl.Response
