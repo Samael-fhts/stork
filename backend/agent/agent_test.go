@@ -28,10 +28,10 @@ import (
 
 	"isc.org/stork"
 	agentapi "isc.org/stork/api"
-	"isc.org/stork/daemonctrl/constants/daemonname"
-	"isc.org/stork/daemonctrl/constants/protocoltype"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
+	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/constants/protocoltype"
 	"isc.org/stork/hooks"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"

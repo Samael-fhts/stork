@@ -8,8 +8,8 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constants/daemonname"
-	"isc.org/stork/daemonctrl/constants/protocoltype"
+	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/constants/protocoltype"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configreview"

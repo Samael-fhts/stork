@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/datamodel/constants/daemonname"
 )
 
 const valuesSetCommand CommandName = "values-set"

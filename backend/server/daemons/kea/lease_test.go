@@ -6,10 +6,10 @@ import (
 
 	require "github.com/stretchr/testify/require"
 
-	"isc.org/stork/daemonctrl/constants/daemonname"
-	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	keadata "isc.org/stork/daemondata/kea"
+	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/constants/protocoltype"
 	"isc.org/stork/server/agentcomm"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	dbmodel "isc.org/stork/server/database/model"

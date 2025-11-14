@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"gopkg.in/h2non/gock.v1"
-	"isc.org/stork/daemonctrl/constants/daemonname"
-	"isc.org/stork/daemonctrl/constants/protocoltype"
+	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/constants/protocoltype"
 )
 
 //go:embed testdata/bind9-prom-server-stats.json

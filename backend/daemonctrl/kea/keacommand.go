@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
-	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/datamodel/constants/daemonname"
 )
 
 // Kea command name type.

@@ -8,9 +8,9 @@ import (
 	errors "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
-	"isc.org/stork/daemonctrl/constants/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
 	keadata "isc.org/stork/daemondata/kea"
+	"isc.org/stork/datamodel/constants/daemonname"
 	"isc.org/stork/server/agentcomm"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"

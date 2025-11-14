@@ -20,8 +20,8 @@ import (
 
 	"isc.org/stork"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constants/daemonname"
 	"isc.org/stork/daemondata/bind9stats"
+	"isc.org/stork/datamodel/constants/daemonname"
 	"isc.org/stork/pki"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/certs"

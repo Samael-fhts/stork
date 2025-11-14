@@ -5,7 +5,7 @@ import (
 	"time"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constants/daemonname"
+	"isc.org/stork/datamodel/constants/daemonname"
 	dbtest "isc.org/stork/server/database/test"
 )
 

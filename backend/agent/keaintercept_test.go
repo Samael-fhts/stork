@@ -5,8 +5,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/daemonctrl/constants/daemonname"
 	keactrl "isc.org/stork/daemonctrl/kea"
+	"isc.org/stork/datamodel/constants/daemonname"
 )
 
 // Test that new instance of the Kea interceptor is created successfully.

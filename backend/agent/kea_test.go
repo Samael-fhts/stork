@@ -13,9 +13,9 @@ import (
 	"go.uber.org/mock/gomock"
 	"gopkg.in/h2non/gock.v1"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/daemonctrl/constants/daemonname"
-	"isc.org/stork/daemonctrl/constants/protocoltype"
 	keactrl "isc.org/stork/daemonctrl/kea"
+	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/constants/protocoltype"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
 )

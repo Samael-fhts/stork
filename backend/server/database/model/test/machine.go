@@ -5,8 +5,8 @@ import (
 	"math/rand"
 
 	"github.com/go-pg/pg/v10"
-	"isc.org/stork/daemonctrl/constants/daemonname"
-	"isc.org/stork/daemonctrl/constants/protocoltype"
+	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/constants/protocoltype"
 	dbmodel "isc.org/stork/server/database/model"
 )
 

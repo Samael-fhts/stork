@@ -6,8 +6,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
-	"isc.org/stork/daemonctrl/constants/daemonname"
 	pdnsdata "isc.org/stork/daemondata/pdns"
+	"isc.org/stork/datamodel/constants/daemonname"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"
 )

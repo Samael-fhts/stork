@@ -3,7 +3,7 @@ package dbmodel
 import (
 	"github.com/go-pg/pg/v10"
 	pkgerrors "github.com/pkg/errors"
-	"isc.org/stork/daemonctrl/constants/protocoltype"
+	"isc.org/stork/datamodel/constants/protocoltype"
 	dbops "isc.org/stork/server/database"
 )
 
