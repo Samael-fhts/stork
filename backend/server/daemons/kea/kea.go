@@ -74,7 +74,7 @@ func GetConfig(ctx context.Context, agents agentcomm.ConnectedAgents, daemon age
 		return nil, errors.WithMessage(err, "problem communicating with Stork agent")
 	}
 	if err := result.GetFirstError(); err != nil {
-		return nil, errors.WithMessage(err, "problem with config-get response from CA")
+		return nil, errors.WithMessage(err, "problem with config-get response")
 	}
 	if err = configGetResponse.GetError(); err != nil {
 		return nil, err
