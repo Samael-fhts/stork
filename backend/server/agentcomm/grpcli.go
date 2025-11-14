@@ -212,9 +212,6 @@ func (s *keaCommState) setState(daemon daemonname.Name, state CommErrorTransitio
 
 // Gets state for a daemon.
 func (s *keaCommState) getState(daemon daemonname.Name) CommErrorTransition {
-	if s.states == nil {
-		return CommErrorNone
-	}
 	state, ok := s.states[daemon]
 	if !ok {
 		return CommErrorNone
