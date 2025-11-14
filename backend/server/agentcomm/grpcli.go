@@ -188,20 +188,13 @@ func (s *keaCommState) appendError(daemon daemonname.Name, err error) {
 }
 
 // Returns number of errors recorded for a daemon.
-func (s *keaCommState) getErrorCount(daemon daemonname.Name) int {
-	if s.errors == nil {
-		return 0
-	}
-	if s.errors[daemon] == nil {
-		return 0
-	}
-	errorCount := 0
+func (s *keaCommState) getErrorCount(daemon daemonname.Name) (errorCount int) {
 	for _, err := range s.errors[daemon] {
 		if err != nil {
 			errorCount++
 		}
 	}
-	return errorCount
+	return
 }
 
 // Returns errors recorded for a daemon.
