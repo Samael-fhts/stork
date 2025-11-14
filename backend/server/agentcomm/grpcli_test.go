@@ -327,58 +327,52 @@ func TestForwardToKeaOverHTTP(t *testing.T) {
 	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.D2))
 }
 
-// Test that two commands can be successfully forwarded to Kea and the response
-// can be parsed.
+// Test that two commands at once can be successfully forwarded to the same Kea
+// daemon and the response can be parsed.
 func TestForwardToKeaOverHTTPWith2Cmds(t *testing.T) {
+	// Arrange
 	ctrl := gomock.NewController(t)
 	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
 	defer ctrl.Finish()
 
-	rspV4 := agentapi.ForwardToKeaOverHTTPRsp{
+	response := agentapi.ForwardToKeaOverHTTPRsp{
 		Status: &agentapi.Status{
 			Code: 0,
 		},
-		KeaResponses: []*agentapi.KeaResponse{{
-			Status: &agentapi.Status{
-				Code: 0,
+		KeaResponses: []*agentapi.KeaResponse{
+			{
+				Status: &agentapi.Status{
+					Code: 0,
+				},
+				Response: []byte(`{
+					"result": 1,
+					"text": "operation failed"
+				}`),
 			},
-			Response: []byte(`{
-                "result": 1,
-                "text": "operation failed"
-            }`),
-		}},
-	}
-
-	rspV6 := agentapi.ForwardToKeaOverHTTPRsp{
-		Status: &agentapi.Status{
-			Code: 0,
+			{
+				Status: &agentapi.Status{
+					Code: 0,
+				},
+				Response: []byte(`{
+					"result": 0,
+					"text": "operation succeeded",
+					"arguments": {
+						"success": true
+					}
+				}`),
+			},
 		},
-		KeaResponses: []*agentapi.KeaResponse{{
-			Status: &agentapi.Status{
-				Code: 0,
-			},
-			Response: []byte(`{
-                "result": 0,
-                "text": "operation succeeded",
-                "arguments": {
-                    "success": true
-                }
-            }`),
-		}},
 	}
 
 	mockAgentClient.EXPECT().
 		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
-		Return(&rspV4, nil)
-	mockAgentClient.EXPECT().
-		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
-		Return(&rspV6, nil)
+		Return(&response, nil)
 
 	ctx := context.Background()
-	commandV4 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
-	commandV6 := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv6)
-	var actualResponseV4 keactrl.Response
-	var actualResponseV6 keactrl.Response
+	command1 := keactrl.NewCommandBase(keactrl.CommandName("first-command"), daemonname.DHCPv4)
+	command2 := keactrl.NewCommandBase(keactrl.CommandName("second-command"), daemonname.DHCPv4)
+	var actualResponse1 keactrl.Response
+	var actualResponse2 keactrl.Response
 	dbDaemon := &dbmodel.Daemon{
 		Name: daemonname.DHCPv4,
 		Machine: &dbmodel.Machine{
@@ -392,28 +386,33 @@ func TestForwardToKeaOverHTTPWith2Cmds(t *testing.T) {
 			Key:     "",
 		}},
 	}
-	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{commandV4}, &actualResponseV4)
-	require.NoError(t, err)
-	require.NotNil(t, actualResponseV4)
-	require.NoError(t, cmdsResult.Error)
-	require.Len(t, cmdsResult.CmdsErrors, 1)
-	require.Error(t, cmdsResult.CmdsErrors[0])
-	require.Equal(t, keactrl.ResponseError, actualResponseV4.Result)
-	require.Equal(t, "operation failed", actualResponseV4.Text)
-	require.Nil(t, actualResponseV4.Arguments)
 
-	dbDaemon.Name = daemonname.DHCPv6
-	cmdsResult, err = agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{commandV6}, &actualResponseV6)
+	// Act
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(
+		ctx, dbDaemon,
+		[]keactrl.SerializableCommand{command1, command2},
+		&actualResponse1, &actualResponse2,
+	)
+
+	// Assert
 	require.NoError(t, err)
-	require.NotNil(t, actualResponseV6)
 	require.NoError(t, cmdsResult.Error)
-	require.Len(t, cmdsResult.CmdsErrors, 1)
-	require.NoError(t, cmdsResult.CmdsErrors[0])
-	require.Equal(t, keactrl.ResponseSuccess, actualResponseV6.Result)
-	require.Equal(t, "operation succeeded", actualResponseV6.Text)
-	require.NotNil(t, actualResponseV6.Arguments)
+	require.Len(t, cmdsResult.CmdsErrors, 2)
+
+	require.Error(t, cmdsResult.CmdsErrors[0])
+	require.NotNil(t, actualResponse1)
+	require.Equal(t, keactrl.ResponseError, actualResponse1.Result)
+	require.Equal(t, "operation failed", actualResponse1.Text)
+
+	require.NotNil(t, actualResponse2.Arguments)
+	require.NotNil(t, actualResponse2)
+	require.NoError(t, cmdsResult.CmdsErrors[1])
+	require.Equal(t, keactrl.ResponseSuccess, actualResponse2.Result)
+	require.Equal(t, "operation succeeded", actualResponse2.Text)
+	require.NotNil(t, actualResponse2.Arguments)
+
 	argumentMap := map[string]any{}
-	err = json.Unmarshal(actualResponseV6.Arguments, &argumentMap)
+	err = json.Unmarshal(actualResponse2.Arguments, &argumentMap)
 	require.NoError(t, err)
 	require.Len(t, argumentMap, 1)
 	require.Contains(t, argumentMap, "success")
