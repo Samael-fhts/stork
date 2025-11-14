@@ -246,7 +246,7 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 				message = daemonResponse.Status.Message
 			}
 
-			err := errors.Errorf("received error while sending the command %s over GRPC: %s", command.GetCommand(), message)
+			err := errors.Errorf("received error while sending the command %s over gRPC: %s", command.GetCommand(), message)
 			state.appendError(daemon, err)
 			continue
 		}
