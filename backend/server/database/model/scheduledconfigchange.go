@@ -27,6 +27,7 @@ const (
 	ConfigOperationKeaGlobalParametersUpdate ConfigOperation = "kea.global_parameters_update"
 )
 
+// Indicates whether the config operation pertains to Kea.
 func (op ConfigOperation) IsKeaOperation() bool {
 	return strings.HasPrefix(string(op), "kea.")
 }
