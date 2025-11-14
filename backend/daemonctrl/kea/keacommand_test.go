@@ -196,7 +196,7 @@ func TestKeaCommandMarshalError(t *testing.T) {
 
 	// The daemon list should be unchanged after marshaling.
 	require.Len(t, cmd.Daemons, 1)
-	require.Equal(t, daemonname.CA, cmd.Daemons[0])
+	require.Equal(t, daemonname.DHCPv4, cmd.Daemons[0])
 
 }
 
@@ -232,7 +232,7 @@ func TestKeaCommandMarshalWithStructArgs(t *testing.T) {
 
 	// The daemon list should be unchanged after marshaling.
 	require.Len(t, cmd.Daemons, 1)
-	require.Equal(t, daemonname.CA, cmd.Daemons[0])
+	require.Equal(t, daemonname.DHCPv4, cmd.Daemons[0])
 
 }
 
