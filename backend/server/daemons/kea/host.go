@@ -95,6 +95,7 @@ func (puller *HostsPuller) pull() error {
 		case pulled:
 			successCount += 1
 		case err != nil:
+			log.WithError(err).Errorf("Problem pulling Kea hosts from daemon %d", daemons[i].ID)
 			erredCount += 1
 		default:
 			skippedCount += 1
