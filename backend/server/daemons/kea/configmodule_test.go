@@ -132,7 +132,12 @@ func TestBeginGlobalParametersUpdate(t *testing.T) {
 	require.NoError(t, err)
 
 	states := []DaemonStateMeta{{}, {}}
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, states, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		states,
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -321,7 +326,12 @@ func TestCommitGlobalParametersUpdate(t *testing.T) {
 
 	states := []DaemonStateMeta{{}, {}}
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, states, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		states,
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetKeaDaemonsByIDs(db, []int64{daemon1.ID, daemon2.ID})
@@ -2552,7 +2562,12 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	daemon, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -2650,7 +2665,12 @@ func TestApplySharedNetwork4Delete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -2766,7 +2786,12 @@ func TestApplySharedNetwork6Delete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -2882,7 +2907,12 @@ func TestCommitSharedNetworkDelete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3141,7 +3171,12 @@ func TestCommitSubnetAdd(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3316,7 +3351,12 @@ func TestBeginSubnetUpdate(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3645,7 +3685,12 @@ func TestCommitSubnetUpdate(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3790,7 +3835,12 @@ func TestCommitSubnetUpdateResponseWithErrorStatus(t *testing.T) {
 	daemon, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -3876,7 +3926,12 @@ func TestApplySubnet4Delete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -4004,7 +4059,12 @@ func TestApplySubnet6Delete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)
@@ -4132,7 +4192,12 @@ func TestCommitSubnetDelete(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemons, err := dbmodel.GetAllDaemons(db)

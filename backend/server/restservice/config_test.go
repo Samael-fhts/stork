@@ -1620,7 +1620,12 @@ func TestUpdateGlobalParameters4BeginSubmit(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}
@@ -1906,7 +1911,12 @@ func TestUpdateGlobalParameters6BeginSubmit(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, daemon2)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}
@@ -2429,7 +2439,12 @@ func TestUpdateGlobalParametersBeginCancel(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	daemonIDs := []int64{daemon1.GetID(), daemon2.GetID()}

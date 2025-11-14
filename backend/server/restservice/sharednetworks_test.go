@@ -110,7 +110,12 @@ func TestGetSharedNetworks(t *testing.T) {
 	daemon6, err := dhcp6.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon4, daemon6}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon4, daemon6},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	// get all shared networks
@@ -193,7 +198,12 @@ func TestGetSharedNetwork4(t *testing.T) {
 	require.NoError(t, err)
 
 	// Populate subnets and shared networks from the Kea configuration.
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon4}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon4},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
@@ -489,7 +499,12 @@ func TestGetSharedNetwork4MinimalParameters(t *testing.T) {
 	require.NoError(t, err)
 
 	// Populate the subnets in the database.
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon4}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon4},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
@@ -536,7 +551,12 @@ func TestGetSharedNetwork6(t *testing.T) {
 	require.NoError(t, err)
 
 	// Populate subnets and shared networks from the Kea configuration.
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon6}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon6},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
@@ -659,7 +679,12 @@ func TestGetSharedNetwork6MinimalParameters(t *testing.T) {
 	require.NoError(t, err)
 
 	// Populates the subnets in the database.
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon6}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon6},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
@@ -732,7 +757,12 @@ func TestCreateSharedNetwork4BeginSubmit(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -1129,7 +1159,12 @@ func TestCreateSharedNetwork4BeginSubmitError(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -1324,7 +1359,12 @@ func TestCreateSharedNetworkBeginCancel(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -1453,7 +1493,12 @@ func TestUpdateSharedNetwork4BeginSubmit(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -1974,7 +2019,12 @@ func TestUpdateSharedNetwork6BeginSubmit(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -2198,7 +2248,12 @@ func TestUpdateSharedNetworkBeginCancel(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
@@ -2209,7 +2264,12 @@ func TestUpdateSharedNetworkBeginCancel(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -2344,7 +2404,12 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	server2, err := dbmodeltest.NewKeaDHCPv4Server(db)
@@ -2355,7 +2420,12 @@ func TestDeleteSharedNetwork(t *testing.T) {
 	daemon2, err := server2.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon2}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon2},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)
@@ -2471,7 +2541,12 @@ func TestDeleteSharedNetworkError(t *testing.T) {
 	daemon1, err := server1.GetDaemon()
 	require.NoError(t, err)
 
-	err = kea.CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1}, &storktest.FakeEventCenter{}, []kea.DaemonStateMeta{{IsConfigChanged: true}}, dbmodel.NewDHCPOptionDefinitionLookup())
+	err = kea.CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1},
+		&storktest.FakeEventCenter{},
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	allDaemons, err := dbmodel.GetAllDaemons(db)

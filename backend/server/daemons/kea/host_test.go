@@ -653,7 +653,12 @@ func TestDetectHostsSameConfig(t *testing.T) {
 	// Both configurations are indicated to be the same so the hosts should not
 	// be committed to the database.
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: false}, {IsConfigChanged: false}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: false}, {IsConfigChanged: false}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// Make sure that no hosts have been added.
@@ -662,7 +667,12 @@ func TestDetectHostsSameConfig(t *testing.T) {
 	require.Empty(t, hosts)
 
 	// Indicate that configuration is the same for DHCPv4 but not for DHCPv6.
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: false}, {IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: false}, {IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// The hosts should have been added for the DHCPv6 daemon.
@@ -714,8 +724,12 @@ func TestGetPageFromHostCmds(t *testing.T) {
 	err = dbmodel.AddDaemon(db, daemon2)
 	require.NoError(t, err)
 
-	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1227,7 +1241,12 @@ func TestFetchHostsFromHostCmds(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1334,7 +1353,12 @@ func TestPullHostsIntoDB(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1409,7 +1433,12 @@ func TestReduceHostsIntoDB(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// Create server which returns two hosts at the first attempt and
@@ -1484,7 +1513,12 @@ func TestPartialHostsChange(t *testing.T) {
 
 	fec := &storktest.FakeEventCenter{}
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPagePartialChange, nil)
@@ -1576,7 +1610,12 @@ func TestSkipPullingHostsIntoDB(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon1, daemon2}, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(mockReservationGetPage, nil)
@@ -1672,7 +1711,12 @@ func TestUpdateHost(t *testing.T) {
 	require.NoError(t, err)
 
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	fa := agentcommtest.NewFakeAgents(func(callNo int, cmdResponses []interface{}) {

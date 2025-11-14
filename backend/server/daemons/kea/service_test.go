@@ -545,7 +545,12 @@ func TestReduceHAServices(t *testing.T) {
 
 	// This call, apart from adding the daemon to the machine, will also associate the
 	// daemon with the HA services.
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	err = dhcp4.Configure(`{
@@ -587,7 +592,12 @@ func TestReduceHAServices(t *testing.T) {
 	daemon, err = dhcp4.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// Make sure that new service has been created.
@@ -643,7 +653,12 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	daemon, err := dhcp4.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)
@@ -708,7 +723,12 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	daemonHub, err := dhcp4Hub.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemonHub}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemonHub},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	services, err = dbmodel.GetDetailedAllServices(db)
@@ -760,7 +780,12 @@ func TestHubAndSpokeHAServices(t *testing.T) {
 	daemonBranch, err := dhcp4Branch.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemonBranch}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemonBranch},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	services, err = dbmodel.GetDetailedAllServices(db)
@@ -817,7 +842,12 @@ func TestDetectHAServicesErrors(t *testing.T) {
 	daemon, err := dhcp4.GetDaemon()
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, []*dbmodel.Daemon{daemon}, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon},
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	services, err := dbmodel.GetDetailedAllServices(db)

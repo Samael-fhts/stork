@@ -599,9 +599,12 @@ func TestMigration55LocalHostInDatabaseAndConfig(t *testing.T) {
 	fec := &storktestdbmodel.FakeEventCenter{}
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
 
-	err = kea.CommitDaemonsIntoDB(db, machine.Daemons, fec, []kea.DaemonStateMeta{{
-		IsConfigChanged: true,
-	}}, lookup)
+	err = kea.CommitDaemonsIntoDB(db,
+		machine.Daemons,
+		fec,
+		[]kea.DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// Add a database host reservations.

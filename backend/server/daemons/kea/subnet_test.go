@@ -124,7 +124,12 @@ func TestDetectNetworksWhenDaemonCommitted(t *testing.T) {
         }`
 	daemons := createDaemonsWithSubnets(t, db, 0, v4Config, v6Config)
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err := CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}}, lookup)
+	err := CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// The configuration didn't include any shared network, so it should
@@ -207,7 +212,12 @@ func TestDetectNetworksWhenDaemonCommitted(t *testing.T) {
         }`
 	daemons2 := createDaemonsWithSubnets(t, db, 1, v4Config, "")
 
-	err = CommitDaemonsIntoDB(db, daemons2, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons2,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// There should be one shared network in the database.
@@ -272,7 +282,12 @@ func TestDetectNetworksWhenDaemonCommitted(t *testing.T) {
             }
         }`
 	daemons3 := createDaemonsWithSubnets(t, db, 2, v4Config, "")
-	err = CommitDaemonsIntoDB(db, daemons3, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons3,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// There should still be just one shared network.
@@ -287,7 +302,12 @@ func TestDetectNetworksWhenDaemonCommitted(t *testing.T) {
 
 	// Adding the same subnet again should be fine and should not result in
 	// any conflicts.
-	err = CommitDaemonsIntoDB(db, daemons3, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons3,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	networks, err = dbmodel.GetAllSharedNetworks(db, 4)
@@ -391,7 +411,12 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
         }`
 	daemons := createDaemonsWithSubnets(t, db, 0, v4Config, "")
 	lookup := dbmodel.NewDHCPOptionDefinitionLookup()
-	err := CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err := CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// Shared network should have been created along with the subnets.
@@ -435,7 +460,12 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
 	err = daemons[0].SetKeaConfigFromJSON([]byte(v4Config0))
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// The shared network should still be there.
@@ -477,7 +507,12 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
 	err = daemons[0].SetKeaConfigFromJSON([]byte(v4Config1))
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// The shared network should now be gone.
@@ -488,7 +523,12 @@ func TestDetectNetworksMoveSubnetsAround(t *testing.T) {
 	// Revert to the original config.
 	err = daemons[0].SetKeaConfigFromJSON([]byte(v4Config0))
 	require.NoError(t, err)
-	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// The shared network should be there.
@@ -526,7 +566,12 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
 	// Assign the same configuration to two daemon sets.
 	for i := 0; i < len(daemonsList); i++ {
 		daemonsList[i] = createDaemonsWithSubnets(t, db, int64(i), v4Config, "")
-		err := CommitDaemonsIntoDB(db, daemonsList[i], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+		err := CommitDaemonsIntoDB(db,
+			daemonsList[i],
+			fec,
+			[]DaemonStateMeta{{IsConfigChanged: true}},
+			lookup,
+		)
 		require.NoError(t, err)
 	}
 
@@ -549,7 +594,12 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
 	err = daemonsList[0][0].SetKeaConfigFromJSON([]byte(v4Config))
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, daemonsList[0], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemonsList[0],
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// There should still be two subnets in the database, each owned
@@ -563,7 +613,12 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
 	// Update the second daemon to use the second subnet.
 	err = daemonsList[1][0].SetKeaConfigFromJSON([]byte(v4Config))
 	require.NoError(t, err)
-	err = CommitDaemonsIntoDB(db, daemonsList[1], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemonsList[1],
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// The first subnet should have been removed because the second
@@ -604,7 +659,12 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
 	// Assign the same configuration to two daemon sets.
 	for i := 0; i < len(daemonsList); i++ {
 		daemonsList[i] = createDaemonsWithSubnets(t, db, int64(i), v4Config, "")
-		err := CommitDaemonsIntoDB(db, daemonsList[i], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+		err := CommitDaemonsIntoDB(db,
+			daemonsList[i],
+			fec,
+			[]DaemonStateMeta{{IsConfigChanged: true}},
+			lookup,
+		)
 		require.NoError(t, err)
 	}
 
@@ -636,7 +696,12 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
 	err = daemonsList[0][0].SetKeaConfigFromJSON([]byte(v4Config))
 	require.NoError(t, err)
 
-	err = CommitDaemonsIntoDB(db, daemonsList[0], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemonsList[0],
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// There should be two hosts in the database, each owned by a
@@ -648,7 +713,12 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
 	// Update the second daemon to use the second reservation.
 	err = daemonsList[1][0].SetKeaConfigFromJSON([]byte(v4Config))
 	require.NoError(t, err)
-	err = CommitDaemonsIntoDB(db, daemonsList[1], fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemonsList[1],
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// The first host should have been removed because the second
@@ -694,7 +764,12 @@ func TestDetectNetworkUpdateAddressPool(t *testing.T) {
 
 	v4ConfigJSON, _ := json.Marshal(v4Config)
 	daemons := createDaemonsWithSubnets(t, db, 0, string(v4ConfigJSON), "")
-	_ = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	_ = CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 
 	// Act
 	// Update the config.
@@ -702,7 +777,12 @@ func TestDetectNetworkUpdateAddressPool(t *testing.T) {
 	v4ConfigJSON, _ = json.Marshal(v4Config)
 	err := daemons[0].SetKeaConfigFromJSON(v4ConfigJSON)
 	require.NoError(t, err)
-	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 
 	// Assert
 	require.NoError(t, err)
@@ -736,7 +816,12 @@ func TestDetectNetworkUpdateClientClass(t *testing.T) {
 	v4ConfigJSON, _ := json.Marshal(v4Config)
 	daemons := createDaemonsWithSubnets(t, db, 0, string(v4ConfigJSON), "")
 
-	err := CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err := CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 	require.NoError(t, err)
 
 	// Act
@@ -745,7 +830,12 @@ func TestDetectNetworkUpdateClientClass(t *testing.T) {
 	v4ConfigJSON, _ = json.Marshal(v4Config)
 	err = daemons[0].SetKeaConfigFromJSON(v4ConfigJSON)
 	require.NoError(t, err)
-	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 
 	// Assert
 	require.NoError(t, err)
@@ -781,7 +871,12 @@ func TestDetectNetworkUpdateDelegatedPrefixPool(t *testing.T) {
 
 	configJSON, _ := json.Marshal(config)
 	daemons := createDaemonsWithSubnets(t, db, 0, "", string(configJSON))
-	_ = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	_ = CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 
 	// Act
 	// Update the config.
@@ -791,7 +886,12 @@ func TestDetectNetworkUpdateDelegatedPrefixPool(t *testing.T) {
 	configJSON, _ = json.Marshal(config)
 	err := daemons[0].SetKeaConfigFromJSON(configJSON)
 	require.NoError(t, err)
-	err = CommitDaemonsIntoDB(db, daemons, fec, []DaemonStateMeta{{IsConfigChanged: true}}, lookup)
+	err = CommitDaemonsIntoDB(db,
+		daemons,
+		fec,
+		[]DaemonStateMeta{{IsConfigChanged: true}},
+		lookup,
+	)
 
 	// Assert
 	require.NoError(t, err)
