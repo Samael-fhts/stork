@@ -1778,7 +1778,6 @@ func TestUpdateHost(t *testing.T) {
 
 		err := json.Unmarshal([]byte(str), cmdResponses[0])
 		require.NoError(t, err)
-		fmt.Printf("cmdResponses[0]: %+v\n", cmdResponses[0])
 	}, nil)
 
 	// The puller requires fetch interval to be present in the database.
