@@ -213,7 +213,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 		return "Cannot parse agent version"
 	}
 
-	if agentVersion.LessThanOrEqual(storkutil.NewSemanticVersion(2, 3, 0)) {
+	if agentVersion.LessThan(storkutil.NewSemanticVersion(2, 3, 1)) {
 		// The agent communicates through the Kea CA. It cannot detect the
 		// other daemons.
 		for _, daemon := range state.Daemons {

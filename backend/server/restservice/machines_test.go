@@ -123,7 +123,7 @@ func mockGetAppsState(callNo int, cmdResponses []interface{}) {
 		*versionResponse = kea.VersionGetResponse{
 			ResponseHeader: keactrl.ResponseHeader{
 				Result: 0,
-				Text:   "2.3.0",
+				Text:   "2.3.1",
 			},
 			Arguments: &kea.VersionGetRespArgs{
 				Extended: "Extended version",
@@ -238,7 +238,7 @@ func TestGetMachineAndDaemonsState(t *testing.T) {
 	require.NoError(t, err)
 
 	fa.MachineState = &agentcomm.State{
-		AgentVersion: "2.3.0",
+		AgentVersion: "2.3.1",
 		Daemons: []*agentcomm.Daemon{
 			{
 				Name: daemonname.CA,
@@ -331,7 +331,7 @@ func TestGetMachineAndPowerDNSState(t *testing.T) {
 	mockAgents.EXPECT().GetState(gomock.Any(), gomock.Any()).DoAndReturn(func(ctx context.Context, machineTag dbmodel.MachineTag) (*agentcomm.State, error) {
 		require.EqualValues(t, machine.ID, machineTag.GetID())
 		return &agentcomm.State{
-			AgentVersion: "2.3.0",
+			AgentVersion: "2.3.1",
 			Daemons: []*agentcomm.Daemon{
 				{
 					Name: daemonname.PDNS,
