@@ -12,6 +12,9 @@ import (
 	dbops "isc.org/stork/server/database"
 )
 
+// Represents an identifier of a configuration operation. Each modification
+// that can be applied to the daemon configuration by the config manager
+// has its own unique operation.
 type ConfigOperation string
 
 const (
