@@ -231,11 +231,12 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 	for idx, daemonResponse := range resp.GetKeaResponses() {
 		command := commands[idx]
 		daemons := command.GetDaemonsList()
-		// It is expected that a single command is sent to a single daemon.
-		// The multiple-daemon commands are supported only when the
-		// communication is tunneled via Kea Control Agent. Stork sends the
-		// commands to daemons directly for Kea daemons in 3.0.0 version and
-		// later, so it always creates commands for a single daemon.
+		// Only the Kea CA supports sending commands to multiple daemons.
+		// Other daemons support only commands directed to themselves.
+		// To simplify command sending, Stork always creates commands for a
+		// single daemon (regardless if it is CA or another daemon and if the
+		// commands are proxied via CA or sent directly). Thus, it is expected
+		// that the daemon list contains a single daemon.
 		daemon := daemons[0]
 		uniqueDaemons[daemon] = struct{}{}
 
