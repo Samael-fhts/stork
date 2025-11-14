@@ -575,9 +575,9 @@ func (agents *connectedAgentsImpl) ForwardRndcCommand(ctx context.Context, daemo
 // the statistics-channel of the named daemon.
 func (agents *connectedAgentsImpl) ForwardToNamedStats(ctx context.Context, daemon ControlledDaemon, requestType ForwardToNamedStatsRequestType, statsOutput any) error {
 	addrPort := net.JoinHostPort(daemon.GetMachineTag().GetAddress(), strconv.FormatInt(daemon.GetMachineTag().GetAgentPort(), 10))
-	ap, err_ := daemon.GetAccessPoint(dbmodel.AccessPointStatistics)
-	if err_ != nil {
-		return errors.WithMessage(err_, "failed to get statistics access point for daemon")
+	ap, err := daemon.GetAccessPoint(dbmodel.AccessPointStatistics)
+	if err != nil {
+		return errors.WithMessage(err, "failed to get statistics access point for daemon")
 	}
 	statsURL := storkutil.HostWithPortURL(ap.Address, ap.Port, string(ap.Protocol))
 
