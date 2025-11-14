@@ -234,8 +234,8 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 		// It is expected that a single command is sent to a single daemon.
 		// The multiple-daemon commands are supported only when the
 		// communication is tunneled via Kea Control Agent. Stork sends the
-		// commands to daemons directly for Kea daemons in 3 version, so it
-		// always creates commands for a single daemon.
+		// commands to daemons directly for Kea daemons in 3.0.0 version and
+		// later, so it always creates commands for a single daemon.
 		daemon := daemons[0]
 		uniqueDaemons[daemon] = struct{}{}
 
