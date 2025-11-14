@@ -199,9 +199,6 @@ func (s *keaCommState) getErrorCount(daemon daemonname.Name) (errorCount int) {
 
 // Returns errors recorded for a daemon.
 func (s *keaCommState) getErrors(daemon daemonname.Name) []error {
-	if s.errors == nil {
-		return nil
-	}
 	return s.errors[daemon]
 }
 
