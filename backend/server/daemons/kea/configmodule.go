@@ -625,11 +625,11 @@ func (module *ConfigModule) commitChanges(ctx context.Context) (context.Context,
 			// the agent could have issues with the Kea response.
 			if err == nil {
 				// Let's check if the agent found errors in communication with Kea.
-				// If not, the individual Kea instances could return error codes as
-				// a result of processing the commands.
+				// If not, the Kea daemon could return an error as a result of
+				// processing the commands.
 				if err = result.GetFirstError(); err == nil {
-					// Let's check if the individual Kea servers returned error
-					// codes for the processed commands.
+					// Let's check if the Kea server returned an error
+					// for the processed command.
 					if err = keactrl.GetResponseError(response); err != nil {
 						break
 					}
