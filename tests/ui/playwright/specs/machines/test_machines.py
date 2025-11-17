@@ -131,3 +131,31 @@ def test_machines_installing_agent_dialog(page):
 
     # Logout
     lp.logout("admin")
+
+@pytest.mark.ui
+def test_machines_dhcp_badges_and_app_tabs_present(page):
+    lp = LoginPage(page)
+    mp = MachinesPage(page)
+
+    # Login and reach Machines page
+    lp.open(BASE_URL)
+    lp.login(ADMIN_USER, NEW_ADMIN_PASS if NEW_ADMIN_PASS else ADMIN_PASS)
+    lp.await_dashboard()
+    mp.open()
+
+    row_key = "172.42.42.100:8080"
+
+    # Verify badges on Machines row
+    mp.expect_dhcp_badges_on_row(row_key)
+
+    # Enter the App details by clicking the badges cell
+    mp.open_app_from_badges_cell(row_key)
+
+    # Verify presence only (no tab clicks)
+    mp.expect_app_tabs_present()
+
+    # Click refresh and toggle monitoring
+    mp.app_click_refresh()
+    mp.app_toggle_monitoring_off_on()
+
+    lp.logout("admin")

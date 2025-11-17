@@ -200,3 +200,28 @@ class MachinesPage:
 
     def close_install_dialog(self):
         self.page.get_by_role("button", name=re.compile(r"\bClose\b", re.I)).click()
+
+    def expect_dhcp_badges_on_row(self, row_key: str):
+        row = self.page.get_by_role("row", name=row_key, exact=True)
+        expect(row.get_by_role("cell", name=re.compile(r"DHCPv4.*DHCPv6.*CA", re.I))).to_be_visible(timeout=3000)
+
+    def open_app_from_badges_cell(self, row_key: str):
+        self.page.get_by_role("cell", name=re.compile(r"DHCPv4.*DHCPv6.*CA", re.I)).click()
+
+    def expect_app_tabs_present(self):
+        # Left-side daemon tabs
+        for tab in ("DHCPv4", "DHCPv6", "CA"):
+            expect(self.page.get_by_role("tab", name=re.compile(rf"\b{tab}\b", re.I))).to_be_visible(timeout=3000)
+        # Main action buttons row
+        for btn in ("Host Reservations", "Subnets", "Shared Networks", "Global Configuration", "Raw configuration"):
+            expect(self.page.get_by_role("button", name=re.compile(rf"\b{btn}\b", re.I))).to_be_visible(timeout=3000)
+
+    def app_click_refresh(self):
+        btn = self.page.get_by_role("button", name=re.compile(r"\bRefresh\s+App\b", re.I))
+        expect(btn).to_be_visible(timeout=3000)
+        btn.click()
+
+    def app_toggle_monitoring_off_on(self):
+        sw = self.page.get_by_role("switch", name="Monitoring")
+        sw.uncheck()
+        sw.check()
