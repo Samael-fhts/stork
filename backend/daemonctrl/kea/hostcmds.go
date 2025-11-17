@@ -13,29 +13,27 @@ const (
 
 // Creates reservation-add command.
 func NewCommandReservationAdd(reservation *keaconfig.HostCmdsReservation, daemonName daemonname.Name) *Command {
-	return newCommand(ReservationAdd, daemonName, map[string]any{"reservation": reservation})
+	return NewCommandBase(ReservationAdd, daemonName).
+		WithArgument("reservation", reservation)
 }
 
 // Creates reservation-del command.
 func NewCommandReservationDel(reservation *keaconfig.HostCmdsDeletedReservation, daemonName daemonname.Name) *Command {
-	return newCommand(ReservationDel, daemonName, reservation)
+	return NewCommandBase(ReservationDel, daemonName).WithArguments(reservation)
 }
 
 // Creates reservation-get-page command. The arguments from and source-index
 // are only included in the command when they are greater than 0.
 func NewCommandReservationGetPage(localSubnetID, sourceIndex, from, limit int64, daemonName daemonname.Name) *Command {
-	arguments := map[string]any{
-		"subnet-id": localSubnetID,
-		"limit":     limit,
-	}
+	command := NewCommandBase(ReservationGetPage, daemonName).
+		WithArgument("subnet-id", localSubnetID).
+		WithArgument("limit", limit)
 
 	if from > 0 {
-		arguments["from"] = from
+		command = command.WithArgument("from", from)
 	}
-
 	if sourceIndex > 0 {
-		arguments["source-index"] = sourceIndex
+		command = command.WithArgument("source-index", sourceIndex)
 	}
-
-	return newCommand(ReservationGetPage, daemonName, arguments)
+	return command
 }

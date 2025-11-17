@@ -226,6 +226,52 @@ type ExaminableResponse interface {
 	GetArguments() json.RawMessage
 }
 
+// Given the command pointer it returns existing arguments map or creates
+// a new arguments map, if it doesn't exist yet. It panics when the existing
+// arguments are not a map.
+func createOrGetArguments(command *Command) (mapArgs map[string]any) {
+	if command.Arguments == nil {
+		mapArgs = make(map[string]any)
+		command.Arguments = mapArgs
+		return
+	}
+	var ok bool
+	mapArgs, ok = command.Arguments.(map[string]any)
+	if !ok {
+		panic("command arguments are not a map")
+	}
+	return
+}
+
+// Appends argument to the command. If the arguments are nil, the
+// map of arguments is instantiated by this function. If the arguments
+// are not a map, this function panics. Otherwise, the specified argument
+// is set in the arguments map under the specified name.
+func (c Command) WithArgument(name string, value any) *Command {
+	command := c
+	mapValue := createOrGetArguments(&command)
+	mapValue[name] = value
+	return &command
+}
+
+// Appends an array of arguments to the command. If the arguments are nil,
+// the map of arguments is instantiated by this function. If the arguments
+// are not a map, this function panics. Otherwise, an array of values is
+// set in the arguments map under the specified name.
+func (c Command) WithArrayArgument(name string, value ...any) *Command {
+	command := c
+	mapValue := createOrGetArguments(&command)
+	mapValue[name] = value
+	return &command
+}
+
+// Sets arguments for a command and returns a command copy.
+func (c Command) WithArguments(arguments any) *Command {
+	command := c
+	command.Arguments = arguments
+	return &command
+}
+
 // Returns status code.
 func (r ResponseHeader) GetResult() ResponseResult {
 	return r.Result
