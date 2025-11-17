@@ -38,16 +38,6 @@ func (err *testError) Error() string {
 	return "test error"
 }
 
-// makeAccessPoint is an utility to make single element daemon access point slice.
-func makeAccessPoint(tp, address, key string, port int64) (ap []*agentapi.AccessPoint) {
-	return append(ap, &agentapi.AccessPoint{
-		Type:    tp,
-		Address: address,
-		Port:    port,
-		Key:     key,
-	})
-}
-
 // Setup function for the unit tests.
 func setupGrpcliTestCase(ctrl *gomock.Controller) (*MockAgentClient, *connectedAgentsImpl) {
 	mockAgentClient := NewMockAgentClient(ctrl)
@@ -156,59 +146,390 @@ func TestPingError(t *testing.T) {
 
 // Check if GetState works.
 func TestGetState(t *testing.T) {
+	// Arrange
 	ctrl := gomock.NewController(t)
 	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
 	defer ctrl.Finish()
 
-	// prepare expectations
-	expVer := "123"
-	rsp := agentapi.GetStateRsp{
-		AgentVersion: expVer,
+	// Prepare expectations.
+	expectedVersion := "123"
+	response := agentapi.GetStateRsp{
+		AgentVersion: expectedVersion,
 		Daemons: []*agentapi.Daemon{
 			{
-				Name:         string(daemonname.DHCPv4),
-				AccessPoints: makeAccessPoint(AccessPointControl, "1.2.3.4", "", 1234),
+				Name: string(daemonname.DHCPv4),
+				AccessPoints: []*agentapi.AccessPoint{{
+					Type:     string(dbmodel.AccessPointControl),
+					Address:  "1.2.3.4",
+					Port:     1234,
+					Protocol: string(protocoltype.HTTPS),
+				}},
+			},
+			{
+				Name: string(daemonname.Bind9),
+				AccessPoints: []*agentapi.AccessPoint{{
+					Type:     string(dbmodel.AccessPointControl),
+					Address:  "1.2.3.5",
+					Port:     4321,
+					Protocol: string(protocoltype.RNDC),
+				}},
 			},
 		},
 	}
 	mockAgentClient.EXPECT().
 		GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
-		Return(&rsp, nil)
+		Return(&response, nil)
 
-	// call get state
 	ctx := context.Background()
+
+	// Act
 	state, err := agents.GetState(ctx, &dbmodel.Machine{
 		Address:   "127.0.0.1",
 		AgentPort: 8080,
 	})
+
+	// Assert
 	require.NoError(t, err)
-	require.Equal(t, expVer, state.AgentVersion)
+	require.Equal(t, expectedVersion, state.AgentVersion)
 	require.Equal(t, daemonname.DHCPv4, state.Daemons[0].Name)
+	require.Len(t, state.Daemons, 2)
+
+	require.Equal(t, daemonname.DHCPv4, state.Daemons[0].Name)
+	require.Len(t, state.Daemons[0].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPointControl, state.Daemons[0].AccessPoints[0].Type)
+	require.Equal(t, "1.2.3.4", state.Daemons[0].AccessPoints[0].Address)
+	require.EqualValues(t, 1234, state.Daemons[0].AccessPoints[0].Port)
+	require.Equal(t, protocoltype.HTTPS, state.Daemons[0].AccessPoints[0].Protocol)
+
+	require.Equal(t, daemonname.Bind9, state.Daemons[1].Name)
+	require.Len(t, state.Daemons[1].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPointControl, state.Daemons[1].AccessPoints[0].Type)
+	require.Equal(t, "1.2.3.5", state.Daemons[1].AccessPoints[0].Address)
+	require.EqualValues(t, 4321, state.Daemons[1].AccessPoints[0].Port)
+	require.Equal(t, protocoltype.RNDC, state.Daemons[1].AccessPoints[0].Protocol)
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+
 }
 
-// Test error case for GetState.
-func TestGetStateError(t *testing.T) {
+// Test that the call to the agent is retried if the connection error occurs.
+func TestGetStateRetryOnError(t *testing.T) {
+	// Arrange
 	ctrl := gomock.NewController(t)
 	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
 	defer ctrl.Finish()
-
-	// prepare expectations
-	mockAgentClient.EXPECT().
-		GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).AnyTimes().
-		Return(nil, pkgerrors.New("get state error"))
-
-	// call get state
 	ctx := context.Background()
-	_, err := agents.GetState(ctx, &dbmodel.Machine{
+
+	gomock.InOrder(
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("error")),
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(&agentapi.GetStateRsp{
+				AgentVersion: "2.5.0",
+				Daemons: []*agentapi.Daemon{
+					{
+						Name: string(daemonname.DHCPv4),
+						AccessPoints: []*agentapi.AccessPoint{{
+							Type:    string(dbmodel.AccessPointControl),
+							Address: "1.2.3.4",
+							Port:    1234,
+						}},
+					},
+				},
+			}, nil),
+	)
+
+	// Act
+	state, err := agents.GetState(ctx, &dbmodel.Machine{
 		Address:   "127.0.0.1",
 		AgentPort: 8080,
 	})
-	require.Error(t, err)
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, "2.5.0", state.AgentVersion)
+	require.Equal(t, daemonname.DHCPv4, state.Daemons[0].Name)
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+}
+
+// Test that the error is returned when trying to get state from an unknown agent.
+func TestGetStateCommunicateWithUnknownAgent(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+	ctx := context.Background()
+
+	gomock.InOrder(
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("initial error")),
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("unknown agent")),
+	)
+
+	// Act
+	state, err := agents.GetState(ctx, &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 8080,
+	})
+
+	// Assert
+	require.ErrorContains(t, err, "unknown agent")
+	require.Nil(t, state)
+	// Check that the event is raised.
+	events := agents.eventCenter.(*storktest.FakeEventCenter).Events
+	require.Len(t, events, 1)
+	event := events[0]
+	require.Equal(t, "communication with Stork agent on <machine id=\"0\" address=\"127.0.0.1\" hostname=\"\"> to get state failed", event.Text)
+	require.Equal(t, dbmodel.EvError, event.Level)
+	require.Contains(t, event.Details, "unknown agent")
 
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.EqualValues(t, 1, agent.stats.GetTotalAgentErrorCount())
+}
+
+// Test that the event is raised when the connection to an agent is restored.
+func TestGetStateConnectionReset(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+	ctx := context.Background()
+
+	gomock.InOrder(
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("first error")),
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("second error")),
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(&agentapi.GetStateRsp{
+				AgentVersion: "2.5.0",
+				Daemons: []*agentapi.Daemon{
+					{
+						Name: string(daemonname.DHCPv4),
+						AccessPoints: []*agentapi.AccessPoint{{
+							Type:    string(dbmodel.AccessPointControl),
+							Address: "1.2.3.4",
+							Port:    1234,
+						}},
+					},
+				},
+			}, nil),
+	)
+
+	// Make a failed call to set the error state.
+	_, _ = agents.GetState(ctx, &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 8080,
+	})
+
+	// Act
+	state, err := agents.GetState(ctx, &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 8080,
+	})
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, "2.5.0", state.AgentVersion)
+	require.Equal(t, daemonname.DHCPv4, state.Daemons[0].Name)
+	// Check that the event is raised.
+	events := agents.eventCenter.(*storktest.FakeEventCenter).Events
+	require.Len(t, events, 2)
+	event := events[1]
+	require.Equal(t, "communication with Stork agent on <machine id=\"0\" address=\"127.0.0.1\" hostname=\"\"> to get state succeeded", event.Text)
+	require.Equal(t, dbmodel.EvWarning, event.Level)
+	require.Empty(t, event.Details)
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+}
+
+// Test that the event is not raised when the connectivity error continues.
+func TestGetStateConnectionErrorContinued(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+	ctx := context.Background()
+
+	gomock.InOrder(
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("first error")),
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("second error")),
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("third error")),
+		mockAgentClient.EXPECT().
+			GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+			Return(nil, pkgerrors.New("fourth error")),
+	)
+
+	// Make a failed call to set the error state.
+	_, _ = agents.GetState(ctx, &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 8080,
+	})
+
+	// Act
+	state, err := agents.GetState(ctx, &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 8080,
+	})
+
+	// Assert
+	require.ErrorContains(t, err, "fourth error")
+	require.Nil(t, state)
+	// Check that the event is not raised twice.
+	events := agents.eventCenter.(*storktest.FakeEventCenter).Events
+	require.Len(t, events, 1)
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.EqualValues(t, 2, agent.stats.GetTotalAgentErrorCount())
+}
+
+// Test that the error is returned when the response to GetState is malformed.
+func TestGetStateBadResponse(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+
+	mockAgentClient.EXPECT().
+		GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return((*agentapi.GetStateRsp)(nil), nil)
+
+	ctx := context.Background()
+
+	// Act
+	state, err := agents.GetState(ctx, &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 8080,
+	})
+
+	// Assert
+	require.ErrorContains(t, err, "wrong response to get state")
+	require.Nil(t, state)
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+}
+
+// Test that the response from the legacy agents monitoring Kea is handled
+// correctly.
+func TestGetStateLegacyKeaResponse(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+
+	// Prepare expectations.
+	response := agentapi.GetStateRsp{
+		AgentVersion: "2.5.1",
+		Daemons: []*agentapi.Daemon{
+			{
+				Name: "kea",
+				AccessPoints: []*agentapi.AccessPoint{{
+					Type:              string(dbmodel.AccessPointControl),
+					Address:           "1.2.3.4",
+					Port:              1234,
+					UseSecureProtocol: true,
+				}},
+			},
+		},
+	}
+	mockAgentClient.EXPECT().
+		GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return(&response, nil)
+
+	ctx := context.Background()
+
+	// Act
+	state, err := agents.GetState(ctx, &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 8080,
+	})
+
+	// Assert
+	require.NoError(t, err)
+	require.Len(t, state.Daemons, 1)
+	require.Equal(t, daemonname.CA, state.Daemons[0].Name)
+	require.Len(t, state.Daemons[0].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPointControl, state.Daemons[0].AccessPoints[0].Type)
+	require.Equal(t, "1.2.3.4", state.Daemons[0].AccessPoints[0].Address)
+	require.EqualValues(t, 1234, state.Daemons[0].AccessPoints[0].Port)
+	require.Equal(t, protocoltype.HTTPS, state.Daemons[0].AccessPoints[0].Protocol)
+}
+
+// Test that the response from the legacy agents monitoring BIND9 is handled
+// correctly.
+func TestGetStateLegacyBIND9Response(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+
+	// Prepare expectations.
+	response := agentapi.GetStateRsp{
+		AgentVersion: "2.5.1",
+		Daemons: []*agentapi.Daemon{
+			{
+				Name: "bind9",
+				AccessPoints: []*agentapi.AccessPoint{{
+					Type:              string(dbmodel.AccessPointControl),
+					Address:           "1.2.3.4",
+					Port:              1234,
+					UseSecureProtocol: false,
+				}},
+			},
+		},
+	}
+	mockAgentClient.EXPECT().
+		GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return(&response, nil)
+
+	ctx := context.Background()
+
+	// Act
+	state, err := agents.GetState(ctx, &dbmodel.Machine{
+		Address:   "127.0.0.1",
+		AgentPort: 8080,
+	})
+
+	// Assert
+	require.NoError(t, err)
+	require.Len(t, state.Daemons, 1)
+	require.Equal(t, daemonname.Bind9, state.Daemons[0].Name)
+	require.Len(t, state.Daemons[0].AccessPoints, 1)
+	require.Equal(t, dbmodel.AccessPointControl, state.Daemons[0].AccessPoints[0].Type)
+	require.Equal(t, "1.2.3.4", state.Daemons[0].AccessPoints[0].Address)
+	require.EqualValues(t, 1234, state.Daemons[0].AccessPoints[0].Port)
+	require.Equal(t, protocoltype.RNDC, state.Daemons[0].AccessPoints[0].Protocol)
 }
 
 // Test that a command can be successfully forwarded to Kea and the response
@@ -594,7 +915,7 @@ func TestForwardToNamedStats(t *testing.T) {
 				AgentPort: 8080,
 			},
 			AccessPoints: []*dbmodel.AccessPoint{{
-				Type:     AccessPointStatistics,
+				Type:     dbmodel.AccessPointStatistics,
 				Address:  "localhost",
 				Port:     8000,
 				Protocol: protocoltype.HTTP,
@@ -609,8 +930,8 @@ func TestForwardToNamedStats(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointControl))
-	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointStatistics))
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(dbmodel.AccessPointControl))
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(dbmodel.AccessPointStatistics))
 }
 
 // Test that the error is returned when the response to the forwarded
@@ -648,7 +969,7 @@ func TestForwardToNamedStatsInvalidResponse(t *testing.T) {
 				AgentPort: 8080,
 			},
 			AccessPoints: []*dbmodel.AccessPoint{{
-				Type:    AccessPointStatistics,
+				Type:    dbmodel.AccessPointStatistics,
 				Address: "localhost",
 				Port:    8000,
 			}},
@@ -659,8 +980,8 @@ func TestForwardToNamedStatsInvalidResponse(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointControl))
-	require.EqualValues(t, 1, agent.stats.GetBind9Stats().GetErrorCount(AccessPointStatistics))
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(dbmodel.AccessPointControl))
+	require.EqualValues(t, 1, agent.stats.GetBind9Stats().GetErrorCount(dbmodel.AccessPointStatistics))
 }
 
 // Test that a command can be successfully forwarded to rndc and the response
@@ -709,8 +1030,8 @@ func TestForwardRndcCommand(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointControl))
-	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(AccessPointStatistics))
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(dbmodel.AccessPointControl))
+	require.Zero(t, agent.stats.GetBind9Stats().GetErrorCount(dbmodel.AccessPointStatistics))
 }
 
 // Test the gRPC call which fetches the tail of the specified text file.

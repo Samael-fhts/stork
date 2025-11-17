@@ -28,12 +28,6 @@ import (
 
 var _ ConnectedAgents = (*connectedAgentsImpl)(nil)
 
-// Currently supported types are: "control" and "statistics".
-const (
-	AccessPointControl    = "control"
-	AccessPointStatistics = "statistics"
-)
-
 // An interface to a daemon that can receive commands from Stork.
 // Kea daemon receiving control commands is an example.
 type ControlledDaemon interface {
@@ -391,7 +385,7 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 				// For backward compatibility, if the protocol is not set,
 				// assume HTTP or HTTPS based on the UseSecureProtocol flag.
 				switch {
-				case daemonName == daemonname.Bind9 && point.Type == AccessPointControl:
+				case daemonName == daemonname.Bind9 && point.Type == string(dbmodel.AccessPointControl):
 					accessPoint.Protocol = protocoltype.RNDC
 				case point.UseSecureProtocol: //nolint:staticcheck,deprecated
 					accessPoint.Protocol = protocoltype.HTTPS

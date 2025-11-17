@@ -154,9 +154,9 @@ func TestGetBind9CommErrorStats(t *testing.T) {
 	stats := NewAgentStats()
 	bind9Stats := stats.GetBind9Stats()
 	require.NotNil(t, bind9Stats)
-	require.EqualValues(t, 1, bind9Stats.IncreaseErrorCount(AccessPointControl))
-	require.EqualValues(t, 1, stats.GetBind9Stats().GetErrorCount(AccessPointControl))
-	require.Zero(t, stats.GetBind9Stats().GetErrorCount(AccessPointStatistics))
+	require.EqualValues(t, 1, bind9Stats.IncreaseErrorCount(dbmodel.AccessPointControl))
+	require.EqualValues(t, 1, stats.GetBind9Stats().GetErrorCount(dbmodel.AccessPointControl))
+	require.Zero(t, stats.GetBind9Stats().GetErrorCount(dbmodel.AccessPointStatistics))
 }
 
 // Test that returned statistics is locked and can be unlocked with the
