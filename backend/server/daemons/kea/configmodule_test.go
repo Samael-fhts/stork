@@ -81,6 +81,54 @@ func (tm *testManager) Unlock(ctx context.Context) {
 	tm.locks = make(map[int64]bool)
 }
 
+// Simulates adding and retrieving a config change from the database. As a result,
+// the returned context contains transaction state re-created from the database
+// entry. It simulates scheduling config changes.
+func (tm *testManager) scheduleAndGetChange(ctx context.Context, t *testing.T) context.Context {
+	// User ID is required to schedule a config change.
+	userID, ok := config.GetValueAsInt64(ctx, config.UserContextKey)
+	require.True(t, ok)
+
+	// The state will be inserted into the database.
+	state, ok := config.GetTransactionState[ConfigRecipe](ctx)
+	require.True(t, ok)
+
+	// Create the config change entry in the database.
+	scc := &dbmodel.ScheduledConfigChange{
+		DeadlineAt: storkutil.UTCNow().Add(-time.Second * 10),
+		UserID:     userID,
+	}
+	for _, u := range state.Updates {
+		update := dbmodel.ConfigUpdate{
+			Operation: u.Operation,
+			DaemonIDs: u.DaemonIDs,
+		}
+		recipe, err := json.Marshal(u.Recipe)
+		require.NoError(t, err)
+		update.Recipe = (*json.RawMessage)(&recipe)
+		scc.Updates = append(scc.Updates, &update)
+	}
+	err := dbmodel.AddScheduledConfigChange(tm.db, scc)
+	require.NoError(t, err)
+
+	// Get the config change back from the database.
+	changes, err := dbmodel.GetDueConfigChanges(tm.db)
+	require.NoError(t, err)
+	require.Len(t, changes, 1)
+	change := changes[0]
+
+	// Override the context state.
+	state = config.TransactionState[ConfigRecipe]{
+		Scheduled: true,
+	}
+	for _, u := range change.Updates {
+		update := NewConfigUpdateFromDBModel(u)
+		state.Updates = append(state.Updates, update)
+	}
+	ctx = context.WithValue(ctx, config.StateContextKey, state)
+	return ctx
+}
+
 // Test Kea module commit function.
 func TestCommit(t *testing.T) {
 	module := NewConfigModule(nil)
@@ -741,6 +789,118 @@ func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 	require.Len(t, agents.RecordedCommands, 1)
 }
 
+// Test scheduling config changes in the database, retrieving and committing them.
+func TestCommitScheduledHostAdd(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	_, daemons := storktest.AddTestHosts(t, db)
+
+	agents := agentcommtest.NewKeaFakeAgents()
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
+		DB:        db,
+		Agents:    agents,
+		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+	})
+
+	module := NewConfigModule(manager)
+	require.NotNil(t, module)
+
+	// User is required to associate the config change with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	// Transaction state is required because typically it is created by the
+	// BeginHostAdd function.
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostAdd)
+	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
+
+	// Set user id in the context.
+	ctx = context.WithValue(ctx, config.UserContextKey, int64(user.ID))
+
+	// Create the host and store it in the context.
+	host := &dbmodel.Host{
+		ID: 1001,
+		Subnet: &dbmodel.Subnet{
+			LocalSubnets: []*dbmodel.LocalSubnet{
+				{
+					DaemonID:      1,
+					LocalSubnetID: 123,
+				},
+			},
+		},
+		HostIdentifiers: []dbmodel.HostIdentifier{
+			{
+				Type:  "hw-address",
+				Value: []byte{1, 2, 3, 4, 5, 6},
+			},
+		},
+		LocalHosts: []dbmodel.LocalHost{
+			{
+				DaemonID: daemons[0].KeaDaemon.DaemonID,
+				Hostname: "cool.example.org",
+				Daemon: &dbmodel.Daemon{
+					Name: "dhcp4",
+					AccessPoints: []*dbmodel.AccessPoint{
+						{
+							Protocol: protocoltype.HTTP,
+							Type:     dbmodel.AccessPointControl,
+							Address:  "192.0.2.1",
+							Port:     1234,
+						},
+					},
+				},
+				DataSource: dbmodel.HostDataSourceAPI,
+			},
+		},
+	}
+	ctx, err = module.ApplyHostAdd(ctx, host)
+	require.NoError(t, err)
+
+	// Simulate scheduling the config change and retrieving it from the database.
+	// The context will hold re-created transaction state.
+	ctx = manager.scheduleAndGetChange(ctx, t)
+	require.NotNil(t, ctx)
+
+	// Try to send the command to Kea server.
+	_, err = module.Commit(ctx)
+	require.NoError(t, err)
+
+	// Make sure it was sent to appropriate server.
+	require.Len(t, agents.RecordedURLs, 1)
+	require.Equal(t, "http://192.0.2.1:1234/", agents.RecordedURLs[0])
+
+	// Ensure the command has appropriate structure.
+	require.Len(t, agents.RecordedCommands, 1)
+	command := agents.RecordedCommands[0]
+	marshalled, err := command.Marshal()
+	require.NoError(t, err)
+	require.JSONEq(t,
+		`{
+             "command": "reservation-add",
+             "service": [ "dhcp4" ],
+             "arguments": {
+                 "reservation": {
+                     "subnet-id": 123,
+                     "hw-address": "010203040506",
+                     "hostname": "cool.example.org"
+                 }
+             }
+         }`,
+		string(marshalled))
+
+	// Make sure that the host has been added to the database.
+	newHost, err := dbmodel.GetHost(db, host.ID)
+	require.NoError(t, err)
+	require.NotNil(t, newHost)
+}
+
 // Test the first stage of updating a host. It checks that the host information
 // is fetched from the database and stored in the context. It also checks that
 // appropriate locks are applied.
@@ -1245,6 +1405,150 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 	require.Len(t, agents.RecordedCommands, 1)
 }
 
+// Test scheduling config changes in the database, retrieving and committing it.
+func TestCommitScheduledHostUpdate(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	_, daemons := storktest.AddTestHosts(t, db)
+
+	// Create the host.
+	host := &dbmodel.Host{
+		ID: 1001,
+		Subnet: &dbmodel.Subnet{
+			LocalSubnets: []*dbmodel.LocalSubnet{
+				{
+					DaemonID:      1,
+					LocalSubnetID: 123,
+				},
+			},
+		},
+		HostIdentifiers: []dbmodel.HostIdentifier{
+			{
+				Type:  "hw-address",
+				Value: []byte{1, 2, 3, 4, 5, 6},
+			},
+		},
+		LocalHosts: []dbmodel.LocalHost{
+			{
+				DaemonID: daemons[0].KeaDaemon.DaemonID,
+				Hostname: "cool.example.org",
+				Daemon: &dbmodel.Daemon{
+					Name: "dhcp4",
+					AccessPoints: []*dbmodel.AccessPoint{
+						{
+							Protocol: protocoltype.HTTP,
+							Type:     dbmodel.AccessPointControl,
+							Address:  "192.0.2.1",
+							Port:     1234,
+						},
+					},
+				},
+				DataSource: dbmodel.HostDataSourceAPI,
+			},
+		},
+	}
+	require.NoError(t, dbmodel.AddHost(db, host))
+
+	agents := agentcommtest.NewKeaFakeAgents()
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
+		DB:        db,
+		Agents:    agents,
+		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+	})
+
+	module := NewConfigModule(manager)
+	require.NotNil(t, module)
+
+	// It is required to associate the config change with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	// Prepare the context.
+	daemonIDs := []int64{1}
+	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
+	ctx = context.WithValue(ctx, config.UserContextKey, int64(user.ID))
+
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaHostUpdate, daemonIDs...)
+	recipe := ConfigRecipe{
+		HostConfigRecipeParams: HostConfigRecipeParams{
+			HostBeforeUpdate: host,
+		},
+	}
+	err = state.SetRecipeForUpdate(0, &recipe)
+	require.NoError(t, err)
+	ctx = context.WithValue(ctx, config.StateContextKey, *state)
+
+	// Copy the host and modify it. The modifications should be applied in
+	// the database upon commit.
+	modifiedHost := *host
+	modifiedHost.LocalHosts[0].Hostname = "modified.example.org"
+
+	ctx, err = module.ApplyHostUpdate(ctx, &modifiedHost)
+	require.NoError(t, err)
+
+	// Simulate scheduling the config change and retrieving it from the database.
+	// The context will hold re-created transaction state.
+	ctx = manager.scheduleAndGetChange(ctx, t)
+	require.NotNil(t, ctx)
+
+	// Try to send the command to Kea server.
+	_, err = module.Commit(ctx)
+	require.NoError(t, err)
+
+	// Make sure it was sent to appropriate server.
+	require.Len(t, agents.RecordedURLs, 2)
+	for _, url := range agents.RecordedURLs {
+		require.Equal(t, "http://192.0.2.1:1234/", url)
+	}
+
+	// Ensure the commands have appropriate structure.
+	require.Len(t, agents.RecordedCommands, 2)
+	for i, command := range agents.RecordedCommands {
+		marshalled, err := command.Marshal()
+		require.NoError(t, err)
+		switch i {
+		case 0:
+			require.JSONEq(t,
+				`{
+                 "command": "reservation-del",
+                     "service": [ "dhcp4" ],
+                     "arguments": {
+                         "subnet-id": 123,
+                         "identifier-type": "hw-address",
+                         "identifier": "010203040506"
+                     }
+                 }`,
+				string(marshalled))
+		default:
+			require.JSONEq(t,
+				`{
+                 "command": "reservation-add",
+                     "service": [ "dhcp4" ],
+                     "arguments": {
+                         "reservation": {
+                             "subnet-id": 123,
+                             "hw-address": "010203040506",
+                             "hostname": "modified.example.org"
+                         }
+                     }
+                 }`,
+				string(marshalled))
+		}
+	}
+	// Make sure that the host has been added to the database too.
+	updatedHost, err := dbmodel.GetHost(db, host.ID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedHost)
+	require.Equal(t, updatedHost.LocalHosts[0].Hostname, "modified.example.org")
+}
+
 // Test first stage of deleting a host.
 func TestBeginHostDelete(t *testing.T) {
 	module := NewConfigModule(nil)
@@ -1417,6 +1721,81 @@ func TestCommitHostDelete(t *testing.T) {
              }`,
 			string(marshalled))
 	}
+
+	returnedHost, err := dbmodel.GetHost(db, host.ID)
+	require.NoError(t, err)
+	require.Nil(t, returnedHost)
+}
+
+// Test scheduling deleting a host reservation, retrieving the scheduled operation
+// from the database and performing it.
+func TestCommitScheduledHostDelete(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	hosts, _ := storktest.AddTestHosts(t, db)
+	dbmodel.DeleteDaemonFromHosts(db, hosts[0].LocalHosts[1].DaemonID, dbmodel.HostDataSourceUnspecified)
+
+	agents := agentcommtest.NewKeaFakeAgents()
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
+		DB:        db,
+		Agents:    agents,
+		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+	})
+
+	module := NewConfigModule(manager)
+	require.NotNil(t, module)
+
+	// User is required to associate the config change with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	// Prepare the context.
+	daemonIDs := []int64{1}
+	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
+	ctx = context.WithValue(ctx, config.UserContextKey, int64(user.ID))
+
+	// Create the host and store it in the context.
+	host, err := dbmodel.GetHost(db, hosts[0].ID)
+	require.NoError(t, err)
+	ctx, err = module.ApplyHostDelete(ctx, host)
+	require.NoError(t, err)
+
+	// Simulate scheduling the config change and retrieving it from the database.
+	// The context will hold re-created transaction state.
+	ctx = manager.scheduleAndGetChange(ctx, t)
+	require.NotNil(t, ctx)
+
+	// Try to send the command to Kea server.
+	_, err = module.Commit(ctx)
+	require.NoError(t, err)
+
+	// Make sure it was sent to appropriate server.
+	require.Len(t, agents.RecordedURLs, 1)
+	require.Equal(t, "https://localhost:8080/", agents.RecordedURLs[0])
+
+	// Ensure the command has appropriate structure.
+	require.Len(t, agents.RecordedCommands, 1)
+	command := agents.RecordedCommands[0]
+	marshalled, err := command.Marshal()
+	require.NoError(t, err)
+	require.JSONEq(t,
+		`{
+             "command": "reservation-del",
+             "service": [ "dhcp4" ],
+             "arguments": {
+                 "subnet-id": 111,
+                 "identifier-type": "hw-address",
+                 "identifier": "010203040506"
+             }
+         }`,
+		string(marshalled))
 
 	returnedHost, err := dbmodel.GetHost(db, host.ID)
 	require.NoError(t, err)
@@ -1849,6 +2228,180 @@ func TestCommitSharedNetworkAdd(t *testing.T) {
 
 	// Make sure that the shared network has been added in the database.
 	addedSharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 4)
+	require.NoError(t, err)
+	require.Len(t, addedSharedNetworks, 1)
+	require.NotNil(t, addedSharedNetworks[0])
+	require.Len(t, addedSharedNetworks[0].LocalSharedNetworks, 2)
+	require.Nil(t, addedSharedNetworks[0].LocalSharedNetworks[0].KeaParameters)
+	require.Nil(t, addedSharedNetworks[0].LocalSharedNetworks[1].KeaParameters)
+
+	recipe, err := config.GetRecipeForUpdate[ConfigRecipe](ctx, 0)
+	require.NoError(t, err)
+	require.NotNil(t, recipe.SharedNetworkID)
+	require.EqualValues(t, addedSharedNetworks[0].ID, *recipe.SharedNetworkID)
+}
+
+// Test scheduling shared network config changes in the database, retrieving and committing them.
+func TestCommitScheduledSharedNetworkAdd(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	agents := agentcommtest.NewKeaFakeAgents()
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
+		DB:        db,
+		Agents:    agents,
+		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+	})
+
+	module := NewConfigModule(manager)
+	require.NotNil(t, module)
+
+	// User is required to associate the config change with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	serverConfig := `{
+		"Dhcp6": {}
+	}`
+
+	server1, err := dbmodeltest.NewKeaDHCPv6Server(db)
+	require.NoError(t, err)
+	err = server1.Configure(serverConfig)
+	require.NoError(t, err)
+
+	daemon1, err := server1.GetDaemon()
+	require.NoError(t, err)
+
+	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
+	require.NoError(t, err)
+	err = server2.Configure(serverConfig)
+	require.NoError(t, err)
+
+	daemon2, err := server2.GetDaemon()
+	require.NoError(t, err)
+
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
+	require.NoError(t, err)
+
+	daemons, err := dbmodel.GetAllDaemons(db)
+	require.NoError(t, err)
+	require.Len(t, daemons, 2)
+
+	// Transaction state is required because typically it is created by the
+	// BeginSharedNetworkAdd function.
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkAdd)
+	ctx := context.WithValue(context.Background(), config.StateContextKey, *state)
+
+	// Set user id in the context.
+	ctx = context.WithValue(ctx, config.UserContextKey, int64(user.ID))
+
+	// New shared network entry.
+	sharedNetwork := &dbmodel.SharedNetwork{
+		Name:   "bar",
+		Family: 6,
+		LocalSharedNetworks: []*dbmodel.LocalSharedNetwork{
+			{
+				DaemonID: daemons[0].ID,
+				Daemon: &dbmodel.Daemon{
+					Name: "dhcp6",
+					AccessPoints: []*dbmodel.AccessPoint{
+						{
+							Type:    dbmodel.AccessPointControl,
+							Address: "192.0.2.1",
+							Port:    1234,
+						},
+					},
+				},
+			},
+			{
+				DaemonID: daemons[1].ID,
+				Daemon: &dbmodel.Daemon{
+					Name:    "dhcp6",
+					Version: "2.5.0",
+					AccessPoints: []*dbmodel.AccessPoint{
+						{
+							Type:    dbmodel.AccessPointControl,
+							Address: "192.0.2.2",
+							Port:    2345,
+						},
+					},
+				},
+			},
+		},
+	}
+	ctx, err = module.ApplySharedNetworkAdd(ctx, sharedNetwork)
+	require.NoError(t, err)
+
+	// Simulate scheduling the config change and retrieving it from the database.
+	// The context will hold re-created transaction state.
+	ctx = manager.scheduleAndGetChange(ctx, t)
+	require.NotNil(t, ctx)
+
+	// Committing the subnet should result in sending control commands to Kea servers.
+	_, err = module.Commit(ctx)
+	require.NoError(t, err)
+
+	// Make sure that the correct number of commands were sent.
+	require.Len(t, agents.RecordedURLs, 5)
+	require.Len(t, agents.RecordedCommands, 5)
+
+	// The respective commands should be sent to different servers.
+	require.NotEqual(t, agents.RecordedURLs[0], agents.RecordedURLs[1])
+	require.NotEqual(t, agents.RecordedURLs[2], agents.RecordedURLs[3])
+	require.Equal(t, agents.RecordedURLs[3], agents.RecordedURLs[4])
+
+	// Validate the sent commands and URLs.
+	for i, command := range agents.RecordedCommands {
+		marshalled, err := command.Marshal()
+		require.NoError(t, err)
+		switch i {
+		case 0, 1:
+			require.JSONEq(t,
+				`{
+						"command": "network6-add",
+						"service": [ "dhcp6" ],
+						"arguments": {
+							"shared-networks": [
+								{
+									"name": "bar"
+								}
+							]
+						}
+					}`,
+				string(marshalled))
+		case 2, 3:
+			require.JSONEq(t,
+				`{
+						"command": "config-write",
+						"service": [ "dhcp6" ]
+					}`,
+				string(marshalled))
+		// The default case is executed for the index of 4. The config-reload
+		// is only issued for Kea versions earlier than 2.6.0 that don't
+		// recount statistics until reloaded.
+		default:
+			require.JSONEq(t,
+				`{
+						"command": "config-reload",
+						"service": [ "dhcp6" ]
+					}`,
+				string(marshalled))
+		}
+	}
+
+	// Make sure that the shared network has been added in the database.
+	addedSharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 6)
 	require.NoError(t, err)
 	require.Len(t, addedSharedNetworks, 1)
 	require.NotNil(t, addedSharedNetworks[0])
@@ -2600,6 +3153,182 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	// Other commands should not be sent in this case.
 	require.Len(t, agents.RecordedURLs, 1)
 	require.Len(t, agents.RecordedCommands, 1)
+}
+
+// Test scheduling shared network config changes in the database, retrieving and committing them.
+func TestCommitScheduledSharedNetworkUpdate(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	agents := agentcommtest.NewKeaFakeAgents()
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
+		DB:        db,
+		Agents:    agents,
+		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+	})
+
+	module := NewConfigModule(manager)
+	require.NotNil(t, module)
+
+	// User is required to associate the config change with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	serverConfig := `{
+		"Dhcp6": {
+			"shared-networks": [
+				{
+					"name": "foo",
+					"subnet6": [
+						{
+							"id": 1,
+							"subnet": "2001:db8:1::/64"
+						}
+					]
+				}
+			]
+		}
+	}`
+
+	server1, err := dbmodeltest.NewKeaDHCPv6Server(db)
+	require.NoError(t, err)
+	err = server1.Configure(serverConfig)
+	require.NoError(t, err)
+
+	daemon1, err := server1.GetDaemon()
+	require.NoError(t, err)
+
+	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
+	require.NoError(t, err)
+	err = server2.Configure(serverConfig)
+	require.NoError(t, err)
+
+	daemon2, err := server2.GetDaemon()
+	require.NoError(t, err)
+
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
+	require.NoError(t, err)
+
+	daemons, err := dbmodel.GetAllDaemons(db)
+	require.NoError(t, err)
+	require.Len(t, daemons, 2)
+
+	sharedNetworks, err := dbmodel.GetAllSharedNetworks(db, 0)
+	require.NoError(t, err)
+	require.Len(t, sharedNetworks, 1)
+
+	daemonIDs := []int64{daemons[0].ID, daemons[1].ID}
+	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
+
+	// Set user id in the context.
+	ctx = context.WithValue(ctx, config.UserContextKey, int64(user.ID))
+
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSharedNetworkUpdate, daemonIDs...)
+	recipe := ConfigRecipe{
+		SharedNetworkConfigRecipeParams: SharedNetworkConfigRecipeParams{
+			SharedNetworkBeforeUpdate: &sharedNetworks[0],
+		},
+	}
+	err = state.SetRecipeForUpdate(0, &recipe)
+	require.NoError(t, err)
+	ctx = context.WithValue(ctx, config.StateContextKey, *state)
+
+	// Copy the shared network and modify it. The modifications should be applied in
+	// the database upon commit.
+	modifiedSharedNetwork := sharedNetworks[0]
+	modifiedSharedNetwork.Name = "bar"
+	modifiedSharedNetwork.CreatedAt = time.Time{}
+	modifiedSharedNetwork.LocalSharedNetworks[0].KeaParameters.Allocator = storkutil.Ptr("random")
+	modifiedSharedNetwork.LocalSharedNetworks[1].KeaParameters.Allocator = storkutil.Ptr("random")
+
+	ctx, err = module.ApplySharedNetworkUpdate(ctx, &modifiedSharedNetwork)
+	require.NoError(t, err)
+
+	// Simulate scheduling the config change and retrieving it from the database.
+	// The context will hold re-created transaction state.
+	ctx = manager.scheduleAndGetChange(ctx, t)
+	require.NotNil(t, ctx)
+
+	// Committing the shared network should result in sending control commands to Kea servers.
+	_, err = module.Commit(ctx)
+	require.NoError(t, err)
+
+	// Make sure that the correct number of commands were sent.
+	require.Len(t, agents.RecordedURLs, 6)
+	require.Len(t, agents.RecordedCommands, 6)
+
+	// The respective commands should be sent to different servers.
+	require.NotEqual(t, agents.RecordedURLs[0], agents.RecordedURLs[2])
+	require.NotEqual(t, agents.RecordedURLs[1], agents.RecordedURLs[3])
+	require.NotEqual(t, agents.RecordedURLs[4], agents.RecordedURLs[5])
+	require.Equal(t, agents.RecordedURLs[0], agents.RecordedURLs[1])
+	require.Equal(t, agents.RecordedURLs[2], agents.RecordedURLs[3])
+	require.Equal(t, agents.RecordedURLs[0], agents.RecordedURLs[4])
+	require.Equal(t, agents.RecordedURLs[2], agents.RecordedURLs[5])
+
+	// Validate the sent commands and URLS.
+	for i, command := range agents.RecordedCommands {
+		marshalled, err := command.Marshal()
+		require.NoError(t, err)
+		switch i {
+		case 0, 2:
+			require.JSONEq(t,
+				`{
+					"command": "network6-del",
+					"service": ["dhcp6"],
+					"arguments": {
+						"name":"foo",
+						"subnets-action": "keep"
+					}
+				}`,
+				string(marshalled))
+		case 1, 3:
+			require.JSONEq(t,
+				`{
+					"command": "network6-add",
+					"service": ["dhcp6"],
+					"arguments": {
+						"shared-networks": [
+							{
+								"allocator": "random",
+								"name": "bar"
+							}
+						]
+					}
+				}`,
+				string(marshalled))
+		default:
+			require.JSONEq(t,
+				`{
+					"command": "config-write",
+					"service": ["dhcp6"]
+				}`,
+				string(marshalled))
+		}
+	}
+
+	// Make sure that the subnet has been updated in the database.
+	updatedSharedNetwork, err := dbmodel.GetSharedNetwork(db, sharedNetworks[0].ID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedSharedNetwork)
+	require.Len(t, updatedSharedNetwork.LocalSharedNetworks, 2)
+	require.NotNil(t, updatedSharedNetwork.LocalSharedNetworks[0].KeaParameters)
+	require.NotNil(t, updatedSharedNetwork.LocalSharedNetworks[0].KeaParameters.Allocator)
+	require.Equal(t, "random", *updatedSharedNetwork.LocalSharedNetworks[0].KeaParameters.Allocator)
+	require.NotNil(t, updatedSharedNetwork.LocalSharedNetworks[1].KeaParameters)
+	require.NotNil(t, updatedSharedNetwork.LocalSharedNetworks[1].KeaParameters.Allocator)
+	require.Equal(t, "random", *updatedSharedNetwork.LocalSharedNetworks[1].KeaParameters.Allocator)
 }
 
 // Test first stage of deleting a shared network.
