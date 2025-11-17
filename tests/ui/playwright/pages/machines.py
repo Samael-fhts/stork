@@ -225,3 +225,55 @@ class MachinesPage:
         sw = self.page.get_by_role("switch", name="Monitoring")
         sw.uncheck()
         sw.check()
+
+    def app_open_dhcp4(self):
+        self.page.get_by_role("tab", name=re.compile(r"\bDHCPv4\b", re.I)).click()
+
+    def app_open_host_reservations(self):
+        self.page.get_by_role("button", name=re.compile(r"\bHost Reservations\b", re.I)).click()
+
+    def host_reservations_expect_loaded(self):
+        # Verify the left nav item is present
+        expect(
+            self.page.get_by_role("list").locator("a").filter(has_text="Host Reservations")
+        ).to_be_visible(timeout=3000)
+
+    # -------- Host Reservations: dialogs & actions --------
+    def host_click_migrate_to_db_and_cancel(self):
+        self.page.get_by_role("button", name=re.compile(r"\bMigrate to Database\b", re.I)).click()
+        expect(self.page.get_by_text("Migrate host reservations to database")).to_be_visible(timeout=3000)
+        self.page.get_by_role("button", name=re.compile(r"^\s*No\s*$", re.I)).click()
+
+    def host_click_new_host_expect_tx_error_then_back(self):
+        self.page.get_by_role("button", name=re.compile(r"\bNew Host\b", re.I)).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(timeout=3000)
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    # -------- Host Reservations: filtering & totals --------
+    def host_filter_check_global_conflict(self):
+        self.page.get_by_role("checkbox", name="Global Conflict").check()
+
+    def host_expect_total_hosts_text(self, n: int):
+        expect(self.page.get_by_text(f"Total: {n} hosts")).to_be_visible(timeout=3000)
+
+    # -------- Host Reservations: table row & details --------
+    def host_click_first_row_link(self, link_text: str):
+        # e.g., "hw-address=(00:01:02:03:04:02)"
+        self.page.get_by_role("link", name=link_text).click()
+
+    def host_detail_expect_sections(self):
+        # Verify the host detail sections are present
+        expect(self.page.get_by_text("[1] Host in subnet 192.0.2.0/")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="DHCP Servers Using the Host")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="DHCP Identifiers")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Hostname /  All Servers")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="IP Reservations /  All Servers")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Boot Fields /  All Servers")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Client Classes /  All Servers")).to_be_visible(timeout=3000)
+
+    def host_click_leases_then_expect_dhcp_options_present(self):
+        self.page.get_by_role("button", name=re.compile(r"\bLeases\b", re.I)).click()
+        expect(self.page.get_by_role("button", name=re.compile(r"\bDHCP Options\s*/\s* All Servers\b", re.I))).to_be_visible(timeout=3000)
+
+    def host_click_refresh_list(self):
+        self.page.get_by_role("button", name=re.compile(r"\bRefresh\s+List\b", re.I)).click()

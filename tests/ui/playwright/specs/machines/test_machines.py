@@ -159,3 +159,45 @@ def test_machines_dhcp_badges_and_app_tabs_present(page):
     mp.app_toggle_monitoring_off_on()
 
     lp.logout("admin")
+
+@pytest.mark.ui
+def test_machines_host_reservations_filters_and_sections(page):
+    lp = LoginPage(page)
+    mp = MachinesPage(page)
+
+    # Login and reach Machines
+    lp.open(BASE_URL)
+    lp.login(ADMIN_USER, NEW_ADMIN_PASS if NEW_ADMIN_PASS else ADMIN_PASS)
+    lp.await_dashboard()
+    mp.open()
+
+    row_key = "172.42.42.100:8080"
+    mp.open_app_from_badges_cell(row_key)
+    mp.app_open_dhcp4()
+    mp.app_open_host_reservations()
+    mp.host_reservations_expect_loaded()
+
+    # Migrate to DB dialog -> verify pop-up window -> cancel
+    mp.host_click_migrate_to_db_and_cancel()
+
+    # New Host -> expect transaction error -> Back to Host Reservations tab
+    mp.host_click_new_host_expect_tx_error_then_back()
+
+    # Filters: check "Global Conflict" → expect total 3 hosts
+    mp.host_filter_check_global_conflict()
+    mp.host_expect_total_hosts_text(3)
+
+    # Clear filters
+    mp.clear_filters()
+
+    # Click first row link, verify sections, click Leases and ensure DHCP Options exists
+    mp.host_click_first_row_link("hw-address=(00:01:02:03:04:02)")
+    mp.host_detail_expect_sections()
+    mp.host_click_leases_then_expect_dhcp_options_present()
+
+    # Back to Host Reservations tab and refresh list
+    page.get_by_role("tab", name="Host Reservations").click()
+    mp.host_click_refresh_list()
+
+    # Logout
+    lp.logout("admin")
