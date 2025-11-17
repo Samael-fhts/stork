@@ -240,3 +240,44 @@ def test_machines_subnets_filters_and_detail_flow(page):
     mp.subnets_click_refresh_list()
 
     lp.logout("admin")
+
+@pytest.mark.ui
+def test_machines_shared_networks_filters_and_detail_flow(page):
+    lp = LoginPage(page)
+    mp = MachinesPage(page)
+
+    # Login and reach Machines
+    lp.open(BASE_URL)
+    lp.login(ADMIN_USER, NEW_ADMIN_PASS if NEW_ADMIN_PASS else ADMIN_PASS)
+    lp.await_dashboard()
+    mp.open()
+
+    # Enter app via badges cell, then open Shared Networks
+    row_key = "172.42.42.100:8080"
+    mp.open_app_from_badges_cell(row_key)
+    mp.app_open_shared_networks()
+    mp.shared_networks_expect_loaded()
+
+    # New Shared Network -> expect error -> Back
+    mp.shared_click_new_shared_network_expect_error_then_back()
+
+    # Expect total 2 shared networks
+    mp.shared_expect_total(2)
+
+    # Search for "frog" and open it
+    mp.shared_search("frog")
+    mp.shared_open_result_by_name("frog")
+
+    # Verify detail header, Edit -> error -> Back
+    mp.shared_detail_expect_header("frog")
+    mp.shared_click_edit_expect_error_then_back()
+
+    # Verify presence of all visbile sections
+    mp.shared_detail_expect_sections()
+
+    # Back to Shared Networks, Clear filters, Refresh list
+    mp.shared_back_to_tab()
+    mp.clear_filters()
+    mp.shared_click_refresh_list()
+
+    lp.logout("admin")

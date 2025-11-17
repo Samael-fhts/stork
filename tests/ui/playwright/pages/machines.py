@@ -329,3 +329,52 @@ class MachinesPage:
     def subnets_click_refresh_list(self):
         self.page.get_by_role("button", name=re.compile(r"\bRefresh\s+List\b", re.I)).click()
 
+    def app_open_shared_networks(self):
+        self.page.get_by_role("button", name=re.compile(r"\bShared\s+Networks\b", re.I)).click()
+
+    def shared_networks_expect_loaded(self):
+        expect(self.page.get_by_role("tab", name=re.compile(r"\bShared\s+Networks\b", re.I))).to_be_visible(timeout=3000)
+
+    # -------- Shared Networks: new / totals / search / open result --------
+    def shared_click_new_shared_network_expect_error_then_back(self):
+        self.page.get_by_role("button", name=re.compile(r"\bNew\s+Shared\s+Network\b", re.I)).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(timeout=3000)
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    def shared_expect_total(self, n: int):
+        # "Total: 2 shared networks"
+        expect(self.page.get_by_text(f"Total: {n} shared networks")).to_be_visible(timeout=3000)
+
+    def shared_search(self, query: str):
+        self.page.get_by_role("textbox", name=re.compile(r"\bSearch\s+shared\s+networks\b", re.I)).click()
+        self.page.get_by_role("textbox", name=re.compile(r"\bSearch\s+shared\s+networks\b", re.I)).fill(query)
+
+    def shared_open_result_by_name(self, name: str):
+        self.page.get_by_role("cell", name=name, exact=True).click()
+        self.page.get_by_role("link", name=name, exact=True).click()
+
+    # -------- Shared Network detail: header, edit/back, sections --------
+    def shared_detail_expect_header(self, name: str):
+        expect(self.page.get_by_text(f"Shared Network {name}")).to_be_visible(timeout=3000)
+
+    def shared_click_edit_expect_error_then_back(self):
+        self.page.get_by_role("button", name=re.compile(r"\bEdit\b", re.I)).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(timeout=3000)
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    def shared_detail_expect_sections(self):
+        # Verify the shared network detail sections are present
+        expect(self.page.get_by_role("group", name=re.compile(r"DHCP\s+Servers\s+Using\s+the\s+Shared", re.I))).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Subnets")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Pools")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Statistics")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name=re.compile(r"DHCP\s+Parameters", re.I))).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name=re.compile(r"DHCP\s+Options\s*/\s* All Servers", re.I))).to_be_visible(timeout=3000)
+
+    # -------- Shared Networks: back/clear/refresh --------
+    def shared_back_to_tab(self):
+        self.page.get_by_role("tab", name=re.compile(r"\bShared\s+Networks\b", re.I)).click()
+
+    def shared_click_refresh_list(self):
+        self.page.get_by_role("button", name=re.compile(r"\bRefresh\s+List\b", re.I)).click()
+
