@@ -277,3 +277,55 @@ class MachinesPage:
 
     def host_click_refresh_list(self):
         self.page.get_by_role("button", name=re.compile(r"\bRefresh\s+List\b", re.I)).click()
+
+    def app_open_subnets(self):
+        self.page.get_by_role("button", name=re.compile(r"\bSubnets\b", re.I)).click()
+
+    def subnets_expect_loaded(self):
+        # Verify the Subnets tab is visible
+        expect(self.page.get_by_role("tab", name=re.compile(r"\bSubnets\b", re.I))).to_be_visible(timeout=3000)
+
+    # -------- Subnets: totals, search, open result --------
+    def subnets_expect_total(self, n: int):
+        # Matches the footer text e.g. "Total: 9 subnets"
+        expect(self.page.get_by_text(f"Total: {n} subnets")).to_be_visible(timeout=3000)
+
+    def subnets_search(self, query: str):
+        self.page.get_by_role("textbox", name="Search IP or identifier").click()
+        self.page.get_by_role("textbox", name="Search IP or identifier").fill(query)
+
+    def subnets_open_search_result(self):
+        self.page.get_by_text("-192.0.5.50").click()
+        self.page.get_by_role("link", name="/24").click()
+
+    # -------- Subnet detail: header, edit/back, sections --------
+    def subnets_detail_expect_header(self, text: str):
+        expect(self.page.get_by_text(text)).to_be_visible(timeout=3000)
+
+    def subnets_click_edit_expect_tx_error_then_back(self):
+        self.page.get_by_role("button", name=re.compile(r"\bEdit\b", re.I)).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(timeout=3000)
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    def subnets_detail_expect_sections(self):
+        # Verify the subnet detail sections are present
+        expect(self.page.get_by_role("group", name="DHCP Servers Using the Subnet")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_text("Pools / All Servers")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_text("-192.0.5.50")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Statistics")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="User Context /  All Servers")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="DHCP Parameters")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="DHCP Options /  All Servers")).to_be_visible(timeout=3000)
+
+    # -------- Subnets: back/clear/new/refresh --------
+    def subnets_back_to_tab(self):
+        self.page.get_by_role("tab", name="Subnets").click()
+
+    def subnets_click_new_subnet_expect_error_then_back(self):
+        self.page.get_by_role("button", name=re.compile(r"\bNew\s+Subnet\b", re.I)).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(timeout=3000)
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    def subnets_click_refresh_list(self):
+        self.page.get_by_role("button", name=re.compile(r"\bRefresh\s+List\b", re.I)).click()
+

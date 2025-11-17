@@ -201,3 +201,42 @@ def test_machines_host_reservations_filters_and_sections(page):
 
     # Logout
     lp.logout("admin")
+
+@pytest.mark.ui
+def test_machines_subnets_filters_and_detail_flow(page):
+    lp = LoginPage(page)
+    mp = MachinesPage(page)
+
+    # Login and reach Machines
+    lp.open(BASE_URL)
+    lp.login(ADMIN_USER, NEW_ADMIN_PASS if NEW_ADMIN_PASS else ADMIN_PASS)
+    lp.await_dashboard()
+    mp.open()
+
+    # Enter app from the badges cell, then open Subnets
+    row_key = "172.42.42.100:8080"
+    mp.open_app_from_badges_cell(row_key)
+    mp.app_open_subnets()
+    mp.subnets_expect_loaded()
+
+    # Expect total 9 subnets
+    mp.subnets_expect_total(9)
+
+    # Search "192.0.5.0/24", open the resulting subnet
+    mp.subnets_search("192.0.5.0/24")
+    mp.subnets_open_search_result()
+
+    # Verify detail header text and attempt Edit -> error -> Back
+    mp.subnets_detail_expect_header("Subnet 192.0.5.0/24 in shared")
+    mp.subnets_click_edit_expect_tx_error_then_back()
+
+    # Verify all the specified sections
+    mp.subnets_detail_expect_sections()
+
+    # Back to Subnets, clear filters, New Subnet -> error -> Back, Refresh List
+    mp.subnets_back_to_tab()
+    mp.clear_filters()
+    mp.subnets_click_new_subnet_expect_error_then_back()
+    mp.subnets_click_refresh_list()
+
+    lp.logout("admin")
