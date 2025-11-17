@@ -993,7 +993,7 @@ func (r *RestAPI) DeleteSubnet(ctx context.Context, params dhcp.DeleteSubnetPara
 	cctx, err := r.ConfigManager.CreateContext(int64(user.ID))
 	if err != nil {
 		msg := "Problem with creating transaction context for deleting the subnet"
-		log.WithError(err).Error(err)
+		log.WithError(err).Error(msg)
 		rsp := dhcp.NewDeleteSubnetDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 			Message: &msg,
 		})
