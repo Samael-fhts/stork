@@ -176,7 +176,8 @@ func (stats *CommStats) GetKeaStats() *CommStatsKea {
 	}
 }
 
-// Returns an object with a BIND 9-specific interface for updating the statistics.
+// Returns an object implementing a BIND 9-specific interface for updating the
+// statistics.
 func (stats *CommStats) GetBind9Stats() *CommStatsBind9 {
 	return &CommStatsBind9{
 		comm: stats,
