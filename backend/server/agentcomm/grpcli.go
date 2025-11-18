@@ -216,10 +216,12 @@ func (s *keaCommState) getState(daemon daemonname.Name) CommErrorTransition {
 // It checks the communication state with the Kea daemons behind an agent. This
 // function is called if there was no communication problem with an agent itself.
 // If checks the status codes returned by the Kea Control Agent and returns the
-// communication states for each of the daemons.
-func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, commands []keactrl.SerializableCommand, resp *agentapi.ForwardToKeaOverHTTPRsp) keaCommState {
+// communication states for each of the daemons and errors related to each command.
+// If commands were successful, a nil error is recorded for them.
+func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, commands []keactrl.SerializableCommand, resp *agentapi.ForwardToKeaOverHTTPRsp) (keaCommState, []error) {
 	var state keaCommState
 	uniqueDaemons := make(map[daemonname.Name]struct{})
+	commandErrs := make([]error, 0, len(commands))
 
 	// Get all responses from the Kea server.
 	for idx, daemonResponse := range resp.GetKeaResponses() {
@@ -235,6 +237,11 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 		uniqueDaemons[daemon] = struct{}{}
 
 		if daemonResponse.Status.Code != agentapi.Status_OK {
+			// The error was returned by a daemon listening on the API calls.
+			// It can be the target daemon itself for Kea 3.0.0+ or the Kea CA
+			// for older Kea versions.
+			// Unfortunately, there is no way to get which daemon returned the
+			// error here other than analyzing the error message.
 			message := "unknown error"
 			if daemonResponse.Status.Message != "" {
 				message = daemonResponse.Status.Message
@@ -242,6 +249,7 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 
 			err := errors.Errorf("received error while sending the command %s over gRPC: %s", command.GetCommand(), message)
 			state.appendError(daemon, err)
+			commandErrs = append(commandErrs, err)
 			continue
 		}
 
@@ -250,22 +258,24 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 		if err != nil {
 			err := errors.WithMessage(err, "failed to parse Kea response")
 			state.appendError(daemon, err)
+			commandErrs = append(commandErrs, err)
 			continue
 		}
 
 		if err := parsedResponse.GetError(); err != nil {
 			err := errors.Wrapf(err, "command %s failed", command.GetCommand())
 			state.appendError(daemon, err)
+			commandErrs = append(commandErrs, err)
 			continue
 		}
 
-		state.appendError(daemon, nil)
+		commandErrs = append(commandErrs, nil)
 	}
 
 	for daemon := range uniqueDaemons {
 		state.setState(daemon, stats.UpdateErrorCount(daemon, int64(state.getErrorCount(daemon))))
 	}
-	return state
+	return state, commandErrs
 }
 
 // Check connectivity with a machine.
@@ -827,11 +837,10 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 	// Check the communication issues with the Kea daemons. For each supported daemon we
 	// get the current state of the communication with this daemon and optionally an
 	// error message.
-	keaCommState := agents.checkKeaCommState(stats.GetKeaStats(), commands, response)
+	keaCommState, cmdsErrors := agents.checkKeaCommState(stats.GetKeaStats(), commands, response)
 
 	// Save Control Agent Errors.
 	daemonName := daemon.GetName()
-	cmdsErrors := keaCommState.getErrors(daemonName)
 	result.CmdsErrors = cmdsErrors
 	state := keaCommState.getState(daemonName)
 
@@ -854,7 +863,13 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 
 	// Get all responses from the Kea server.
 	for idx, response := range response.GetKeaResponses() {
+		if response.Response == nil {
+			// The response is nil when the communication error occurred between
+			// the Kea CA and Kea daemon.
+			continue
+		}
 		commandResponse := cmdResponses[idx]
+
 		// Try to parse the json response from the on-wire format.
 		err = json.Unmarshal(response.Response, commandResponse)
 		if err != nil {
@@ -863,7 +878,6 @@ func (agents *connectedAgentsImpl) ForwardToKeaOverHTTP(ctx context.Context, dae
 				err = errors.WithMessagef(originalErr, "cannot parse the response due to: %v", err)
 			}
 			result.CmdsErrors[idx] = err
-			// Failure to parse the response.
 			if state != CommErrorNew && state != CommErrorContinued {
 				stats.GetKeaStats().IncreaseErrorCount(daemonName)
 			}

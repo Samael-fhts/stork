@@ -828,10 +828,10 @@ func TestForwardToKeaOverHTTPBadRequest(t *testing.T) {
 		Return(&rsp, nil)
 
 	ctx := context.Background()
-	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.CA)
 	var actualResponse keactrl.Response
 	dbDaemon := &dbmodel.Daemon{
-		Name: daemonname.DHCPv4,
+		Name: daemonname.CA,
 		Machine: &dbmodel.Machine{
 			Address:   "127.0.0.1",
 			AgentPort: 8080,
@@ -855,10 +855,269 @@ func TestForwardToKeaOverHTTPBadRequest(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
-	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
 	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv6))
 	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.D2))
+}
+
+// Test that communication errors are counted when Stork sends commands the
+// DHCP daemon through the Kea CA (prior Kea 3.0.0) and the daemon is
+// unreachable.
+func TestForwardToKeaOverHTTPUnreachableDaemonPrior3_0_0(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+
+	rsp := agentapi.ForwardToKeaOverHTTPRsp{
+		Status: &agentapi.Status{
+			Code: 0,
+		},
+		KeaResponses: []*agentapi.KeaResponse{{
+			Status: &agentapi.Status{
+				Code: agentapi.Status_OK,
+			},
+			Response: []byte(`{
+				"result": 1,
+				"text": "unable to forward command to the dhcp4 service: No such file or directory. The server is likely to be offline"
+			}`),
+		}},
+	}
+
+	mockAgentClient.EXPECT().
+		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return(&rsp, nil)
+
+	ctx := context.Background()
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
+	var actualResponse keactrl.Response
+
+	dbDaemon := &dbmodel.Daemon{
+		Name: daemonname.DHCPv4,
+		Machine: &dbmodel.Machine{
+			Address:   "127.0.0.1",
+			AgentPort: 8080,
+		},
+		AccessPoints: []*dbmodel.AccessPoint{{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Key:     "",
+		}},
+	}
+
+	// Act
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{command}, &actualResponse)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, cmdsResult)
+	require.NoError(t, cmdsResult.Error)
+	require.Len(t, cmdsResult.CmdsErrors, 1)
+	require.ErrorContains(t, cmdsResult.CmdsErrors[0], "unable to forward command to the dhcp4 service")
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, 0, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
+}
+
+// Test that communication errors are counted when Stork sends commands the
+// DHCP daemon through the Kea CA (prior Kea 3.0.0) and CA is unreachable.
+func TestForwardToKeaOverHTTPUnreachableCAPrior3_0_0(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+
+	rsp := agentapi.ForwardToKeaOverHTTPRsp{
+		Status: &agentapi.Status{
+			Code: 0,
+		},
+		KeaResponses: []*agentapi.KeaResponse{{
+			Status: &agentapi.Status{
+				Code: agentapi.Status_ERROR,
+				Message: "failed to forward commands to Kea: " +
+					"failed to send command to Kea: " +
+					"failed to send command to Kea: http://127.0.0.1:8000/: " +
+					"problem sending POST to http://127.0.0.1:8000/: Post \"http://127.0.0.1:8000/\": " +
+					"dial tcp 127.0.0.1:8000: connect: connection refused",
+			},
+		}},
+	}
+
+	mockAgentClient.EXPECT().
+		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return(&rsp, nil)
+
+	ctx := context.Background()
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
+	var actualResponse keactrl.Response
+
+	dbDaemon := &dbmodel.Daemon{
+		Name: daemonname.DHCPv4,
+		Machine: &dbmodel.Machine{
+			Address:   "127.0.0.1",
+			AgentPort: 8080,
+		},
+		AccessPoints: []*dbmodel.AccessPoint{{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Key:     "",
+		}},
+	}
+
+	// Act
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{command}, &actualResponse)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, cmdsResult)
+	require.NoError(t, cmdsResult.Error)
+	require.Len(t, cmdsResult.CmdsErrors, 1)
+	require.ErrorContains(t, cmdsResult.CmdsErrors[0], "failed to forward commands to Kea")
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	// The error occurred in communication between Stork agent and the Kea CA.
+	// Unfortunately, we cannot determine which daemon failed when the
+	// communication is through the CA, so we increment only the total error
+	// count for target daemon.
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
+}
+
+// Test that communication errors are counted when Stork sends commands the
+// DHCP daemon directly and the daemon is unreachable. It simulates the
+// situation when the DHCP daemon is down but the Stork agent hasn't performed
+// the daemon re-detection yet.
+func TestForwardToKeaOverHTTPUnreachableDaemonPost3_0_0(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+
+	rsp := agentapi.ForwardToKeaOverHTTPRsp{
+		Status: &agentapi.Status{
+			Code: agentapi.Status_OK,
+		},
+		KeaResponses: []*agentapi.KeaResponse{{
+			Status: &agentapi.Status{
+				Code: agentapi.Status_ERROR,
+				Message: "failed to forward commands to Kea: " +
+					"failed to send command to Kea: " +
+					"failed to connect to unix socket: /var/run/kea/kea4-ctrl-socket: " +
+					"dial unix /var/run/kea/kea4-ctrl-socket: connect: no such file or directory",
+			},
+		}},
+	}
+
+	mockAgentClient.EXPECT().
+		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return(&rsp, nil)
+
+	ctx := context.Background()
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
+	var actualResponse keactrl.Response
+
+	dbDaemon := &dbmodel.Daemon{
+		Name: daemonname.DHCPv4,
+		Machine: &dbmodel.Machine{
+			Address:   "127.0.0.1",
+			AgentPort: 8080,
+		},
+		AccessPoints: []*dbmodel.AccessPoint{{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Key:     "",
+		}},
+	}
+
+	// Act
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{command}, &actualResponse)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, cmdsResult)
+	require.NoError(t, cmdsResult.Error)
+	require.Len(t, cmdsResult.CmdsErrors, 1)
+	require.ErrorContains(t, cmdsResult.CmdsErrors[0], "failed to forward commands to Kea")
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
+}
+
+// Test that communication errors are counted when Stork sends commands the
+// DHCP daemon directly and the daemon is unreachable. It simulates the
+// situation when the DHCP daemon is down and the Stork agent has performed
+// the daemon re-detection already.
+func TestForwardToKeaOverHTTPUnreachableDaemonPost3_0_0AfterRedetection(t *testing.T) {
+	// Arrange
+	ctrl := gomock.NewController(t)
+	mockAgentClient, agents := setupGrpcliTestCase(ctrl)
+	defer ctrl.Finish()
+
+	rsp := agentapi.ForwardToKeaOverHTTPRsp{
+		Status: &agentapi.Status{
+			Code: agentapi.Status_OK,
+		},
+		KeaResponses: []*agentapi.KeaResponse{{
+			Status: &agentapi.Status{
+				Code:    agentapi.Status_ERROR,
+				Message: "cannot find Kea daemon",
+			},
+		}},
+	}
+
+	mockAgentClient.EXPECT().
+		ForwardToKeaOverHTTP(gomock.Any(), gomock.Any(), newGZIPMatcher()).
+		Return(&rsp, nil)
+
+	ctx := context.Background()
+	command := keactrl.NewCommandBase(keactrl.CommandName("test-command"), daemonname.DHCPv4)
+	var actualResponse keactrl.Response
+
+	dbDaemon := &dbmodel.Daemon{
+		Name: daemonname.DHCPv4,
+		Machine: &dbmodel.Machine{
+			Address:   "127.0.0.1",
+			AgentPort: 8080,
+		},
+		AccessPoints: []*dbmodel.AccessPoint{{
+			Type:    dbmodel.AccessPointControl,
+			Address: "localhost",
+			Port:    8000,
+			Key:     "",
+		}},
+	}
+
+	// Act
+	cmdsResult, err := agents.ForwardToKeaOverHTTP(ctx, dbDaemon, []keactrl.SerializableCommand{command}, &actualResponse)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, cmdsResult)
+	require.NoError(t, cmdsResult.Error)
+	require.Len(t, cmdsResult.CmdsErrors, 1)
+	require.ErrorContains(t, cmdsResult.CmdsErrors[0], "cannot find Kea daemon")
+
+	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
+	require.NoError(t, err)
+	require.NotNil(t, agent)
+	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
+	require.Zero(t, agent.stats.GetKeaStats().GetErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, agent.stats.GetKeaStats().GetErrorCount(daemonname.DHCPv4))
 }
 
 // Test that a statistics request can be successfully forwarded to named
