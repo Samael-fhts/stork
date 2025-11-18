@@ -214,8 +214,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 	}
 
 	if agentVersion.LessThan(storkutil.NewSemanticVersion(2, 3, 2)) {
-		// The agent communicates through the Kea CA. It cannot detect the
-		// other daemons.
+		// The agent communicates through the Kea CA.
 		for _, daemon := range state.Daemons {
 			if daemon.Name != daemonname.CA {
 				continue
