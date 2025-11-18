@@ -3,8 +3,8 @@ package daemonname
 import "github.com/pkg/errors"
 
 // Defines the consistent names of the daemons we support. They are intended
-// to be used throughout the codebase. This file should be put in a package
-// without any imports.
+// to be used throughout the codebase. This package should not import any
+// packages from the Stork repository to avoid possible circular dependencies.
 type Name string
 
 const (
