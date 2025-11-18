@@ -237,7 +237,7 @@ func (agents *connectedAgentsImpl) checkKeaCommState(stats *CommStatsKea, comman
 		uniqueDaemons[daemon] = struct{}{}
 
 		if daemonResponse.Status.Code != agentapi.Status_OK {
-			// The error was returned by a daemon listening on the API calls.
+			// The error was returned by a daemon listening to the API calls.
 			// It can be the target daemon itself for Kea 3.0.0+ or the Kea CA
 			// for older Kea versions.
 			// Unfortunately, there is no way to get which daemon returned the
