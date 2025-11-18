@@ -10,7 +10,7 @@ import (
 	require "github.com/stretchr/testify/require"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	keactrl "isc.org/stork/daemonctrl/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/configreview"
 	dbmodel "isc.org/stork/server/database/model"

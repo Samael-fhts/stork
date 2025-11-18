@@ -7,8 +7,8 @@ import (
 
 	pkgerrors "github.com/pkg/errors"
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/datamodel/constants/daemonname"
-	"isc.org/stork/datamodel/constants/protocoltype"
+	"isc.org/stork/datamodel/daemonname"
+	"isc.org/stork/datamodel/protocoltype"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/daemons/kea"

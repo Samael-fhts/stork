@@ -6,7 +6,7 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 )
 
 // TODO: Code implemented in this file is a temporary solution for virtual applications.

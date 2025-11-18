@@ -5,7 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/shirou/gopsutil/v4/process"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 )
 
 var (

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"

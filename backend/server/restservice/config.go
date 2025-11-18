@@ -12,7 +12,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configreview"
 	"isc.org/stork/server/daemons/kea"

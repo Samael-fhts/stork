@@ -8,8 +8,8 @@ import (
 
 	"github.com/go-pg/pg/v10"
 	require "github.com/stretchr/testify/require"
-	"isc.org/stork/datamodel/constants/daemonname"
-	"isc.org/stork/datamodel/constants/protocoltype"
+	"isc.org/stork/datamodel/daemonname"
+	"isc.org/stork/datamodel/protocoltype"
 	dbtest "isc.org/stork/server/database/test"
 )
 

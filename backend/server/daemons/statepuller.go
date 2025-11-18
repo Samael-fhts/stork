@@ -8,7 +8,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/configreview"
 	"isc.org/stork/server/daemons/bind9"

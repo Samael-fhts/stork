@@ -10,8 +10,8 @@ import (
 
 	"github.com/pkg/errors"
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
-	"isc.org/stork/datamodel/constants/protocoltype"
+	"isc.org/stork/datamodel/daemonname"
+	"isc.org/stork/datamodel/protocoltype"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
 )

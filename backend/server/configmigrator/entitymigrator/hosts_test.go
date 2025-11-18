@@ -11,7 +11,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	keactrl "isc.org/stork/daemonctrl/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	"isc.org/stork/server/agentcomm"
 	"isc.org/stork/server/config"
 	"isc.org/stork/server/configmigrator"

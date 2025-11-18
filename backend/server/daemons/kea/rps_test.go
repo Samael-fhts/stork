@@ -8,8 +8,8 @@ import (
 
 	"github.com/stretchr/testify/require"
 	keactrl "isc.org/stork/daemonctrl/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
-	"isc.org/stork/datamodel/constants/protocoltype"
+	"isc.org/stork/datamodel/daemonname"
+	"isc.org/stork/datamodel/protocoltype"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"
 	dbtest "isc.org/stork/server/database/test"

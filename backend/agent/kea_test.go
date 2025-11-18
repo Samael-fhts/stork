@@ -14,8 +14,8 @@ import (
 	"gopkg.in/h2non/gock.v1"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	keactrl "isc.org/stork/daemonctrl/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
-	"isc.org/stork/datamodel/constants/protocoltype"
+	"isc.org/stork/datamodel/daemonname"
+	"isc.org/stork/datamodel/protocoltype"
 	"isc.org/stork/testutil"
 	storkutil "isc.org/stork/util"
 )

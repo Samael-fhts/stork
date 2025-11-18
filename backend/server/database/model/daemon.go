@@ -12,7 +12,7 @@ import (
 	errors "github.com/pkg/errors"
 	keaconfig "isc.org/stork/daemoncfg/kea"
 	"isc.org/stork/daemondata/bind9stats"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	dbops "isc.org/stork/server/database"
 )
 

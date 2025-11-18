@@ -14,7 +14,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 	dnsconfig "isc.org/stork/daemoncfg/dnsconfig"
 	bind9stats "isc.org/stork/daemondata/bind9stats"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	agentcomm "isc.org/stork/server/agentcomm"
 	appstest "isc.org/stork/server/daemons/test"
 	dbmodel "isc.org/stork/server/database/model"

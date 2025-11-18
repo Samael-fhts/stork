@@ -2,7 +2,7 @@ package keactrl
 
 import (
 	keaconfig "isc.org/stork/daemoncfg/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 )
 
 const (

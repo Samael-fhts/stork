@@ -19,7 +19,7 @@ import (
 
 	"isc.org/stork"
 	keactrl "isc.org/stork/daemonctrl/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	storkutil "isc.org/stork/util"
 )
 

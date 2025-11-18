@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/require"
-	"isc.org/stork/datamodel/constants/protocoltype"
+	"isc.org/stork/datamodel/protocoltype"
 )
 
 // Test that the Kea Control Agent configuration without comments is parsed.

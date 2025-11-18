@@ -10,7 +10,7 @@ import (
 
 	keactrl "isc.org/stork/daemonctrl/kea"
 	keadata "isc.org/stork/daemondata/kea"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	"isc.org/stork/server/agentcomm"
 	dbops "isc.org/stork/server/database"
 	dbmodel "isc.org/stork/server/database/model"

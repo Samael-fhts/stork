@@ -20,8 +20,8 @@ import (
 	keactrl "isc.org/stork/daemonctrl/kea"
 	"isc.org/stork/daemondata/bind9stats"
 	pdnsdata "isc.org/stork/daemondata/pdns"
-	"isc.org/stork/datamodel/constants/daemonname"
-	"isc.org/stork/datamodel/constants/protocoltype"
+	"isc.org/stork/datamodel/daemonname"
+	"isc.org/stork/datamodel/protocoltype"
 	dbmodel "isc.org/stork/server/database/model"
 	storkutil "isc.org/stork/util"
 )

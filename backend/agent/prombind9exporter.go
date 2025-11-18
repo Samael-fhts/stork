@@ -19,7 +19,7 @@ import (
 	log "github.com/sirupsen/logrus"
 
 	"isc.org/stork"
-	"isc.org/stork/datamodel/constants/daemonname"
+	"isc.org/stork/datamodel/daemonname"
 	storkutil "isc.org/stork/util"
 )
 

@@ -3,8 +3,8 @@ package keaconfig
 import (
 	log "github.com/sirupsen/logrus"
 
-	"isc.org/stork/datamodel/constants/daemonname"
-	"isc.org/stork/datamodel/constants/protocoltype"
+	"isc.org/stork/datamodel/daemonname"
+	"isc.org/stork/datamodel/protocoltype"
 )
 
 // A structure representing the configuration of multiple control sockets
