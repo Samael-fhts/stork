@@ -236,7 +236,6 @@ func TestKeaCommandMarshalError(t *testing.T) {
 	// The daemon list should be unchanged after marshaling.
 	require.Len(t, cmd.Daemons, 1)
 	require.Equal(t, daemonname.DHCPv4, cmd.Daemons[0])
-
 }
 
 // Test that JSON representation of the command is created correctly when
@@ -272,7 +271,6 @@ func TestKeaCommandMarshalWithStructArgs(t *testing.T) {
 	// The daemon list should be unchanged after marshaling.
 	require.Len(t, cmd.Daemons, 1)
 	require.Equal(t, daemonname.DHCPv4, cmd.Daemons[0])
-
 }
 
 // Test that no service list is included when daemons list is empty.

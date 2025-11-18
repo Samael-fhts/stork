@@ -212,7 +212,6 @@ func TestGetState(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, agent)
 	require.Zero(t, agent.stats.GetTotalAgentErrorCount())
-
 }
 
 // Test that the call to the agent is retried if the connection error occurs.
