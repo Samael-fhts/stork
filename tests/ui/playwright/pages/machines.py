@@ -378,3 +378,34 @@ class MachinesPage:
     def shared_click_refresh_list(self):
         self.page.get_by_role("button", name=re.compile(r"\bRefresh\s+List\b", re.I)).click()
 
+    def app_open_global_configuration(self):
+        self.page.get_by_role("button", name=re.compile(r"\bGlobal\s+Configuration\b", re.I)).click()
+
+    def global_config_expect_sections(self):
+        #Verify the global configuration sections are present
+        expect(self.page.get_by_role("group", name=re.compile(r"\bGlobal\s+DHCP\s+Parameters\b", re.I))).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name=re.compile(r"\bGlobal\s+DHCP\s+Options\b", re.I))).to_be_visible(timeout=3000)
+
+    # Edit flow
+    def global_config_click_edit(self):
+        self.page.get_by_role("button", name=re.compile(r"\bEdit\b", re.I)).click()
+
+    def global_config_expect_edit_sections(self):
+        # Verify the global parameters section in edit form is present
+        expect(self.page.get_by_role("group", name=re.compile(r"\bGlobal\s+Parameters\b", re.I))).to_be_visible(timeout=3000)
+
+    def global_config_add_more_options(self):
+        self.page.get_by_role("button", name=re.compile(r"\bAdd\s+More\s+Options\b", re.I)).click()
+
+    def global_config_delete_option_at(self, index_zero_based: int):
+        self.page.get_by_role("button", name=re.compile(r"^\s*Delete\s+Option\s*$", re.I)).nth(index_zero_based).click()
+
+    def global_config_submit(self):
+        self.page.get_by_role("button", name=re.compile(r"^\s*Submit\s*$", re.I)).click()
+
+    def global_config_expect_submit_success(self):
+        expect(self.page.locator("div").filter(has_text="Kea configuration").nth(3)).to_be_visible(timeout=5000)
+
+    def global_config_back_to_kea(self):
+        self.page.get_by_role("link", name=re.compile(r"Back\s+to\s+kea@", re.I)).click()
+

@@ -281,3 +281,34 @@ def test_machines_shared_networks_filters_and_detail_flow(page):
     mp.shared_click_refresh_list()
 
     lp.logout("admin")
+
+@pytest.mark.ui
+def test_machines_global_configuration_edit_flow(page):
+    lp = LoginPage(page)
+    mp = MachinesPage(page)
+
+    # Login and reach Machines
+    lp.open(BASE_URL)
+    lp.login(ADMIN_USER, NEW_ADMIN_PASS if NEW_ADMIN_PASS else ADMIN_PASS)
+    lp.await_dashboard()
+    mp.open()
+
+    # Enter the DHCP app from badges cell
+    row_key = "172.42.42.100:8080"
+    mp.open_app_from_badges_cell(row_key)
+
+    # Open Global Configuration and verify sections
+    mp.app_open_global_configuration()
+    mp.global_config_expect_sections()
+
+    # Edit: verify edit sections, add options, delete one, submit, expect success
+    mp.global_config_click_edit()
+    mp.global_config_expect_edit_sections()
+    mp.global_config_add_more_options()
+    mp.global_config_delete_option_at(5)
+    mp.global_config_submit()
+    mp.global_config_expect_submit_success()
+
+    # Back to kea page, then logout
+    mp.global_config_back_to_kea()
+    lp.logout("admin")
