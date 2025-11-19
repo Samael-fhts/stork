@@ -174,30 +174,6 @@ func ParseBoolFlag(value string) (bool, error) {
 	}
 }
 
-// Hook that adds the stack trace to log entries when the "WithError" method
-// is used to log an error.
-type StackTraceHook struct{}
-
-var _ log.Hook = (*StackTraceHook)(nil)
-
-func (h *StackTraceHook) Levels() []log.Level {
-	return log.AllLevels
-}
-
-func (h *StackTraceHook) Fire(entry *log.Entry) error {
-	if entry.Data == nil {
-		return nil
-	}
-
-	if err, ok := entry.Data[log.ErrorKey].(error); ok && err != nil {
-		const stackTraceKey = "stackTrace"
-		stackTrace := fmt.Sprintf("%+v", err)
-		entry.Data[stackTraceKey] = stackTrace
-	}
-
-	return nil
-}
-
 // Configures the main application logger. Additionally, it converts the
 // values of the console color-related environment variables.
 func SetupLogging() {
@@ -243,7 +219,6 @@ func SetupLogging() {
 			return "", fmt.Sprintf("%20v:%-5d", filename, f.Line)
 		},
 	})
-	log.AddHook(&StackTraceHook{})
 }
 
 // The command executor is an abstraction layer on top of the exec package to
