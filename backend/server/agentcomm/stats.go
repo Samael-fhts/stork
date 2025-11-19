@@ -169,7 +169,7 @@ func (stats *CommStats) GetTotalAgentErrorCount() int64 {
 	return totalErrorCount
 }
 
-// Returns an object with a Kea-specific interface for updating the statistics.
+// Returns an object implementing a Kea-specific interface for updating the statistics.
 func (stats *CommStats) GetKeaStats() *CommStatsKea {
 	return &CommStatsKea{
 		comm: stats,
