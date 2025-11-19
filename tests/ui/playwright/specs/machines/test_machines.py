@@ -132,6 +132,7 @@ def test_machines_installing_agent_dialog(page):
     # Logout
     lp.logout("admin")
 
+
 @pytest.mark.ui
 def test_machines_dhcp_badges_and_app_tabs_present(page):
     lp = LoginPage(page)
@@ -159,6 +160,7 @@ def test_machines_dhcp_badges_and_app_tabs_present(page):
     mp.app_toggle_monitoring_off_on()
 
     lp.logout("admin")
+
 
 @pytest.mark.ui
 def test_machines_host_reservations_filters_and_sections(page):
@@ -202,6 +204,7 @@ def test_machines_host_reservations_filters_and_sections(page):
     # Logout
     lp.logout("admin")
 
+
 @pytest.mark.ui
 def test_machines_subnets_filters_and_detail_flow(page):
     lp = LoginPage(page)
@@ -240,6 +243,7 @@ def test_machines_subnets_filters_and_detail_flow(page):
     mp.subnets_click_refresh_list()
 
     lp.logout("admin")
+
 
 @pytest.mark.ui
 def test_machines_shared_networks_filters_and_detail_flow(page):
@@ -282,6 +286,7 @@ def test_machines_shared_networks_filters_and_detail_flow(page):
 
     lp.logout("admin")
 
+
 @pytest.mark.ui
 def test_machines_global_configuration_edit_flow(page):
     lp = LoginPage(page)
@@ -313,6 +318,7 @@ def test_machines_global_configuration_edit_flow(page):
     mp.global_config_back_to_kea()
     lp.logout("admin")
 
+
 @pytest.mark.ui
 def test_machines_raw_configuration_expand_collapse_refresh(page):
     lp = LoginPage(page)
@@ -337,6 +343,7 @@ def test_machines_raw_configuration_expand_collapse_refresh(page):
     mp.raw_config_back_to_kea()
 
     lp.logout("admin")
+
 
 @pytest.mark.ui
 def test_machines_ca_raw_configuration_expand_collapse_refresh(page):
