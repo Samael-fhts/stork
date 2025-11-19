@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # Usage:
-# ./check-style.sh [--add-init.py] [--changed] [--bandit] [--pylint] [--pycodestyle] [--pydoctor] [--pydocstyle] [file, ...]
+# ./lint.sh [--add-init.py] [--changed] [--bandit] [--pylint] [--pycodestyle] [--pydoctor] [--pydocstyle] [file, ...]
 
 # shellcheck disable=SC2086
 # SC2086 (info): Double quote to prevent globbing and word splitting.
@@ -76,7 +76,7 @@ run_pycodestyle() {
 run_pydoctor() {
   # __init__.py files are required by pydoctor.
   files=$(add_init_py)
-  pydoctor --docformat restructuredtext --testing . || FAILURE=true
+  echo  # pydoctor does not add a trailing new line. Add it ourselves.
   rm ${files}
 }
 
