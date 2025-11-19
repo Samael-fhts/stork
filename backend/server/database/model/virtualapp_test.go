@@ -140,3 +140,47 @@ func TestGetDaemonsByVirtualAppID(t *testing.T) {
 	require.Contains(t, daemonIDs, daemon1.ID)
 	require.Contains(t, daemonIDs, daemon2.ID)
 }
+
+// Test that the machine ID can be retrieved by virtual app ID.
+func TestGetMachineIDByVirtualAppID(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{
+		Address:   "machine1",
+		AgentPort: 8080,
+	}
+	_ = AddMachine(db, m)
+
+	daemon := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{{
+		Type:    AccessPointControl,
+		Address: "ap1",
+		Port:    8000,
+		Key:     "key1",
+	}})
+	_ = AddDaemon(db, daemon)
+
+	// Act
+	virtualApp := daemon.GetVirtualApp()
+	machineID, err := GetMachineIDByVirtualAppID(db, virtualApp.ID)
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, m.ID, machineID)
+	require.NotZero(t, machineID)
+}
+
+// Test that zero machine ID is returned for non-existing virtual app ID.
+func TestGetMachineIDByVirtualAppIDNotFound(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	// Act
+	machineID, err := GetMachineIDByVirtualAppID(db, 42)
+
+	// Assert
+	require.NoError(t, err)
+	require.Zero(t, machineID)
+}

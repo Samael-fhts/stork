@@ -48,19 +48,19 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 		}
 	}
 
-	var machineID *int64
+	var machineIDPtr *int64
 	if params.AppID != nil {
-		daemons, err := dbmodel.GetDaemonsByVirtualAppID(r.DB, *params.AppID)
+		machineID, err := dbmodel.GetMachineIDByVirtualAppID(r.DB, *params.AppID)
 		if err != nil {
-			msg := "Failed to get daemons by virtual app ID"
+			msg := "Failed to get machine ID by virtual app ID"
 			log.WithError(err).Error(msg)
 			rsp := dns.NewGetZonesDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 				Message: &msg,
 			})
 			return rsp
 		}
-		if len(daemons) == 0 {
-			// No daemons with the specified virtual app ID exist, return empty result.
+		if machineID == 0 {
+			// No machine with the specified virtual app ID exist, return empty result.
 			payload := models.Zones{
 				Items: []*models.Zone{},
 				Total: 0,
@@ -68,14 +68,12 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 			rsp := dns.NewGetZonesOK().WithPayload(&payload)
 			return rsp
 		}
-		if len(daemons) > 0 {
-			machineID = &daemons[0].MachineID
-		}
+		machineIDPtr = &machineID
 	}
 
 	// Apply paging parameters and zone-specific filters.
 	filter := &dbmodel.GetZonesFilter{
-		MachineID:  machineID,
+		MachineID:  machineIDPtr,
 		DaemonName: daemonName,
 		Class:      params.Class,
 		RPZ:        params.Rpz,

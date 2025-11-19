@@ -187,26 +187,25 @@ func (r *RestAPI) GetHosts(ctx context.Context, params dhcp.GetHostsParams) midd
 		limit = *params.Limit
 	}
 
-	var machineID *int64
+	var machineIDPtr *int64
 	if params.AppID != nil {
-		daemons, err := dbmodel.GetDaemonsByVirtualAppID(r.DB, *params.AppID)
+		machineID, err := dbmodel.GetMachineIDByVirtualAppID(r.DB, *params.AppID)
 		if err != nil {
-			msg := fmt.Sprintf("Problem fetching daemons for app ID %d from the database", *params.AppID)
+			msg := fmt.Sprintf("Problem fetching machine ID for app ID %d from the database", *params.AppID)
 			log.WithError(err).Error(msg)
 			rsp := dhcp.NewGetHostsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 				Message: &msg,
 			})
 			return rsp
 		}
-		if len(daemons) != 0 {
-			// Get the machine IDs for the daemons.
-			machineID = &daemons[0].MachineID
+		if machineID != 0 {
+			machineIDPtr = &machineID
 		}
 	}
 
 	// Get hosts from DB.
 	filters := dbmodel.HostsByPageFilters{
-		MachineID:        machineID,
+		MachineID:        machineIDPtr,
 		SubnetID:         params.SubnetID,
 		LocalSubnetID:    params.LocalSubnetID,
 		FilterText:       params.Text,
@@ -654,27 +653,26 @@ func (r *RestAPI) DeleteHost(ctx context.Context, params dhcp.DeleteHostParams) 
 // configuration to the database. It works in the background. The handler is
 // non-blocking. Returns an initial status of the migration.
 func (r *RestAPI) StartHostsMigration(ctx context.Context, params dhcp.StartHostsMigrationParams) middleware.Responder {
-	var machineID *int64
+	var machineIDPtr *int64
 	if params.AppID != nil {
-		daemons, err := dbmodel.GetDaemonsByVirtualAppID(r.DB, *params.AppID)
+		machineID, err := dbmodel.GetMachineIDByVirtualAppID(r.DB, *params.AppID)
 		if err != nil {
-			msg := fmt.Sprintf("Problem fetching daemons for app ID %d from the database", *params.AppID)
+			msg := fmt.Sprintf("Problem fetching machine ID for app ID %d from the database", *params.AppID)
 			log.WithError(err).Error(msg)
 			rsp := dhcp.NewGetHostsDefault(http.StatusInternalServerError).WithPayload(&models.APIError{
 				Message: &msg,
 			})
 			return rsp
 		}
-		if len(daemons) != 0 {
-			// Get the machine IDs for the daemons.
-			machineID = &daemons[0].MachineID
+		if machineID != 0 {
+			machineIDPtr = &machineID
 		}
 	}
 
 	// Create a new host migrator.
 	migrator := entitymigrator.NewHostMigrator(
 		dbmodel.HostsByPageFilters{
-			MachineID:        machineID,
+			MachineID:        machineIDPtr,
 			SubnetID:         params.SubnetID,
 			LocalSubnetID:    params.LocalSubnetID,
 			FilterText:       params.Text,

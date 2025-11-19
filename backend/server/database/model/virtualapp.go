@@ -100,3 +100,42 @@ func GetDaemonsByVirtualAppID(dbi pg.DBI, appID int64) (daemons []*Daemon, err e
 
 	return daemons, nil
 }
+
+// Returns a machine ID related to the virtual app.
+// Returns zero if no matching machine is found.
+func GetMachineIDByVirtualAppID(dbi pg.DBI, appID int64) (machineID int64, err error) {
+	var accessPoints []AccessPoint
+	err = dbi.Model(&accessPoints).
+		Where("type = ?", AccessPointControl).
+		Select()
+	if err != nil {
+		return 0, errors.Wrapf(err, "problem selecting control access points")
+	}
+
+	var matchingDaemonID int64
+	for _, ap := range accessPoints {
+		checksum := adler32.Checksum([]byte(fmt.Sprintf("%s:%d", ap.Address, ap.Port)))
+		if int64(checksum) == appID {
+			matchingDaemonID = ap.DaemonID
+			break
+		}
+	}
+
+	if matchingDaemonID == 0 {
+		// No matching access point, return empty result.
+		return 0, nil
+	}
+
+	err = dbi.Model((*Daemon)(nil)).
+		Where("daemon.id = ?", matchingDaemonID).
+		Column("daemon.machine_id").
+		Select(&machineID)
+
+	if errors.Is(err, pg.ErrNoRows) {
+		return 0, nil
+	} else if err != nil {
+		return 0, errors.Wrapf(err, "problem selecting machine ID for virtual app ID %d", appID)
+	}
+
+	return machineID, err
+}
