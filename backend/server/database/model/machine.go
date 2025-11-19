@@ -285,7 +285,7 @@ func GetMachinesByPage(db *pg.DB, offset int64, limit int64, filterText *string,
 
 // Get all machines from database. It can be filtered by authorized field.
 func GetAllMachines(db *pg.DB, authorized *bool) ([]Machine, error) {
-	return getAllMachinesWithRelations(db, authorized,
+	return GetAllMachinesWithRelations(db, authorized,
 		MachineRelationDaemonAccessPoints,
 		MachineRelationKeaDHCPConfigs,
 		MachineRelationBind9Daemons,
@@ -295,7 +295,7 @@ func GetAllMachines(db *pg.DB, authorized *bool) ([]Machine, error) {
 
 // Get all machines from database with specific relations. It can be filtered
 // by authorized field.
-func getAllMachinesWithRelations(db *pg.DB, authorized *bool, relations ...MachineRelation) ([]Machine, error) {
+func GetAllMachinesWithRelations(db *pg.DB, authorized *bool, relations ...MachineRelation) ([]Machine, error) {
 	var machines []Machine
 
 	// prepare query
@@ -324,7 +324,7 @@ func getAllMachinesWithRelations(db *pg.DB, authorized *bool, relations ...Machi
 
 // Get all machines from database without involving any DB relations. This is to have as lightweight DB query as possible. It can be filtered by authorized field.
 func GetAllMachinesNoRelations(db *pg.DB, authorized *bool) ([]Machine, error) {
-	return getAllMachinesWithRelations(db, authorized)
+	return GetAllMachinesWithRelations(db, authorized)
 }
 
 // Returns the number of unauthorized machines.
