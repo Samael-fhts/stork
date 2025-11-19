@@ -337,3 +337,29 @@ def test_machines_raw_configuration_expand_collapse_refresh(page):
     mp.raw_config_back_to_kea()
 
     lp.logout("admin")
+
+@pytest.mark.ui
+def test_machines_ca_raw_configuration_expand_collapse_refresh(page):
+    lp = LoginPage(page)
+    mp = MachinesPage(page)
+
+    # Login and reach Machines
+    lp.open(BASE_URL)
+    lp.login(ADMIN_USER, NEW_ADMIN_PASS if NEW_ADMIN_PASS else ADMIN_PASS)
+    lp.await_dashboard()
+    mp.open()
+
+    # Enter the app via badges cell
+    row_key = "172.42.42.100:8080"
+    mp.open_app_from_badges_cell(row_key)
+
+    # CA → Raw configuration flow
+    mp.app_open_ca()
+    mp.app_open_raw_configuration()
+    mp.raw_config_expand()
+    mp.raw_config_expect_control_agent_visible()
+    mp.raw_config_collapse()
+    mp.raw_config_refresh()
+    mp.raw_config_back_to_kea()
+
+    lp.logout("admin")

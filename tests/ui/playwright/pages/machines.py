@@ -427,3 +427,10 @@ class MachinesPage:
     def raw_config_back_to_kea(self):
         self.page.get_by_role("link", name=re.compile(r"^kea@", re.I)).click()
 
+    def app_open_ca(self):
+        self.page.get_by_role("link", name=re.compile(r"^\s*CA\s*$", re.I)).click()
+
+    # ---- Raw config checks specific to CA ----
+    def raw_config_expect_control_agent_visible(self):
+        expect(self.page.get_by_text("Control-agent", exact=True)).to_be_visible(timeout=3000)
+
