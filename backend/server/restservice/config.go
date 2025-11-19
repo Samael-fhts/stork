@@ -674,6 +674,14 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 			})
 			return rsp
 		}
+		if !daemonName.IsKea() {
+			msg := fmt.Sprintf("Daemon %s is not a Kea daemon", daemonName)
+			log.Error(msg)
+			rsp := dhcp.NewUpdateKeaGlobalParametersSubmitDefault(http.StatusBadRequest).WithPayload(&models.APIError{
+				Message: &msg,
+			})
+			return rsp
+		}
 
 		switch daemonName {
 		case daemonname.DHCPv4:
