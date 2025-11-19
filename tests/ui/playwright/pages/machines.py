@@ -409,3 +409,21 @@ class MachinesPage:
     def global_config_back_to_kea(self):
         self.page.get_by_role("link", name=re.compile(r"Back\s+to\s+kea@", re.I)).click()
 
+    def app_open_raw_configuration(self):
+        self.page.get_by_role("button", name=re.compile(r"\bRaw\s+configuration\b", re.I)).click()
+
+    def raw_config_expand(self):
+        self.page.get_by_role("button", name=re.compile(r"\bExpand\b", re.I)).click()
+
+    def raw_config_expect_dhcp4_visible(self):
+        expect(self.page.get_by_text("Dhcp4", exact=True)).to_be_visible(timeout=3000)
+
+    def raw_config_collapse(self):
+        self.page.get_by_role("button", name=re.compile(r"\bCollapse\b", re.I)).click()
+
+    def raw_config_refresh(self):
+        self.page.get_by_role("button", name=re.compile(r"\bRefresh\b", re.I)).click()
+
+    def raw_config_back_to_kea(self):
+        self.page.get_by_role("link", name=re.compile(r"^kea@", re.I)).click()
+
