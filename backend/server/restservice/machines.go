@@ -1431,7 +1431,7 @@ func (r *RestAPI) getApps(offset, limit int64, filterText *string, sortField str
 
 	dbDaemons, total, err := dbmodel.GetDaemonsByPage(r.DB, offset, limit, filterText, sortField, sortDir, daemonNames...)
 	if err != nil {
-		return nil, errors.WithMessage(err, "problem getting daemons from the database")
+		return nil, err
 	}
 	apps := &models.Apps{
 		Total: total,
