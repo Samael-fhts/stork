@@ -1581,20 +1581,15 @@ func TestRestGetApps(t *testing.T) {
 
 	stats := agentcomm.NewAgentStats()
 	stats.IncreaseAgentErrorCount("foo")
+
 	keaStats := stats.GetKeaStats()
-	for i := 0; i < 2; i++ {
-		keaStats.IncreaseErrorCount(daemonname.CA)
-	}
-	for i := 0; i < 5; i++ {
-		keaStats.IncreaseErrorCount(daemonname.DHCPv4)
-	}
+	keaStats.IncreaseErrorCountBy(daemonname.CA, 2)
+	keaStats.IncreaseErrorCountBy(daemonname.DHCPv4, 5)
+
 	bind9Stats := stats.GetBind9Stats()
-	for i := 0; i < 2; i++ {
-		bind9Stats.IncreaseErrorCount(dbmodel.AccessPointControl)
-	}
-	for i := 0; i < 3; i++ {
-		bind9Stats.IncreaseErrorCount(dbmodel.AccessPointStatistics)
-	}
+	bind9Stats.IncreaseErrorCountBy(dbmodel.AccessPointControl, 2)
+	bind9Stats.IncreaseErrorCountBy(dbmodel.AccessPointStatistics, 3)
+
 	mock.EXPECT().GetConnectedAgentStatsWrapper(gomock.Any(), gomock.Any()).DoAndReturn(wrap(stats)).AnyTimes()
 
 	t.Run("get all apps", func(t *testing.T) {
@@ -1960,9 +1955,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 	t.Run("ca errors", func(t *testing.T) {
 		stats1 := agentcomm.NewAgentStats()
 		keaStats := stats1.GetKeaStats()
-		for i := 0; i < 10; i++ {
-			keaStats.IncreaseErrorCount(daemonname.CA)
-		}
+		keaStats.IncreaseErrorCountBy(daemonname.CA, 10)
 		mock.EXPECT().GetConnectedAgentStatsWrapper(gomock.Any(), int64(8080)).DoAndReturn(wrap(stats1))
 
 		stats2 := agentcomm.NewAgentStats()
@@ -2027,9 +2020,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 
 		stats3 := agentcomm.NewAgentStats()
 		bind9Stats := stats3.GetBind9Stats()
-		for i := 0; i < 10; i++ {
-			bind9Stats.IncreaseErrorCount(dbmodel.AccessPointControl)
-		}
+		bind9Stats.IncreaseErrorCountBy(dbmodel.AccessPointControl, 10)
 		mock.EXPECT().GetConnectedAgentStatsWrapper(gomock.Any(), int64(8082)).DoAndReturn(wrap(stats3))
 
 		params := services.GetAppsWithCommunicationIssuesParams{}
@@ -2049,9 +2040,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 
 		stats3 := agentcomm.NewAgentStats()
 		bind9Stats := stats3.GetBind9Stats()
-		for i := 0; i < 10; i++ {
-			bind9Stats.IncreaseErrorCount(dbmodel.AccessPointStatistics)
-		}
+		bind9Stats.IncreaseErrorCountBy(dbmodel.AccessPointStatistics, 10)
 		mock.EXPECT().GetConnectedAgentStatsWrapper(gomock.Any(), int64(8082)).DoAndReturn(wrap(stats3))
 
 		params := services.GetAppsWithCommunicationIssuesParams{}
@@ -2598,12 +2587,8 @@ func TestGetDhcpOverview(t *testing.T) {
 	stats := agentcomm.NewAgentStats()
 	stats.IncreaseAgentErrorCount("foo")
 	keaStats := stats.GetKeaStats()
-	for i := 0; i < 2; i++ {
-		keaStats.IncreaseErrorCount(daemonname.CA)
-	}
-	for i := 0; i < 5; i++ {
-		keaStats.IncreaseErrorCount(daemonname.DHCPv4)
-	}
+	keaStats.IncreaseErrorCountBy(daemonname.CA, 2)
+	keaStats.IncreaseErrorCountBy(daemonname.DHCPv4, 5)
 	mock.EXPECT().GetConnectedAgentStatsWrapper(gomock.Any(), int64(8080)).DoAndReturn(wrap(stats))
 
 	settings := RestAPISettings{}

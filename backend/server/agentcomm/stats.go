@@ -214,6 +214,12 @@ func (ks *CommStatsKea) IncreaseErrorCount(daemonName daemonname.Name) int64 {
 	return ks.comm.increaseDaemonErrorCount(daemonName, dbmodel.AccessPointControl)
 }
 
+// Increases communication error count with a Kea daemon by a provided value.
+// Returns an updated count.
+func (ks *CommStatsKea) IncreaseErrorCountBy(daemonName daemonname.Name, value int64) int64 {
+	return ks.comm.increaseDaemonErrorCountBy(daemonName, dbmodel.AccessPointControl, value)
+}
+
 // Provides a BIND 9-specific way of updating the error count for given daemons.
 type CommStatsBind9 struct {
 	comm *CommStats
@@ -229,6 +235,12 @@ func (bs *CommStatsBind9) GetErrorCount(accessPointType dbmodel.AccessPointType)
 // an updated count.
 func (bs *CommStatsBind9) IncreaseErrorCount(accessPointType dbmodel.AccessPointType) int64 {
 	return bs.comm.increaseDaemonErrorCount(daemonname.Bind9, accessPointType)
+}
+
+// Increases communication error count with a BIND 9 daemon by a provided value.
+// Returns an updated count.
+func (bs *CommStatsBind9) IncreaseErrorCountBy(accessPointType dbmodel.AccessPointType, value int64) int64 {
+	return bs.comm.increaseDaemonErrorCountBy(daemonname.Bind9, accessPointType, value)
 }
 
 // Resets the communication error count with a BIND 9 daemon to 0.
