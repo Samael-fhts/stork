@@ -38,6 +38,23 @@ func TestIncreaseKeaErrorCount(t *testing.T) {
 	require.EqualValues(t, 1, keaStats.GetErrorCount(daemonname.DHCPv4))
 }
 
+// Test increasing an error count for a selected Kea daemon type by any value.
+func TestIncreaseByKeaErrorCount(t *testing.T) {
+	// Arrange
+	stats := NewAgentStats()
+	keaStats := stats.GetKeaStats()
+
+	// Act
+	keaStats.IncreaseErrorCountBy(daemonname.CA, 5)
+	keaStats.IncreaseErrorCountBy(daemonname.DHCPv4, 3)
+	keaStats.IncreaseErrorCountBy(daemonname.CA, 2)
+	keaStats.IncreaseErrorCountBy(daemonname.DHCPv4, -2)
+
+	// Assert
+	require.EqualValues(t, 7, keaStats.GetErrorCount(daemonname.CA))
+	require.EqualValues(t, 1, keaStats.GetErrorCount(daemonname.DHCPv4))
+}
+
 // Test updating an error count for a daemon and tracking the communication
 // error transition based on the updated count.
 func TestUpdateKeaErrorCount(t *testing.T) {
@@ -66,6 +83,23 @@ func TestIncreaseBind9ErrorCount(t *testing.T) {
 	require.EqualValues(t, 1, bind9Stats.IncreaseErrorCount(dbmodel.AccessPointStatistics))
 	require.EqualValues(t, 2, bind9Stats.GetErrorCount(dbmodel.AccessPointControl))
 	require.EqualValues(t, 1, bind9Stats.GetErrorCount(dbmodel.AccessPointStatistics))
+}
+
+// Test increasing an error count for a selected BIND 9 channel type by any value.
+func TestIncreaseByBind9ErrorCount(t *testing.T) {
+	// Arrange
+	stats := NewAgentStats()
+	bind9Stats := stats.GetBind9Stats()
+
+	// Act
+	bind9Stats.IncreaseErrorCountBy(dbmodel.AccessPointControl, 4)
+	bind9Stats.IncreaseErrorCountBy(dbmodel.AccessPointStatistics, 6)
+	bind9Stats.IncreaseErrorCountBy(dbmodel.AccessPointControl, 3)
+	bind9Stats.IncreaseErrorCountBy(dbmodel.AccessPointStatistics, -2)
+
+	// Assert
+	require.EqualValues(t, 7, bind9Stats.GetErrorCount(dbmodel.AccessPointControl))
+	require.EqualValues(t, 4, bind9Stats.GetErrorCount(dbmodel.AccessPointStatistics))
 }
 
 // Test resetting the communication error count with a BIND 9 daemon to 0.
