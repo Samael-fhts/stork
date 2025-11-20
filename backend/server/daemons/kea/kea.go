@@ -29,17 +29,6 @@ func GetDaemonHooks(dbDaemon *dbmodel.Daemon) (hooks []string) {
 	return
 }
 
-// Get list of log targets for the given Kea daemon.
-func GetDaemonLogTargets(dbDaemon *dbmodel.Daemon) (logTargets []dbmodel.LogTarget) {
-	if dbDaemon.KeaDaemon == nil || dbDaemon.KeaDaemon.Config == nil {
-		return
-	}
-	for _, logTarget := range dbDaemon.LogTargets {
-		logTargets = append(logTargets, *logTarget)
-	}
-	return
-}
-
 // The arguments of the version-get command response.
 type VersionGetRespArgs struct {
 	Extended string
