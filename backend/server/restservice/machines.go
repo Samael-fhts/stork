@@ -1596,7 +1596,7 @@ func (r *RestAPI) GetApp(ctx context.Context, params services.GetAppParams) midd
 	return rsp
 }
 
-// Gets current status of services for a given Kea daemons.
+// Gets current status of services for the given Kea daemons.
 func getKeaServicesStatus(db *dbops.PgDB, daemons []*dbmodel.Daemon) *models.ServicesStatus {
 	servicesStatus := &models.ServicesStatus{}
 
