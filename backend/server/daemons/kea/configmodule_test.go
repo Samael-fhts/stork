@@ -291,6 +291,7 @@ func TestApplyGlobalParametersUpdate(t *testing.T) {
 	// Make sure that the transaction state exists and comprises expected data.
 	stateReturned, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
+	require.False(t, stateReturned.Scheduled)
 
 	require.Len(t, stateReturned.Updates, 1)
 	update := stateReturned.Updates[0]
@@ -1080,6 +1081,7 @@ func TestApplyHostUpdate(t *testing.T) {
 	// Make sure that the transaction state exists and comprises expected data.
 	stateReturned, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
+	require.False(t, stateReturned.Scheduled)
 
 	// Verify the host after update.
 	recipeReturned, err := stateReturned.GetRecipeForUpdate(0)
@@ -1961,6 +1963,7 @@ func TestApplySharedNetworkAdd(t *testing.T) {
 	// Make sure that the transaction state exists and comprises expected data.
 	stateReturned, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
+	require.False(t, stateReturned.Scheduled)
 
 	require.Len(t, stateReturned.Updates, 1)
 	update := stateReturned.Updates[0]
@@ -2810,6 +2813,7 @@ func TestApplySharedNetworkUpdate(t *testing.T) {
 	// Make sure that the transaction state exists and comprises expected data.
 	stateReturned, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
+	require.False(t, stateReturned.Scheduled)
 
 	require.Len(t, stateReturned.Updates, 1)
 	update := stateReturned.Updates[0]
@@ -3799,6 +3803,7 @@ func TestApplySubnetAdd(t *testing.T) {
 	// Make sure that the transaction state exists and comprises expected data.
 	stateReturned, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
+	require.False(t, stateReturned.Scheduled)
 
 	require.Len(t, stateReturned.Updates, 1)
 	update := stateReturned.Updates[0]
@@ -4277,6 +4282,7 @@ func TestApplySubnetUpdate(t *testing.T) {
 	// Make sure that the transaction state exists and comprises expected data.
 	stateReturned, ok := config.GetTransactionState[ConfigRecipe](ctx)
 	require.True(t, ok)
+	require.False(t, stateReturned.Scheduled)
 
 	require.Len(t, stateReturned.Updates, 1)
 	update := stateReturned.Updates[0]
@@ -4496,6 +4502,160 @@ func TestCommitSubnetUpdate(t *testing.T) {
 						"service": [ "dhcp4" ]
 					}`,
 				string(marshalled))
+		}
+	}
+
+	// Make sure that the subnet has been updated in the database.
+	updatedSubnet, err := dbmodel.GetSubnet(db, subnets[0].ID)
+	require.NoError(t, err)
+	require.NotNil(t, updatedSubnet)
+	require.Equal(t, "foo", updatedSubnet.ClientClass)
+	require.Len(t, updatedSubnet.LocalSubnets, 2)
+	require.NotNil(t, updatedSubnet.LocalSubnets[0].KeaParameters)
+	require.NotNil(t, updatedSubnet.LocalSubnets[0].KeaParameters.Allocator)
+	require.Equal(t, "random", *updatedSubnet.LocalSubnets[0].KeaParameters.Allocator)
+	require.NotNil(t, updatedSubnet.LocalSubnets[1].KeaParameters)
+	require.NotNil(t, updatedSubnet.LocalSubnets[1].KeaParameters.Allocator)
+	require.Equal(t, "random", *updatedSubnet.LocalSubnets[1].KeaParameters.Allocator)
+}
+
+// Test scheduling config changes in the database, retrieving and committing it.
+func TestCommitScheduledSubnetUpdate(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	agents := agentcommtest.NewKeaFakeAgents()
+	manager := newTestManager(&appstest.ManagerAccessorsWrapper{
+		DB:        db,
+		Agents:    agents,
+		DefLookup: dbmodel.NewDHCPOptionDefinitionLookup(),
+	})
+	// Test scheduling config changes in the database, retrieving and committing it.
+	module := NewConfigModule(manager)
+	require.NotNil(t, module)
+
+	// User is required to associate the config change with a user.
+	user := &dbmodel.SystemUser{
+		Login:    "test",
+		Lastname: "test",
+		Name:     "test",
+	}
+	_, err := dbmodel.CreateUser(db, user)
+	require.NoError(t, err)
+	require.NotZero(t, user.ID)
+
+	serverConfig := `{
+		"Dhcp6": {
+			"shared-networks": [
+				{
+					"name": "foo",
+					"subnet6": [
+						{
+							"id": 1,
+							"subnet": "2001:db8:1::/64"
+						}
+					]
+				}
+			]
+		}
+	}`
+
+	server1, err := dbmodeltest.NewKeaDHCPv6Server(db)
+	require.NoError(t, err)
+	err = server1.Configure(serverConfig)
+	require.NoError(t, err)
+
+	daemon1, err := server1.GetDaemon()
+	require.NoError(t, err)
+
+	server2, err := dbmodeltest.NewKeaDHCPv6Server(db)
+	require.NoError(t, err)
+	err = server2.Configure(serverConfig)
+	require.NoError(t, err)
+
+	daemon2, err := server2.GetDaemon()
+	require.NoError(t, err)
+
+	err = CommitDaemonsIntoDB(db,
+		[]*dbmodel.Daemon{daemon1, daemon2},
+		&storktest.FakeEventCenter{},
+		[]DaemonStateMeta{{IsConfigChanged: true}, {IsConfigChanged: true}},
+		dbmodel.NewDHCPOptionDefinitionLookup(),
+	)
+	require.NoError(t, err)
+
+	daemons, err := dbmodel.GetAllDaemons(db)
+	require.NoError(t, err)
+	require.Len(t, daemons, 2)
+
+	subnets, err := dbmodel.GetSubnetsByPrefix(db, "2001:db8:1::/64")
+	require.NoError(t, err)
+	require.Len(t, subnets, 1)
+
+	daemonIDs := []int64{daemons[0].ID, daemons[1].ID}
+	ctx := context.WithValue(context.Background(), config.DaemonsContextKey, daemonIDs)
+
+	// Set user id in the context.
+	ctx = context.WithValue(ctx, config.UserContextKey, int64(user.ID))
+
+	state := config.NewTransactionStateWithUpdate[ConfigRecipe](dbmodel.ConfigOperationKeaSubnetUpdate, daemonIDs...)
+	recipe := ConfigRecipe{
+		SubnetConfigRecipeParams: SubnetConfigRecipeParams{
+			SubnetBeforeUpdate: &subnets[0],
+		},
+	}
+	err = state.SetRecipeForUpdate(0, &recipe)
+	require.NoError(t, err)
+	ctx = context.WithValue(ctx, config.StateContextKey, *state)
+
+	// Copy the subnet and modify it. The modifications should be applied in
+	// the database upon commit.
+	modifiedSubnet := subnets[0]
+	modifiedSubnet.CreatedAt = time.Time{}
+	modifiedSubnet.ClientClass = "foo"
+	modifiedSubnet.LocalSubnets[0].KeaParameters.Allocator = storkutil.Ptr("random")
+	modifiedSubnet.LocalSubnets[1].KeaParameters.Allocator = storkutil.Ptr("random")
+
+	ctx, err = module.ApplySubnetUpdate(ctx, &modifiedSubnet)
+	require.NoError(t, err)
+
+	// Simulate scheduling the config change and retrieving it from the database.
+	// The context will hold re-created transaction state.
+	ctx = manager.scheduleAndGetChange(ctx, t)
+	require.NotNil(t, ctx)
+
+	// Committing the subnet should result in sending control commands to Kea servers.
+	_, err = module.Commit(ctx)
+	require.NoError(t, err)
+
+	// Make sure that the correct number of commands were sent.
+	require.Len(t, agents.RecordedCommands, 4)
+
+	// Validate the sent commands and URLS.
+	for i, command := range agents.RecordedCommands {
+		marshalled, err := command.Marshal()
+		require.NoError(t, err)
+
+		switch {
+		case i < 2:
+			require.JSONEq(t, `{
+				"command": "subnet6-update",
+				"service": [ "dhcp6" ],
+				"arguments": {
+					"subnet6": [
+						{
+							"id": 1,
+							"subnet": "2001:db8:1::/64",
+							"allocator": "random"
+						}
+					]
+				}
+			}`, string(marshalled))
+		default:
+			require.JSONEq(t, `{
+				"command": "config-write",
+				"service": [ "dhcp6" ]
+			}`, string(marshalled))
 		}
 	}
 
