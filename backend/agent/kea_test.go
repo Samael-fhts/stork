@@ -3,8 +3,10 @@ package agent
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"path"
 	"path/filepath"
+	"sync"
 	"testing"
 	"time"
 
@@ -1659,4 +1661,61 @@ func TestDetectKeaCommunicationError(t *testing.T) {
 	require.Equal(t, "localhost", accessPoint.Address)
 	require.EqualValues(t, 45634, accessPoint.Port)
 	require.Equal(t, protocoltype.HTTP, accessPoint.Protocol)
+}
+
+// Test sending data over Kea socket connector.
+func TestKeaSocketConnector(t *testing.T) {
+	// Arrange
+	sb := testutil.NewSandbox()
+	defer sb.Close()
+	socketPath := path.Join(sb.BasePath, "kea-socket-test.sock")
+
+	server, err := net.Listen("unix", socketPath)
+	require.NoError(t, err)
+	defer server.Close()
+
+	// Expected command and response.
+	command := []byte(`{"command":"ping"}`)
+	response := []byte(`{"result":0}`)
+
+	var wgServer sync.WaitGroup
+	wgServer.Add(1)
+
+	go func() {
+		// Wait for client connection.
+		conn, err := server.Accept()
+		require.NoError(t, err)
+		defer conn.Close()
+
+		// Read command.
+		buf := make([]byte, len(command))
+		n, err := conn.Read(buf)
+		require.NoError(t, err)
+		require.Len(t, command, n)
+		require.Equal(t, command, buf)
+
+		// Write response.
+		n, err = conn.Write([]byte(response))
+		require.NoError(t, err)
+		require.Len(t, response, n)
+
+		// Signal that server work is done.
+		wgServer.Done()
+	}()
+
+	// Construct a socket connector.
+	connector := newKeaConnector(AccessPoint{
+		Type:     AccessPointControl,
+		Address:  socketPath,
+		Protocol: protocoltype.Socket,
+	}, HTTPClientConfig{})
+
+	// Act
+	output, err := connector.sendPayload(t.Context(), command)
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, response, output)
+	// Wait for assertions in the server goroutine.
+	wgServer.Wait()
 }

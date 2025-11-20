@@ -2395,3 +2395,16 @@ func TestGetPowerDNSServerInfoStatisticsErrorResponse(t *testing.T) {
 	details := st.Details()
 	require.Empty(t, details)
 }
+
+// Test that that call to allow log method of the agent enables access to a log.
+func TestAllowLog(t *testing.T) {
+	// Arrange
+	sa, _, teardown := setupAgentTest()
+	defer teardown()
+
+	// Act
+	sa.allowLog("test/log/path")
+
+	// Assert
+	require.True(t, sa.logTailer.allowed("test/log/path"))
+}
