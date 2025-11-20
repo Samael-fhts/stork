@@ -197,24 +197,47 @@ func (r *RestAPI) GetSoftwareVersions(ctx context.Context, params general.GetSof
 	return rsp
 }
 
+// Groups the daemons by their virtual app.
+// It is guaranteed that there is no empty groups.
+// The groups are sorted by app name descending.
+func groupDaemonsByApp(daemons []*dbmodel.Daemon) [][]*dbmodel.Daemon {
+	index := make(map[int64][]*dbmodel.Daemon)
+	for _, dbDaemon := range daemons {
+		app := dbDaemon.GetVirtualApp()
+		index[app.ID] = append(index[app.ID], dbDaemon)
+	}
+
+	groups := [][]*dbmodel.Daemon{}
+	for _, daemons := range index {
+		groups = append(groups, daemons)
+	}
+
+	sort.Slice(groups, func(i, j int) bool {
+		return groups[i][0].GetVirtualApp().Name > groups[j][0].GetVirtualApp().Name
+	})
+
+	return groups
+}
+
+// Groups the daemons by their virtual app. It accepts a slice of daemon
+// references instead of daemon pointers to be compatible with the database
+// query results.
+func groupDatabaseDaemonsByApp(dbDaemons []dbmodel.Daemon) [][]*dbmodel.Daemon {
+	daemons := make([]*dbmodel.Daemon, len(dbDaemons))
+	for i := range dbDaemons {
+		daemons[i] = &dbDaemons[i]
+	}
+	return groupDaemonsByApp(daemons)
+}
+
 // Convert db machine to rest structure.
 func (r *RestAPI) machineToRestAPI(dbMachine dbmodel.Machine) *models.Machine {
 	apps := []*models.App{}
-	daemonIndex := make(map[int64][]*dbmodel.Daemon)
 
-	for _, dbDaemon := range dbMachine.Daemons {
-		app := dbDaemon.GetVirtualApp()
-		daemonIndex[app.ID] = append(daemonIndex[app.ID], dbDaemon)
-	}
-
-	for _, daemons := range daemonIndex {
+	for _, daemons := range groupDaemonsByApp(dbMachine.Daemons) {
 		a := r.appToRestAPI(daemons)
 		apps = append(apps, a)
 	}
-
-	sort.Slice(apps, func(i, j int) bool {
-		return apps[i].Name > apps[j].Name
-	})
 
 	m := models.Machine{
 		ID:                   dbMachine.ID,
@@ -247,14 +270,8 @@ func (r *RestAPI) machineToRestAPI(dbMachine dbmodel.Machine) *models.Machine {
 
 // Convert db machine to minimalistic rest structure covering software versions used.
 func (r *RestAPI) machineSwVersionsToRestAPI(dbMachine dbmodel.Machine) *models.Machine {
-	daemonIndex := make(map[int64][]*dbmodel.Daemon)
-	for _, dbDaemon := range dbMachine.Daemons {
-		app := dbDaemon.GetVirtualApp()
-		daemonIndex[app.ID] = append(daemonIndex[app.ID], dbDaemon)
-	}
-
 	apps := []*models.App{}
-	for _, daemons := range daemonIndex {
+	for _, daemons := range groupDaemonsByApp(dbMachine.Daemons) {
 		app := daemons[0].GetVirtualApp()
 		a := r.appSwVersionsToRestAPI(app, daemons)
 		apps = append(apps, a)
@@ -1437,13 +1454,7 @@ func (r *RestAPI) getApps(offset, limit int64, filterText *string, sortField str
 		Total: total,
 	}
 
-	appIndex := make(map[int64][]*dbmodel.Daemon)
-	for _, dbDaemon := range dbDaemons {
-		app := dbDaemon.GetVirtualApp()
-		appIndex[app.ID] = append(appIndex[app.ID], &dbDaemon)
-	}
-
-	for _, daemons := range appIndex {
+	for _, daemons := range groupDatabaseDaemonsByApp(dbDaemons) {
 		a := r.appToRestAPI(daemons)
 		apps.Items = append(apps.Items, a)
 	}
@@ -1501,22 +1512,17 @@ func (r *RestAPI) GetAppsDirectory(ctx context.Context, params services.GetAppsD
 		return rsp
 	}
 
-	appIndex := make(map[int64]*dbmodel.VirtualApp)
-	for _, dbDaemon := range dbDaemons {
-		app := dbDaemon.GetVirtualApp()
-		appIndex[app.ID] = app
-	}
+	apps := &models.Apps{}
+	for _, daemons := range groupDatabaseDaemonsByApp(dbDaemons) {
+		virtualApp := daemons[0].GetVirtualApp()
 
-	apps := &models.Apps{
-		Total: int64(len(appIndex)),
-	}
-	for _, app := range appIndex {
 		app := models.App{
-			ID:   app.ID,
-			Name: app.Name,
+			ID:   virtualApp.ID,
+			Name: virtualApp.Name,
 		}
 		apps.Items = append(apps.Items, &app)
 	}
+	apps.Total = int64(len(apps.Items))
 
 	rsp := services.NewGetAppsDirectoryOK().WithPayload(apps)
 	return rsp
@@ -1536,14 +1542,8 @@ func (r *RestAPI) GetAppsWithCommunicationIssues(ctx context.Context, params ser
 		return rsp
 	}
 
-	daemonIndex := make(map[int64][]*dbmodel.Daemon)
-	for _, dbDaemon := range dbDaemons {
-		app := dbDaemon.GetVirtualApp()
-		daemonIndex[app.ID] = append(daemonIndex[app.ID], &dbDaemon)
-	}
-
 	apps := []*models.App{}
-	for _, dbDaemons := range daemonIndex {
+	for _, dbDaemons := range groupDatabaseDaemonsByApp(dbDaemons) {
 		// Convert the apps to the REST API format.
 		app := r.appToRestAPI(dbDaemons)
 		// Is it a BIND9 daemon?
