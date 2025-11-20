@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"isc.org/stork/datamodel/daemonname"
 	dbtest "isc.org/stork/server/database/test"
+	storkutil "isc.org/stork/util"
 )
 
 // Sort daemons in the machine by name. It is used by the unit
@@ -1029,6 +1030,385 @@ func TestGetAllMachines(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, machines, 10)
 	require.EqualValues(t, 20, total)
+}
+
+// Test that getting all machines with relations works.
+func TestGetAllMachinesWithRelations(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{
+		Address:    "localhost",
+		AgentPort:  8080,
+		Authorized: true,
+	}
+	_ = AddMachine(db, m)
+
+	mUnauthorized := &Machine{
+		Address:    "unauthorized",
+		AgentPort:  8081,
+		Authorized: false,
+	}
+	_ = AddMachine(db, mUnauthorized)
+
+	daemonKea := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{{
+		Type:    AccessPointControl,
+		Address: "kea",
+		Port:    8000,
+		Key:     "",
+	}})
+	daemonKea.LogTargets = append(daemonKea.LogTargets, &LogTarget{
+		Name:     "syslog",
+		Severity: "info",
+		Output:   "syslog",
+	})
+	_ = AddDaemon(db, daemonKea)
+	_ = AddConfigReview(db, &ConfigReview{
+		ConfigHash: "hash",
+		Signature:  "signature",
+		DaemonID:   daemonKea.ID,
+	})
+
+	daemonBind9 := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{{
+		Type:    AccessPointControl,
+		Address: "bind9",
+		Port:    8053,
+		Key:     "",
+	}})
+	_ = AddDaemon(db, daemonBind9)
+
+	daemonPDNS := NewDaemon(m, daemonname.PDNS, true, []*AccessPoint{{
+		Type:    AccessPointControl,
+		Address: "pdns",
+		Port:    8054,
+		Key:     "",
+	}})
+	_ = AddDaemon(db, daemonPDNS)
+
+	_ = AddService(db, &Service{
+		BaseService: BaseService{
+			Name:    "service",
+			Daemons: []*Daemon{daemonKea},
+		},
+		HAService: &BaseHAService{
+			HAType:       daemonname.DHCPv4,
+			HAMode:       HAModeHotStandby,
+			Relationship: "server1",
+			PrimaryID:    daemonKea.ID,
+		},
+	})
+
+	t.Run("No relations - all", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, nil)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 2)
+		require.Nil(t, machines[0].Daemons)
+	})
+
+	t.Run("No relations - unauthorized", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(false))
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Equal(t, "unauthorized", machines[0].Address)
+	})
+
+	t.Run("No relations - authorized", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true))
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Equal(t, "localhost", machines[0].Address)
+	})
+
+	t.Run("With daemons", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationDaemons,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Empty(t, machines[0].Daemons[0].LogTargets)
+		require.Empty(t, machines[0].Daemons[0].AccessPoints)
+		require.Nil(t, machines[0].Daemons[0].KeaDaemon)
+		require.Nil(t, machines[0].Daemons[0].ConfigReview)
+		require.Empty(t, machines[0].Daemons[0].Services)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.Nil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.Nil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+	})
+
+	t.Run("With log targets", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationDaemonLogTargets,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Len(t, machines[0].Daemons[0].LogTargets, 1)
+		require.Equal(t, "syslog", machines[0].Daemons[0].LogTargets[0].Name)
+		require.Empty(t, machines[0].Daemons[0].AccessPoints)
+		require.Nil(t, machines[0].Daemons[0].KeaDaemon)
+		require.Nil(t, machines[0].Daemons[0].ConfigReview)
+		require.Empty(t, machines[0].Daemons[0].Services)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.Nil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.Nil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
+
+	t.Run("With access points", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationDaemonAccessPoints,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Empty(t, machines[0].Daemons[0].LogTargets)
+		require.Len(t, machines[0].Daemons[0].AccessPoints, 1)
+		require.Equal(t, "kea", machines[0].Daemons[0].AccessPoints[0].Address)
+		require.Nil(t, machines[0].Daemons[0].KeaDaemon)
+		require.Nil(t, machines[0].Daemons[0].ConfigReview)
+		require.Empty(t, machines[0].Daemons[0].Services)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.Len(t, machines[0].Daemons[1].AccessPoints, 1)
+		require.Equal(t, "bind9", machines[0].Daemons[1].AccessPoints[0].Address)
+		require.Nil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.Len(t, machines[0].Daemons[2].AccessPoints, 1)
+		require.Equal(t, "pdns", machines[0].Daemons[2].AccessPoints[0].Address)
+		require.Nil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
+
+	t.Run("With Kea daemons", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationKeaDaemons,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Empty(t, machines[0].Daemons[0].LogTargets)
+		require.Empty(t, machines[0].Daemons[0].AccessPoints)
+		require.NotNil(t, machines[0].Daemons[0].KeaDaemon)
+		require.Nil(t, machines[0].Daemons[0].ConfigReview)
+		require.Empty(t, machines[0].Daemons[0].Services)
+		require.Nil(t, machines[0].Daemons[0].KeaDaemon.KeaDHCPDaemon)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.Nil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.Nil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
+
+	t.Run("With BIND9 daemons", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationBind9Daemons,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Empty(t, machines[0].Daemons[0].LogTargets)
+		require.Empty(t, machines[0].Daemons[0].AccessPoints)
+		require.Nil(t, machines[0].Daemons[0].KeaDaemon)
+		require.Nil(t, machines[0].Daemons[0].ConfigReview)
+		require.Empty(t, machines[0].Daemons[0].Services)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.NotNil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.Nil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
+
+	t.Run("With PDNS daemons", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationPDNSDaemons,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Empty(t, machines[0].Daemons[0].LogTargets)
+		require.Empty(t, machines[0].Daemons[0].AccessPoints)
+		require.Nil(t, machines[0].Daemons[0].KeaDaemon)
+		require.Nil(t, machines[0].Daemons[0].ConfigReview)
+		require.Empty(t, machines[0].Daemons[0].Services)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.Nil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.NotNil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
+
+	t.Run("With Kea DHCP configs", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationKeaDHCPConfigs,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Empty(t, machines[0].Daemons[0].LogTargets)
+		require.Empty(t, machines[0].Daemons[0].AccessPoints)
+		require.NotNil(t, machines[0].Daemons[0].KeaDaemon)
+		require.NotNil(t, machines[0].Daemons[0].KeaDaemon.KeaDHCPDaemon)
+		require.Nil(t, machines[0].Daemons[0].ConfigReview)
+		require.Empty(t, machines[0].Daemons[0].Services)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.Nil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.Nil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
+
+	t.Run("With config reviews", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationDaemonConfigReview,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Empty(t, machines[0].Daemons[0].LogTargets)
+		require.Empty(t, machines[0].Daemons[0].AccessPoints)
+		require.Nil(t, machines[0].Daemons[0].KeaDaemon)
+		require.NotNil(t, machines[0].Daemons[0].ConfigReview)
+		require.Equal(t, "hash", machines[0].Daemons[0].ConfigReview.ConfigHash)
+		require.Equal(t, "signature", machines[0].Daemons[0].ConfigReview.Signature)
+		require.Empty(t, machines[0].Daemons[0].Services)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.Nil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.Nil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
+
+	t.Run("With services", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationDaemonHAServices,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Empty(t, machines[0].Daemons[0].LogTargets)
+		require.Empty(t, machines[0].Daemons[0].AccessPoints)
+		require.Nil(t, machines[0].Daemons[0].KeaDaemon)
+		require.Nil(t, machines[0].Daemons[0].ConfigReview)
+		require.Len(t, machines[0].Daemons[0].Services, 1)
+		require.Equal(t, "service", machines[0].Daemons[0].Services[0].Name)
+		require.NotNil(t, machines[0].Daemons[0].Services[0].HAService)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.Nil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.Nil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
+
+	t.Run("With all relations", func(t *testing.T) {
+		// Act
+		machines, err := GetAllMachinesWithRelations(db, storkutil.Ptr(true),
+			MachineRelationBind9Daemons,
+			MachineRelationDaemonAccessPoints,
+			MachineRelationDaemonConfigReview,
+			MachineRelationDaemonHAServices,
+			MachineRelationKeaDaemons,
+			MachineRelationKeaDHCPConfigs,
+			MachineRelationPDNSDaemons,
+			MachineRelationDaemonLogTargets,
+		)
+
+		// Assert
+		require.NoError(t, err)
+		require.Len(t, machines, 1)
+		require.Len(t, machines[0].Daemons, 3)
+		require.Equal(t, daemonname.DHCPv4, machines[0].Daemons[0].Name)
+		require.Len(t, machines[0].Daemons[0].LogTargets, 1)
+		require.Len(t, machines[0].Daemons[0].AccessPoints, 1)
+		require.NotNil(t, machines[0].Daemons[0].KeaDaemon)
+		require.NotNil(t, machines[0].Daemons[0].KeaDaemon.KeaDHCPDaemon)
+		require.NotNil(t, machines[0].Daemons[0].ConfigReview)
+		require.Len(t, machines[0].Daemons[0].Services, 1)
+		require.Equal(t, "service", machines[0].Daemons[0].Services[0].Name)
+		require.Equal(t, daemonname.Bind9, machines[0].Daemons[1].Name)
+		require.NotNil(t, machines[0].Daemons[1].Bind9Daemon)
+		require.Len(t, machines[0].Daemons[1].AccessPoints, 1)
+		require.Nil(t, machines[0].Daemons[1].ConfigReview)
+		require.Empty(t, machines[0].Daemons[1].Services)
+		require.Equal(t, daemonname.PDNS, machines[0].Daemons[2].Name)
+		require.NotNil(t, machines[0].Daemons[2].PDNSDaemon)
+		require.Len(t, machines[0].Daemons[2].AccessPoints, 1)
+		require.Nil(t, machines[0].Daemons[2].ConfigReview)
+		require.Empty(t, machines[0].Daemons[2].Services)
+	})
 }
 
 // Test MachineTag interface implementation.
