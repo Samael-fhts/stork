@@ -1,7 +1,5 @@
 package daemonname
 
-import "github.com/pkg/errors"
-
 // Defines the consistent names of the daemons we support. They are intended
 // to be used throughout the codebase. This package should not import any
 // packages from the Stork repository to avoid possible circular dependencies.
@@ -47,25 +45,25 @@ func (dn Name) IsDNS() bool {
 	}
 }
 
-// Parses the daemon name from string. It returns an error if the
+// Parses the daemon name from string. It returns false if the
 // daemon name is not recognized.
-func Parse(name string) (Name, error) {
+func Parse(name string) (Name, bool) {
 	switch name {
 	case string(Bind9):
-		return Bind9, nil
+		return Bind9, true
 	case string(DHCPv4):
-		return DHCPv4, nil
+		return DHCPv4, true
 	case string(DHCPv6):
-		return DHCPv6, nil
+		return DHCPv6, true
 	case string(NetConf):
-		return NetConf, nil
+		return NetConf, true
 	case string(D2):
-		return D2, nil
+		return D2, true
 	case string(CA):
-		return CA, nil
+		return CA, true
 	case string(PDNS):
-		return PDNS, nil
+		return PDNS, true
 	default:
-		return Name(""), errors.Errorf("unrecognized daemon name: %s", name)
+		return Name(""), false
 	}
 }

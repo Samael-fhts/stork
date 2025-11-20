@@ -403,9 +403,9 @@ func (agents *connectedAgentsImpl) GetState(ctx context.Context, machine dbmodel
 					accessPoint.Protocol = protocoltype.HTTP
 				}
 			} else {
-				protocol, err := protocoltype.Parse(point.Protocol)
-				if err != nil {
-					return nil, err
+				protocol, ok := protocoltype.Parse(point.Protocol)
+				if !ok {
+					return nil, errors.Errorf("unknown protocol type: %s", point.Protocol)
 				}
 				accessPoint.Protocol = protocol
 			}

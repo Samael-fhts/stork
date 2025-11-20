@@ -665,10 +665,10 @@ func (r *RestAPI) UpdateKeaGlobalParametersSubmit(ctx context.Context, params dh
 		receivedConfig := params.Request.Configs[i]
 		var settableConfig *keaconfig.SettableConfig
 
-		daemonName, err := daemonname.Parse(receivedConfig.DaemonName)
-		if err != nil {
+		daemonName, ok := daemonname.Parse(receivedConfig.DaemonName)
+		if !ok {
 			msg := "Problem with parsing daemon name"
-			log.WithError(err).Error(msg)
+			log.WithField("name", receivedConfig.DaemonName).Error(msg)
 			rsp := dhcp.NewUpdateKeaGlobalParametersSubmitDefault(http.StatusBadRequest).WithPayload(&models.APIError{
 				Message: &msg,
 			})

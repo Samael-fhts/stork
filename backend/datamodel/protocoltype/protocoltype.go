@@ -1,7 +1,5 @@
 package protocoltype
 
-import "github.com/pkg/errors"
-
 // Supported protocol types in communication between the Stork agent and
 // daemons.
 type ProtocolType string
@@ -19,19 +17,19 @@ func (pt ProtocolType) IsSecure() bool {
 	return pt == HTTPS || pt == RNDC
 }
 
-// Parses the protocol type from string. It returns an error if the
+// Parses the protocol type from string. It returns false if the
 // protocol type is not recognized.
-func Parse(protocolType string) (ProtocolType, error) {
+func Parse(protocolType string) (ProtocolType, bool) {
 	switch protocolType {
 	case string(HTTP):
-		return HTTP, nil
+		return HTTP, true
 	case string(HTTPS):
-		return HTTPS, nil
+		return HTTPS, true
 	case string(Socket):
-		return Socket, nil
+		return Socket, true
 	case string(RNDC):
-		return RNDC, nil
+		return RNDC, true
 	default:
-		return Unspecified, errors.Errorf("unknown protocol type: %s", protocolType)
+		return Unspecified, false
 	}
 }

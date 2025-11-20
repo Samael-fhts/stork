@@ -43,50 +43,50 @@ func TestDaemonNameIsDHCP(t *testing.T) {
 // Test that parsing daemon names from strings works properly.
 func TestParseDaemonName(t *testing.T) {
 	t.Run("BIND 9", func(t *testing.T) {
-		dn, err := daemonname.Parse("named")
-		require.NoError(t, err)
+		dn, ok := daemonname.Parse("named")
+		require.True(t, ok)
 		require.Equal(t, daemonname.Bind9, dn)
 	})
 
 	t.Run("Kea DHCPv4", func(t *testing.T) {
-		dn, err := daemonname.Parse("dhcp4")
-		require.NoError(t, err)
+		dn, ok := daemonname.Parse("dhcp4")
+		require.True(t, ok)
 		require.Equal(t, daemonname.DHCPv4, dn)
 	})
 
 	t.Run("Kea DHCPv6", func(t *testing.T) {
-		dn, err := daemonname.Parse("dhcp6")
-		require.NoError(t, err)
+		dn, ok := daemonname.Parse("dhcp6")
+		require.True(t, ok)
 		require.Equal(t, daemonname.DHCPv6, dn)
 	})
 
 	t.Run("Kea D2", func(t *testing.T) {
-		dn, err := daemonname.Parse("d2")
-		require.NoError(t, err)
+		dn, ok := daemonname.Parse("d2")
+		require.True(t, ok)
 		require.Equal(t, daemonname.D2, dn)
 	})
 
 	t.Run("Kea CA", func(t *testing.T) {
-		dn, err := daemonname.Parse("ca")
-		require.NoError(t, err)
+		dn, ok := daemonname.Parse("ca")
+		require.True(t, ok)
 		require.Equal(t, daemonname.CA, dn)
 	})
 
 	t.Run("PowerDNS", func(t *testing.T) {
-		dn, err := daemonname.Parse("pdns")
-		require.NoError(t, err)
+		dn, ok := daemonname.Parse("pdns")
+		require.True(t, ok)
 		require.Equal(t, daemonname.PDNS, dn)
 	})
 
 	t.Run("NetConf", func(t *testing.T) {
-		dn, err := daemonname.Parse("netconf")
-		require.NoError(t, err)
+		dn, ok := daemonname.Parse("netconf")
+		require.True(t, ok)
 		require.Equal(t, daemonname.NetConf, dn)
 	})
 
 	t.Run("Unknown Daemon", func(t *testing.T) {
-		dn, err := daemonname.Parse("unknown-daemon")
-		require.Error(t, err)
+		dn, ok := daemonname.Parse("unknown-daemon")
+		require.False(t, ok)
 		require.Empty(t, dn)
 	})
 }

@@ -92,10 +92,10 @@ type ControlSocket struct {
 // Indicates the name of the protocol used by the control socket:
 // "unix", "http" or "https".
 func (cs ControlSocket) GetProtocol() protocoltype.ProtocolType {
-	protocolType, err := protocoltype.Parse(cs.SocketType)
-	if err != nil {
+	protocolType, ok := protocoltype.Parse(cs.SocketType)
+	if !ok {
 		// It should never happen.
-		log.WithError(err).Warn("unknown socket type, defaulting to 'unix'")
+		log.WithField("type", cs.SocketType).Warn("unknown socket type, defaulting to 'unix'")
 		return protocoltype.Socket
 	}
 	return protocolType

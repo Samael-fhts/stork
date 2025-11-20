@@ -18,38 +18,38 @@ func TestProtocolTypeIsSecure(t *testing.T) {
 // Test that parsing protocol types from strings works properly.
 func TestParseProtocolType(t *testing.T) {
 	t.Run("HTTP", func(t *testing.T) {
-		pt, err := Parse("http")
-		require.NoError(t, err)
+		pt, ok := Parse("http")
+		require.True(t, ok)
 		require.Equal(t, HTTP, pt)
 	})
 
 	t.Run("HTTPS", func(t *testing.T) {
-		pt, err := Parse("https")
-		require.NoError(t, err)
+		pt, ok := Parse("https")
+		require.True(t, ok)
 		require.Equal(t, HTTPS, pt)
 	})
 
 	t.Run("Socket", func(t *testing.T) {
-		pt, err := Parse("unix")
-		require.NoError(t, err)
+		pt, ok := Parse("unix")
+		require.True(t, ok)
 		require.Equal(t, Socket, pt)
 	})
 
 	t.Run("RNDC", func(t *testing.T) {
-		pt, err := Parse("rndc")
-		require.NoError(t, err)
+		pt, ok := Parse("rndc")
+		require.True(t, ok)
 		require.Equal(t, RNDC, pt)
 	})
 
 	t.Run("Unknown protocol type", func(t *testing.T) {
-		pt, err := Parse("unknown")
-		require.Error(t, err)
+		pt, ok := Parse("unknown")
+		require.False(t, ok)
 		require.Equal(t, Unspecified, pt)
 	})
 
 	t.Run("HTTP uppercase", func(t *testing.T) {
-		pt, err := Parse("HTTP")
-		require.Error(t, err)
+		pt, ok := Parse("HTTP")
+		require.False(t, ok)
 		require.Equal(t, Unspecified, pt)
 	})
 }
