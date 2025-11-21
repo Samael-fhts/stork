@@ -302,15 +302,6 @@ func (r ResponseHeader) GetError() error {
 	return newKeaError(r.Result, r.Text)
 }
 
-// Deserializes the response from JSON.
-func (r *ResponseHeader) Unmarshal(data []byte) error {
-	err := json.Unmarshal(data, r)
-	if err != nil {
-		return errors.Wrapf(err, "failed to unmarshal Kea response: %s", string(data))
-	}
-	return nil
-}
-
 // Check response status code and returns appropriate error or nil if the
 // response was successful.
 func GetResponseError(response ExaminableResponse) (err error) {

@@ -356,6 +356,37 @@ func TestCommandGetDaemonList(t *testing.T) {
 	}
 }
 
+// Test that the command is unmarshaled correctly from JSON.
+func TestCommandUnmarshal(t *testing.T) {
+	// Arrange
+	input := `{
+		"command": "test-command",
+		"service": ["dhcp4"],
+		"arguments": {
+			"key1": "value1",
+			"key2": 42
+		}
+	}`
+
+	var cmd Command
+
+	// Act
+	err := json.Unmarshal([]byte(input), &cmd)
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, CommandName("test-command"), cmd.Command)
+	require.Len(t, cmd.Daemons, 1)
+	require.Equal(t, daemonname.DHCPv4, cmd.Daemons[0])
+	arguments, ok := cmd.Arguments.(map[string]any)
+	require.True(t, ok)
+	require.Contains(t, arguments, "key1")
+	require.Contains(t, arguments, "key2")
+	require.Equal(t, "value1", arguments["key1"])
+	require.Equal(t, float64(42), arguments["key2"])
+
+}
+
 // Test that GetCommand() function returns the command name.
 func TestCommandWithRawArgumentsGetCommand(t *testing.T) {
 	command := &CommandWithRawArguments{
@@ -573,4 +604,35 @@ func TestResponseHeaderError(t *testing.T) {
 			"non-success response result from Kea: 1, text: server is likely to be offline",
 		)
 	})
+}
+
+// Test that the response is unmarshaled correctly from JSON using the standard
+// JSON library.
+func TestResponseUnmarshalViaJSONLibrary(t *testing.T) {
+	// Arrange
+	input := `{
+		"result": 1,
+		"text": "an error occurred",
+		"arguments": {
+			"key1": "value1",
+			"key2": 42
+		}
+	}`
+	var resp Response
+
+	// Act
+	err := json.Unmarshal([]byte(input), &resp)
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, ResponseResult(1), resp.Result)
+	require.Equal(t, "an error occurred", resp.Text)
+
+	var arguments map[string]any
+	err = json.Unmarshal(resp.Arguments, &arguments)
+	require.NoError(t, err)
+	require.Contains(t, arguments, "key1")
+	require.Contains(t, arguments, "key2")
+	require.Equal(t, "value1", arguments["key1"])
+	require.Equal(t, float64(42), arguments["key2"])
 }

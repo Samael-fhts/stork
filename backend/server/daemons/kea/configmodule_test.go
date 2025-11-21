@@ -714,14 +714,14 @@ func TestCommitHostAdd(t *testing.T) {
 func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		json := []byte(`
+		bytes := []byte(`
 			{
 				"result": 1,
 				"text": "error is error"
 			}
 		`)
 		response := &keactrl.ResponseHeader{}
-		_ = response.Unmarshal(json)
+		_ = json.Unmarshal(bytes, response)
 		cmdResponses[0] = response
 	})
 
@@ -1361,14 +1361,14 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 	}
 	// Create the config manager instance "connected to" fake agents.
 	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, cmdResponses []interface{}) {
-		json := []byte(`
+		bytes := []byte(`
             {
                 "result": 1,
                 "text": "error is error"
             }
         `)
 		response := &keactrl.ResponseHeader{}
-		err := response.Unmarshal(json)
+		err := json.Unmarshal(bytes, response)
 		if err != nil {
 			panic(err)
 		}

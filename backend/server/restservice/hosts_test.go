@@ -2,6 +2,7 @@ package restservice
 
 import (
 	"context"
+	"encoding/json"
 	"net/http"
 	"testing"
 	"time"
@@ -29,12 +30,12 @@ import (
 //go:generate mockgen -package=restservice -destination=migratormock_test.go isc.org/stork/server/configmigrator MigrationManager
 
 func mockStatusError(cmdResponses []interface{}) {
-	json := `{
+	bytes := `{
             "result": 1,
             "text": "unable to communicate with the daemon"
         }`
 	response := cmdResponses[0].(*keactrl.Response)
-	err := response.Unmarshal([]byte(json))
+	err := json.Unmarshal([]byte(bytes), response)
 	if err != nil {
 		panic(err)
 	}

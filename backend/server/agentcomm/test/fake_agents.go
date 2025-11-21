@@ -180,7 +180,7 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm
 
 		responseBytes, _ := json.Marshal(cmdResponses[i])
 		var response keactrl.Response
-		_ = response.Unmarshal(responseBytes)
+		_ = json.Unmarshal(responseBytes, &response)
 
 		err := response.GetError()
 		result.CmdsErrors = append(result.CmdsErrors, err)
