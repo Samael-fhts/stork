@@ -18,6 +18,7 @@ const (
 // A structure reflecting the access_point SQL table.
 type AccessPoint struct {
 	DaemonID int64           `pg:",pk"`
+	Daemon   *Daemon         `pg:"rel:has-one"`
 	Type     AccessPointType `pg:",pk"`
 	Address  string
 	Port     int64

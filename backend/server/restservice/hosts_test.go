@@ -117,11 +117,11 @@ func TestGetHostsNoFiltering(t *testing.T) {
 	require.NotNil(t, items[0].LocalHosts[0])
 	require.EqualValues(t, daemons[0].GetVirtualApp().ID, items[0].LocalHosts[0].AppID)
 	require.Equal(t, dbmodel.HostDataSourceAPI.String(), items[0].LocalHosts[0].DataSource)
-	require.Equal(t, "kea@cool.example.org%684655828", items[0].LocalHosts[0].AppName)
+	require.Equal(t, "kea@cool.example.org%793183551", items[0].LocalHosts[0].AppName)
 	require.NotNil(t, items[0].LocalHosts[1])
 	require.EqualValues(t, daemons[2].GetVirtualApp().ID, items[0].LocalHosts[1].AppID)
 	require.Equal(t, dbmodel.HostDataSourceAPI.String(), items[0].LocalHosts[1].DataSource)
-	require.Equal(t, "kea@cool.example.org%684721365", items[0].LocalHosts[1].AppName)
+	require.Equal(t, "kea@cool.example.org%794297665", items[0].LocalHosts[1].AppName)
 }
 
 // Test that hosts can be filtered by subnet ID.

@@ -31,10 +31,7 @@ const (
 func (d Daemon) GetVirtualApp() *VirtualApp {
 	var appID int64
 	if accessPoint, err := d.GetAccessPoint(AccessPointControl); err == nil {
-		// The app ID must be deterministic, be the same for the daemons having
-		// the same control access point and unique in other cases.
-		checksum := adler32.Checksum([]byte(fmt.Sprintf("%s:%d", accessPoint.Address, accessPoint.Port)))
-		appID = int64(checksum)
+		appID, _ = getVirtualAppID(accessPoint, d.MachineID)
 	}
 
 	var appType VirtualAppType
@@ -56,6 +53,29 @@ func (d Daemon) GetVirtualApp() *VirtualApp {
 	}
 }
 
+// Returns a virtual app ID for a given access point and machine.
+// The app ID can be derived only for control access points.
+//
+// The app ID must be deterministic, be the same for the daemons from
+// the same machine and having the same control access point and unique
+// in other cases.
+func getVirtualAppID(accessPoint *AccessPoint, machineID int64) (int64, error) {
+	if accessPoint.Type != AccessPointControl {
+		return 0, errors.Errorf(
+			"cannot derive virtual app ID for non-control access point: %v",
+			accessPoint,
+		)
+	}
+
+	checksum := adler32.Checksum([]byte(fmt.Sprintf(
+		"%d:%s:%d",
+		machineID,
+		accessPoint.Address,
+		accessPoint.Port,
+	)))
+	return int64(checksum), nil
+}
+
 // Returns daemons generating a given (virtual) app ID. The app ID is derived
 // from the control access point of the daemon. If multiple daemons share the
 // same control access point, they will have the same app ID and all of them
@@ -63,6 +83,7 @@ func (d Daemon) GetVirtualApp() *VirtualApp {
 func GetDaemonsByVirtualAppID(dbi pg.DBI, appID int64) (daemons []*Daemon, err error) {
 	var accessPoints []AccessPoint
 	err = dbi.Model(&accessPoints).
+		Relation("Daemon").
 		Where("type = ?", AccessPointControl).
 		Select()
 	if err != nil {
@@ -71,8 +92,12 @@ func GetDaemonsByVirtualAppID(dbi pg.DBI, appID int64) (daemons []*Daemon, err e
 
 	var matchingDaemonIDs []int64
 	for _, ap := range accessPoints {
-		checksum := adler32.Checksum([]byte(fmt.Sprintf("%s:%d", ap.Address, ap.Port)))
-		if int64(checksum) == appID {
+		actualAppID, err := getVirtualAppID(&ap, ap.Daemon.MachineID)
+		if err != nil {
+			return nil, err
+		}
+
+		if actualAppID == appID {
 			matchingDaemonIDs = append(matchingDaemonIDs, ap.DaemonID)
 		}
 	}
@@ -106,6 +131,7 @@ func GetDaemonsByVirtualAppID(dbi pg.DBI, appID int64) (daemons []*Daemon, err e
 func GetMachineIDByVirtualAppID(dbi pg.DBI, appID int64) (machineID int64, err error) {
 	var accessPoints []AccessPoint
 	err = dbi.Model(&accessPoints).
+		Relation("Daemon").
 		Where("type = ?", AccessPointControl).
 		Select()
 	if err != nil {
@@ -114,8 +140,12 @@ func GetMachineIDByVirtualAppID(dbi pg.DBI, appID int64) (machineID int64, err e
 
 	var matchingDaemonID int64
 	for _, ap := range accessPoints {
-		checksum := adler32.Checksum([]byte(fmt.Sprintf("%s:%d", ap.Address, ap.Port)))
-		if int64(checksum) == appID {
+		actualAppID, err := getVirtualAppID(&ap, ap.Daemon.MachineID)
+		if err != nil {
+			return 0, err
+		}
+
+		if actualAppID == appID {
 			matchingDaemonID = ap.DaemonID
 			break
 		}

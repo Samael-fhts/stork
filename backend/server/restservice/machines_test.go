@@ -1605,7 +1605,7 @@ func TestRestGetApps(t *testing.T) {
 		for _, app := range okRsp.Payload.Items {
 			switch app.Type {
 			case string(dbmodel.VirtualAppTypeKea):
-				require.Equal(t, "kea@localhost%682820814", app.Name)
+				require.Equal(t, "kea@localhost%791348537", app.Name)
 				appKea := app.Details.AppKea
 				require.Len(t, appKea.Daemons, 1)
 				daemon := appKea.Daemons[0]
@@ -1617,14 +1617,14 @@ func TestRestGetApps(t *testing.T) {
 				require.Equal(t, "debug", daemon.LogTargets[0].Severity)
 				require.Equal(t, "/tmp/log", daemon.LogTargets[0].Output)
 			case string(dbmodel.VirtualAppTypeBind9):
-				require.Equal(t, "bind9@localhost%683476174", app.Name)
+				require.Equal(t, "bind9@localhost%792003897", app.Name)
 				appBind9 := app.Details.AppBind9
 				daemon := appBind9.Daemon
 				require.EqualValues(t, 1, daemon.AgentCommErrors)
 				require.EqualValues(t, 2, daemon.RndcCommErrors)
 				require.EqualValues(t, 3, daemon.StatsCommErrors)
 			case string(dbmodel.VirtualAppTypePDNS):
-				require.Equal(t, "pdns@localhost%683410636", app.Name)
+				require.Equal(t, "pdns@localhost%791938359", app.Name)
 				appPdns := app.Details.AppPdns
 				require.Equal(t, "https://pdns.example.com", appPdns.PdnsDaemon.URL)
 				require.Equal(t, "https://pdns.example.com/config", appPdns.PdnsDaemon.ConfigURL)
@@ -1643,7 +1643,7 @@ func TestRestGetApps(t *testing.T) {
 		okRsp = rsp.(*services.GetAppsOK)
 		require.EqualValues(t, 1, okRsp.Payload.Total)
 		require.EqualValues(t, string(dbmodel.VirtualAppTypeKea), okRsp.Payload.Items[0].Type)
-		require.EqualValues(t, "kea@localhost%682820814", okRsp.Payload.Items[0].Name)
+		require.EqualValues(t, "kea@localhost%791348537", okRsp.Payload.Items[0].Name)
 	})
 
 	t.Run("get bind9 apps", func(t *testing.T) {
@@ -1655,7 +1655,7 @@ func TestRestGetApps(t *testing.T) {
 		okRsp = rsp.(*services.GetAppsOK)
 		require.EqualValues(t, 1, okRsp.Payload.Total)
 		require.EqualValues(t, string(dbmodel.VirtualAppTypeBind9), okRsp.Payload.Items[0].Type)
-		require.EqualValues(t, "bind9@localhost%683476174", okRsp.Payload.Items[0].Name)
+		require.EqualValues(t, "bind9@localhost%792003897", okRsp.Payload.Items[0].Name)
 	})
 
 	t.Run("get pdns apps", func(t *testing.T) {
@@ -1667,7 +1667,7 @@ func TestRestGetApps(t *testing.T) {
 		okRsp = rsp.(*services.GetAppsOK)
 		require.EqualValues(t, 1, okRsp.Payload.Total)
 		require.EqualValues(t, string(dbmodel.VirtualAppTypePDNS), okRsp.Payload.Items[0].Type)
-		require.EqualValues(t, "pdns@localhost%683410636", okRsp.Payload.Items[0].Name)
+		require.EqualValues(t, "pdns@localhost%791938359", okRsp.Payload.Items[0].Name)
 	})
 
 	t.Run("get apps with multiple types", func(t *testing.T) {
@@ -1681,9 +1681,9 @@ func TestRestGetApps(t *testing.T) {
 		for _, app := range okRsp.Payload.Items {
 			switch app.Type {
 			case string(dbmodel.VirtualAppTypeKea):
-				require.Equal(t, "kea@localhost%682820814", app.Name)
+				require.Equal(t, "kea@localhost%791348537", app.Name)
 			case string(dbmodel.VirtualAppTypeBind9):
-				require.Equal(t, "bind9@localhost%683476174", app.Name)
+				require.Equal(t, "bind9@localhost%792003897", app.Name)
 			}
 		}
 	})
@@ -1949,7 +1949,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "kea@localhost%682820814", apps.Items[0].Name)
+		require.Equal(t, "kea@localhost%791348537", apps.Items[0].Name)
 	})
 
 	t.Run("ca errors", func(t *testing.T) {
@@ -1969,7 +1969,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "kea@localhost%682820814", apps.Items[0].Name)
+		require.Equal(t, "kea@localhost%791348537", apps.Items[0].Name)
 	})
 
 	t.Run("kea daemon errors", func(t *testing.T) {
@@ -1989,7 +1989,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "kea@localhost%682820814", apps.Items[0].Name)
+		require.Equal(t, "kea@localhost%791348537", apps.Items[0].Name)
 	})
 
 	t.Run("bind9 current errors", func(t *testing.T) {
@@ -2008,7 +2008,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "bind9@localhost%684131542", apps.Items[0].Name)
+		require.Equal(t, "bind9@localhost%794756419", apps.Items[0].Name)
 	})
 
 	t.Run("rndc errors", func(t *testing.T) {
@@ -2028,7 +2028,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "bind9@localhost%684131542", apps.Items[0].Name)
+		require.Equal(t, "bind9@localhost%794756419", apps.Items[0].Name)
 	})
 
 	t.Run("stats errors", func(t *testing.T) {
@@ -2048,7 +2048,7 @@ func TestGetAppsCommunicationIssues(t *testing.T) {
 		require.IsType(t, &services.GetAppsWithCommunicationIssuesOK{}, rsp)
 		apps := rsp.(*services.GetAppsWithCommunicationIssuesOK).Payload
 		require.EqualValues(t, 1, apps.Total)
-		require.Equal(t, "bind9@localhost%684131542", apps.Items[0].Name)
+		require.Equal(t, "bind9@localhost%794756419", apps.Items[0].Name)
 	})
 }
 
@@ -2613,7 +2613,7 @@ func TestGetDhcpOverview(t *testing.T) {
 
 	// only dhcp4 is present
 	require.EqualValues(t, "dhcp4", okRsp.Payload.DhcpDaemons[0].Name)
-	require.EqualValues(t, "kea@localhost%682820814", okRsp.Payload.DhcpDaemons[0].AppName)
+	require.EqualValues(t, "kea@localhost%791348537", okRsp.Payload.DhcpDaemons[0].AppName)
 	require.EqualValues(t, 1, okRsp.Payload.DhcpDaemons[0].AgentCommErrors)
 	require.EqualValues(t, 2, okRsp.Payload.DhcpDaemons[0].CaCommErrors)
 	require.EqualValues(t, 5, okRsp.Payload.DhcpDaemons[0].DaemonCommErrors)

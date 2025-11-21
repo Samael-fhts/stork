@@ -391,7 +391,7 @@ func TestGetDaemonConfigForNonActiveKeaDaemon(t *testing.T) {
 	payloadJSON, _ := json.Marshal(okRsp.Payload.Config)
 	require.JSONEq(t, string(configDhcp4), string(payloadJSON))
 	require.NotZero(t, okRsp.Payload.AppID)
-	require.Equal(t, "kea@localhost%682820814", okRsp.Payload.AppName)
+	require.Equal(t, "kea@localhost%791348537", okRsp.Payload.AppName)
 	require.Equal(t, "dhcp4", okRsp.Payload.DaemonName)
 	require.Equal(t, "kea", okRsp.Payload.AppType)
 	require.False(t, okRsp.Payload.Editable)
