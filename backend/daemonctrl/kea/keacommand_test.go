@@ -1,6 +1,7 @@
 package keactrl
 
 import (
+	"encoding/json"
 	"testing"
 
 	require "github.com/stretchr/testify/require"
@@ -329,10 +330,123 @@ func TestKeaCommandMarshalServicesIsMissingForCA(t *testing.T) {
 }
 
 // Test that GetCommand() function returns the command name.
-func TestGetCommand(t *testing.T) {
+func TestCommandGetCommand(t *testing.T) {
 	command := NewCommandBase(ListCommands, daemonname.DHCPv4)
 	require.NotNil(t, command)
 	require.Equal(t, ListCommands, command.GetCommand())
+}
+
+// Test that GetDaemonList() function returns the list of daemons.
+func TestCommandGetDaemonList(t *testing.T) {
+	allDaemons := []daemonname.Name{
+		daemonname.DHCPv4, daemonname.DHCPv6, daemonname.D2, daemonname.CA,
+	}
+	for _, daemon := range allDaemons {
+		t.Run(string(daemon), func(t *testing.T) {
+			// Arrange
+			cmd := NewCommandBase(ListCommands, daemon)
+
+			// Act
+			daemons := cmd.GetDaemonsList()
+
+			// Assert
+			require.Len(t, daemons, 1)
+			require.Equal(t, daemon, daemons[0])
+		})
+	}
+}
+
+// Test that GetCommand() function returns the command name.
+func TestCommandWithRawArgumentsGetCommand(t *testing.T) {
+	command := &CommandWithRawArguments{
+		Command: ListCommands,
+		Daemons: []daemonname.Name{daemonname.DHCPv4},
+	}
+	require.NotNil(t, command)
+	require.Equal(t, ListCommands, command.GetCommand())
+}
+
+// Test that GetDaemonList() function returns the list of daemons.
+func TestCommandWithRawArgumentsGetDaemonList(t *testing.T) {
+	allDaemons := []daemonname.Name{
+		daemonname.DHCPv4, daemonname.DHCPv6, daemonname.D2, daemonname.CA,
+	}
+	for _, daemon := range allDaemons {
+		t.Run(string(daemon), func(t *testing.T) {
+			// Arrange
+			cmd := &CommandWithRawArguments{
+				Command: ListCommands,
+				Daemons: []daemonname.Name{daemon},
+			}
+
+			// Act
+			daemons := cmd.GetDaemonsList()
+
+			// Assert
+			require.Len(t, daemons, 1)
+			require.Equal(t, daemon, daemons[0])
+		})
+	}
+}
+
+// Test that marshaling command with raw arguments works correctly.
+func TestCommandWithRawArgumentsMarshal(t *testing.T) {
+	// Arrange
+	cmd := &CommandWithRawArguments{
+		Command: ListCommands,
+		Daemons: []daemonname.Name{daemonname.DHCPv4},
+		Arguments: json.RawMessage(`{
+			"key1": "value1",
+			"key2": 42
+		}`),
+	}
+
+	// Act
+	marshaled, err := cmd.Marshal()
+
+	// Assert
+	require.NoError(t, err)
+	require.JSONEq(t,
+		`{
+			"command":"list-commands",
+			"service":["dhcp4"],
+			"arguments": {
+				"key1": "value1",
+				"key2": 42
+			}
+		}`,
+		string(marshaled),
+	)
+}
+
+// Test that that unmarshaling command with raw arguments doesn't unmarshal
+// the arguments.
+func TestCommandWithRawArgumentsUnmarshal(t *testing.T) {
+	// Arrange
+	input := `{
+		"command": "test-command",
+		"service": ["dhcp4"],
+		"arguments": {
+			"key1": "value1",
+			"key2": 42
+		}
+	}`
+
+	// Act
+	var cmd CommandWithRawArguments
+	err := json.Unmarshal([]byte(input), &cmd)
+
+	// Assert
+	require.NoError(t, err)
+	require.Equal(t, CommandName("test-command"), cmd.Command)
+	require.Len(t, cmd.Daemons, 1)
+	require.Equal(t, daemonname.DHCPv4, cmd.Daemons[0])
+	require.NotNil(t, cmd.Arguments)
+	require.JSONEq(t, `{
+		"key1": "value1",
+		"key2": 42
+	}`, string(cmd.Arguments))
+
 }
 
 // Test that Response properly implements the ExaminableResponse interface.

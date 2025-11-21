@@ -2112,3 +2112,46 @@ func TestGetPowerDNSServerInfoErrorResponse(t *testing.T) {
 	require.ErrorContains(t, err, "test error")
 	require.Nil(t, serverInfo)
 }
+
+// Test getting the name of the daemon.
+func TestDaemonGetName(t *testing.T) {
+	daemon := Daemon{
+		Name: daemonname.DHCPv4,
+	}
+	require.Equal(t, daemonname.DHCPv4, daemon.GetName())
+}
+
+// Test getting the access point of the daemon.
+func TestDaemonGetAccessPoint(t *testing.T) {
+	accessPoint := dbmodel.AccessPoint{
+		Type:    dbmodel.AccessPointControl,
+		Address: "127.0.0.1",
+		Port:    8080,
+	}
+	daemon := Daemon{
+		Name:         daemonname.DHCPv4,
+		AccessPoints: []dbmodel.AccessPoint{accessPoint},
+	}
+
+	// Test getting existing access point.
+	dbAccessPoint, err := daemon.GetAccessPoint(dbmodel.AccessPointControl)
+	require.NoError(t, err)
+	require.Equal(t, &accessPoint, dbAccessPoint)
+
+	// Test getting non-existing access point.
+	dbAccessPoint, err = daemon.GetAccessPoint(dbmodel.AccessPointStatistics)
+	require.Error(t, err)
+	require.Nil(t, dbAccessPoint)
+	require.Contains(t, err.Error(), "no statistics access point for daemon dhcp4")
+}
+
+// Test getting the machine tag of the daemon.
+func TestDaemonGetMachineTag(t *testing.T) {
+	machine := &dbmodel.Machine{
+		Address: "192.0.2.1",
+	}
+	daemon := Daemon{
+		Machine: machine,
+	}
+	require.Equal(t, machine, daemon.GetMachineTag())
+}

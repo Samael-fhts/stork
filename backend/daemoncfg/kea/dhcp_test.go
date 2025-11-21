@@ -128,6 +128,69 @@ func TestGetDHCPv4Subnets(t *testing.T) {
 	require.EqualValues(t, "192.0.2.0/24", subnets[0].GetPrefix())
 }
 
+// Test that the control sockets are correctly retrieved for a DHCPv4 server.
+// The array member takes precedence over the single member.
+func TestGetDHCPv4ControlSockets(t *testing.T) {
+	// Arrange
+	cfg := &DHCPv4Config{
+		CommonDHCPConfig: CommonDHCPConfig{
+			ControlSockets: []ControlSocket{
+				{
+					SocketType: "unix",
+					SocketName: storkutil.Ptr("/var/run/kea/kea.sock"),
+				},
+				{
+					SocketType:    "http",
+					SocketAddress: storkutil.Ptr("localhost"),
+					SocketPort:    storkutil.Ptr(int64(1111)),
+				},
+			},
+			ControlSocket: &ControlSocket{
+				SocketType: "unix",
+				SocketName: storkutil.Ptr("/var/run/kea/kea-legacy.sock"),
+			},
+		},
+	}
+
+	t.Run("ControlSockets defined", func(t *testing.T) {
+		// Act
+		sockets := cfg.GetListeningControlSockets()
+
+		// Assert
+		require.Len(t, sockets, 2)
+
+		require.Equal(t, "unix", sockets[0].SocketType)
+		require.Equal(t, "/var/run/kea/kea.sock", *sockets[0].SocketName)
+
+		require.Equal(t, "http", sockets[1].SocketType)
+		require.Equal(t, "localhost", *sockets[1].SocketAddress)
+		require.EqualValues(t, 1111, *sockets[1].SocketPort)
+	})
+
+	cfg.ControlSockets = nil
+
+	t.Run("Only ControlSocket defined", func(t *testing.T) {
+		// Act
+		sockets := cfg.GetListeningControlSockets()
+
+		// Assert
+		require.Len(t, sockets, 1)
+
+		require.Equal(t, "unix", sockets[0].SocketType)
+		require.Equal(t, "/var/run/kea/kea-legacy.sock", *sockets[0].SocketName)
+	})
+
+	cfg.ControlSocket = nil
+
+	t.Run("Neither ControlSockets nor ControlSocket defined", func(t *testing.T) {
+		// Act
+		sockets := cfg.GetListeningControlSockets()
+
+		// Assert
+		require.Nil(t, sockets)
+	})
+}
+
 // Test setting DHCPv4 allocator.
 func TestSetDHCPv4Allocator(t *testing.T) {
 	cfg := &SettableDHCPv4Config{}
@@ -741,6 +804,69 @@ func TestGetDHCPv6Subnets(t *testing.T) {
 	require.Len(t, subnets, 1)
 	require.EqualValues(t, 2, subnets[0].GetID())
 	require.EqualValues(t, "2001:db8:2::/64", subnets[0].GetPrefix())
+}
+
+// Test that the control sockets are correctly retrieved for a DHCPv6 server.
+// The array member takes precedence over the single member.
+func TestGetDHCPv6ControlSockets(t *testing.T) {
+	// Arrange
+	cfg := &DHCPv6Config{
+		CommonDHCPConfig: CommonDHCPConfig{
+			ControlSockets: []ControlSocket{
+				{
+					SocketType: "unix",
+					SocketName: storkutil.Ptr("/var/run/kea/kea.sock"),
+				},
+				{
+					SocketType:    "http",
+					SocketAddress: storkutil.Ptr("localhost"),
+					SocketPort:    storkutil.Ptr(int64(1111)),
+				},
+			},
+			ControlSocket: &ControlSocket{
+				SocketType: "unix",
+				SocketName: storkutil.Ptr("/var/run/kea/kea-legacy.sock"),
+			},
+		},
+	}
+
+	t.Run("ControlSockets defined", func(t *testing.T) {
+		// Act
+		sockets := cfg.GetListeningControlSockets()
+
+		// Assert
+		require.Len(t, sockets, 2)
+
+		require.Equal(t, "unix", sockets[0].SocketType)
+		require.Equal(t, "/var/run/kea/kea.sock", *sockets[0].SocketName)
+
+		require.Equal(t, "http", sockets[1].SocketType)
+		require.Equal(t, "localhost", *sockets[1].SocketAddress)
+		require.EqualValues(t, 1111, *sockets[1].SocketPort)
+	})
+
+	cfg.ControlSockets = nil
+
+	t.Run("Only ControlSocket defined", func(t *testing.T) {
+		// Act
+		sockets := cfg.GetListeningControlSockets()
+
+		// Assert
+		require.Len(t, sockets, 1)
+
+		require.Equal(t, "unix", sockets[0].SocketType)
+		require.Equal(t, "/var/run/kea/kea-legacy.sock", *sockets[0].SocketName)
+	})
+
+	cfg.ControlSocket = nil
+
+	t.Run("Neither ControlSockets nor ControlSocket defined", func(t *testing.T) {
+		// Act
+		sockets := cfg.GetListeningControlSockets()
+
+		// Assert
+		require.Nil(t, sockets)
+	})
 }
 
 // Test setting DHCPv6 allocator.
