@@ -1238,3 +1238,239 @@ func TestGetDaemonsByName(t *testing.T) {
 		require.Nil(t, daemon.Bind9Daemon)
 	})
 }
+
+// Test getting machine tag from daemon.
+func TestGetMachineTag(t *testing.T) {
+	machine := &Machine{
+		ID:        1,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	daemon := Daemon{
+		Machine: machine,
+	}
+	require.Equal(t, machine, daemon.GetMachineTag())
+}
+
+// Test getting DNS daemon by ID.
+func TestGetDNSDaemonByID(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{Address: "localhost", AgentPort: 8080}
+	err := AddMachine(db, m)
+	require.NoError(t, err)
+
+	// Add BIND9 daemon
+	bind9 := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
+	err = AddDaemon(db, bind9)
+	require.NoError(t, err)
+
+	// Add PDNS daemon.
+	pdns := NewDaemon(m, daemonname.PDNS, true, []*AccessPoint{})
+	err = AddDaemon(db, pdns)
+	require.NoError(t, err)
+
+	// Add DHCP daemon.
+	dhcp := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
+	err = AddDaemon(db, dhcp)
+	require.NoError(t, err)
+
+	// Get BIND9.
+	d, err := GetDNSDaemonByID(db, bind9.ID)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	require.Equal(t, daemonname.Bind9, d.Name)
+	require.NotNil(t, d.Bind9Daemon)
+
+	// Get PDNS.
+	d, err = GetDNSDaemonByID(db, pdns.ID)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	require.Equal(t, daemonname.PDNS, d.Name)
+	require.NotNil(t, d.PDNSDaemon)
+
+	// Get DHCP.
+	d, err = GetDNSDaemonByID(db, dhcp.ID)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	require.Equal(t, daemonname.DHCPv4, d.Name)
+	require.Nil(t, d.Bind9Daemon)
+	require.Nil(t, d.PDNSDaemon)
+	require.Nil(t, d.KeaDaemon)
+}
+
+// Test getting daemons by machine ID.
+func TestGetDaemonsByMachine(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m1 := &Machine{Address: "machine1", AgentPort: 8080}
+	err := AddMachine(db, m1)
+	require.NoError(t, err)
+	m2 := &Machine{Address: "machine2", AgentPort: 8080}
+	err = AddMachine(db, m2)
+	require.NoError(t, err)
+
+	d1 := NewDaemon(m1, daemonname.DHCPv4, true, []*AccessPoint{})
+	err = AddDaemon(db, d1)
+	require.NoError(t, err)
+	d2 := NewDaemon(m1, daemonname.Bind9, true, []*AccessPoint{})
+	err = AddDaemon(db, d2)
+	require.NoError(t, err)
+	d3 := NewDaemon(m2, daemonname.PDNS, true, []*AccessPoint{})
+	err = AddDaemon(db, d3)
+	require.NoError(t, err)
+
+	daemons, err := GetDaemonsByMachine(db, m1.ID)
+	require.NoError(t, err)
+	require.Len(t, daemons, 2)
+	// Check IDs or Names
+	ids := []int64{daemons[0].ID, daemons[1].ID}
+	require.Contains(t, ids, d1.ID)
+	require.Contains(t, ids, d2.ID)
+
+	daemons, err = GetDaemonsByMachine(db, m2.ID)
+	require.NoError(t, err)
+	require.Len(t, daemons, 1)
+	require.Equal(t, d3.ID, daemons[0].ID)
+}
+
+// Test getting daemons by page.
+func TestGetDaemonsByPage(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{Address: "localhost", AgentPort: 8080}
+	err := AddMachine(db, m)
+	require.NoError(t, err)
+
+	for i := 0; i < 10; i++ {
+		d := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
+		d.Version = "1.0"
+		err = AddDaemon(db, d)
+		require.NoError(t, err)
+	}
+
+	// Test pagination
+	daemons, total, err := GetDaemonsByPage(db, 0, 5, nil, "id", SortDirAsc)
+	require.NoError(t, err)
+	require.Len(t, daemons, 5)
+	require.EqualValues(t, 10, total)
+
+	daemons, total, err = GetDaemonsByPage(db, 5, 5, nil, "id", SortDirAsc)
+	require.NoError(t, err)
+	require.Len(t, daemons, 5)
+	require.EqualValues(t, 10, total)
+
+	// Test filtering
+	filter := "1.0"
+	daemons, total, err = GetDaemonsByPage(db, 0, 10, &filter, "id", SortDirAsc)
+	require.NoError(t, err)
+	require.Len(t, daemons, 10)
+
+	filter = "non-existent"
+	daemons, total, err = GetDaemonsByPage(db, 0, 10, &filter, "id", SortDirAsc)
+	require.NoError(t, err)
+	require.Len(t, daemons, 0)
+	require.EqualValues(t, 0, total)
+
+	// Test filtering by name
+	daemons, total, err = GetDaemonsByPage(db, 0, 10, nil, "id", SortDirAsc, daemonname.DHCPv4)
+	require.NoError(t, err)
+	require.Len(t, daemons, 10)
+
+	daemons, total, err = GetDaemonsByPage(db, 0, 10, nil, "id", SortDirAsc, daemonname.Bind9)
+	require.NoError(t, err)
+	require.Len(t, daemons, 0)
+}
+
+// Test getting DHCP daemons.
+func TestGetDHCPDaemons(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{Address: "localhost", AgentPort: 8080}
+	err := AddMachine(db, m)
+	require.NoError(t, err)
+
+	err = AddDaemon(db, NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{}))
+	require.NoError(t, err)
+	err = AddDaemon(db, NewDaemon(m, daemonname.DHCPv6, true, []*AccessPoint{}))
+	require.NoError(t, err)
+	err = AddDaemon(db, NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{}))
+	require.NoError(t, err)
+
+	daemons, err := GetDHCPDaemons(db)
+	require.NoError(t, err)
+	require.Len(t, daemons, 2)
+	for _, d := range daemons {
+		require.Contains(t, []daemonname.Name{daemonname.DHCPv4, daemonname.DHCPv6}, d.Name)
+	}
+}
+
+// Test getting DNS daemons.
+func TestGetDNSDaemons(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{Address: "localhost", AgentPort: 8080}
+	err := AddMachine(db, m)
+	require.NoError(t, err)
+
+	err = AddDaemon(db, NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{}))
+	require.NoError(t, err)
+	err = AddDaemon(db, NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{}))
+	require.NoError(t, err)
+	err = AddDaemon(db, NewDaemon(m, daemonname.PDNS, true, []*AccessPoint{}))
+	require.NoError(t, err)
+
+	daemons, err := GetDNSDaemons(db)
+	require.NoError(t, err)
+	require.Len(t, daemons, 2)
+	for _, d := range daemons {
+		require.Contains(t, []daemonname.Name{daemonname.Bind9, daemonname.PDNS}, d.Name)
+	}
+}
+
+// Test getting Kea daemon by ID.
+func TestGetKeaDaemonByID(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{Address: "localhost", AgentPort: 8080}
+	err := AddMachine(db, m)
+	require.NoError(t, err)
+
+	// Add Kea DHCPv4 daemon
+	kea4 := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
+	err = AddDaemon(db, kea4)
+	require.NoError(t, err)
+
+	// Add BIND9 daemon
+	bind9 := NewDaemon(m, daemonname.Bind9, true, []*AccessPoint{})
+	err = AddDaemon(db, bind9)
+	require.NoError(t, err)
+
+	// Get Kea DHCPv4
+	d, err := GetKeaDaemonByID(db, kea4.ID)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	require.Equal(t, daemonname.DHCPv4, d.Name)
+	require.NotNil(t, d.KeaDaemon)
+	require.NotNil(t, d.KeaDaemon.KeaDHCPDaemon)
+
+	// Get BIND9 (should return daemon but without this daemon specific fields
+	// populated).
+	d, err = GetKeaDaemonByID(db, bind9.ID)
+	require.NoError(t, err)
+	require.NotNil(t, d)
+	require.Equal(t, daemonname.Bind9, d.Name)
+	require.Nil(t, d.KeaDaemon)
+	require.Nil(t, d.Bind9Daemon)
+
+	// Get non-existing daemon
+	d, err = GetKeaDaemonByID(db, 12345)
+	require.NoError(t, err)
+	require.Nil(t, d)
+}
