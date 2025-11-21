@@ -274,24 +274,39 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 	}
 
 	// Group daemons by Kea, BIND 9, PowerDNS, etc.
-	existingDaemonsByType := make(map[string][]*dbmodel.Daemon)
-	for _, daemon := range existingDaemons {
-		switch daemon.Name {
-		case daemonname.DHCPv4, daemonname.DHCPv6, daemonname.CA, daemonname.D2:
-			existingDaemonsByType["kea"] = append(existingDaemonsByType["kea"], &daemon)
-		case daemonname.Bind9:
-			existingDaemonsByType["bind9"] = append(existingDaemonsByType["bind9"], &daemon)
-		case daemonname.PDNS:
-			existingDaemonsByType["pdns"] = append(existingDaemonsByType["pdns"], &daemon)
-		default:
-			log.Warnf("Unknown daemon type %s", daemon.Name)
-		}
+	// It is ordered map because some existing unit tests depend on the order
+	// of processing the daemons.
+	nameToTypeMapping := map[daemonname.Name]string{
+		daemonname.DHCPv4: "kea",
+		daemonname.DHCPv6: "kea",
+		daemonname.CA:     "kea",
+		daemonname.D2:     "kea",
+		daemonname.Bind9:  "bind9",
+		daemonname.PDNS:   "pdns",
 	}
 
+	existingDaemonsByType := storkutil.NewOrderedMap[string, []*dbmodel.Daemon]()
+	for _, daemon := range existingDaemons {
+		daemonType, ok := nameToTypeMapping[daemon.Name]
+		if !ok {
+			log.Warnf("Unknown daemon type %s", daemon.Name)
+			continue
+		}
+
+		typeDaemons, ok := existingDaemonsByType.Get(daemonType)
+		if !ok {
+			typeDaemons = []*dbmodel.Daemon{}
+		}
+		typeDaemons = append(typeDaemons, &daemon)
+		existingDaemonsByType.Set(daemonType, typeDaemons)
+	}
 	// List of all daemons belonging to the machine with updated state.
 	allDaemons := make([]*dbmodel.Daemon, 0, len(existingDaemons))
 	// go through all daemons and store their changes in database
-	for daemonType, existingDaemons := range existingDaemonsByType {
+	for _, entry := range existingDaemonsByType.GetEntries() {
+		daemonType := entry.Key
+		existingDaemons := entry.Value
+
 		// get daemon state from the machine
 		switch daemonType {
 		case "kea":

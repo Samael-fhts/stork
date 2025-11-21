@@ -90,6 +90,14 @@ func TestStatePullerPullData(t *testing.T) {
 					Key:     "abcd",
 				}},
 			},
+			{
+				Name: daemonname.CA,
+				AccessPoints: []dbmodel.AccessPoint{{
+					Type:    dbmodel.AccessPointControl,
+					Address: "1.1.1.1",
+					Port:    5678,
+				}},
+			},
 		},
 	}
 
@@ -144,7 +152,7 @@ func TestStatePullerPullData(t *testing.T) {
 	// check if daemons have been updated correctly
 	daemons, err := dbmodel.GetAllDaemons(db)
 	require.NoError(t, err)
-	require.Len(t, daemons, 3)
+	require.Len(t, daemons, 4)
 
 	var keaDaemon dbmodel.Daemon
 	for _, daemon := range daemons {
@@ -155,8 +163,182 @@ func TestStatePullerPullData(t *testing.T) {
 	require.Len(t, keaDaemon.AccessPoints, 1)
 	require.EqualValues(t, keaDaemon.AccessPoints[0].Address, "1.2.3.4")
 
+	// Ensure that the puller initiated configuration review for the Kea daemons.
+	require.Len(t, fd.CallLog, 2)
+	require.Equal(t, "BeginReview", fd.CallLog[0].CallName)
+	require.Equal(t, "BeginReview", fd.CallLog[1].CallName)
+}
+
+// Check if puller correctly pulls data from an agent that can communicate only
+// with the Kea CA and cannot connect directly to the daemons.
+func TestStatePullerPullDataFromLegacyAgent(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	// prepare fake agents
+	fa := agentcommtest.NewFakeAgents(func(callNo int, response []any) {
+		switch callNo {
+		case 0:
+			// Call to Kea CA to retrieve daemons.
+			r := response[0].(*keactrl.Response)
+			r.Arguments = []byte(`{ "Control-agent": {
+				"control-sockets": {
+					"dhcp4": {
+						"socket-type": "unix",
+						"socket-name": "/var/run/kea/kea4-ctrl-socket"
+					}
+				}
+			} }`)
+		case 2:
+			// Call to Kea CA to retrieve its state.
+			versionResponse := response[0].(*kea.VersionGetResponse)
+			versionResponse.Result = keactrl.ResponseSuccess
+			versionResponse.Text = "2.4.0"
+			configGetResponse := response[1].(*keactrl.Response)
+			configGetResponse.Result = keactrl.ResponseSuccess
+			configGetResponse.Arguments = []byte(`{ "Control-agent": {} }`)
+		case 3:
+			// Call to Kea DHCPv4 to retrieve its state.
+			versionResponse := response[0].(*kea.VersionGetResponse)
+			versionResponse.Result = keactrl.ResponseSuccess
+			versionResponse.Text = "2.4.0"
+			configGetResponse := response[1].(*keactrl.Response)
+			configGetResponse.Result = keactrl.ResponseSuccess
+			configGetResponse.Arguments = []byte(`{ "Dhcp4": {} }`)
+			statusGetResponse := response[2].(*kea.StatusGetResponse)
+			statusGetResponse.Result = keactrl.ResponseSuccess
+			statusGetResponse.Arguments = &kea.StatusGetRespArgs{}
+		default:
+			require.FailNow(t, "unexpected call number to fake agents")
+		}
+	}, nil)
+	fa.MachineState = &agentcomm.State{
+		// Legacy agent version.
+		AgentVersion: "2.2.0",
+		Daemons: []*agentcomm.Daemon{
+			{
+				Name: daemonname.Bind9,
+				AccessPoints: []dbmodel.AccessPoint{
+					{
+						Type:    dbmodel.AccessPointControl,
+						Address: "1.2.3.4",
+						Port:    124,
+						Key:     "abcd",
+					},
+					{
+						Type:    dbmodel.AccessPointStatistics,
+						Address: "1.2.3.4",
+						Port:    5678,
+					},
+				},
+			},
+			{
+				Name: daemonname.PDNS,
+				AccessPoints: []dbmodel.AccessPoint{{
+					Type:    dbmodel.AccessPointControl,
+					Address: "1.2.3.4",
+					Port:    134,
+					Key:     "abcd",
+				}},
+			},
+			{
+				Name: daemonname.CA,
+				AccessPoints: []dbmodel.AccessPoint{{
+					Type:    dbmodel.AccessPointControl,
+					Address: "1.2.3.4",
+					Port:    1234,
+				}},
+			},
+		},
+	}
+
+	// prepare fake event center
+	fec := &storktest.FakeEventCenter{}
+
+	// fake config review dispatcher
+	fd := &storktest.FakeDispatcher{}
+
+	// add one machine with one kea app
+	m := &dbmodel.Machine{
+		ID:         0,
+		Address:    "localhost",
+		AgentPort:  8080,
+		Authorized: true,
+	}
+	err := dbmodel.AddMachine(db, m)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, m.ID)
+
+	// DHCPv4 daemon.
+	d := dbmodel.NewDaemon(m, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{{
+		Type:    dbmodel.AccessPointControl,
+		Address: "1.1.1.1",
+		Port:    1234,
+		Key:     "",
+	}})
+	err = d.SetKeaConfigFromJSON([]byte(`{"Dhcp4": { }}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, d)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, d.ID)
+
+	// CA daemon.
+	d = dbmodel.NewDaemon(m, daemonname.CA, true, []*dbmodel.AccessPoint{{
+		Type:    dbmodel.AccessPointControl,
+		Address: "1.1.1.1",
+		Port:    1234,
+		Key:     "",
+	}})
+	err = d.SetKeaConfigFromJSON([]byte(`{"Control-agent": { }}`))
+	require.NoError(t, err)
+	err = dbmodel.AddDaemon(db, d)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, d.ID)
+
+	// set one setting that is needed by puller
+	setting := dbmodel.Setting{
+		Name:    "state_puller_interval",
+		ValType: dbmodel.SettingValTypeInt,
+		Value:   "60",
+	}
+	_, err = db.Model(&setting).Insert()
+	require.NoError(t, err)
+
+	// prepare stats puller
+	sp, err := NewStatePuller(db, fa, fec, fd, dbmodel.NewDHCPOptionDefinitionLookup())
+	require.NoError(t, err)
+	// shutdown state puller at the end
+	defer sp.Shutdown()
+
+	// invoke pulling state
+	err = sp.pullData()
+	require.NoError(t, err)
+
+	// check if daemons have been updated correctly
+	daemons, err := dbmodel.GetAllDaemons(db)
+	require.NoError(t, err)
+	require.Len(t, daemons, 4)
+
+	// Check the detected daemons.
+	var daemonNames []daemonname.Name
+	for _, daemon := range daemons {
+		daemonNames = append(daemonNames, daemon.Name)
+	}
+	require.Contains(t, daemonNames, daemonname.DHCPv4)
+	require.Contains(t, daemonNames, daemonname.CA)
+	require.Contains(t, daemonNames, daemonname.Bind9)
+	require.Contains(t, daemonNames, daemonname.PDNS)
+
+	for _, daemon := range daemons {
+		if daemon.Name.IsKea() {
+			require.Len(t, daemon.AccessPoints, 1)
+			require.EqualValues(t, daemon.AccessPoints[0].Address, "1.2.3.4")
+		}
+	}
+
 	// Ensure that the puller initiated configuration review for the Kea daemon.
-	require.Len(t, fd.CallLog, 1)
+	require.Len(t, fd.CallLog, 2)
+	require.Equal(t, "BeginReview", fd.CallLog[0].CallName)
 	require.Equal(t, "BeginReview", fd.CallLog[0].CallName)
 }
 
