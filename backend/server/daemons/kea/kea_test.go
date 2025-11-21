@@ -137,6 +137,41 @@ func mockGetConfigFromOtherDaemonsResponse(family int, cmdResponses []interface{
 	}
 }
 
+// Test that GetConfig returns the correct configuration.
+func TestGetConfig(t *testing.T) {
+	// Arrange
+	ctx := context.Background()
+
+	keaMock := func(callNo int, cmdResponses []any) {
+		require.Equal(t, 0, callNo)
+		require.Len(t, cmdResponses, 1)
+
+		response := cmdResponses[0].(*keactrl.Response)
+		response.Result = keactrl.ResponseSuccess
+		response.Arguments = []byte(`{ "Dhcp4": {} }`)
+	}
+	fa := agentcommtest.NewFakeAgents(keaMock, nil)
+
+	daemon := dbmodel.NewDaemon(&dbmodel.Machine{
+		Address:   "192.0.2.0",
+		AgentPort: 1111,
+	}, daemonname.DHCPv4, true, []*dbmodel.AccessPoint{{
+		Type:     dbmodel.AccessPointControl,
+		Address:  "192.0.2.0",
+		Port:     1234,
+		Protocol: protocoltype.HTTPS,
+	}})
+
+	// Act
+	config, err := GetConfig(ctx, fa, daemon)
+
+	// Assert
+	require.NoError(t, err)
+	require.NotNil(t, config)
+	require.True(t, config.IsDHCPv4())
+
+}
+
 // Check if GetDaemonState returns response to the forwarded command.
 func TestGetDaemonStateWith1Daemon(t *testing.T) {
 	ctx := context.Background()
