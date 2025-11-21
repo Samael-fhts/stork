@@ -1664,7 +1664,7 @@ func TestDetectKeaCommunicationError(t *testing.T) {
 }
 
 // Test sending data over Kea socket connector.
-func TestKeaSocketConnector(t *testing.T) {
+func TestKeaSocketConnectorSendPayload(t *testing.T) {
 	// Arrange
 	sb := testutil.NewSandbox()
 	defer sb.Close()
@@ -1718,4 +1718,36 @@ func TestKeaSocketConnector(t *testing.T) {
 	require.Equal(t, response, output)
 	// Wait for assertions in the server goroutine.
 	wgServer.Wait()
+}
+
+// Test sending data over Kea HTTP connector.
+func TestKeaHTTPConnectorSendPayload(t *testing.T) {
+	// Arrange
+	defer gock.Off()
+
+	gock.New("http://localhost:45634").
+		MatchHeader("Content-Type", "application/json").
+		Post("/").
+		Reply(200).
+		// The server wraps the response into an array.
+		JSON([]map[string]any{{"result": 0}})
+
+	connector := newKeaConnector(AccessPoint{
+		Type:     AccessPointControl,
+		Address:  "localhost",
+		Port:     45634,
+		Protocol: protocoltype.HTTP,
+	}, HTTPClientConfig{
+		Interceptor: gock.InterceptClient,
+	})
+
+	command := []byte(`{"command":""ping"}`)
+
+	// Act
+	output, err := connector.sendPayload(t.Context(), command)
+
+	// Assert
+	require.NoError(t, err)
+	// The response is unwrapped from the array.
+	require.Equal(t, []byte(`{"result":0}`), output)
 }
