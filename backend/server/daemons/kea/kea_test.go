@@ -169,7 +169,6 @@ func TestGetConfig(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, config)
 	require.True(t, config.IsDHCPv4())
-
 }
 
 // Check if GetDaemonState returns response to the forwarded command.

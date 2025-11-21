@@ -384,7 +384,6 @@ func TestCommandUnmarshal(t *testing.T) {
 	require.Contains(t, arguments, "key2")
 	require.Equal(t, "value1", arguments["key1"])
 	require.Equal(t, float64(42), arguments["key2"])
-
 }
 
 // Test that GetCommand() function returns the command name.
@@ -477,7 +476,6 @@ func TestCommandWithRawArgumentsUnmarshal(t *testing.T) {
 		"key1": "value1",
 		"key2": 42
 	}`, string(cmd.Arguments))
-
 }
 
 // Test that Response properly implements the ExaminableResponse interface.

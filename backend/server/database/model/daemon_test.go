@@ -1368,6 +1368,7 @@ func TestGetDaemonsByPage(t *testing.T) {
 	daemons, total, err = GetDaemonsByPage(db, 0, 10, &filter, "id", SortDirAsc)
 	require.NoError(t, err)
 	require.Len(t, daemons, 10)
+	require.EqualValues(t, 10, total)
 
 	filter = "non-existent"
 	daemons, total, err = GetDaemonsByPage(db, 0, 10, &filter, "id", SortDirAsc)
@@ -1379,10 +1380,12 @@ func TestGetDaemonsByPage(t *testing.T) {
 	daemons, total, err = GetDaemonsByPage(db, 0, 10, nil, "id", SortDirAsc, daemonname.DHCPv4)
 	require.NoError(t, err)
 	require.Len(t, daemons, 10)
+	require.EqualValues(t, 10, total)
 
 	daemons, total, err = GetDaemonsByPage(db, 0, 10, nil, "id", SortDirAsc, daemonname.Bind9)
 	require.NoError(t, err)
 	require.Len(t, daemons, 0)
+	require.EqualValues(t, 0, total)
 }
 
 // Test getting DHCP daemons.

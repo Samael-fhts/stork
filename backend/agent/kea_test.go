@@ -1670,7 +1670,8 @@ func TestKeaSocketConnectorSendPayload(t *testing.T) {
 	defer sb.Close()
 	socketPath := path.Join(sb.BasePath, "kea-socket-test.sock")
 
-	server, err := net.Listen("unix", socketPath)
+	var listenConfig net.ListenConfig
+	server, err := listenConfig.Listen(t.Context(), "unix", socketPath)
 	require.NoError(t, err)
 	defer server.Close()
 
@@ -1695,7 +1696,7 @@ func TestKeaSocketConnectorSendPayload(t *testing.T) {
 		require.Equal(t, command, buf)
 
 		// Write response.
-		n, err = conn.Write([]byte(response))
+		n, err = conn.Write(response)
 		require.NoError(t, err)
 		require.Len(t, response, n)
 
