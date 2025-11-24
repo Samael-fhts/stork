@@ -36,6 +36,30 @@ func TestGetVirtualApp(t *testing.T) {
 	require.Equal(t, VirtualAppTypeKea, virtualApp.Type)
 }
 
+// Test that a virtual app can be derived from a daemon without a machine. The
+// ID should still be computed correctly.
+func TestGetVirtualAppWithoutMachine(t *testing.T) {
+	// Arrange
+	daemon := NewDaemon(&Machine{ID: 42}, daemonname.DHCPv4, true, []*AccessPoint{
+		{
+			Type:    AccessPointControl,
+			Address: "bar",
+			Port:    8000,
+		},
+	})
+	daemon.Machine = nil
+
+	// Act
+	virtualApp := daemon.GetVirtualApp()
+
+	// Assert
+	expectedAppID := int64(adler32.Checksum([]byte("42:bar:8000")))
+	expectedAppName := fmt.Sprintf("%s%%%d", VirtualAppTypeKea, expectedAppID)
+	require.Equal(t, expectedAppID, virtualApp.ID)
+	require.Equal(t, expectedAppName, virtualApp.Name)
+	require.Equal(t, VirtualAppTypeKea, virtualApp.Type)
+}
+
 // Test that daemons with the only and the same HTTP access point have the same
 // virtual app ID and they reside on the same machine.
 func TestGetVirtualAppForVariousDaemonsHTTP(t *testing.T) {

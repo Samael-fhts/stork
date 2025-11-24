@@ -44,7 +44,12 @@ func (d Daemon) GetVirtualApp() *VirtualApp {
 		appType = VirtualAppTypePDNS
 	}
 
-	appName := fmt.Sprintf("%s@%s%%%d", appType, d.Machine.Address, appID)
+	var appName string
+	if d.Machine != nil {
+		appName = fmt.Sprintf("%s@%s%%%d", appType, d.Machine.Address, appID)
+	} else {
+		appName = fmt.Sprintf("%s%%%d", appType, appID)
+	}
 
 	return &VirtualApp{
 		ID:   appID,
