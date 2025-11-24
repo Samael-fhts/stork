@@ -312,11 +312,13 @@ func TestNewLogTargetsFromKea(t *testing.T) {
 		Severity: "DEBUG",
 	}
 
-	targets := NewLogTargetsFromKea(logger)
+	targets := NewLogTargetsFromKea(1, logger)
 	require.Len(t, targets, 2)
+	require.EqualValues(t, 1, targets[0].DaemonID)
 	require.Equal(t, "logger-name", targets[0].Name)
 	require.Equal(t, "stdout", targets[0].Output)
 	require.Equal(t, "debug", targets[0].Severity)
+	require.EqualValues(t, 1, targets[1].DaemonID)
 	require.Equal(t, "logger-name", targets[1].Name)
 	require.Equal(t, "/tmp/log", targets[1].Output)
 	require.Equal(t, "debug", targets[1].Severity)

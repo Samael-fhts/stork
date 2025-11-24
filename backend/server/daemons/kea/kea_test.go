@@ -200,11 +200,14 @@ func TestGetDaemonStateWith1Daemon(t *testing.T) {
 		AgentPort: 1111,
 	}, daemonname.CA, true, accessPoints)
 
-	GetDaemonWithRefreshedState(ctx, fa, daemon)
+	_, meta := GetDaemonWithRefreshedState(ctx, fa, daemon)
 
 	require.Contains(t, fa.RecordedURLs, "https://192.0.2.0:1234/")
 	require.Equal(t, keactrl.VersionGet, fa.RecordedCommands[0].GetCommand())
 	require.Equal(t, keactrl.ConfigGet, fa.RecordedCommands[1].GetCommand())
+	require.NotNil(t, meta)
+	require.True(t, meta.IsConfigChanged)
+	require.Empty(t, meta.Events)
 }
 
 func TestGetDaemonStateWith2Daemons(t *testing.T) {
@@ -266,6 +269,7 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 		Address:   "192.0.2.0",
 		AgentPort: 1111,
 	}, daemonname.CA, false, accessPoints)
+	daemon.ID = 42
 
 	err := daemon.SetKeaConfigFromJSON([]byte(`{
         "Control-agent": {
@@ -291,6 +295,8 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 	daemon, meta := GetDaemonWithRefreshedState(ctx, fa, daemon)
 	require.NotNil(t, daemon)
 	require.NotNil(t, meta)
+	require.True(t, meta.IsConfigChanged)
+	require.NotEmpty(t, meta.Events)
 
 	require.Contains(t, fa.RecordedURLs, "https://192.0.2.0:1234/")
 	require.Equal(t, keactrl.VersionGet, fa.RecordedCommands[0].GetCommand())

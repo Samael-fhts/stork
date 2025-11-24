@@ -340,12 +340,13 @@ func NewHostFromKeaConfigReservation(reservation keaconfig.Reservation, daemon *
 // Creates log targets from Kea logger configuration. The Kea logger configuration
 // can comprise multiple output options. Therefore, this function may return multiple
 // targets, each corresponding to a single output option.
-func NewLogTargetsFromKea(logger keaconfig.Logger) (targets []*LogTarget) {
+func NewLogTargetsFromKea(daemonID int64, logger keaconfig.Logger) (targets []*LogTarget) {
 	for _, opt := range logger.GetAllOutputOptions() {
 		target := &LogTarget{
 			Name:     logger.Name,
 			Severity: strings.ToLower(logger.Severity),
 			Output:   opt.Output,
+			DaemonID: daemonID,
 		}
 		targets = append(targets, target)
 	}

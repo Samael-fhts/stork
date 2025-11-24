@@ -870,7 +870,7 @@ func (d *Daemon) setKeaConfigWithHash(config *keaconfig.Config, configHash strin
 		d.LogTargets = []*LogTarget{}
 		loggers := config.GetLoggers()
 		for _, logger := range loggers {
-			targets := NewLogTargetsFromKea(logger)
+			targets := NewLogTargetsFromKea(d.ID, logger)
 			for i := range targets {
 				// For each target check if it already exists and inherit its
 				// ID and creation time.

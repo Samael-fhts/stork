@@ -778,7 +778,7 @@ func TestSetKeaLoggingConfig(t *testing.T) {
 	require.Equal(t, "/tmp/kea-dhcp4-packets.log", daemon.LogTargets[1].Output)
 	// The new logger has no id set until added to the db.
 	require.Zero(t, daemon.LogTargets[1].ID)
-	require.Zero(t, daemon.LogTargets[1].DaemonID)
+	require.EqualValues(t, 1, daemon.LogTargets[1].DaemonID)
 
 	// Set the second logger's ids.
 	daemon.LogTargets[1].ID = 3
