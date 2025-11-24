@@ -124,7 +124,7 @@ func readKeaConfig(path string) (*keaconfig.Config, error) {
 
 	config, err := keaconfig.NewConfig(text)
 	if err != nil {
-		err = errors.WithMessage(err, "Cannot parse Kea Control Agent config file")
+		err = errors.WithMessage(err, "Cannot parse Kea config file")
 		return nil, err
 	}
 
