@@ -177,6 +177,13 @@ func findChangesAndRaiseEvents(daemonOld, daemonNew *dbmodel.Daemon, err error) 
 	var events []*dbmodel.Event
 	var isConfigChanged bool
 
+	if daemonNew.ID == 0 {
+		// Daemon is newly added. It wasn't committed to the database yet.
+		// Its events will be raised when the daemon is committed to the
+		// database.
+		return DaemonStateMeta{IsConfigChanged: daemonNew.KeaDaemon != nil && daemonNew.KeaDaemon.ConfigHash != ""}
+	}
+
 	if daemonOld.Active && !daemonNew.Active {
 		// Kea daemon was not found in the response or it is inactive.
 		ev := eventcenter.CreateEvent(dbmodel.EvError, "{daemon} is unreachable", err, daemonOld.Machine, daemonOld)
