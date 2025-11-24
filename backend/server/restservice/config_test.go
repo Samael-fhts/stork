@@ -2408,6 +2408,26 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 		require.Equal(t, "Problem with parsing daemon name", *defaultRsp.Payload.Message)
 	})
 
+	t.Run("non-Kea daemon name", func(t *testing.T) {
+		params := dhcp.UpdateKeaGlobalParametersSubmitParams{
+			ID: transactionID,
+			Request: &models.UpdateKeaDaemonsGlobalParametersSubmitRequest{
+				Configs: []*models.KeaDaemonConfigurableGlobalParameters{
+					{
+						DaemonID:      daemon.GetID(),
+						DaemonName:    string(daemonname.Bind9),
+						PartialConfig: &models.KeaConfigurableGlobalParameters{},
+					},
+				},
+			},
+		}
+		rsp := rapi.UpdateKeaGlobalParametersSubmit(ctx, params)
+		require.IsType(t, &dhcp.UpdateKeaGlobalParametersSubmitDefault{}, rsp)
+		defaultRsp := rsp.(*dhcp.UpdateKeaGlobalParametersSubmitDefault)
+		require.Equal(t, http.StatusBadRequest, getStatusCode(*defaultRsp))
+		require.Equal(t, "Daemon named is not a Kea daemon", *defaultRsp.Payload.Message)
+	})
+
 	t.Run("commit failure", func(t *testing.T) {
 		params := dhcp.UpdateKeaGlobalParametersSubmitParams{
 			ID: transactionID,
