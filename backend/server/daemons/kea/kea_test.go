@@ -185,7 +185,6 @@ func TestGetDaemonStateWith1Daemon(t *testing.T) {
 		}
 	}
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
-	fec := &storktest.FakeEventCenter{}
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
@@ -201,7 +200,7 @@ func TestGetDaemonStateWith1Daemon(t *testing.T) {
 		AgentPort: 1111,
 	}, daemonname.CA, true, accessPoints)
 
-	GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
+	GetDaemonWithRefreshedState(ctx, fa, daemon)
 
 	require.Contains(t, fa.RecordedURLs, "https://192.0.2.0:1234/")
 	require.Equal(t, keactrl.VersionGet, fa.RecordedCommands[0].GetCommand())
@@ -221,7 +220,6 @@ func TestGetDaemonStateWith2Daemons(t *testing.T) {
 		}
 	}
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
-	fec := &storktest.FakeEventCenter{}
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
@@ -237,7 +235,7 @@ func TestGetDaemonStateWith2Daemons(t *testing.T) {
 		AgentPort: 1111,
 	}, daemonname.CA, true, accessPoints)
 
-	GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
+	GetDaemonWithRefreshedState(ctx, fa, daemon)
 
 	require.Contains(t, fa.RecordedURLs, "http://192.0.2.0:1234/")
 	require.Equal(t, keactrl.VersionGet, fa.RecordedCommands[0].GetCommand())
@@ -254,7 +252,6 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 		mockGetConfigFromCAResponse(1, cmdResponses)
 	}
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
-	fec := &storktest.FakeEventCenter{}
 
 	accessPoints := []*dbmodel.AccessPoint{
 		{
@@ -291,7 +288,7 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 	// Remember current config hash for daemon.
 	caHash := daemon.KeaDaemon.ConfigHash
 
-	daemon, meta := GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
+	daemon, meta := GetDaemonWithRefreshedState(ctx, fa, daemon)
 	require.NotNil(t, daemon)
 	require.NotNil(t, meta)
 
@@ -325,7 +322,7 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 
 	caConfig := daemon.KeaDaemon.Config
 
-	daemon, meta = GetDaemonWithRefreshedState(ctx, fa, daemon, fec)
+	daemon, meta = GetDaemonWithRefreshedState(ctx, fa, daemon)
 	require.NotNil(t, daemon)
 	require.NotNil(t, meta)
 

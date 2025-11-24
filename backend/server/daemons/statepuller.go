@@ -313,7 +313,7 @@ func UpdateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, dbMachine
 			var states []kea.DaemonStateMeta
 			var enhancedDaemons []*dbmodel.Daemon
 			for _, daemon := range existingDaemons {
-				enhancedDaemon, state := kea.GetDaemonWithRefreshedState(ctx2, agents, daemon, eventCenter)
+				enhancedDaemon, state := kea.GetDaemonWithRefreshedState(ctx2, agents, daemon)
 				enhancedDaemons = append(enhancedDaemons, enhancedDaemon)
 				states = append(states, state)
 			}

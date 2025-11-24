@@ -158,7 +158,7 @@ func getDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 // Returns a new instance of Kea daemon with a refreshed state fetched from Kea,
 // and an object representing the detected changes.
 // It doesn't modify the provided daemon.
-func GetDaemonWithRefreshedState(ctx context.Context, agents agentcomm.ConnectedAgents, inDaemon *dbmodel.Daemon, eventCenter eventcenter.EventCenter) (outDaemon *dbmodel.Daemon, meta DaemonStateMeta) {
+func GetDaemonWithRefreshedState(ctx context.Context, agents agentcomm.ConnectedAgents, inDaemon *dbmodel.Daemon) (outDaemon *dbmodel.Daemon, meta DaemonStateMeta) {
 	ctx2, cancel := context.WithTimeout(ctx, 2*time.Second)
 	defer cancel()
 
