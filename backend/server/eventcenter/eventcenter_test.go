@@ -88,8 +88,8 @@ func TestCreateEventDaemon(t *testing.T) {
 	require.Zero(t, ev.CreatedAt)
 }
 
-// Test that the event with a daemon entry is not created if the daemon misses
-// the machine reference.
+// Test that the event with a daemon entry is created properly even if the
+// daemon misses the machine reference.
 func TestCreateEventDaemonWithoutMachine(t *testing.T) {
 	// Arrange
 	daemon := &dbmodel.Daemon{
