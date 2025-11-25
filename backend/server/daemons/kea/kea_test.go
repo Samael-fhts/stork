@@ -177,12 +177,8 @@ func TestGetDaemonStateWith1Daemon(t *testing.T) {
 
 	// check getting config of 1 daemon
 	keaMock := func(callNo int, cmdResponses []interface{}) {
-		switch callNo {
-		case 0:
-			mockGetConfigFromCAResponse(1, cmdResponses)
-		case 1:
-			mockGetConfigFromOtherDaemonsResponse(4, cmdResponses)
-		}
+		require.LessOrEqual(t, callNo, 2)
+		mockGetConfigFromCAResponse(1, cmdResponses)
 	}
 	fa := agentcommtest.NewFakeAgents(keaMock, nil)
 
@@ -200,13 +196,22 @@ func TestGetDaemonStateWith1Daemon(t *testing.T) {
 		AgentPort: 1111,
 	}, daemonname.CA, true, accessPoints)
 
-	_, meta := GetDaemonWithRefreshedState(ctx, fa, daemon)
+	daemon, meta := GetDaemonWithRefreshedState(ctx, fa, daemon)
 
 	require.Contains(t, fa.RecordedURLs, "https://192.0.2.0:1234/")
 	require.Equal(t, keactrl.VersionGet, fa.RecordedCommands[0].GetCommand())
 	require.Equal(t, keactrl.ConfigGet, fa.RecordedCommands[1].GetCommand())
 	require.NotNil(t, meta)
 	require.True(t, meta.IsConfigChanged)
+	require.Empty(t, meta.Events)
+
+	// Committing daemon into database assigns it an ID.
+	daemon.ID = 1
+
+	// Refresh state again, should be no changes.
+	_, meta = GetDaemonWithRefreshedState(ctx, fa, daemon)
+	require.NotNil(t, meta)
+	require.False(t, meta.IsConfigChanged)
 	require.Empty(t, meta.Events)
 }
 
