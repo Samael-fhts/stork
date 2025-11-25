@@ -169,36 +169,49 @@ func GetDaemonWithRefreshedState(ctx context.Context, agents agentcomm.Connected
 	return outDaemon, meta
 }
 
+// Checks if the configuration of the daemon has changed compared to the
+// previous state.
+func isDaemonConfigChanged(daemonOld, daemonNew *dbmodel.Daemon) bool {
+	if daemonOld.KeaDaemon == nil && daemonNew.KeaDaemon == nil {
+		return false
+	}
+	if daemonOld.KeaDaemon == nil || daemonNew.KeaDaemon == nil {
+		return true
+	}
+	return daemonOld.KeaDaemon.ConfigHash != daemonNew.KeaDaemon.ConfigHash
+}
+
 // Detects changes in the daemon before and after the fetching state from Kea.
 // It raises events when a daemon changes its state between active and
 // inactive state. It also raises events about detected daemon restarts and when
 // configuration change was detected.
 func findChangesAndRaiseEvents(daemonOld, daemonNew *dbmodel.Daemon, err error) DaemonStateMeta {
-	var events []*dbmodel.Event
-	var isConfigChanged bool
+	meta := DaemonStateMeta{
+		IsConfigChanged: isDaemonConfigChanged(daemonOld, daemonNew),
+	}
 
 	if daemonNew.ID == 0 {
 		// Daemon is newly added. It wasn't committed to the database yet.
 		// Its events will be raised when the daemon is committed to the
 		// database.
-		return DaemonStateMeta{IsConfigChanged: daemonNew.KeaDaemon != nil && daemonNew.KeaDaemon.ConfigHash != ""}
+		return meta
 	}
 
 	if daemonOld.Active && !daemonNew.Active {
 		// Kea daemon was not found in the response or it is inactive.
 		ev := eventcenter.CreateEvent(dbmodel.EvError, "{daemon} is unreachable", err, daemonOld.Machine, daemonOld)
-		events = append(events, ev)
+		meta.Events = append(meta.Events, ev)
 	} else if !daemonOld.Active && daemonNew.Active {
 		// Kea daemon is now active.
 		ev := eventcenter.CreateEvent(dbmodel.EvInfo, "{daemon} is reachable now", daemonNew.Machine, daemonNew)
-		events = append(events, ev)
+		meta.Events = append(meta.Events, ev)
 	}
 
 	if daemonOld.Uptime > daemonNew.Uptime {
 		// Check if daemon has been restarted.
 		text := "{daemon} has been restarted"
 		ev := eventcenter.CreateEvent(dbmodel.EvWarning, text, daemonNew.Machine, daemonNew)
-		events = append(events, ev)
+		meta.Events = append(meta.Events, ev)
 	}
 
 	if daemonOld.Version != daemonNew.Version {
@@ -206,26 +219,22 @@ func findChangesAndRaiseEvents(daemonOld, daemonNew *dbmodel.Daemon, err error) 
 		text := fmt.Sprintf("{daemon} version changed from %s to %s",
 			daemonOld.Version, daemonNew.Version)
 		ev := eventcenter.CreateEvent(dbmodel.EvWarning, text, daemonNew.Machine, daemonNew)
-		events = append(events, ev)
+		meta.Events = append(meta.Events, ev)
 	}
 
 	if daemonOld.KeaDaemon != nil && daemonNew.KeaDaemon != nil {
-		if daemonOld.KeaDaemon.ConfigHash != daemonNew.KeaDaemon.ConfigHash {
+		if meta.IsConfigChanged {
 			// Raise this event only if we're certain that the configuration has
 			// changed based on the comparison of the hash values.
 			text := "Configuration change detected for {daemon}"
 			ev := eventcenter.CreateEvent(dbmodel.EvInfo, text, daemonNew.Machine, daemonNew)
-			events = append(events, ev)
-			isConfigChanged = true
+			meta.Events = append(meta.Events, ev)
 		} else {
 			log.Infof("Configuration of Kea: machine %d, daemon: %d has not changed since last fetch; skipping database update for that daemon", daemonNew.MachineID, daemonNew.ID)
 		}
 	}
 
-	return DaemonStateMeta{
-		Events:          events,
-		IsConfigChanged: isConfigChanged,
-	}
+	return meta
 }
 
 // Removes associations between the daemon, shared networks, subnets and hosts.

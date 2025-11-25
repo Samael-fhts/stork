@@ -417,3 +417,60 @@ func TestCommitDaemonIntoDB(t *testing.T) {
 	require.EqualValues(t, 2345, returned.AccessPoints[0].Port)
 	require.Equal(t, protocoltype.HTTPS, returned.AccessPoints[0].Protocol)
 }
+
+// Test that the changed configuration is detected correctly.
+func TestIsDaemonConfigChanged(t *testing.T) {
+	t.Run("Missing both KeaDaemon", func(t *testing.T) {
+		// Arrange
+		daemonOld := &dbmodel.Daemon{}
+		daemonNew := &dbmodel.Daemon{}
+
+		// Act & Assert
+		require.False(t, isDaemonConfigChanged(daemonOld, daemonNew))
+	})
+
+	t.Run("Missing old KeaDaemon", func(t *testing.T) {
+		// Arrange
+		daemonOld := &dbmodel.Daemon{}
+		daemonNew := &dbmodel.Daemon{KeaDaemon: &dbmodel.KeaDaemon{}}
+
+		// Act & Assert
+		require.True(t, isDaemonConfigChanged(daemonOld, daemonNew))
+	})
+
+	t.Run("Missing new KeaDaemon", func(t *testing.T) {
+		// Arrange
+		daemonOld := &dbmodel.Daemon{KeaDaemon: &dbmodel.KeaDaemon{}}
+		daemonNew := &dbmodel.Daemon{}
+
+		// Act & Assert
+		require.True(t, isDaemonConfigChanged(daemonOld, daemonNew))
+	})
+
+	t.Run("Same empty config hash", func(t *testing.T) {
+		// Arrange
+		daemonOld := &dbmodel.Daemon{KeaDaemon: &dbmodel.KeaDaemon{}}
+		daemonNew := &dbmodel.Daemon{KeaDaemon: &dbmodel.KeaDaemon{}}
+
+		// Act & Assert
+		require.False(t, isDaemonConfigChanged(daemonOld, daemonNew))
+	})
+
+	t.Run("Same config hash", func(t *testing.T) {
+		// Arrange
+		daemonOld := &dbmodel.Daemon{KeaDaemon: &dbmodel.KeaDaemon{ConfigHash: "abc"}}
+		daemonNew := &dbmodel.Daemon{KeaDaemon: &dbmodel.KeaDaemon{ConfigHash: "abc"}}
+
+		// Act & Assert
+		require.False(t, isDaemonConfigChanged(daemonOld, daemonNew))
+	})
+
+	t.Run("Different config hash", func(t *testing.T) {
+		// Arrange
+		daemonOld := &dbmodel.Daemon{KeaDaemon: &dbmodel.KeaDaemon{ConfigHash: "abc"}}
+		daemonNew := &dbmodel.Daemon{KeaDaemon: &dbmodel.KeaDaemon{ConfigHash: "def"}}
+
+		// Act & Assert
+		require.True(t, isDaemonConfigChanged(daemonOld, daemonNew))
+	})
+}
