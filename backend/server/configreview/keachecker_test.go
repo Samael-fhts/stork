@@ -113,7 +113,7 @@ func createHostInDatabase(t *testing.T, db *dbops.PgDB, configStr, subnetPrefix 
 	host.LocalHosts = append(host.LocalHosts, *localHost)
 
 	// Add the host.
-	err = dbmodel.AddHost(db, host)
+	_, err = dbmodel.AddHost(db, host)
 	require.NoError(t, err)
 }
 
@@ -4879,7 +4879,7 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 			},
 		}
 		// Add the host.
-		err = dbmodel.AddHost(db, host)
+		_, err = dbmodel.AddHost(db, host)
 		if err != nil {
 			b.Fatalf("failed to add host to subnet %s: %+v", dbSubnet.Prefix, err)
 		}

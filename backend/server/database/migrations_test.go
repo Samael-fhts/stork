@@ -486,7 +486,7 @@ func TestMigrationFrom57DifferentHostData(t *testing.T) {
 			},
 		},
 	}
-	err := dbmodel.AddHost(db, host)
+	_, err := dbmodel.AddHost(db, host)
 	require.NoError(t, err)
 
 	initialHosts, _ := dbmodel.GetAllHosts(db, 0)

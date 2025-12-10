@@ -324,6 +324,7 @@ func (module *ConfigModule) ApplyHostAdd(ctx context.Context, host *dbmodel.Host
 		}
 		commands = append(commands, command)
 	}
+	// Store the data in the recipe.
 	var err error
 	recipe := &ConfigRecipe{
 		HostConfigRecipeParams: HostConfigRecipeParams{
@@ -331,6 +332,8 @@ func (module *ConfigModule) ApplyHostAdd(ctx context.Context, host *dbmodel.Host
 		},
 		Commands: commands,
 	}
+	recipe.HostAfterUpdate = host
+	recipe.Commands = commands
 	if ctx, err = config.SetRecipeForUpdate(ctx, 0, recipe); err != nil {
 		return ctx, err
 	}
@@ -348,13 +351,23 @@ func (module *ConfigModule) commitHostAdd(ctx context.Context) (context.Context,
 	if err != nil {
 		return ctx, err
 	}
-	for _, update := range state.Updates {
+	var hostID int64
+	for i, update := range state.Updates {
 		if update.Recipe.HostAfterUpdate == nil {
 			return ctx, errors.New("server logic error: the update.Recipe.HostAfterUpdate cannot be nil when committing host creation")
 		}
-		err = dbmodel.AddHost(module.manager.GetDB(), update.Recipe.HostAfterUpdate)
+		hostID, err = dbmodel.AddHost(module.manager.GetDB(), update.Recipe.HostAfterUpdate)
 		if err != nil {
 			return ctx, errors.WithMessagef(err, "host has been successfully added to Kea but adding to the Stork database failed")
+		}
+
+		recipe, err := config.GetRecipeForUpdate[ConfigRecipe](ctx, i)
+		if err != nil {
+			return ctx, err
+		}
+		recipe.HostID = storkutil.Ptr(hostID)
+		if ctx, err = config.SetRecipeForUpdate(ctx, 0, recipe); err != nil {
+			return ctx, err
 		}
 	}
 	return ctx, nil

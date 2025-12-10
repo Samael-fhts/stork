@@ -1660,7 +1660,7 @@ func TestFindLeasesByHostID(t *testing.T) {
 			},
 		},
 	}
-	err = dbmodel.AddHost(db, &host)
+	_, err = dbmodel.AddHost(db, &host)
 	require.NoError(t, err)
 
 	// Expecting the following commands and responses:

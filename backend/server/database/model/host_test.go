@@ -301,9 +301,10 @@ func addTestHosts(t *testing.T, db *pg.DB) ([]*Daemon, []Host) {
 
 	for i, h := range hosts {
 		host := h
-		err := AddHost(db, &host)
+		hostID, err := AddHost(db, &host)
 		require.NoError(t, err)
 		require.NotZero(t, host.ID)
+		require.NotZero(t, hostID)
 		hosts[i] = host
 	}
 	return daemons, hosts
@@ -544,7 +545,7 @@ func TestAddHost3(t *testing.T) {
 			},
 		},
 	}
-	err := AddHost(db, host)
+	_, err := AddHost(db, host)
 	require.NoError(t, err)
 	require.NotZero(t, host.ID)
 
@@ -608,9 +609,10 @@ func TestUpdateHostExtend(t *testing.T) {
 			},
 		},
 	}
-	err := AddHost(db, host)
+	hostID, err := AddHost(db, host)
 	require.NoError(t, err)
 	require.NotZero(t, host.ID)
+	require.NotZero(t, hostID)
 
 	// Modify the value of the first identifier.
 	host.HostIdentifiers[0].Value = []byte{6, 5, 4, 3, 2, 1}
@@ -688,9 +690,10 @@ func TestUpdateHostShrink(t *testing.T) {
 			},
 		},
 	}
-	err := AddHost(db, host)
+	hostID, err := AddHost(db, host)
 	require.NoError(t, err)
 	require.NotZero(t, host.ID)
+	require.NotZero(t, hostID)
 
 	// Remove one host identifier and one reservation.
 	host.HostIdentifiers = host.HostIdentifiers[0:1]
@@ -764,9 +767,10 @@ func TestUpdateHostExcludeCreatedAt(t *testing.T) {
 			},
 		},
 	}
-	err := AddHost(db, host)
+	hostID, err := AddHost(db, host)
 	require.NoError(t, err)
 	require.NotZero(t, host.ID)
+	require.NotZero(t, hostID)
 
 	// Save the timestamp and reset it.
 	savedTime := host.CreatedAt
@@ -812,9 +816,10 @@ func TestUpdateHostWithLocalHosts(t *testing.T) {
 			},
 		},
 	}
-	err := AddHost(db, host)
+	hostID, err := AddHost(db, host)
 	require.NoError(t, err)
 	require.NotZero(t, host.ID)
+	require.NotZero(t, hostID)
 
 	host2 := &Host{
 		ID: host.ID,
@@ -1898,7 +1903,7 @@ func TestGetHostsByPageWithoutReservedIPFilteredByIdentifier(t *testing.T) {
 			IPReservations: nil,
 		}},
 	}
-	err := AddHost(db, host)
+	_, err := AddHost(db, host)
 	require.NoError(t, err)
 
 	// Act
@@ -2101,7 +2106,7 @@ func TestAddHost2(t *testing.T) {
 			},
 		},
 	}
-	err := AddHost(db, &host)
+	_, err := AddHost(db, &host)
 	require.NoError(t, err)
 
 	returned, err := GetHost(db, host.ID)
@@ -2546,7 +2551,7 @@ func TestCountOutOfPoolCounters(t *testing.T) {
 			},
 		},
 	}
-	_ = AddHost(db, host)
+	_, _ = AddHost(db, host)
 
 	host = &Host{
 		CreatedAt: time.Now(),
@@ -2573,7 +2578,7 @@ func TestCountOutOfPoolCounters(t *testing.T) {
 			},
 		},
 	}
-	_ = AddHost(db, host)
+	_, _ = AddHost(db, host)
 
 	// IPv6
 	subnetIPv6 := &Subnet{
@@ -2665,7 +2670,7 @@ func TestCountOutOfPoolCounters(t *testing.T) {
 			},
 		},
 	}
-	_ = AddHost(db, host)
+	_, _ = AddHost(db, host)
 
 	// Global reservations
 	host = &Host{
@@ -2734,7 +2739,7 @@ func TestCountOutOfPoolCounters(t *testing.T) {
 		},
 	}
 
-	_ = AddHost(db, host)
+	_, _ = AddHost(db, host)
 
 	// Act
 	addressCounters, errAddresses := CountOutOfPoolAddressReservations(db)
@@ -3161,7 +3166,7 @@ func TestDeleteDaemonsFromHostConfigDataSource(t *testing.T) {
 			},
 		},
 	}
-	_ = AddHost(db, host)
+	_, _ = AddHost(db, host)
 
 	host, _ = GetHost(db, host.ID)
 	require.Len(t, host.LocalHosts, 2)
@@ -3199,7 +3204,7 @@ func TestDeleteDaemonsFromHostAPIDataSource(t *testing.T) {
 			},
 		},
 	}
-	_ = AddHost(db, host)
+	_, _ = AddHost(db, host)
 
 	host, _ = GetHost(db, host.ID)
 	require.Len(t, host.LocalHosts, 2)
@@ -3237,7 +3242,7 @@ func TestDeleteDaemonsFromHostAllDataSource(t *testing.T) {
 			},
 		},
 	}
-	_ = AddHost(db, host)
+	_, _ = AddHost(db, host)
 
 	host, _ = GetHost(db, host.ID)
 	require.Len(t, host.LocalHosts, 2)
@@ -3274,7 +3279,7 @@ func TestDeleteDaemonsFromHostError(t *testing.T) {
 			},
 		},
 	}
-	_ = AddHost(db, host)
+	_, _ = AddHost(db, host)
 
 	host, _ = GetHost(db, host.ID)
 	require.Len(t, host.LocalHosts, 2)

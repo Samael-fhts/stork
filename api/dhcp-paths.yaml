@@ -198,6 +198,8 @@
       responses:
         200:
           description: Host reservation successfully submitted.
+          schema:
+            $ref: '#/definitions/CreateHostSubmitResponse'
         default:
           description: generic error response
           schema:

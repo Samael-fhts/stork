@@ -70,7 +70,7 @@
                 [form]="tabForm.formState"
                 [hostId]="host?.id"
                 (formDestroy)="onHostFormDestroy($event)"
-                (formSubmit)="onHostFormSubmit($event, host?.id)"
+                (formSubmit)="onHostFormSubmit($event, host?.id || $event.hostID)"
                 (formCancel)="onHostFormCancel(tabType, host?.id)"
             ></app-host-form>
         </div>
