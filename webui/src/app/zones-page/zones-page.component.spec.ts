@@ -84,26 +84,26 @@ describe('ZonesPageComponent', () => {
     }
 
     const progress1 = {
-        appsCount: 3,
-        completedAppsCount: 0,
+        daemonsCount: 3,
+        completedDaemonsCount: 0,
         status: HttpStatusCode.Accepted,
     }
 
     const progress2 = {
-        appsCount: 3,
-        completedAppsCount: 1,
+        daemonsCount: 3,
+        completedDaemonsCount: 1,
         status: HttpStatusCode.Accepted,
     }
 
     const progress3 = {
-        appsCount: 3,
-        completedAppsCount: 2,
+        daemonsCount: 3,
+        completedDaemonsCount: 2,
         status: HttpStatusCode.Accepted,
     }
 
     const progress4 = {
-        appsCount: 3,
-        completedAppsCount: 3,
+        daemonsCount: 3,
+        completedDaemonsCount: 3,
         status: HttpStatusCode.Accepted,
     }
 
@@ -691,8 +691,8 @@ describe('ZonesPageComponent', () => {
         expect(resp.status).toEqual(HttpStatusCode.Ok)
         expect(resp.items).toEqual(zoneFetchStatesHttpResp.body.items)
         expect(resp.total).toEqual(zoneFetchStatesHttpResp.body.total)
-        expect(resp.appsCount).toBeUndefined()
-        expect(resp.completedAppsCount).toBeUndefined()
+        expect(resp.daemonsCount).toBeUndefined()
+        expect(resp.completedDaemonsCount).toBeUndefined()
     })
 
     it('should init filter dropdowns and multiselect', () => {

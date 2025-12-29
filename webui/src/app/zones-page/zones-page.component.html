@@ -13,15 +13,15 @@
                     severity="info"
                     [text]="
                         'The server is fetching zones from the agents in the background. It may take some time, depending on the number of the DNS servers and zones. Completed for ' +
-                        fetchAppsCompletedCount +
+                        fetchDaemonsCompletedCount +
                         ' out of ' +
-                        fetchTotalAppsCount +
-                        ' DNS apps.'
+                        fetchTotalDaemonsCount +
+                        ' DNS daemons.'
                     "
                 ></p-message>
                 <h4>Progress</h4>
-                <p-progressBar [value]="(fetchAppsCompletedCount / fetchTotalAppsCount) * 100" styleClass="max-w-30rem">
-                    <span>{{ fetchAppsCompletedCount }}/{{ fetchTotalAppsCount }}</span>
+                <p-progressBar [value]="(fetchDaemonsCompletedCount / fetchTotalDaemonsCount) * 100" styleClass="max-w-30rem">
+                    <span>{{ fetchDaemonsCompletedCount }}/{{ fetchTotalDaemonsCount }}</span>
                 </p-progressBar>
             </td>
         </tr>

@@ -110,14 +110,14 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
     fetchInProgress: boolean = false
 
     /**
-     * Keeps count of DNS apps for which zones fetch was completed. This number comes from backend.
+     * Keeps count of DNS daemons for which zones fetch was completed. This number comes from backend.
      */
-    fetchAppsCompletedCount: number = 0
+    fetchDaemonsCompletedCount: number = 0
 
     /**
-     * Keeps total count of DNS apps for which zones fetch is currently in progress. This number comes from backend.
+     * Keeps total count of DNS daemons for which zones fetch is currently in progress. This number comes from backend.
      */
-    fetchTotalAppsCount: number = 0
+    fetchTotalDaemonsCount: number = 0
 
     /**
      * Flag stating whether Zones Fetch Status dialog is visible or not.
@@ -194,11 +194,11 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
         takeWhile((resp) => this.fetchInProgress && resp.status === HttpStatusCode.Accepted, true),
         tap((resp) => {
             if (resp.status === HttpStatusCode.Accepted) {
-                this.fetchAppsCompletedCount = resp.completedAppsCount
-                this.fetchTotalAppsCount = resp.appsCount
+                this.fetchDaemonsCompletedCount = resp.completedDaemonsCount
+                this.fetchTotalDaemonsCount = resp.daemonsCount
                 this.onLazyLoadZones(this.zonesTable?.createLazyLoadMetadata(), false)
             } else if (resp.status === HttpStatusCode.Ok) {
-                this.fetchAppsCompletedCount = this.fetchTotalAppsCount
+                this.fetchDaemonsCompletedCount = this.fetchTotalDaemonsCount
                 this.zonesFetchStates = resp.items ?? []
                 this.zonesFetchStatesTotal = resp.total ?? 0
                 if (this.fetchInProgress) {
@@ -432,8 +432,8 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
                         this.zonesFetchStates = []
                         this.zonesFetchStatesTotal = 0
 
-                        this.fetchAppsCompletedCount = resp.completedAppsCount
-                        this.fetchTotalAppsCount = resp.appsCount
+                        this.fetchDaemonsCompletedCount = resp.completedDaemonsCount
+                        this.fetchTotalDaemonsCount = resp.daemonsCount
 
                         if (!this._isPolling) {
                             this._isPolling = true
@@ -448,7 +448,7 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
 
                         if (this.fetchInProgress) {
                             this.fetchInProgress = false
-                            this.fetchAppsCompletedCount = this.fetchTotalAppsCount
+                            this.fetchDaemonsCompletedCount = this.fetchTotalDaemonsCount
                             this.messageService.add({
                                 severity: 'success',
                                 summary: 'Zones fetch complete',
@@ -531,7 +531,7 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
      */
     private _sendPutZonesFetch() {
         this._subscriptions.add(this._putZonesFetchGuard.subscribe())
-        this.fetchAppsCompletedCount = 0
+        this.fetchDaemonsCompletedCount = 0
 
         lastValueFrom(
             this.dnsService.putZonesFetch().pipe(
