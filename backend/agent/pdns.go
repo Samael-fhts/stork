@@ -238,7 +238,7 @@ func detectPowerDNSConfigPath(p supportedProcess, executor storkutil.CommandExec
 // Parses the PowerDNS configuration file specified in the first argument. It extracts
 // the webserver configuration and the API key. If the webserver is disabled or the
 // API key does not exist it returns an error. Otherwise it instantiates the
-// PowerDNS app and the zone inventory.
+// PowerDNS daemon and the zone inventory.
 func configurePowerDNSDaemon(configPath string, parser pdnsConfigParser) (*pdnsDaemon, error) {
 	// Parse the configuration file.
 	parsedConfig, err := parser.ParseFile(configPath)
@@ -264,7 +264,7 @@ func configurePowerDNSDaemon(configPath string, parser pdnsConfigParser) (*pdnsD
 	// Create the zone inventory.
 	inventory := newZoneInventory(newZoneInventoryStorageMemory(), parsedConfig, client, *webserverAddress, *webserverPort)
 
-	// Create the PowerDNS app.
+	// Create the PowerDNS daemon.
 	daemon := &pdnsDaemon{
 		dnsDaemonImpl: dnsDaemonImpl{
 			daemon: daemon{

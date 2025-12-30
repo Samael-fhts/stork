@@ -21,7 +21,7 @@ type agentManager interface {
 	allowLog(path string)
 }
 
-// An access point for an application to retrieve information such
+// An access point for a daemon to retrieve information such
 // as status or metrics.
 type AccessPoint struct {
 	Type     string
@@ -128,7 +128,7 @@ func (d *daemon) String() string {
 	return b.String()
 }
 
-// Checks if two applications are the same. It checks the name and access
+// Checks if two daemons are the same. It checks the name and access
 // points including their configuration.
 func (d *daemon) IsEqual(other Daemon) bool {
 	if d.Name != other.GetName() {

@@ -1005,7 +1005,7 @@ func TestGetZoneRRsAnotherRequestInProgress(t *testing.T) {
 	controller := gomock.NewController(t)
 	mock := NewMockConnectedAgents(controller)
 
-	// Create the app.
+	// Create the daemon.
 	machine := &dbmodel.Machine{
 		ID:        0,
 		Address:   "localhost",
@@ -1018,7 +1018,7 @@ func TestGetZoneRRsAnotherRequestInProgress(t *testing.T) {
 	err = dbmodel.AddDaemon(db, daemon)
 	require.NoError(t, err)
 
-	// Create the zone and associated with the app/daemon.
+	// Create the zone and associated with the daemon.
 	zone := &dbmodel.Zone{
 		ID:    1,
 		Name:  "example.com",
@@ -1624,7 +1624,7 @@ func TestGetBind9FormattedConfigMultipleFiles(t *testing.T) {
 	mock.EXPECT().ReceiveBind9FormattedConfig(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
 		Times(1).
 		DoAndReturn(
-			func(ctx context.Context, app *dbmodel.Daemon, fileSelector *bind9config.FileTypeSelector, filter *bind9config.Filter) iter.Seq2[*agentapi.ReceiveBind9ConfigRsp, error] {
+			func(ctx context.Context, daemon *dbmodel.Daemon, fileSelector *bind9config.FileTypeSelector, filter *bind9config.Filter) iter.Seq2[*agentapi.ReceiveBind9ConfigRsp, error] {
 				return func(yield func(*agentapi.ReceiveBind9ConfigRsp, error) bool) {
 					responses := []*agentapi.ReceiveBind9ConfigRsp{
 						{
@@ -1807,7 +1807,7 @@ func TestGetBind9FormattedConfigAnotherRequestInProgress(t *testing.T) {
 	controller := gomock.NewController(t)
 	mock := NewMockConnectedAgents(controller)
 
-	// Create the app.
+	// Create the daemon.
 	machine := &dbmodel.Machine{
 		ID:        0,
 		Address:   "localhost",
@@ -1900,7 +1900,7 @@ func TestGetBind9FormattedConfigAnotherRequestInProgressDifferentDaemon(t *testi
 	controller := gomock.NewController(t)
 	mock := NewMockConnectedAgents(controller)
 
-	// Create the app.
+	// Create the daemon.
 	machine := &dbmodel.Machine{
 		ID:        0,
 		Address:   "localhost",

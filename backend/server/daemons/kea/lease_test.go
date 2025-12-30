@@ -1270,7 +1270,7 @@ func TestFindLeasesTooShortDUID(t *testing.T) {
 // in the default state should be ignored. The remaining three leases should be
 // returned. The test also verifies that the commands sent to Kea are formatted
 // correctly, i.e. contain empty MAC address and empty DUID. Finally, the test
-// verifies that erred apps are returned if any of the commands returns an error.
+// verifies that erred daemons are returned if any of the commands returns an error.
 func TestFindDeclinedLeases(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
