@@ -21,7 +21,7 @@ type agentManager interface {
 	allowLog(path string)
 }
 
-// An access point for an application to retrieve information such
+// An access point for a daemon to retrieve information such
 // as status or metrics.
 type AccessPoint struct {
 	Type     string
