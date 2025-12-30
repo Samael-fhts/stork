@@ -1,7 +1,7 @@
 import moment from 'moment-timezone'
 import { IPv6, collapseIPv6Number } from 'ip-num'
 import { gt, lt, valid } from 'semver'
-import { Bind9Daemon, KeaDaemon, PdnsDaemon } from './backend'
+import { AnyDaemon, Bind9Daemon, Daemon, KeaDaemon, PdnsDaemon } from './backend'
 import { Severity } from './version.service'
 
 /**
@@ -253,10 +253,8 @@ export function extractKeyValsAndPrepareQueryParams<T extends { text?: string }>
  * @return true if there is a communication problem with the daemon,
  *         false otherwise.
  */
-export function daemonStatusErred(daemon: PdnsDaemon | Bind9Daemon | KeaDaemon) {
-    return ['agentCommErrors', 'caCommErrors', 'daemonCommErrors', 'rndcCommErrors', 'statsCommErrors'].some(
-        (errorType) => (daemon as any)[errorType] && (daemon as any)[errorType] > 0
-    )
+export function daemonStatusErred(daemon: AnyDaemon) {
+    return daemon.agentCommErrors > 0 || daemon.daemonCommErrors > 0 || daemon.caCommErrors > 0 || daemon.statsCommErrors > 0
 }
 
 /**
@@ -272,7 +270,7 @@ export function daemonStatusErred(daemon: PdnsDaemon | Bind9Daemon | KeaDaemon) 
  *  should be active but the communication with it is broken and
  *  check icon if the communication with the active daemon is ok.
  */
-export function daemonStatusIconName(daemon: PdnsDaemon | Bind9Daemon | KeaDaemon) {
+export function daemonStatusIconName(daemon: AnyDaemon) {
     if (!daemon.monitored) {
         return 'pi pi-ban icon-not-monitored'
     }
@@ -291,7 +289,7 @@ export function daemonStatusIconName(daemon: PdnsDaemon | Bind9Daemon | KeaDaemo
  *          active but there are communication issues, green if the
  *          communication with the active daemon is ok.
  */
-export function daemonStatusIconColor(daemon: PdnsDaemon | Bind9Daemon | KeaDaemon) {
+export function daemonStatusIconColor(daemon: AnyDaemon) {
     if (!daemon.monitored) {
         return 'var(--p-gray-400)'
     }
@@ -310,7 +308,7 @@ export function daemonStatusIconColor(daemon: PdnsDaemon | Bind9Daemon | KeaDaem
  *          problems when such problems occur, e.g. it includes the
  *          hint whether the communication is with the agent or daemon.
  */
-export function daemonStatusIconTooltip(daemon: PdnsDaemon & KeaDaemon & Bind9Daemon) {
+export function daemonStatusIconTooltip(daemon: AnyDaemon) {
     if (!daemon.monitored) {
         return 'Monitoring of this daemon has been disabled. It can be enabled on the daemon tab on the Kea Apps page.'
     }
@@ -340,22 +338,11 @@ export function daemonStatusIconTooltip(daemon: PdnsDaemon & KeaDaemon & Bind9Da
     if (daemon.daemonCommErrors && daemon.daemonCommErrors > 0) {
         return (
             'Communication with the daemon on this machine ' +
-            'is broken. The Stork Agent and Kea Control Agent appear to ' +
-            'be working, but the daemon behind Kea CA is not responding or ' +
-            'responds with errors. The last ' +
+            'is broken. The Stork Agent, but the daemon behind it is not ' +
+            'responding or responds with errors. The last ' +
             daemon.daemonCommErrors +
             ' attempt(s) to communicate with the daemon failed. Please ' +
-            'make sure that the daemon is up and is reachable from the ' +
-            'Kea Control Agent over the control channel (UNIX domain socket).'
-        )
-    }
-    if (daemon.rndcCommErrors && daemon.rndcCommErrors > 0) {
-        return (
-            'Communication with the BIND 9 daemon over RNDC is broken. The ' +
-            'Stork Agent appears to be working, but the BIND 9 daemon appears ' +
-            'to be down or is responding with errors. The last ' +
-            daemon.rndcCommErrors +
-            ' attempt(s) to communicate with the BIND 9 daemon failed.'
+            'make sure that the daemon is up and is reachable.'
         )
     }
     if (daemon.statsCommErrors && daemon.statsCommErrors > 0) {

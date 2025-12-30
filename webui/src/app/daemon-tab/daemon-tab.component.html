@@ -1,0 +1,52 @@
+<div class="grid m-0">
+    <div class="pl-0 pr-0 pb-4 col-12">
+        <p-panel>
+            <ng-template #header>
+                <div class="flex justify-content-between flex-wrap gap-2 w-full">
+                    <div class="text-2xl font-bold text-primary-600">
+                        <i class="fa fa-server pr-2"></i> {{ daemon.name | daemonNiceName }}
+                    </div>
+                    <p-button
+                        label="Refresh Daemon"
+                        id="refresh-daemon-button"
+                        icon="pi pi-refresh"
+                        (click)="refreshDaemonState()"
+                    ></p-button>
+                </div>
+            </ng-template>
+            <app-daemon-overview [daemon]="daemon"></app-daemon-overview>
+        </p-panel>
+    </div>
+    <div class="p-0 col-12">
+        @if (daemon.name === 'bind9') {
+            <app-bind9-daemon-controls [daemonId]="daemon.id"></app-bind9-daemon-controls>
+        }
+        <div class="grid p-0">
+            <div *ngIf="daemonStatusErred" class="col-12 sm:col-10 md:col-6">
+                <p-message severity="error" [text]="daemonStatusErrorText"></p-message>
+            </div>
+
+            <div class="col-12 xl:col-7">
+                <ng-container [ngSwitch]="daemon.name">
+                    <!-- BIND9 -->
+                    <app-bind9-daemon
+                        *ngSwitchCase="'bind9'"
+                        [daemon]="daemon"
+                    ></app-bind9-daemon>
+                    <!-- PowerDNS -->
+                    <app-pdns-daemon *ngSwitchCase="'pdns'" [daemon]="daemon"></app-pdns-daemon>
+                </ng-container>
+            </div>
+            <!-- Events -->
+            <div class="col-12 xl:col-5">
+                <h3 class="underlined">Events</h3>
+                <app-events-panel
+                    #eventsTable
+                    [filter]="{
+                        daemonId: daemon.id,
+                    }"
+                ></app-events-panel>
+            </div>
+        </div>
+    </div>
+</div>

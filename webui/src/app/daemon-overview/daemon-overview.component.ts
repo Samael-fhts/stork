@@ -1,22 +1,22 @@
 import { Component, Input } from '@angular/core'
-import { App } from '../backend'
+import { Daemon } from '../backend'
 
 /**
- * A component that displays app overview.
+ * A component that displays daemon overview.
  *
- * It comprises the information about the app and machine access points.
+ * It comprises the information about the daemon and machine access points.
  */
 @Component({
-    selector: 'app-app-overview',
+    selector: 'app-daemon-overview',
     standalone: false,
-    templateUrl: './app-overview.component.html',
-    styleUrls: ['./app-overview.component.sass'],
+    templateUrl: './daemon-overview.component.html',
+    styleUrls: ['./daemon-overview.component.sass'],
 })
-export class AppOverviewComponent {
+export class DaemonOverviewComponent {
     /**
-     * Pointer to the structure holding the app information.
+     * Pointer to the structure holding the daemon information.
      */
-    @Input() app: App = null
+    @Input() daemon: Daemon = null
 
     /**
      * Conditionally formats an IP address for display.

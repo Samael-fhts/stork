@@ -5,7 +5,7 @@ import { prerelease, gte } from 'semver'
 
 import { MessageService } from 'primeng/api'
 
-import { AppTab } from '../apps'
+import { AppTab } from '../daemons'
 import { ServicesService } from '../backend'
 import { ServerDataService } from '../server-data.service'
 

@@ -1,53 +1,44 @@
 import { Component, Input } from '@angular/core'
 
 import { daemonStatusIconName, daemonStatusIconColor, daemonStatusIconTooltip } from '../utils'
-import { App } from '../backend'
+import { Daemon } from '../backend'
 
 @Component({
-    selector: 'app-app-daemons-status',
+    selector: 'daemons-status',
     standalone: false,
-    templateUrl: './app-daemons-status.component.html',
-    styleUrls: ['./app-daemons-status.component.sass'],
+    templateUrl: './daemons-status.component.html',
+    styleUrls: ['./daemons-status.component.sass'],
 })
-export class AppDaemonsStatusComponent {
-    @Input() app: any
+export class DaemonsStatusComponent {
+    /**
+     * Daemons to show status for. Sorted by importance.
+     */
+    private _daemons: Daemon[]
 
+    /**
+     * Sets daemons to show status for. The daemons are sorted by importance.
+     */
+    @Input() set daemons(daemons: Daemon[]) {
+        this._daemons = this.sortDaemonsByImportance(daemons)
+    }
+
+    /**
+     * Gets daemons to show status for.
+     */
+    get daemons(): Daemon[] {
+        return this._daemons
+    }
+    
     constructor() {}
 
     /** Returns a list of daemon sorted using custom rules. */
-    sortDaemonsByImportance(app: App) {
-        const daemonMap = []
-        const daemons = []
-
-        if (app.details.daemons) {
-            for (const d of app.details.daemons) {
-                daemonMap[d.name] = d
-            }
-            const DMAP = [
-                ['dhcp4', 'DHCPv4'],
-                ['dhcp6', 'DHCPv6'],
-                ['d2', 'DDNS'],
-                ['ca', 'CA'],
-                ['netconf', 'NETCONF'],
-            ]
-            for (const dm of DMAP) {
-                if (daemonMap[dm[0]] !== undefined) {
-                    daemonMap[dm[0]].niceName = dm[1]
-                    daemons.push(daemonMap[dm[0]])
-                }
-            }
-        } else if (app.details.daemon) {
-            daemonMap[app.details.daemon.name] = app.details.daemon
-            const DMAP = [['named', 'named']]
-            for (const dm of DMAP) {
-                if (daemonMap[dm[0]] !== undefined) {
-                    daemonMap[dm[0]].niceName = dm[1]
-                    daemons.push(daemonMap[dm[0]])
-                }
-            }
-        }
-
-        return daemons
+    private sortDaemonsByImportance(daemons: Daemon[]) {
+        return daemons.sort((a, b) => {
+            const order = ['dhcp4', 'dhcp6', 'd2', 'ca', 'netconf', 'named', 'pdns']
+            const indexA = order.indexOf(a.name)
+            const indexB = order.indexOf(b.name)
+            return indexA - indexB
+        })
     }
 
     /**
