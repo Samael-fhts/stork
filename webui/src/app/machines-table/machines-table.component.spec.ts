@@ -26,7 +26,7 @@ import { FilterMetadata } from 'primeng/api/filtermetadata'
 import { deepCopy } from '../utils'
 import objectContaining = jasmine.objectContaining
 import { By } from '@angular/platform-browser'
-import { AppDaemonsStatusComponent } from '../daemons-status/daemons-status.component'
+import { AppDaemonsStatusComponent } from '../daemon-status/daemon-status.component'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { AuthService } from '../auth.service'

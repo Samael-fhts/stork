@@ -4,30 +4,13 @@ import { daemonStatusIconName, daemonStatusIconColor, daemonStatusIconTooltip } 
 import { Daemon } from '../backend'
 
 @Component({
-    selector: 'daemons-status',
+    selector: 'daemon-status',
     standalone: false,
     templateUrl: './daemons-status.component.html',
     styleUrls: ['./daemons-status.component.sass'],
 })
-export class DaemonsStatusComponent {
-    /**
-     * Daemons to show status for. Sorted by importance.
-     */
-    private _daemons: Daemon[]
-
-    /**
-     * Sets daemons to show status for. The daemons are sorted by importance.
-     */
-    @Input() set daemons(daemons: Daemon[]) {
-        this._daemons = this.sortDaemonsByImportance(daemons)
-    }
-
-    /**
-     * Gets daemons to show status for.
-     */
-    get daemons(): Daemon[] {
-        return this._daemons
-    }
+export class DaemonStatusComponent {
+    @Input() daemon: Daemon
     
     constructor() {}
 
@@ -44,27 +27,23 @@ export class DaemonsStatusComponent {
     /**
      * Returns tooltip for the icon in presenting daemon status
      *
-     * @param daemon data structure holding the information about the daemon.
-     *
      * @returns Tooltip as text. It includes hints about the communication
      *          problems when such problems occur, e.g. it includes the
      *          hint whether the communication is with the agent or daemon.
      */
-    daemonStatusIconTooltip(daemon) {
-        return daemonStatusIconTooltip(daemon)
+    get daemonStatusIconTooltip() {
+        return daemonStatusIconTooltip(this.daemon)
     }
 
     /**
      * Returns the color of the icon used in presenting daemon status
      *
-     * @param daemon data structure holding the information about the daemon.
-     *
      * @returns grey color if the daemon is not active, red if the daemon is
      *          active but there are communication issues, green if the
      *          communication with the active daemon is ok.
      */
-    daemonStatusIconColor(daemon) {
-        return daemonStatusIconColor(daemon)
+    get daemonStatusIconColor() {
+        return daemonStatusIconColor(this.daemon)
     }
 
     /**
@@ -74,13 +53,11 @@ export class DaemonsStatusComponent {
      * active and whether there is a communication with the daemon or
      * not.
      *
-     * @param daemon data structure holding the information about the daemon.
-     *
-     * @returns ban icon if the daemon is not active, times icon if the daemon
+     * @returns an icon if the daemon is not active, times icon if the daemon
      *          should be active but the communication with it is broken and
      *          check icon if the communication with the active daemon is ok.
      */
-    daemonStatusIconName(daemon) {
-        return daemonStatusIconName(daemon)
+    get daemonStatusIconName() {
+        return daemonStatusIconName(this.daemon)
     }
 }

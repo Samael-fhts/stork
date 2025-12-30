@@ -19,7 +19,7 @@ import { ProgressBarModule } from 'primeng/progressbar'
 import { PopoverModule } from 'primeng/popover'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
-import { AppDaemonsStatusComponent } from '../daemons-status/daemons-status.component'
+import { AppDaemonsStatusComponent } from '../daemon-status/daemon-status.component'
 import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { HttpErrorResponse, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import anything = jasmine.anything

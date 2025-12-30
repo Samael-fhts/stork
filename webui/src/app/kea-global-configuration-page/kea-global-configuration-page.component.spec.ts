@@ -29,7 +29,7 @@ import { DhcpOptionSetViewComponent } from '../dhcp-option-set-view/dhcp-option-
 import { TagModule } from 'primeng/tag'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { FloatLabelModule } from 'primeng/floatlabel'
-import { AppsPageComponent } from '../daemons-page/apps-page.component'
+import { AppsPageComponent } from '../daemons-page/daemons-page.component'
 
 describe('KeaGlobalConfigurationPageComponent', () => {
     let component: KeaGlobalConfigurationPageComponent

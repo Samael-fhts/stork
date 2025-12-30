@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing'
 
-import { AppDaemonsStatusComponent } from './daemons-status.component'
+import { AppDaemonsStatusComponent } from './daemon-status.component'
 
 class Daemon {}
 

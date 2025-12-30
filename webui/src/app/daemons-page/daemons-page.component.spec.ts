@@ -1,7 +1,7 @@
 import { By } from '@angular/platform-browser'
 import { ComponentFixture, TestBed, fakeAsync, tick, waitForAsync, flush } from '@angular/core/testing'
 
-import { AppsPageComponent } from './apps-page.component'
+import { AppsPageComponent } from './daemons-page.component'
 import { MenuModule } from 'primeng/menu'
 import { FormsModule } from '@angular/forms'
 import { TableModule } from 'primeng/table'

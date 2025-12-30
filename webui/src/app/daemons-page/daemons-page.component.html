@@ -1,26 +1,26 @@
 <p-confirmDialog styleClass="w-10 xl:w-4"></p-confirmDialog>
 <app-breadcrumbs [items]="breadcrumbs">
     <div page-help>
-        <p>This page displays a list of apps.</p>
+        <p>This page displays a list of daemons.</p>
     </div>
 </app-breadcrumbs>
 
 <app-tab-view
-    routePath="/apps/"
-    [entityProvider]="appProvider"
+    routePath="/daemons/"
+    [entityProvider]="daemonProvider"
     [tableQueryParamFilters]="{
         text: { type: 'string', matchMode: 'contains' },
-        apps: { type: 'enum', matchMode: 'equals', arrayType: true, enumValues: ['kea', 'pdns', 'bind9'] },
+        daemons: { type: 'enum', matchMode: 'equals', arrayType: true, enumValues: ['DHCPv4', 'DHCPv6', 'CA', 'NetConf', 'D2', 'PowerDNS', 'BIND9'] },
     }"
-    [entitiesTable]="appsTable"
+    [entitiesTable]="daemonsTable"
 >
     <ng-template #firstTab>
         <div class="my-2 flex gap-2 flex-wrap justify-content-end">
             <p-button
-                id="apps-refresh-button"
+                id="daemons-refresh-button"
                 label="Refresh"
                 icon="pi pi-refresh"
-                (click)="refreshAppsList()"
+                (click)="refreshDaemonsList()"
                 class="flex-none"
             ></p-button>
             <p-button
@@ -34,16 +34,16 @@
                 appAccessType="delete"
             ></p-button>
         </div>
-        <p-menu #appMenu [popup]="true" [model]="appMenuItems"></p-menu>
+        <p-menu #daemonMenu [popup]="true" [model]="daemonMenuItems"></p-menu>
         <p-table
             #table
-            [value]="apps"
+            [value]="daemons"
             [paginator]="true"
             [rows]="rows"
             [lazy]="true"
             [loading]="dataLoading"
-            (onLazyLoad)="loadApps($event)"
-            [totalRecords]="totalApps"
+            (onLazyLoad)="loadDaemons($event)"
+            [totalRecords]="totalDaemons"
             [rowsPerPageOptions]="[10, 30, 100]"
             [showCurrentPageReport]="true"
             currentPageReportTemplate="{currentPage} of {totalPages} pages"
@@ -74,19 +74,18 @@
                             ></p-tag>
                             <app-help-tip subject="Filtering" id="filtering-help-button">
                                 <p>
-                                    Apps in the table below can be filtered by entering text in the search box; the
-                                    table shows all apps matching the filter text. The currently supported fields for
+                                    Daemons in the table below can be filtered by entering text in the search box; the
+                                    table shows all daemons matching the filter text. The currently supported fields for
                                     filtering are:
                                 </p>
                                 <ul>
-                                    <li>App Type</li>
-                                    <li>App Name</li>
-                                    <li>App Version</li>
+                                    <li>Daemon Name</li>
+                                    <li>Daemon Version</li>
                                     <li>Machine Address</li>
                                     <li>Machine Hostname</li>
                                 </ul>
                                 <p>
-                                    Apps can also be filtered by an explicitly selected App Type, using the multiselect
+                                    Daemons can also be filtered by an explicitly selected Daemon Name, using the multiselect
                                     filter.
                                 </p>
                             </app-help-tip>
@@ -101,23 +100,27 @@
                             [disabled]="!tableHasFilter(table)"
                         ></p-button>
                         <div class="flex-auto"></div>
-                        <p-columnFilter field="apps" matchMode="equals" [showMenu]="false" [showClearButton]="false">
+                        <p-columnFilter field="daemons" matchMode="equals" [showMenu]="false" [showClearButton]="false">
                             <ng-template pTemplate="filter" let-value let-filterConstraint="filterConstraint">
                                 <div class="flex align-items-center">
                                     <p-floatlabel variant="on">
                                         <p-multiSelect
-                                            id="apps-input"
+                                            id="daemons-input"
                                             [ngModel]="value"
                                             [options]="[
+                                                { label: 'DHCPv4', value: 'dhcp4' },
+                                                { label: 'DHCPv6', value: 'dhcp6' },
+                                                { label: 'D2', value: 'd2' },
+                                                { label: 'CA', value: 'ca' },
+                                                { label: 'NetConf', value: 'netconf' },
                                                 { label: 'BIND9', value: 'bind9' },
-                                                { label: 'Kea', value: 'kea' },
                                                 { label: 'PowerDNS', value: 'pdns' },
                                             ]"
                                             (onChange)="filterTable($event.value, filterConstraint)"
                                             class="w-10rem"
                                         >
                                         </p-multiSelect>
-                                        <label for="apps-input">App Type</label>
+                                        <label for="daemons-input">Daemon Name</label>
                                     </p-floatlabel>
                                     <p-button
                                         icon="pi pi-filter-slash"
@@ -143,7 +146,7 @@
                                             type="text"
                                             (input)="filterTable($event.target.value, filterConstraint)"
                                             [ngModel]="value"
-                                            placeholder="Search apps"
+                                            placeholder="Search daemons"
                                         />
                                     </p-iconfield>
                                     <p-button
@@ -170,41 +173,41 @@
                     <th style="width: 4rem">Action</th>
                 </tr>
             </ng-template>
-            <ng-template #body let-a>
+            <ng-template #body let-d>
                 <tr>
                     <td>
-                        <a routerLink="/apps/{{ a.id }}">{{ a.name }}</a>
+                        <a routerLink="/daemons/{{ d.id }}">{{ d.name }}</a>
                     </td>
                     <td>
-                        <a routerLink="/apps/{{ a.id }}">{{ a.version }}</a>
-                        <app-version-status [app]="a.type" [version]="a.version"></app-version-status>
+                        <a routerLink="/daemons/{{ d.id }}">{{ d.version }}</a>
+                        <app-version-status [daemon]="d.type" [version]="d.version"></app-version-status>
                     </td>
                     <td>
-                        <app-app-daemons-status [app]="a"></app-app-daemons-status>
+                        <app-daemon-status [daemon]="d"></app-daemon-status>
                     </td>
                     <td>
-                        <a routerLink="/machines/{{ a.machine.id }}">{{ a.machine.address }}</a>
+                        <a routerLink="/machines/{{ d.machine.id }}">{{ d.machine.address }}</a>
                     </td>
                     <td>
-                        <a routerLink="/machines/{{ a.machine.id }}">{{ a.machine.hostname }}</a>
+                        <a routerLink="/machines/{{ d.machine.id }}">{{ d.machine.hostname }}</a>
                     </td>
                     <td>
                         <p-button
-                            id="{{ 'menu-of-' + a.machine.id }}"
+                            id="{{ 'menu-of-' + d.machine.id }}"
                             icon="pi pi-bars"
-                            (click)="showAppMenu($event, a.id)"
+                            (click)="showDaemonMenu($event, d.id)"
                         ></p-button>
                     </td>
                 </tr>
             </ng-template>
             <ng-template #paginatorright let-state>
                 Total: {{ state.totalRecords > 0 ? state.totalRecords : '0' }}
-                {{ state.totalRecords === 1 ? 'app' : 'apps' }}
+                {{ state.totalRecords === 1 ? 'daemon' : 'daemons' }}
             </ng-template>
             <ng-template #emptymessage>
                 <tr>
                     <td colspan="6">
-                        No apps were found.
+                        No daemons were found.
                         <span *ngIf="tableHasFilter(table)">
                             Clear filtering and try again.
                             <p-button
@@ -219,18 +222,14 @@
             </ng-template>
         </p-table>
     </ng-template>
-    <ng-template #entityTab let-app let-onRenameApp="updateTabTitleFn" let-onRefreshApp="updateTabEntityFn">
-        <app-app-tab
-            *ngIf="app.type === 'bind9' || app.type === 'pdns'"
-            [appTab]="{ app: app }"
-            (refreshApp)="onRefreshApp($event)"
-            (renameApp)="onRenameApp(app.id, $event)"
-        ></app-app-tab>
-        <app-kea-app-tab
-            *ngIf="app.type === 'kea'"
-            [appTab]="{ app: app }"
-            (refreshApp)="onRefreshApp($event)"
-            (renameApp)="onRenameApp(app.id, $event)"
-        ></app-kea-app-tab>
+    <ng-template #entityTab let-daemon>
+        <app-daemon-tab
+            *ngIf="daemon.name === 'bind9' || daemon.name === 'pdns'"
+            [daemon]="daemon"
+        ></app-daemon-tab>
+        <app-kea-daemon-tab
+            *ngIf="daemon.name === 'dhcp4' || daemon.name === 'dhcp6' || daemon.name === 'd2' || daemon.name === 'ca' || daemon.name === 'netconf'"
+            [daemon]="daemon"
+        ></app-kea-daemon-tab>
     </ng-template>
 </app-tab-view>

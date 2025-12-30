@@ -4,8 +4,7 @@ import { debounceTime, lastValueFrom, Subject, Subscription } from 'rxjs'
 import { MessageService, MenuItem, ConfirmationService, TableState } from 'primeng/api'
 
 import { daemonStatusErred } from '../utils'
-import { ServicesService } from '../backend'
-import { App } from '../backend'
+import { Daemon, ServicesService } from '../backend'
 import { Table, TableLazyLoadEvent } from 'primeng/table'
 import { Menu } from 'primeng/menu'
 import { distinctUntilChanged, finalize, map } from 'rxjs/operators'
@@ -14,58 +13,39 @@ import { tableFiltersToQueryParams, tableHasFilter } from '../table'
 import { Router } from '@angular/router'
 import { TabViewComponent } from '../tab-view/tab-view.component'
 
-/**
- * Sets boolean flag indicating if there are communication errors with
- * daemons belonging to the app.
- *
- * @param app app for which the communication status with the daemons
- *            should be updated.
- */
-function setDaemonStatusErred(app) {
-    if (app.details.daemons) {
-        for (const d of app.details.daemons) {
-            d.statusErred = d.active && daemonStatusErred(d)
-        }
-    }
-}
-
 @Component({
-    selector: 'app-apps-page',
+    selector: 'app-daemons-page',
     standalone: false,
-    templateUrl: './apps-page.component.html',
-    styleUrls: ['./apps-page.component.sass'],
+    templateUrl: './daemons-page.component.html',
+    styleUrls: ['./daemons-page.component.sass'],
 })
-export class AppsPageComponent implements OnInit, OnDestroy {
+export class DaemonsPageComponent implements OnInit, OnDestroy {
     /**
-     * PrimeNG Table with apps list.
+     * PrimeNG Table with daemons list.
      */
-    @ViewChild('table') appsTable: Table
+    @ViewChild('table') daemonsTable: Table
 
     /**
-     * Application menu component.
+     * Daemon menu component.
      */
-    @ViewChild('appMenu') appMenu: Menu
+    @ViewChild('daemonMenu') daemonMenu: Menu
 
     breadcrumbs: MenuItem[] = []
 
-    // apps table
-    apps: App[] = []
-    totalApps: number
-    appMenuItems: MenuItem[]
+    // daemons table
+    daemons: Daemon[] = []
+    totalDaemons: number
+    daemonMenuItems: MenuItem[]
     dataLoading: boolean
 
     /**
-     * Asynchronously provides an App entity based on given App ID.
-     * @param appID application ID
+     * Asynchronously provides a Daemon entity based on given Daemon ID.
+     * @param daemonID daemon ID
      */
-    appProvider: (id: number) => Promise<App> = (appID: number) => {
+    daemonProvider: (id: number) => Promise<Daemon> = (daemonID: number) => {
         this.dataLoading = true
         return lastValueFrom(
-            this.servicesApi.getApp(appID).pipe(
-                map((data) => {
-                    setDaemonStatusErred(data)
-                    return data
-                }),
+            this.servicesApi.getDaemon(daemonID).pipe(
                 finalize(() => (this.dataLoading = false))
             )
         )
@@ -106,18 +86,18 @@ export class AppsPageComponent implements OnInit, OnDestroy {
      * It doesn't reset the table sorting, if any was applied.
      */
     clearTableFiltering() {
-        this.appsTable?.clearFilterValues()
+        this.daemonsTable?.clearFilterValues()
         this.router.navigate([])
     }
 
     ngOnInit() {
-        this.breadcrumbs = [{ label: 'Services' }, { label: 'Apps' }]
+        this.breadcrumbs = [{ label: 'Services' }, { label: 'Daemons' }]
 
-        this.apps = []
-        this.appMenuItems = [
+        this.daemons = []
+        this.daemonMenuItems = [
             {
                 label: 'Refresh',
-                id: 'refresh-single-app',
+                id: 'refresh-single-daemon',
                 icon: 'pi pi-refresh',
             },
         ]
@@ -134,7 +114,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
                 // f.filterConstraint is passed as a reference to PrimeNG table filter FilterMetadata,
                 // so it's value must be set according to UI columnFilter value.
                 f.filterConstraint.value = f.value
-                this.router.navigate([], { queryParams: tableFiltersToQueryParams(this.appsTable) })
+                this.router.navigate([], { queryParams: tableFiltersToQueryParams(this.daemonsTable) })
             })
     }
 
@@ -146,26 +126,23 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     /**
      * Function called by the table data loader. Accepts the pagination event.
      */
-    loadApps(event: TableLazyLoadEvent) {
+    loadDaemons(event: TableLazyLoadEvent) {
         this.dataLoading = true
 
         // ToDo: Uncaught promise
         // If any HTTP exception will be thrown then the promise
         // fails, but a user doesn't get any message, popup, log.
         lastValueFrom(
-            this.servicesApi.getApps(
+            this.servicesApi.getDaemons(
                 event.first,
                 event.rows,
                 (event.filters['text'] as FilterMetadata)?.value || null,
-                (event.filters['apps'] as FilterMetadata)?.value ?? null
+                (event.filters['daemons'] as FilterMetadata)?.value ?? null
             )
         )
             .then((data) => {
-                this.apps = data.items ?? []
-                this.totalApps = data.total ?? 0
-                for (const s of this.apps) {
-                    setDaemonStatusErred(s)
-                }
+                this.daemons = data.items ?? []
+                this.totalDaemons = data.total ?? 0
             })
             .finally(() => {
                 this.dataLoading = false
@@ -178,23 +155,23 @@ export class AppsPageComponent implements OnInit, OnDestroy {
     tabView = viewChild(TabViewComponent)
 
     /**
-     * Callback called on click on the application menu button.
+     * Callback called on click on the daemon menu button.
      *
      * @param event click event
-     * @param appID app identifier
+     * @param daemonID daemon identifier
      */
-    showAppMenu(event: Event, appID: number) {
+    showDaemonMenu(event: Event, daemonID: number) {
         // connect method to refresh machine state
-        this.appMenuItems[0].command = () => {
-            this.tabView()?.onUpdateTabEntity(appID)
+        this.daemonMenuItems[0].command = () => {
+            this.tabView()?.onUpdateTabEntity(daemonID)
         }
 
-        this.appMenu.toggle(event)
+        this.daemonMenu.toggle(event)
     }
 
-    /** Callback called on click the refresh application list button. */
-    refreshAppsList() {
-        this.loadApps(this.appsTable?.createLazyLoadMetadata())
+    /** Callback called on click the refresh daemon list button. */
+    refreshDaemonsList() {
+        this.loadDaemons(this.daemonsTable?.createLazyLoadMetadata())
     }
 
     /**
@@ -265,7 +242,7 @@ export class AppsPageComponent implements OnInit, OnDestroy {
      */
     clearFilter(filterConstraint: any) {
         filterConstraint.value = null
-        this.router.navigate([], { queryParams: tableFiltersToQueryParams(this.appsTable) })
+        this.router.navigate([], { queryParams: tableFiltersToQueryParams(this.daemonsTable) })
     }
 
     /**
@@ -277,14 +254,14 @@ export class AppsPageComponent implements OnInit, OnDestroy {
      * Key to be used in browser storage for keeping table state.
      * @private
      */
-    private readonly _tableStateStorageKey = 'apps-table-state'
+    private readonly _tableStateStorageKey = 'daemons-table-state'
 
     /**
      * Stores only rows per page count for the table in user browser storage.
      */
     storeTableRowsPerPage(rows: number) {
         const state: TableState = { rows: rows }
-        const storage = this.appsTable?.getStorage()
+        const storage = this.daemonsTable?.getStorage()
         storage?.setItem(this._tableStateStorageKey, JSON.stringify(state))
     }
 

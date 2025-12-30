@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing'
-import { KeaAppTabComponent } from './kea-app-tab.component'
+import { KeaAppTabComponent } from './kea-daemon-tab.component'
 import { ActivatedRoute, provideRouter, RouterModule } from '@angular/router'
 import { HaStatusComponent } from '../ha-status/ha-status.component'
 import { TableModule } from 'primeng/table'
