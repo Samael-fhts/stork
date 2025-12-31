@@ -5,8 +5,8 @@ import { switchMap, shareReplay, catchError, filter, map } from 'rxjs/operators'
 
 import { AuthService } from './auth.service'
 import { ServicesService, UsersService } from './backend/api/api'
-import { AppsStats } from './backend/model/appsStats'
 import { Groups } from './backend/model/groups'
+import { DaemonsStats } from './backend'
 
 /**
  * Service for providing and caching data from the server.
@@ -15,13 +15,10 @@ import { Groups } from './backend/model/groups'
     providedIn: 'root',
 })
 export class ServerDataService {
-    private appsStats: Observable<AppsStats>
+    private daemonsStats: Observable<DaemonsStats>
     private groups: Observable<Groups>
-    private reloadAppStats = new Subject<void>()
+    private reloadDaemonsStats = new Subject<void>()
     private reloadDaemonConfiguration: { [daemonId: number]: Subject<number> } = {}
-
-    private _machinesAddresses: Observable<any>
-    private _appsNames: Observable<any>
     private _daemonConfigurations: { [daemonId: number]: Observable<any> } = {}
 
     constructor(
@@ -31,20 +28,20 @@ export class ServerDataService {
     ) {}
 
     /**
-     * Get apps stats from the server and cache it for other subscribers.
+     * Get daemons stats from the server and cache it for other subscribers.
      * Cache is refreshed after 30 minutes.
      */
-    getAppsStats() {
-        if (!this.appsStats) {
+    getDaemonsStats() {
+        if (!this.daemonsStats) {
             const refreshInterval = 1000 * 60 * 30 // 30 mins
             const refreshTimer = timer(0, refreshInterval)
 
             // For each timer tick and and for each reload
             // make an http request to fetch new data
-            this.appsStats = merge(refreshTimer, this.reloadAppStats, this.auth.currentUser$).pipe(
+            this.daemonsStats = merge(refreshTimer, this.reloadDaemonsStats, this.auth.currentUser$).pipe(
                 filter((x) => x !== null), // filter out trigger which is logout ie user changed to null
                 switchMap(() => {
-                    return this.servicesApi.getAppsStats().pipe(
+                    return this.servicesApi.getDaemonsStats().pipe(
                         // use subpipe to not complete source due to error
                         catchError(() => EMPTY) // in case of error drop the response (it should not be cached)
                     )
@@ -53,14 +50,14 @@ export class ServerDataService {
             )
         }
 
-        return this.appsStats
+        return this.daemonsStats
     }
 
     /**
-     * Force reloading cache for apps stats.
+     * Force reloading cache for daemons stats.
      */
-    forceReloadAppsStats() {
-        this.reloadAppStats.next()
+    forceReloadDaemonsStats() {
+        this.reloadDaemonsStats.next()
     }
 
     /**
@@ -108,49 +105,6 @@ export class ServerDataService {
             }
         }
         return 'unknown'
-    }
-
-    /**
-     * Returns a set of machines' addresses.
-     *
-     * This function fetches a list of all machines' ids and addresses and
-     * transforms returned data to a set of machines' addresses.
-     *
-     * @returns Observable holding a list of machines' addresses.
-     */
-    public getMachinesAddresses(): Observable<Set<string>> {
-        this._machinesAddresses = this.servicesApi.getMachinesDirectory().pipe(
-            map((data) => {
-                const addresses = new Set<string>()
-                for (const m of data.items) {
-                    addresses.add(m.address)
-                }
-                return addresses
-            })
-        )
-        return this._machinesAddresses
-    }
-
-    /**
-     * Returns a set of apps' names.
-     *
-     * This function fetches a list of all apps' ids and names and
-     * transforms returned data to a map with an app name as a key
-     * and id as a value.
-     *
-     * @returns Observable holding a list of apps' names.
-     */
-    public getAppsNames(): Observable<Map<string, number>> {
-        this._appsNames = this.servicesApi.getAppsDirectory().pipe(
-            map((data) => {
-                const names = new Map<string, number>()
-                for (const a of data.items) {
-                    names.set(a.name, a.id)
-                }
-                return names
-            })
-        )
-        return this._appsNames
     }
 
     /**
