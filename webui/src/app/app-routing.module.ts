@@ -74,7 +74,7 @@ const routes: Routes = [
         data: { key: 'daemon' },
     },
     {
-        path: 'apps/daemons/:daemonId/config',
+        path: 'daemons/:daemonId/config',
         component: KeaDaemonConfigurationPageComponent,
         canActivate: [AuthGuard],
         data: { key: 'daemon-config' },

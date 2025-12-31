@@ -4,7 +4,7 @@ import { Popover } from 'primeng/popover'
 
 import { SearchService } from '../backend/api/api'
 
-const recordTypes = ['subnets', 'sharedNetworks', 'hosts', 'machines', 'apps', 'users', 'groups']
+const recordTypes = ['subnets', 'sharedNetworks', 'hosts', 'machines', 'daemons', 'users', 'groups']
 
 /**
  * Component for handling global search. It provides box

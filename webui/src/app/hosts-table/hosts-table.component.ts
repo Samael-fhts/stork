@@ -75,7 +75,8 @@ export class HostsTableComponent implements OnInit, OnDestroy {
             this.dhcpApi.getHosts(
                 event.first,
                 event.rows,
-                (event.filters['appId'] as FilterMetadata)?.value ?? null,
+                (event.filters['machineId'] as FilterMetadata)?.value ?? null,
+                (event.filters['daemonId'] as FilterMetadata)?.value ?? null,
                 (event.filters['subnetId'] as FilterMetadata)?.value ?? null,
                 (event.filters['keaSubnetId'] as FilterMetadata)?.value ?? null,
                 (event.filters['text'] as FilterMetadata)?.value || null,
@@ -103,10 +104,10 @@ export class HostsTableComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Holds local hosts of all currently displayed host reservations grouped by app ID.
+     * Holds local hosts of all currently displayed host reservations grouped by daemon ID.
      * It is indexed by host ID.
      */
-    localHostsGroupedByApp: Record<number, LocalHost[][]>
+    localHostsGroupedByDaemon: Record<number, LocalHost[][]>
 
     /**
      * This flag states whether user has privileges to start the migration.
@@ -123,14 +124,14 @@ export class HostsTableComponent implements OnInit, OnDestroy {
 
     /**
      * Sets hosts reservations to be displayed.
-     * Groups the local hosts by app ID and stores the result in
-     * @this.localHostsGroupedByApp.
+     * Groups the local hosts by daemon ID and stores the result in
+     * @this.localHostsGroupedByDaemon.
      */
     set hosts(hosts: Host[]) {
         this.dataCollection = hosts
 
-        // For each host group the local hosts by app ID.
-        this.localHostsGroupedByApp = Object.fromEntries(
+        // For each host group the local hosts by daemon ID.
+        this.localHostsGroupedByDaemon = Object.fromEntries(
             (hosts || []).map((host) => {
                 if (!host.localHosts) {
                     return [host.id, []]
@@ -139,15 +140,15 @@ export class HostsTableComponent implements OnInit, OnDestroy {
                 return [
                     host.id,
                     Object.values(
-                        // Group the local hosts by app ID.
-                        host.localHosts.reduce<Record<number, LocalHost[]>>((accApp, localHost) => {
-                            if (!accApp[localHost.appId]) {
-                                accApp[localHost.appId] = []
+                        // Group the local hosts by daemon ID.
+                        host.localHosts.reduce<Record<number, LocalHost[]>>((accDaemon, localHost) => {
+                            if (!accDaemon[localHost.daemonId]) {
+                                accDaemon[localHost.daemonId] = []
                             }
 
-                            accApp[localHost.appId].push(localHost)
+                            accDaemon[localHost.daemonId].push(localHost)
 
-                            return accApp
+                            return accDaemon
                         }, {})
                     ),
                 ]
@@ -156,7 +157,7 @@ export class HostsTableComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Returns the state of the local hosts from the same application/daemon.
+     * Returns the state of the local hosts from the same daemon.
      * The state is null if the host reservations are defined only in the
      * configuration file or host database. If they are defined in both places
      * the state is one of the following:
@@ -231,7 +232,8 @@ export class HostsTableComponent implements OnInit, OnDestroy {
                 // User confirmed the migration.
                 this.dhcpApi
                     .startHostsMigration(
-                        (this.table?.filters['appId'] as FilterMetadata)?.value ?? null,
+                        (this.table?.filters['machineId'] as FilterMetadata)?.value ?? null,
+                        (this.table?.filters['daemonId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['subnetId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['keaSubnetId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['text'] as FilterMetadata)?.value || null,

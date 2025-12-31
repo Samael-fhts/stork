@@ -461,10 +461,9 @@ export class HostFormComponent implements OnInit, OnDestroy {
     /**
      * Processes and converts received data when new transaction is begun.
      *
-     * For each daemon, it generates a user friendly label by concatenating
-     * app name and daemon name. The list of friendly names is displayed in
-     * the dropdown where a user selects servers. Other data is returned with
-     * no change.
+     * For each daemon, it generates a user friendly label. The list of
+     * friendly names is displayed in the dropdown where a user selects servers.
+     * Other data is returned with no change.
      *
      * @param data a response received as a result of beginning a transaction
      *             to create a new host or to update an existing host.
@@ -473,14 +472,8 @@ export class HostFormComponent implements OnInit, OnDestroy {
     private _mapHostBeginData(data: CreateHostBeginResponse | UpdateHostBeginResponse): MappedHostBeginData {
         const daemons: Array<SelectableDaemon> = []
         for (const d of data.daemons) {
-            const daemon = {
-                id: d.id,
-                appId: d.app.id,
-                appType: 'kea',
-                name: d.name,
-                version: d.name,
-                label: `${d.app.name}/${d.name}`,
-            }
+            const daemon = d as SelectableDaemon
+            daemon.label = d.machine.hostname + '/' + d.name
             daemons.push(daemon)
         }
         const clientClasses: Array<SelectableClientClass> = []
