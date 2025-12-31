@@ -4,10 +4,10 @@ import { daemonStatusIconName, daemonStatusIconColor, daemonStatusIconTooltip } 
 import { Daemon } from '../backend'
 
 @Component({
-    selector: 'daemon-status',
+    selector: 'app-daemon-status',
     standalone: false,
-    templateUrl: './daemons-status.component.html',
-    styleUrls: ['./daemons-status.component.sass'],
+    templateUrl: './daemon-status.component.html',
+    styleUrls: ['./daemon-status.component.sass'],
 })
 export class DaemonStatusComponent {
     @Input() daemon: Daemon
