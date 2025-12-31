@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
 import { minor, coerce, valid, lt, satisfies, gt, minSatisfying } from 'semver'
-import { AppsVersions, GeneralService, Machine } from './backend'
+import { AppsVersions, Daemon, GeneralService, Machine } from './backend'
 import { distinctUntilChanged, map, mergeMap, shareReplay } from 'rxjs/operators'
 import { BehaviorSubject, Observable, tap } from 'rxjs'
 import { daemonNameToFriendlyName } from './utils'
@@ -36,20 +36,8 @@ export interface UpdateNotification {
 /**
  * Type for all possible ISC daemons that have monitored software versions.
  */
-export type DaemonName = 'dhcp4' | 'dhcp6' | 'ca' | 'netconf' | 'bind9' | 'pdns' | 'stork'
-type DaemonType = 'kea' | 'bind9' | 'pdns' | 'stork'
-
-function getDaemonType(name: DaemonName): DaemonType {
-    switch (name) {
-        case 'dhcp4':
-        case 'dhcp6':
-        case 'ca':
-        case 'netconf':
-            return 'kea'
-        default:
-            return name
-    }
-}
+// export type DaemonName = 'dhcp4' | 'dhcp6' | 'ca' | 'netconf' | 'bind9' | 'pdns' | 'stork'
+export type DaemonType = 'kea' | 'bind9' | 'pdns' | 'stork'
 
 /**
  * Severity assigned after assessment of software version is done.
@@ -195,18 +183,50 @@ export class VersionService {
     }
 
     /**
+     * Indicates if the service supports a given daemon. Currently, we provide the version data only for the
+     * ISC-maintained daemons.
+     * */
+    isDaemonSupported(name: string): boolean {
+        const supportedDaemons: string[] = ['dhcp4', 'dhcp6', 'ca', 'netconf', 'bind9', 'pdns', 'stork']
+        return supportedDaemons.includes(name)
+    }
+
+    /** 
+     * Indicates if the service supports a given daemon type. Currently, we provide the version data only for the
+     * ISC-maintained daemons.
+     */
+    isDaemonTypeSupported(daemonType: DaemonType): boolean {
+        const supportedDaemonTypes: DaemonType[] = ['kea', 'bind9', 'stork']
+        return supportedDaemonTypes.includes(daemonType)
+    }
+
+    /**
+     * Maps a daemon name to its daemon type.
+     */
+    getDaemonType(name: string): DaemonType {
+        switch (name) {
+        case 'dhcp4':
+        case 'dhcp6':
+        case 'ca':
+        case 'netconf':
+            return 'kea'
+        default:
+            return name as DaemonType
+    }
+    }
+
+    /**
      * Makes an assessment whether provided daemon (e.g., Kea DHCPv4, Bind9 or Stork Agent) version is up-to-date
      * and returns the feedback information with the severity of the urge to update the software and
      * a message containing details of the assessment.
      * @param version string version that must contain a parsable semver
-     * @param daemonName daemon name
+     * @param daemonType daemon type
      * @param data input data used to make the assessment
      * @return assessment result as a VersionFeedback object; it contains severity and messages to be displayed to the user
      * @throws Error when the assessment fails for any reason
      */
-    getSoftwareVersionFeedback(version: string, daemonName: DaemonName, data: AppsVersions): VersionFeedback {
-        const daemonType = getDaemonType(daemonName)
-        const cacheKey = version + daemonName
+    getSoftwareVersionFeedback(version: string, daemonType: DaemonType, data: AppsVersions): VersionFeedback {
+        const cacheKey = version + daemonType
         const cachedFeedback = this._checkedVersionCache?.get(cacheKey)
         if (cachedFeedback) {
             this.detectAlertingSeverity(cachedFeedback.severity)
@@ -217,8 +237,8 @@ export class VersionService {
         const sanitizedSemver = this.sanitizeSemver(version)
         let formattedName = ''
         if (sanitizedSemver) {
-            formattedName = daemonNameToFriendlyName(daemonName)
-            formattedName += daemonName === 'stork' ? ' agent' : ''
+            formattedName = daemonType[0].toUpperCase() + daemonType.slice(1)
+            formattedName += daemonType === 'stork' ? ' agent' : ''
             const isDevelopmentVersion = this.isDevelopmentVersion(sanitizedSemver, daemonType)
 
             // check security releases first
@@ -500,13 +520,13 @@ export class VersionService {
 
     /**
      * Checks whether all daemons for provided Kea machine have the exact same version.
-     * @param machine Kea machine to be checked
+     * @param daemons Kea daemons to be checked
      * @return true if any daemon version mismatch is found; falsy (may also return undefined) otherwise
      * (in case all Kea daemons have the same version or when provided daemons weren't the Kea daemon, or it couldn't be determined)
      */
-    areKeaDaemonsVersionsMismatching(machine: Machine): boolean {
-        const daemons = machine.daemons?.filter((d) => !!d.version && (d.name === 'dhcp4' || d.name === 'dhcp6' || d.name === 'ca' || d.name === 'netconf'))
-        return daemons?.slice(1)?.some((daemon) => daemon.version !== daemons?.[0]?.version)
+    areKeaDaemonsVersionsMismatching(daemons: Daemon[]): boolean {
+        const keaDaemons = daemons?.filter((d) => !!d.version && this.getDaemonType(d.name) === 'kea')
+        return keaDaemons?.slice(1)?.some((daemon) => daemon.version !== keaDaemons?.[0]?.version)
     }
 
     /**
