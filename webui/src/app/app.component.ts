@@ -64,7 +64,7 @@ export class AppComponent implements OnInit, OnDestroy {
     /**
      * Top menubar style.
      */
-    appMenubar = {
+    daemonMenubar = {
         root: {
             padding: '0',
             borderRadius: '0',
@@ -171,20 +171,20 @@ export class AppComponent implements OnInit, OnDestroy {
                 id: 'services',
                 items: [
                     {
-                        label: 'Kea Apps',
-                        id: 'kea-apps',
+                        label: 'Kea Daemons',
+                        id: 'kea-daemons',
                         visible: false,
                         icon: 'fa fa-server',
-                        routerLink: '/apps/all',
-                        queryParams: { apps: 'kea' },
+                        routerLink: '/daemons/all',
+                        queryParams: { names: ['kea'] },
                     },
                     {
-                        label: 'DNS Apps',
-                        id: 'dns-apps',
+                        label: 'DNS Daemons',
+                        id: 'dns-daemons',
                         visible: false,
                         icon: 'fa fa-server',
-                        routerLink: '/apps/all',
-                        queryParams: { apps: ['bind9', 'pdns'] },
+                        routerLink: '/daemons/all',
+                        queryParams: { names: ['bind9', 'pdns'] },
                     },
                     {
                         label: 'Machines',
@@ -364,27 +364,27 @@ export class AppComponent implements OnInit, OnDestroy {
                         })
                     )
 
-                    this.serverData.getAppsStats().subscribe((data) => {
-                        // if there are Kea apps then show Kea related menu items
+                    this.serverData.getDaemonsStats().subscribe((data) => {
+                        // if there are Kea daemons then show Kea related menu items
                         // otherwise hide them
                         const dhcpMenuItem = this.getMenuItem('DHCP')
-                        const keaAppsMenuItem = this.getMenuItem('Kea Apps')
-                        if (data.keaAppsTotal) {
+                        const dhcpDaemonsMenuItem = this.getMenuItem('DHCP Daemons')
+                        if (data.dhcpDaemonsTotal) {
                             dhcpMenuItem.visible = true
-                            keaAppsMenuItem['visible'] = true
+                            dhcpDaemonsMenuItem['visible'] = true
                         } else {
                             dhcpMenuItem.visible = false
-                            keaAppsMenuItem['visible'] = false
+                            dhcpDaemonsMenuItem['visible'] = false
                         }
-                        // if there are DNS apps then show DNS related menu items
+                        // if there are DNS daemons then show DNS related menu items
                         // otherwise hide them
-                        const dnsAppsMenuItem = this.getMenuItem('DNS Apps')
+                        const dnsDaemonsMenuItem = this.getMenuItem('DNS Daemons')
                         const dnsMenuItem = this.getMenuItem('DNS')
-                        if (data.dnsAppsTotal) {
-                            dnsAppsMenuItem['visible'] = true
+                        if (data.dnsDaemonsTotal) {
+                            dnsDaemonsMenuItem['visible'] = true
                             dnsMenuItem['visible'] = true
                         } else {
-                            dnsAppsMenuItem['visible'] = false
+                            dnsDaemonsMenuItem['visible'] = false
                             dnsMenuItem['visible'] = false
                         }
 

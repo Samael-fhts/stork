@@ -16,7 +16,6 @@ import { deepEqual } from './utils'
  */
 export interface LocalPool {
     daemonId?: number
-    appName?: string
     keaConfigPoolParameters?: KeaConfigPoolParameters
 }
 
@@ -174,7 +173,6 @@ export function extractUniqueSubnetPools(subnets: Subnet[] | Subnet): SubnetWith
                     for (const pool of ls.pools) {
                         const lp: LocalPool = {
                             daemonId: ls.daemonId,
-                            appName: ls.appName,
                             keaConfigPoolParameters: pool.keaConfigPoolParameters,
                         }
                         const existing = pools.find((p) => p.pool === pool.pool)
@@ -192,7 +190,6 @@ export function extractUniqueSubnetPools(subnets: Subnet[] | Subnet): SubnetWith
                     for (const pdPool of ls.prefixDelegationPools) {
                         const lp: LocalPool = {
                             daemonId: ls.daemonId,
-                            appName: ls.appName,
                             keaConfigPoolParameters: pdPool.keaConfigPoolParameters,
                         }
                         const existing = prefixDelegationPools.find((p) => {
