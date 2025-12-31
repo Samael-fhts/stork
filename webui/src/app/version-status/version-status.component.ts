@@ -24,7 +24,7 @@ export class VersionStatusComponent implements OnInit, OnDestroy {
     /**
      * Type of software for which the version check is done.
      */
-    @Input({ required: true }) daemon!: DaemonType
+    @Input({ required: true }) daemonName!: 'dhcp4' | 'dhcp6' | 'ca' | 'netconf' | 'd2' | 'bind9' | 'stork' | 'pdns'
 
     /**
      * Version of the software for which the check is done. This must contain parsable semver.
@@ -103,7 +103,8 @@ export class VersionStatusComponent implements OnInit, OnDestroy {
      * primary one, and the offline will be a fallback option.
      */
     ngOnInit(): void {
-        switch (this.daemon) {
+        const daemonType = this.versionService.getDaemonType(this.daemonName)
+        switch (daemonType) {
             case 'bind9':
                 this._daemonType = 'BIND9'
                 break
@@ -113,8 +114,12 @@ export class VersionStatusComponent implements OnInit, OnDestroy {
             case 'stork':
                 this._daemonType = 'Stork agent'
                 break
+            case 'kea':
+                this._daemonType = 'Kea'
+                break
             default:
-                this._daemonType = this.daemon[0].toUpperCase() + this.daemon.slice(1)
+                const daemonTypeStr = daemonType as string
+                this._daemonType = daemonTypeStr.charAt(0).toUpperCase() + daemonTypeStr.slice(1)
                 break
         }
         // Mute version checks for non-ISC daemons. Version is mandatory. In case it is
@@ -131,7 +136,7 @@ export class VersionStatusComponent implements OnInit, OnDestroy {
                     .getCurrentData()
                     .pipe(
                         map((data) => {
-                            return this.versionService.getSoftwareVersionFeedback(sanitizedSemver, this.daemon, data)
+                            return this.versionService.getSoftwareVersionFeedback(sanitizedSemver, daemonType, data)
                         }),
                         // Use first() operator to unsubscribe after receiving first data.
                         // This is to avoid too many subscriptions for larger Stork deployments.
@@ -182,7 +187,7 @@ export class VersionStatusComponent implements OnInit, OnDestroy {
      * Returns true if the daemon type is a Kea, BIND9 or Stork agent.
      */
     get iscDaemon(): boolean {
-        return this.versionService.isDaemonTypeSupported(this.daemon)
+        return this.versionService.isDaemonSupported(this.daemonName)
     }
 
     /**

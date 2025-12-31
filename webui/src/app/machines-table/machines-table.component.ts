@@ -164,7 +164,6 @@ export class MachinesTableComponent implements OnInit, OnDestroy {
                 event.first,
                 event.rows,
                 (event.filters['text'] as FilterMetadata)?.value || null,
-                null,
                 authorized,
                 ...convertSortingFields<MachineSortField>(event)
             )

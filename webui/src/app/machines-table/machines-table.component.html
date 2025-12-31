@@ -187,7 +187,7 @@
                         Agent Version <p-sortIcon [field]="MachineSortField.AgentVersion" />
                     </div>
                 </th>
-                <th class="w-4rem">App(s) Version</th>
+                <th class="w-4rem">Daemon(s) Version</th>
                 <th class="w-7rem">Daemons</th>
                 <th class="w-4rem" [pSortableColumn]="MachineSortField.Cpus">
                     <div class="flex gap-1">CPUs <p-sortIcon [field]="MachineSortField.Cpus" /></div>
@@ -260,16 +260,16 @@
                 <td>
                     <ng-container *ngIf="m.authorized">
                         {{ m.agentVersion }}
-                        <app-version-status app="stork" [version]="m.agentVersion"></app-version-status>
+                        <app-version-status daemon="stork" [version]="m.agentVersion"></app-version-status>
                     </ng-container>
                 </td>
                 <td>
                     <ng-container *ngIf="m.authorized">
-                        <ng-container *ngFor="let a of m.apps"
+                        <ng-container *ngFor="let d of m.daemons"
                             ><app-version-status
-                                [app]="a.type"
-                                [version]="a.version"
-                                [showAppName]="true"
+                                [daemon]="d.type"
+                                [version]="d.version"
+                                [showDaemonType]="true"
                             ></app-version-status
                         ></ng-container>
                     </ng-container>
