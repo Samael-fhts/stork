@@ -152,6 +152,8 @@
     properties:
       daemonId:
         type: integer
+      daemonName:
+        type: string
       dataSource:
         type: string
       clientClasses:

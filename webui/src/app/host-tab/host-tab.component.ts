@@ -1,7 +1,7 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core'
 
 import { ConfirmationService, MessageService } from 'primeng/api'
-import { Host, Lease, LeasesSearchErredApp, LocalHost } from '../backend'
+import { Host, Lease, LeasesSearchErredDaemon, LocalHost } from '../backend'
 
 import { DHCPService } from '../backend/api/api'
 import {
@@ -33,7 +33,7 @@ interface LeaseInfo {
 /**
  * Component presenting reservation details for a selected host.
  *
- * It is embedded in the apps-page and used in cases when a user
+ * It is embedded in the daemons-page and used in cases when a user
  * selects one or more host reservations. If multiple host tabs are
  * opened, a single instance of this component is used to present
  * information associated with those tabs. Selecting a different
@@ -82,10 +82,10 @@ export class HostTabComponent {
         dhcpOptions: LocalHost[][]
         bootFields: LocalHost[][]
         clientClasses: LocalHost[][]
-        appID: LocalHost[][]
+        daemonID: LocalHost[][]
         hostname: LocalHost[][]
         ipReservations: LocalHost[][]
-    } = { bootFields: [], dhcpOptions: [], clientClasses: [], appID: [], hostname: [], ipReservations: [] }
+    } = { bootFields: [], dhcpOptions: [], clientClasses: [], daemonID: [], hostname: [], ipReservations: [] }
 
     /**
      * Indicates if the boot fields panel should be displayed.
@@ -113,9 +113,9 @@ export class HostTabComponent {
     private _leasesSearchStatus = new Map<number, boolean>()
 
     /**
-     * List of Kea apps which returned an error during leases search.
+     * List of Kea daemons which returned an error during leases search.
      */
-    erredApps: LeasesSearchErredApp[] = []
+    erredDaemons: LeasesSearchErredDaemon[] = []
 
     hostDeleted = false
 
@@ -164,7 +164,7 @@ export class HostTabComponent {
             bootFields: [],
             dhcpOptions: [],
             clientClasses: [],
-            appID: [],
+            daemonID: [],
             hostname: [],
             ipReservations: [],
         }
@@ -186,17 +186,17 @@ export class HostTabComponent {
             (lh) => lh.nextServer || lh.serverHostname || lh.bootFileName
         )
 
-        // Group local hosts by the app ID.
-        const localHostsByAppID = Object.values(
+        // Group local hosts by the daemon ID.
+        const localHostsByDaemonID = Object.values(
             (host.localHosts ?? [])
-                // Group by app ID.
+                // Group by daemon ID.
                 .reduce<Record<number, LocalHost[]>>((acc, lh) => {
-                    if (!acc[lh.appId]) {
-                        // Create an array for the app ID if it doesn't exist yet.
-                        acc[lh.appId] = []
+                    if (!acc[lh.daemonId]) {
+                        // Create an array for the daemon ID if it doesn't exist yet.
+                        acc[lh.daemonId] = []
                     }
                     // Add the local host to the array.
-                    acc[lh.appId].push(lh)
+                    acc[lh.daemonId].push(lh)
                     // Return the accumulator.
                     return acc
                 }, {})
@@ -205,7 +205,7 @@ export class HostTabComponent {
         // Group local hosts by the boot fields equality.
         const localHostsByBootFields: LocalHost[][] = []
         if (hasDifferentLocalHostBootFields(this.host.localHosts)) {
-            for (let localHosts of localHostsByAppID) {
+            for (let localHosts of localHostsByDaemonID) {
                 if (hasDifferentLocalHostBootFields(localHosts)) {
                     localHostsByBootFields.push(...localHosts.map((lh) => [lh]))
                 } else {
@@ -219,7 +219,7 @@ export class HostTabComponent {
         // Group local hosts by the DHCP options equality.
         const localHostsByDhcpOptions: LocalHost[][] = []
         if (hasDifferentLocalHostOptions(this.host.localHosts)) {
-            for (let localHosts of localHostsByAppID) {
+            for (let localHosts of localHostsByDaemonID) {
                 if (hasDifferentLocalHostOptions(localHosts)) {
                     localHostsByDhcpOptions.push(...localHosts.map((lh) => [lh]))
                 } else {
@@ -233,7 +233,7 @@ export class HostTabComponent {
         // Group local hosts by the client classes equality.
         const localHostsByClientClasses: LocalHost[][] = []
         if (hasDifferentLocalHostClientClasses(this.host.localHosts)) {
-            for (let localHosts of localHostsByAppID) {
+            for (let localHosts of localHostsByDaemonID) {
                 if (hasDifferentLocalHostClientClasses(localHosts)) {
                     localHostsByClientClasses.push(...localHosts.map((lh) => [lh]))
                 } else {
@@ -247,7 +247,7 @@ export class HostTabComponent {
         // Group local hosts by the IP reservations equality.
         const localHostsByIPReservations: LocalHost[][] = []
         if (hasDifferentLocalHostIPReservations(this.host.localHosts)) {
-            for (let localHosts of localHostsByAppID) {
+            for (let localHosts of localHostsByDaemonID) {
                 if (hasDifferentLocalHostIPReservations(localHosts)) {
                     localHostsByIPReservations.push(...localHosts.map((lh) => [lh]))
                 } else {
@@ -261,7 +261,7 @@ export class HostTabComponent {
         // Group local hosts by the hostname equality.
         const localHostsByHostname: LocalHost[][] = []
         if (hasDifferentLocalHostHostname(this.host.localHosts)) {
-            for (let localHosts of localHostsByAppID) {
+            for (let localHosts of localHostsByDaemonID) {
                 if (hasDifferentLocalHostHostname(localHosts)) {
                     localHostsByHostname.push(...localHosts.map((lh) => [lh]))
                 } else {
@@ -276,7 +276,7 @@ export class HostTabComponent {
             bootFields: localHostsByBootFields,
             dhcpOptions: localHostsByDhcpOptions,
             clientClasses: localHostsByClientClasses,
-            appID: localHostsByAppID,
+            daemonID: localHostsByDaemonID,
             hostname: localHostsByHostname,
             ipReservations: localHostsByIPReservations,
         }
@@ -310,7 +310,7 @@ export class HostTabComponent {
         }
         // Indicate that the search is already in progress for that host.
         this._leasesSearchStatus.set(hostId, true)
-        this.erredApps = []
+        this.erredDaemons = []
         this.dhcpApi.getLeases(undefined, hostId).subscribe(
             (data) => {
                 // Finished searching the leases.
@@ -322,7 +322,7 @@ export class HostTabComponent {
                         this._mergeLease(leases, data.conflicts, lease)
                     }
                 }
-                this.erredApps = data.erredApps
+                this.erredDaemons = data.erredDaemons
                 this._leasesForHosts.set(hostId, leases)
                 this.currentLeases = leases
             },

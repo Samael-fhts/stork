@@ -12,6 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 	gomock "go.uber.org/mock/gomock"
 	keactrl "isc.org/stork/daemonctrl/kea"
+	"isc.org/stork/datamodel/daemonname"
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 	agentcommtest "isc.org/stork/server/agentcomm/test"
 	"isc.org/stork/server/config"
@@ -729,6 +730,7 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 			LocalHosts: []*models.LocalHost{
 				{
 					DaemonID:       daemons[0].ID,
+					DaemonName:     string(daemons[0].Name),
 					DataSource:     dbmodel.HostDataSourceAPI.String(),
 					ClientClasses:  []string{"class1"},
 					NextServer:     "192.2.2.2",
@@ -737,6 +739,7 @@ func TestCreateHostBeginSubmit(t *testing.T) {
 				},
 				{
 					DaemonID:       daemons[2].ID,
+					DaemonName:     string(daemons[2].Name),
 					DataSource:     dbmodel.HostDataSourceAPI.String(),
 					ClientClasses:  []string{"class1"},
 					NextServer:     "192.2.2.2",
@@ -886,6 +889,7 @@ func TestCreateHostBeginSubmitHostnameIPReservationsFromLocalHosts(t *testing.T)
 			LocalHosts: []*models.LocalHost{
 				{
 					DaemonID:   daemons[0].ID,
+					DaemonName: string(daemons[0].Name),
 					DataSource: dbmodel.HostDataSourceAPI.String(),
 					Hostname:   "bar",
 					IPReservations: []*models.IPReservation{
@@ -1366,6 +1370,7 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 			LocalHosts: []*models.LocalHost{
 				{
 					DaemonID:       daemons[0].ID,
+					DaemonName:     string(daemons[0].Name),
 					DataSource:     dbmodel.HostDataSourceAPI.String(),
 					ClientClasses:  []string{"class1"},
 					NextServer:     "192.2.2.2",
@@ -1387,6 +1392,7 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 				},
 				{
 					DaemonID:       daemons[2].ID,
+					DaemonName:     string(daemons[2].Name),
 					DataSource:     dbmodel.HostDataSourceAPI.String(),
 					ClientClasses:  []string{"class1"},
 					NextServer:     "192.2.2.2",
@@ -1486,6 +1492,7 @@ func TestUpdateHostBeginSubmit(t *testing.T) {
 		require.Equal(t, "class1", lh.ClientClasses[0])
 		require.Equal(t, "192.2.2.2", lh.NextServer)
 		require.Equal(t, "stork.example.org", lh.ServerHostname)
+		require.Equal(t, daemonname.DHCPv4, lh.Daemon.Name)
 
 		// DHCP options
 		require.Len(t, lh.Options, 1)
