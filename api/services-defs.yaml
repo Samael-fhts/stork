@@ -287,6 +287,14 @@
         type: integer
       name:
         type: string
+        enum: &DAEMONNAME
+          - dhcp4
+          - dhcp6
+          - ca
+          - d2
+          - netconf
+          - bind9
+          - pdns
       active:
         type: boolean
       monitored:
@@ -320,7 +328,7 @@
       id:
         type: integer
       name:
-        type: string
+        enum: *DAEMONNAME
       version:
         type: string
       active:

@@ -1,7 +1,7 @@
 import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, ViewChild } from '@angular/core'
 import { ConfirmationService, MenuItem, MessageService, TableState } from 'primeng/api'
 import {
-    DNSAppType,
+    DNSDaemonName,
     DNSClass,
     DNSService,
     DNSZoneType,
@@ -26,7 +26,7 @@ import {
 } from 'rxjs/operators'
 import { debounceTime, EMPTY, interval, lastValueFrom, of, Subject, Subscription, timer } from 'rxjs'
 import { Table, TableLazyLoadEvent } from 'primeng/table'
-import { getErrorMessage, unrootZone } from '../utils'
+import { daemonNameToFriendlyName, getErrorMessage, unrootZone } from '../utils'
 import { HttpResponse, HttpStatusCode } from '@angular/common/http'
 import { FilterMetadata } from 'primeng/api/filtermetadata'
 import { convertSortingFields, tableFiltersToQueryParams, tableHasFilter } from '../table'
@@ -137,7 +137,7 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
     /**
      * Column names for tables which display local zones.
      */
-    localZoneColumns: string[] = ['App Name', 'App ID', 'View', 'Zone Type', 'Serial', 'Class', 'Loaded At']
+    localZoneColumns: string[] = ['Daemon Name', 'Daemon ID', 'View', 'Zone Type', 'Serial', 'Class', 'Loaded At']
 
     /**
      * Reference to Array ctor to be used in the HTML template.
@@ -296,24 +296,17 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
     ]
 
     /**
-     * DNS app types values used for the UI filter dropdown options.
+     * DNS daemon names values used for the UI filter dropdown options.
      */
-    appTypes: { name: string; value: string }[] = []
+    daemonNames: { name: string; value: string }[] = []
 
     /**
-     * Returns label for the DNS App type.
-     * @param appType DNS App type
-     * @return App type label
+     * Returns label for the DNS daemon name.
+     * @param daemonName DNS daemon name
+     * @return Daemon name label
      */
-    private _getDNSAppName(appType: DNSAppType) {
-        switch (appType) {
-            case DNSAppType.Bind9:
-                return 'BIND9'
-            case DNSAppType.Pdns:
-                return 'PowerDNS'
-            default:
-                return (<string>appType).toUpperCase()
-        }
+    private _getDNSDaemonName(daemonName: DNSDaemonName): string {
+        return daemonNameToFriendlyName(daemonName)
     }
 
     /**
@@ -351,8 +344,8 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
      */
     ngOnInit(): void {
         this.supportedQueryParamFilters = {
-            appId: { type: 'numeric', matchMode: 'contains' },
-            appType: { type: 'enum', matchMode: 'equals', enumValues: Object.values(DNSAppType) },
+            daemonId: { type: 'numeric', matchMode: 'contains' },
+            daemonName: { type: 'enum', matchMode: 'equals', enumValues: Object.values(DNSDaemonName) },
             zoneType: { type: 'enum', matchMode: 'equals', enumValues: Object.values(DNSZoneType), arrayType: true },
             rpz: { type: 'enum', matchMode: 'equals', enumValues: ['include', 'exclude', 'only'] },
             zoneClass: { type: 'enum', matchMode: 'equals', enumValues: Object.values(DNSClass) },
@@ -373,8 +366,8 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
             this.zoneClasses.push(DNSClass[c])
         }
 
-        for (const a in DNSAppType) {
-            this.appTypes.push({ name: this._getDNSAppName(<any>a), value: DNSAppType[a] })
+        for (const d in DNSDaemonName) {
+            this.daemonNames.push({ name: this._getDNSDaemonName(<any>d), value: DNSDaemonName[d] })
         }
 
         this._restoreZonesTableRowsPerPage()
