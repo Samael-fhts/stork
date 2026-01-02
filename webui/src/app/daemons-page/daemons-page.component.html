@@ -176,11 +176,11 @@
             <ng-template #body let-d>
                 <tr>
                     <td>
-                        <a routerLink="/daemons/{{ d.id }}">{{ d.name }}</a>
+                        <a routerLink="/daemons/{{ d.id }}">{{ d.name | daemonNiceName }}</a>
                     </td>
                     <td>
                         <a routerLink="/daemons/{{ d.id }}">{{ d.version }}</a>
-                        <app-version-status [daemon]="d.type" [version]="d.version"></app-version-status>
+                        <app-version-status [daemonName]="d.name" [version]="d.version"></app-version-status>
                     </td>
                     <td>
                         <app-daemon-status [daemon]="d"></app-daemon-status>

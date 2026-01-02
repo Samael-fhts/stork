@@ -12,11 +12,6 @@ import { Bind9Daemon, Bind9DaemonView, DNSZoneType } from '../backend'
 })
 export class Bind9DaemonComponent {
     /**
-     * ID of the parent application.
-     */
-    @Input() appId: number
-
-    /**
      * BIND9 daemon information.
      */
     @Input() daemon: Bind9Daemon

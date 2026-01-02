@@ -231,17 +231,17 @@
                         </p-message>
                         <ng-container *ngFor="let d of m.daemons">
                             <app-version-status
-                                [daemon]="getDaemonType(d)"
+                                [daemonName]="d.name"
                                 [version]="d.version"
-                                [showAppName]="true"
+                                [showDaemonType]="true"
                                 [inline]="false"
                                 styleClass="max-w-50rem"
                             ></app-version-status
                         ></ng-container>
                         <app-version-status
-                            daemon="stork"
+                            daemonName="stork"
                             [version]="m.agentVersion"
-                            [showAppName]="true"
+                            [showDaemonType]="true"
                             [inline]="false"
                             styleClass="max-w-50rem"
                         ></app-version-status>

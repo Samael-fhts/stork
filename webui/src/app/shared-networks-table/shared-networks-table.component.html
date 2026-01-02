@@ -257,8 +257,8 @@
                 <app-subnet-bar class="utilization-bar" *ngFor="let sn of net.subnets" [subnet]="sn"></app-subnet-bar>
             </td>
             <td>
-                <div *ngFor="let app of getApps(net)">
-                    <a routerLink="/apps/{{ app.id }}">{{ app.name }}</a>
+                <div *ngFor="let daemon of getDaemons(net)">
+                    <a routerLink="/daemons/{{ daemon.id }}">{{ daemon.name }}</a>
                 </div>
             </td>
         </tr>

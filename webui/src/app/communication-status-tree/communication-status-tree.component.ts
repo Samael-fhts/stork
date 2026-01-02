@@ -1,5 +1,5 @@
 import { Component, Input, OnInit } from '@angular/core'
-import { App, Bind9Daemon, KeaDaemon } from '../backend'
+import { Bind9Daemon, Daemon, KeaDaemon } from '../backend'
 import { TreeNode } from 'primeng/api'
 
 /**
@@ -8,7 +8,7 @@ import { TreeNode } from 'primeng/api'
  */
 interface CommunicationStatusNodeData {
     /**
-     * Attributes passed to an entity link (e.g., machine, app).
+     * Attributes passed to an entity link (e.g., machine, daemon).
      */
     attrs?: any
     /**
@@ -59,9 +59,9 @@ interface CommunicationStatusNodeData {
 })
 export class CommunicationStatusTreeComponent implements OnInit {
     /**
-     * A list of apps having communication issues returned by the server.
+     * A list of daemons having communication issues returned by the server.
      */
-    @Input() apps: App[] = []
+    @Input() daemons: Daemon[] = []
 
     /**
      * A tree reflecting the hierarchy of the agents and daemons holding
@@ -72,18 +72,18 @@ export class CommunicationStatusTreeComponent implements OnInit {
     /**
      * A component lifecycle hook called during the component initialization.
      *
-     * It processes the input list of apps and creates a tree of the failing
+     * It processes the input list of daemons and creates a tree of the failing
      * nodes, along with the necessary metadata.
      */
     ngOnInit(): void {
-        // Go over the returned apps.
-        for (const app of this.apps) {
-            // Each app should contain a reference to the machine where it belongs.
+        // Go over the returned daemons.
+        for (const daemon of this.daemons) {
+            // Each daemon should contain a reference to the machine where it belongs.
             // Let's see if the top level nodes already contain this machine. It is
-            // possible that multiple apps are running on the same machine, so it
+            // possible that multiple daemons are running on the same machine, so it
             // could have been already added.
             let machineNode: TreeNode<CommunicationStatusNodeData> = this.nodes.find(
-                (node) => node.data?.attrs?.id === app.machine?.id
+                (node) => node.data?.attrs?.id === daemon.machine?.id
             )
             // If this is the first time we see this machine, let's add it.
             if (!machineNode) {
@@ -95,42 +95,21 @@ export class CommunicationStatusTreeComponent implements OnInit {
                     expanded: true,
                     data: {
                         attrs: {
-                            id: app.machine?.id,
-                            address: app.machine?.address,
+                            id: daemon.machine?.id,
+                            address: daemon.machine?.address,
                         },
                     },
                 }
                 this.nodes.push(machineNode)
             }
-            // Processing will be different depending on the app type.
-            switch (app.type) {
-                case 'kea':
-                    // Kea apps typically have a Kea Control Agent between the Stork
-                    // Agent and the daemons. Let's try to find the Kea Control Agent
-                    // among the returned daemons.
-                    let currentNode = machineNode
-                    const daemons = app.details?.daemons || []
-                    const caDaemon = daemons.find((daemon) => this.isKeaControlAgent(daemon))
-                    if (caDaemon) {
-                        // Found the Kea Control Agent. Let's create a new node representing
-                        // the Kea Control Agent and add it below the Stork Agent node.
-                        currentNode = {
-                            icon: 'pi pi-sitemap',
-                            type: app.type,
-                            expanded: true,
-                            children: [],
-                            styleClass: this.getStyleClassForErrors(true, caDaemon.caCommErrors),
-                            data: {
-                                attrs: {
-                                    id: app.id,
-                                    type: app.type,
-                                    name: app.name,
-                                },
-                                caCommErrors: caDaemon.caCommErrors,
-                            },
-                        }
-                        machineNode.children.push(currentNode)
-                    }
+            // Processing will be different depending on the daemon name.
+            switch (daemon.name) {
+                case 'dhcp4':
+                case 'dhcp6':
+                case 'ca':
+                case 'netconf':
+                case 'd2':
+                    const daemons = this.daemons ?? []
                     // Now, let's iterate over the rest of the daemons.
                     for (let daemon of daemons) {
                         // The daemon may contain the number of the communication errors
@@ -141,7 +120,7 @@ export class CommunicationStatusTreeComponent implements OnInit {
                             continue
                         }
                         // Add a node representing a Kea daemon.
-                        currentNode.children.push({
+                        machineNode.children.push({
                             icon: 'pi pi-link',
                             styleClass: this.getStyleClassForErrors(daemon.monitored, daemon.daemonCommErrors),
                             type: 'kea-daemon',
@@ -149,8 +128,6 @@ export class CommunicationStatusTreeComponent implements OnInit {
                             data: {
                                 attrs: {
                                     id: daemon.id,
-                                    appType: app.type,
-                                    appId: app.id,
                                     name: daemon.name,
                                 },
                                 daemonCommErrors: daemon.daemonCommErrors,
@@ -162,7 +139,6 @@ export class CommunicationStatusTreeComponent implements OnInit {
 
                 case 'bind9':
                     // BIND 9 daemon is held in a different structure.
-                    const daemon = app.details?.daemon
                     if (!daemon) {
                         continue
                     }
@@ -171,8 +147,8 @@ export class CommunicationStatusTreeComponent implements OnInit {
                     this.updateMachineCommErrors(daemon, machineNode)
                     // Let's create two subnodes representing the control and stats channels.
                     machineNode.children.push(
-                        this.createNamedChannelNode(app, daemon, 'rndc'),
-                        this.createNamedChannelNode(app, daemon, 'stats')
+                        this.createNamedChannelNode(daemon, 'rndc'),
+                        this.createNamedChannelNode(daemon, 'stats')
                     )
                     break
 
@@ -215,13 +191,12 @@ export class CommunicationStatusTreeComponent implements OnInit {
     /**
      * Instantiates a tree node for BIND 9 control or statistics channel.
      *
-     * @param app BIND 9 app instance.
+     * @param daemon BIND 9 daemon instance.
      * @param daemon BIND 9 daemon.
      * @param channelType channel type for which the node should be created.
      * @returns An instance of the tree node.
      */
     private createNamedChannelNode(
-        app: App,
         daemon: Bind9Daemon,
         channelType: 'rndc' | 'stats'
     ): TreeNode<CommunicationStatusNodeData> {
@@ -230,17 +205,15 @@ export class CommunicationStatusTreeComponent implements OnInit {
             type: 'named-channel',
             styleClass: this.getStyleClassForErrors(
                 !!daemon.monitored,
-                channelType === 'rndc' ? daemon.rndcCommErrors : daemon.statsCommErrors
+                channelType === 'rndc' ? daemon.daemonCommErrors : daemon.statsCommErrors
             ),
             data: {
                 channelName: channelType === 'rndc' ? 'Control' : 'Statistics',
                 attrs: {
                     id: daemon.id,
-                    appType: app.type,
-                    appId: app.id,
                     name: daemon.name,
                 },
-                channelCommErrors: channelType === 'rndc' ? daemon.rndcCommErrors : daemon.statsCommErrors,
+                channelCommErrors: channelType === 'rndc' ? daemon.daemonCommErrors : daemon.statsCommErrors,
                 monitored: !!daemon.monitored,
             },
         }

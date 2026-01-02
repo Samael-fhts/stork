@@ -75,7 +75,7 @@ export class SharedNetworkTabComponent implements OnInit {
         if (this.sharedNetwork?.localSharedNetworks) {
             for (let ls of this.sharedNetwork.localSharedNetworks) {
                 this.dhcpParameters.push({
-                    name: ls.appName,
+                    name: ls.daemonName,
                     parameters: [
                         ls.keaConfigSharedNetworkParameters?.sharedNetworkLevelParameters,
                         ls.keaConfigSharedNetworkParameters?.globalParameters,

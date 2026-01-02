@@ -27,7 +27,7 @@ import { KeaDaemon, ModelFile } from '../backend'
 export class KeaDaemonTabComponent {
     @Output() refreshDaemon = new EventEmitter<number>()
 
-    @Input()daemon: KeaDaemon
+    @Input() daemon: KeaDaemon
 
     /**
      * Holds Kea documentation anchors indexed by hook libraries base names.
@@ -96,7 +96,7 @@ export class KeaDaemonTabComponent {
      * @return true if there is a communication problem with the daemon,
      *         false otherwise.
      */
-    private daemonStatusErred(): boolean {
+    daemonStatusErred(): boolean {
         return this.daemon.active && daemonStatusErred(this.daemon)
     }
 

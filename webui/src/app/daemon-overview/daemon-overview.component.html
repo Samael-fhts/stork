@@ -24,7 +24,7 @@
             <br class="block lg:hidden" />
             <span
                 id="access-point-key"
-                *ngIf="daemon.type === 'bind9'"
+                *ngIf="daemon.name === 'bind9'"
                 appAccessType="read"
                 appAccessEntity="app-access-point-key"
                 [appHideIfNoAccess]="true"

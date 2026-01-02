@@ -20,8 +20,8 @@ import { Bind9Daemon, Daemon } from '../backend'
 @Component({
     selector: 'app-daemon-tab',
     standalone: false,
-    templateUrl: './app-tab.component.html',
-    styleUrls: ['./app-tab.component.sass'],
+    templateUrl: './daemon-tab.component.html',
+    styleUrls: ['./daemon-tab.component.sass'],
 })
 export class DaemonTabComponent {
     /**

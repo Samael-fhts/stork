@@ -33,7 +33,7 @@
             </p-panel>
         </div>
 
-        <div *ngIf="daemonsStats.keaDaemonsTotal > 0">
+        <div *ngIf="daemonsStats.dhcpDaemonsTotal > 0">
             <p-panel
                 [toggleable]="true"
                 [collapsed]="isDHCPDashboardHidden()"
@@ -468,7 +468,7 @@
                                     ><app-version-status
                                         [daemonName]="d.type"
                                         [version]="d.version"
-                                        [showAppName]="true"
+                                        [showDaemonType]="true"
                                     ></app-version-status
                                 ></a>
                             </td>

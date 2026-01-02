@@ -164,11 +164,9 @@ export class SubnetFormComponent implements OnInit, OnDestroy {
         for (let d of response.daemons) {
             this.state.allDaemons.push({
                 id: d.id,
-                appId: d.app.id,
-                appType: d.app.type,
                 name: d.name,
                 version: d.version,
-                label: `${d.app.name}/${d.name}`,
+                label: `${d.machine.hostname}/${d.name}`,
             })
         }
         // Initially, list all daemons.

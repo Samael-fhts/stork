@@ -6,6 +6,7 @@ import { MessageService } from 'primeng/api'
 
 import { DHCPService } from '../backend/api/api'
 import { getErrorMessage } from '../utils'
+import { LeasesSearchErredDaemon } from '../backend'
 
 /**
  * Enumeration specifying the status of the leases search.
@@ -91,12 +92,12 @@ export class LeaseSearchPageComponent implements OnInit {
     leases: any[]
 
     /**
-     * Holds a list of apps for which an error occurred during last search.
+     * Holds a list of daemons for which an error occurred during last search.
      *
      * If this list is non-empty a warning message is displayed listing
-     * problematic apps.
+     * problematic daemons.
      */
-    erredApps: any[]
+    erredDaemons: LeasesSearchErredDaemon[]
 
     /**
      * Component constructor.
@@ -157,7 +158,7 @@ export class LeaseSearchPageComponent implements OnInit {
         // Activate a spinner indicating that the search is in progress.
         this.searchStatus = this.Status.Searching
         this.leases = []
-        this.erredApps = []
+        this.erredDaemons = []
         this.dhcpApi
             .getLeases(searchText)
             .pipe(
@@ -180,7 +181,7 @@ export class LeaseSearchPageComponent implements OnInit {
                 (data) => {
                     // Fetching leases successful.
                     this.leases = data.items
-                    this.erredApps = data.erredApps
+                    this.erredDaemons = data.erredDaemons
                     this.searchStatus = this.Status.Searched
                 },
                 (err) => {
@@ -194,7 +195,7 @@ export class LeaseSearchPageComponent implements OnInit {
                     })
 
                     this.leases = []
-                    this.erredApps = []
+                    this.erredDaemons = []
                     this.searchStatus = this.Status.Searched
                 }
             )

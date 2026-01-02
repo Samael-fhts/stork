@@ -141,9 +141,9 @@ export class PriorityErrorsPanelComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Get the list of apps reporting communication issues from the server.
+     * Get the list of daemons reporting communication issues from the server.
      *
-     * If there is at least one such app a warning message is displayed.
+     * If there is at least one such daemon a warning message is displayed.
      * Otherwise, the message is deleted. To prevent many consecutive calls
      * to this function it sets a backoff mechanism with a timeout. It will
      * be called after the timeout elapses if there have been any events
@@ -154,7 +154,7 @@ export class PriorityErrorsPanelComponent implements OnInit, OnDestroy {
     async getAppsWithCommunicationIssues(): Promise<void> {
         try {
             try {
-                const data = await lastValueFrom(this.servicesApi.getAppsWithCommunicationIssues())
+                const data = await lastValueFrom(this.servicesApi.getDaemonsWithCommunicationIssues())
                 if (data.total > 0) {
                     this.connectivityIssuesCount.set(data.total)
                     const message: ToastMessageOptions = {

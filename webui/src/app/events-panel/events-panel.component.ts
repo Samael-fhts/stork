@@ -43,8 +43,7 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
     @Input() filter = {
         level: 0,
         machine: null,
-        appType: null,
-        daemonType: null,
+        daemonName: null,
         user: null,
     }
 
@@ -89,8 +88,7 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
         { value: 'netconf', name: 'NETCONF', id: 'netconf-events' },
     ]
     selectedMachine: any
-    selectedAppType: any
-    selectedDaemonType: any
+    selectedDaemonName: any
     selectedUser: any
 
     /**
@@ -146,18 +144,10 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
                 this.eventHandler(event.originalEvent)
             })
 
-        if (this.filter.appType) {
-            for (const at of this.appTypes) {
-                if (at.value === this.filter.appType) {
-                    this.selectedAppType = at
-                    break
-                }
-            }
-        }
-        if (this.filter.daemonType) {
+        if (this.filter.daemonName) {
             for (const dt of this.daemonTypes) {
-                if (dt.value === this.filter.daemonType) {
-                    this.selectedDaemonType = dt
+                if (dt.value === this.filter.daemonName) {
+                    this.selectedDaemonName = dt
                     break
                 }
             }
@@ -271,8 +261,7 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
                 this.limit,
                 this.filter.level,
                 this.filter.machine,
-                this.filter.appType,
-                this.filter.daemonType,
+                this.filter.daemonName,
                 this.filter.user,
                 ...convertSortingFields<EventSortField>(event)
             )
@@ -333,22 +322,12 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
         this.applyFilter()
     }
 
-    /** Callback called on selecting an application in dropdown. */
-    onAppTypeSelect(event) {
+    /** Callback called on selecting a daemon name in dropdown. */
+    onDaemonNameSelect(event) {
         if (event.value === null) {
-            this.filter.appType = null
+            this.filter.daemonName = null
         } else {
-            this.filter.appType = event.value.value
-        }
-        this.applyFilter()
-    }
-
-    /** Callback called on selecting a daemon type in dropdown. */
-    onDaemonTypeSelect(event) {
-        if (event.value === null) {
-            this.filter.daemonType = null
-        } else {
-            this.filter.daemonType = event.value.value
+            this.filter.daemonName = event.value.value
         }
         this.applyFilter()
     }

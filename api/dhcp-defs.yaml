@@ -312,6 +312,8 @@
         type: integer
       daemonId:
         type: integer
+      daemonName:
+        type: string
       stats:
         type: object
       statsCollectedAt:
@@ -439,6 +441,8 @@
     properties:
       daemonId:
         type: integer
+      daemonName:
+        type: string
       keaConfigSharedNetworkParameters:
           $ref: '#/definitions/KeaConfigSharedNetworkParameters'
 

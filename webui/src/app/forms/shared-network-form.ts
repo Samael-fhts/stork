@@ -256,11 +256,10 @@ export class SharedNetworkFormState implements FormState {
         this._allDaemons = response.daemons.map((d) => {
             return {
                 id: d.id,
-                appId: d.app?.id,
-                appType: d.app?.type,
+                daemonId: d.id,
                 name: d.name,
                 version: d.version,
-                label: `${d.app?.name}/${d.name}`,
+                label: d.name,
             }
         })
         // Initially, list all daemons.
