@@ -73,21 +73,23 @@ export class KeaDaemonConfigurationPageComponent implements OnInit, OnDestroy {
 
         // Update friendly names
         this.subscriptions.add(
-            this.changeDaemonId.pipe(switchMap((daemonId) => this.servicesApi.getDaemon(daemonId))).subscribe((daemon) => {
-                // Find specific daemon
-                const friendlyName = daemonNameToFriendlyName(daemon.name)
+            this.changeDaemonId
+                .pipe(switchMap((daemonId) => this.servicesApi.getDaemon(daemonId)))
+                .subscribe((daemon) => {
+                    // Find specific daemon
+                    const friendlyName = daemonNameToFriendlyName(daemon.name)
 
-                // User-friendly download filename
-                this._downloadFilename = `${friendlyName}.json`
+                    // User-friendly download filename
+                    this._downloadFilename = `${friendlyName}.json`
 
-                // Breadcrumbs
-                this.breadcrumbs = [
-                    { label: 'Services' },
-                    { label: 'Daemons', routerLink: '/daemons/all' },
-                    { label: friendlyName, routerLink: `/daemons/${this._daemonId}` },
-                    { label: 'Configuration' },
-                ]
-            })
+                    // Breadcrumbs
+                    this.breadcrumbs = [
+                        { label: 'Services' },
+                        { label: 'Daemons', routerLink: '/daemons/all' },
+                        { label: friendlyName, routerLink: `/daemons/${this._daemonId}` },
+                        { label: 'Configuration' },
+                    ]
+                })
         )
 
         // Update Kea daemon configuration

@@ -191,7 +191,7 @@ export class VersionService {
         return supportedDaemons.includes(name)
     }
 
-    /** 
+    /**
      * Indicates if the service supports a given daemon type. Currently, we provide the version data only for the
      * ISC-maintained daemons.
      */
@@ -205,14 +205,14 @@ export class VersionService {
      */
     getDaemonType(name: string): DaemonType {
         switch (name) {
-        case 'dhcp4':
-        case 'dhcp6':
-        case 'ca':
-        case 'netconf':
-            return 'kea'
-        default:
-            return name as DaemonType
-    }
+            case 'dhcp4':
+            case 'dhcp6':
+            case 'ca':
+            case 'netconf':
+                return 'kea'
+            default:
+                return name as DaemonType
+        }
     }
 
     /**
@@ -573,7 +573,11 @@ export class VersionService {
      * @return Modified currentResponse in case of mismatch. In case mismatch was not found, currentResponse returned is not modified.
      * @private
      */
-    private getStorkFeedback(daemonType: DaemonType, version: string, currentResponse: VersionFeedback): VersionFeedback {
+    private getStorkFeedback(
+        daemonType: DaemonType,
+        version: string,
+        currentResponse: VersionFeedback
+    ): VersionFeedback {
         if (daemonType === 'stork' && this._storkServerVersion && this._storkServerVersion !== version) {
             const addMsg = `Stork server ${this._storkServerVersion} and Stork agent ${version} versions do not match! Please install matching versions!`
             return {

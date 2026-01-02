@@ -29,10 +29,7 @@
             <div class="col-12 xl:col-7">
                 <ng-container [ngSwitch]="daemon.name">
                     <!-- BIND9 -->
-                    <app-bind9-daemon
-                        *ngSwitchCase="'bind9'"
-                        [daemon]="daemon"
-                    ></app-bind9-daemon>
+                    <app-bind9-daemon *ngSwitchCase="'bind9'" [daemon]="daemon"></app-bind9-daemon>
                     <!-- PowerDNS -->
                     <app-pdns-daemon *ngSwitchCase="'pdns'" [daemon]="daemon"></app-pdns-daemon>
                 </ng-container>

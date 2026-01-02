@@ -129,7 +129,7 @@ export class VersionPageComponent implements OnInit, OnDestroy {
     /**
      * An array of Machines in the "summary of ISC software versions detected by Stork" table.
      */
-    machines: (Machine & { versionCheckSeverity: Severity, mismatchingDaemons: boolean } )[]
+    machines: (Machine & { versionCheckSeverity: Severity; mismatchingDaemons: boolean })[]
 
     /**
      * Class constructor.
@@ -231,41 +231,43 @@ export class VersionPageComponent implements OnInit, OnDestroy {
                         )
                     }),
                     map((data) => {
-                        data.items?.map((m: Machine & { versionCheckSeverity: Severity, mismatchingDaemons: boolean }) => {
-                            m.versionCheckSeverity = Severity.success
-                            m.versionCheckSeverity = Math.min(
-                                this.severityMap[
-                                    this.versionService.getSoftwareVersionFeedback(
-                                        m.agentVersion,
-                                        'stork',
-                                        this._processedData
-                                    )?.severity ?? Severity.success
-                                ],
-                                m.versionCheckSeverity
-                            )
-                            m.daemons
-                                .filter((d) => this.versionService.isDaemonSupported(d.name))
-                                .forEach((d) => {
-                                    m.versionCheckSeverity = Math.min(
-                                        this.severityMap[
-                                            this.versionService.getSoftwareVersionFeedback(
-                                                d.version,
-                                                this.versionService.getDaemonType(d.name),
-                                                this._processedData
-                                            )?.severity ?? Severity.success
-                                        ],
-                                        m.versionCheckSeverity
-                                    )
-                                    // daemons version match check
-                                    if (this.versionService.areKeaDaemonsVersionsMismatching(m.daemons)) {
-                                        m.versionCheckSeverity = Severity.error
-                                        m.mismatchingDaemons = true
-                                        this.versionService.detectAlertingSeverity(m.versionCheckSeverity)
-                                    }
-                                })
-                            this.counters[m.versionCheckSeverity]++
-                            return m
-                        })
+                        data.items?.map(
+                            (m: Machine & { versionCheckSeverity: Severity; mismatchingDaemons: boolean }) => {
+                                m.versionCheckSeverity = Severity.success
+                                m.versionCheckSeverity = Math.min(
+                                    this.severityMap[
+                                        this.versionService.getSoftwareVersionFeedback(
+                                            m.agentVersion,
+                                            'stork',
+                                            this._processedData
+                                        )?.severity ?? Severity.success
+                                    ],
+                                    m.versionCheckSeverity
+                                )
+                                m.daemons
+                                    .filter((d) => this.versionService.isDaemonSupported(d.name))
+                                    .forEach((d) => {
+                                        m.versionCheckSeverity = Math.min(
+                                            this.severityMap[
+                                                this.versionService.getSoftwareVersionFeedback(
+                                                    d.version,
+                                                    this.versionService.getDaemonType(d.name),
+                                                    this._processedData
+                                                )?.severity ?? Severity.success
+                                            ],
+                                            m.versionCheckSeverity
+                                        )
+                                        // daemons version match check
+                                        if (this.versionService.areKeaDaemonsVersionsMismatching(m.daemons)) {
+                                            m.versionCheckSeverity = Severity.error
+                                            m.mismatchingDaemons = true
+                                            this.versionService.detectAlertingSeverity(m.versionCheckSeverity)
+                                        }
+                                    })
+                                this.counters[m.versionCheckSeverity]++
+                                return m
+                            }
+                        )
                         return data
                     })
                 )

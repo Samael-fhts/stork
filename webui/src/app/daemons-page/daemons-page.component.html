@@ -10,7 +10,12 @@
     [entityProvider]="daemonProvider"
     [tableQueryParamFilters]="{
         text: { type: 'string', matchMode: 'contains' },
-        daemons: { type: 'enum', matchMode: 'equals', arrayType: true, enumValues: ['DHCPv4', 'DHCPv6', 'CA', 'NetConf', 'D2', 'PowerDNS', 'BIND9'] },
+        daemons: {
+            type: 'enum',
+            matchMode: 'equals',
+            arrayType: true,
+            enumValues: ['DHCPv4', 'DHCPv6', 'CA', 'NetConf', 'D2', 'PowerDNS', 'BIND9'],
+        },
     }"
     [entitiesTable]="daemonsTable"
 >
@@ -85,8 +90,8 @@
                                     <li>Machine Hostname</li>
                                 </ul>
                                 <p>
-                                    Daemons can also be filtered by an explicitly selected Daemon Name, using the multiselect
-                                    filter.
+                                    Daemons can also be filtered by an explicitly selected Daemon Name, using the
+                                    multiselect filter.
                                 </p>
                             </app-help-tip>
                         </div>
@@ -223,12 +228,15 @@
         </p-table>
     </ng-template>
     <ng-template #entityTab let-daemon>
-        <app-daemon-tab
-            *ngIf="daemon.name === 'bind9' || daemon.name === 'pdns'"
-            [daemon]="daemon"
-        ></app-daemon-tab>
+        <app-daemon-tab *ngIf="daemon.name === 'bind9' || daemon.name === 'pdns'" [daemon]="daemon"></app-daemon-tab>
         <app-kea-daemon-tab
-            *ngIf="daemon.name === 'dhcp4' || daemon.name === 'dhcp6' || daemon.name === 'd2' || daemon.name === 'ca' || daemon.name === 'netconf'"
+            *ngIf="
+                daemon.name === 'dhcp4' ||
+                daemon.name === 'dhcp6' ||
+                daemon.name === 'd2' ||
+                daemon.name === 'ca' ||
+                daemon.name === 'netconf'
+            "
             [daemon]="daemon"
         ></app-kea-daemon-tab>
     </ng-template>

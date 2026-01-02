@@ -44,11 +44,7 @@ export class DaemonsPageComponent implements OnInit, OnDestroy {
      */
     daemonProvider: (id: number) => Promise<Daemon> = (daemonID: number) => {
         this.dataLoading = true
-        return lastValueFrom(
-            this.servicesApi.getDaemon(daemonID).pipe(
-                finalize(() => (this.dataLoading = false))
-            )
-        )
+        return lastValueFrom(this.servicesApi.getDaemon(daemonID).pipe(finalize(() => (this.dataLoading = false))))
     }
 
     constructor(

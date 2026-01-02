@@ -11,7 +11,7 @@ import { Daemon } from '../backend'
 })
 export class DaemonStatusComponent {
     @Input() daemon: Daemon
-    
+
     constructor() {}
 
     /** Returns a list of daemon sorted using custom rules. */

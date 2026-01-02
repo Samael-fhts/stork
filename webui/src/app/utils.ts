@@ -254,7 +254,12 @@ export function extractKeyValsAndPrepareQueryParams<T extends { text?: string }>
  *         false otherwise.
  */
 export function daemonStatusErred(daemon: AnyDaemon) {
-    return daemon.agentCommErrors > 0 || daemon.daemonCommErrors > 0 || daemon.caCommErrors > 0 || daemon.statsCommErrors > 0
+    return (
+        daemon.agentCommErrors > 0 ||
+        daemon.daemonCommErrors > 0 ||
+        daemon.caCommErrors > 0 ||
+        daemon.statsCommErrors > 0
+    )
 }
 
 /**

@@ -338,7 +338,10 @@
                             </td>
                             <td>
                                 <a routerLink="/daemons/{{ d.id }}">Kea {{ d.daemonVersion }}</a
-                                ><app-version-status [daemonName]="d.name" [version]="d.daemonVersion"></app-version-status>
+                                ><app-version-status
+                                    [daemonName]="d.name"
+                                    [version]="d.daemonVersion"
+                                ></app-version-status>
                             </td>
                             <td>
                                 <a routerLink="/daemons/{{ d.id }}">{{ d.name | daemonNiceName }}</a>
@@ -473,7 +476,9 @@
                                 ></a>
                             </td>
                             <td>
-                                <a *ngIf="d.id" routerLink="/daemons/{{ d.id }}">{{ d.name | daemonNiceName | placeholder: 'unknown' }}</a>
+                                <a *ngIf="d.id" routerLink="/daemons/{{ d.id }}">{{
+                                    d.name | daemonNiceName | placeholder: 'unknown'
+                                }}</a>
                             </td>
                             <td>
                                 <i

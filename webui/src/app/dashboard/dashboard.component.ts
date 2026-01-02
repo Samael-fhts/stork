@@ -18,13 +18,7 @@ import { ServerDataService } from '../server-data.service'
 import { concatMap, lastValueFrom, Subscription } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { parseSubnetsStatisticValues } from '../subnets'
-import {
-    DhcpDaemon,
-    DhcpDaemonHARelationshipOverview,
-    DhcpOverview,
-    Settings,
-    ZoneInventoryState,
-} from '../backend'
+import { DhcpDaemon, DhcpDaemonHARelationshipOverview, DhcpOverview, Settings, ZoneInventoryState } from '../backend'
 import { ModifyDeep } from '../utiltypes'
 import { TableLazyLoadEvent } from 'primeng/table'
 import { getSeverity, getTooltip } from '../zone-inventory-utils'
@@ -614,8 +608,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
      */
     isDNSDashboardHidden(): boolean {
         return
-            !!localStorage.getItem(this._dnsDashboardHiddenStorageKey) ||
-            this.bothDHCPAndDNSDaemonsExist
+        !!localStorage.getItem(this._dnsDashboardHiddenStorageKey) || this.bothDHCPAndDNSDaemonsExist
     }
 
     /**
@@ -630,8 +623,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
      * Returns true when DHCP dashboard was hidden or false otherwise. The state is read from browser storage.
      */
     isDHCPDashboardHidden(): boolean {
-        return !!localStorage.getItem(this._dhcpDashboardHiddenStorageKey) ||
-            this.bothDHCPAndDNSDaemonsExist
+        return !!localStorage.getItem(this._dhcpDashboardHiddenStorageKey) || this.bothDHCPAndDNSDaemonsExist
     }
 
     /**
