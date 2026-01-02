@@ -44,13 +44,14 @@ func (r *RestAPI) GetZone(ctx context.Context, params dns.GetZoneParams) middlew
 	var restLocalZones []*models.LocalZone
 	for _, localZone := range dbZone.LocalZones {
 		restLocalZones = append(restLocalZones, &models.LocalZone{
-			Class:    localZone.Class,
-			DaemonID: localZone.DaemonID,
-			LoadedAt: strfmt.DateTime(localZone.LoadedAt),
-			Serial:   localZone.Serial,
-			Rpz:      localZone.RPZ,
-			View:     localZone.View,
-			ZoneType: localZone.Type,
+			Class:      localZone.Class,
+			DaemonID:   localZone.DaemonID,
+			DaemonName: string(localZone.Daemon.Name),
+			LoadedAt:   strfmt.DateTime(localZone.LoadedAt),
+			Serial:     localZone.Serial,
+			Rpz:        localZone.RPZ,
+			View:       localZone.View,
+			ZoneType:   localZone.Type,
 		})
 	}
 	restZone := models.Zone{
@@ -127,13 +128,14 @@ func (r *RestAPI) GetZones(ctx context.Context, params dns.GetZonesParams) middl
 		var restLocalZones []*models.LocalZone
 		for _, localZone := range zone.LocalZones {
 			restLocalZones = append(restLocalZones, &models.LocalZone{
-				Class:    localZone.Class,
-				DaemonID: localZone.DaemonID,
-				LoadedAt: strfmt.DateTime(localZone.LoadedAt),
-				Serial:   localZone.Serial,
-				Rpz:      localZone.RPZ,
-				View:     localZone.View,
-				ZoneType: localZone.Type,
+				Class:      localZone.Class,
+				DaemonID:   localZone.DaemonID,
+				DaemonName: string(localZone.Daemon.Name),
+				LoadedAt:   strfmt.DateTime(localZone.LoadedAt),
+				Serial:     localZone.Serial,
+				Rpz:        localZone.RPZ,
+				View:       localZone.View,
+				ZoneType:   localZone.Type,
 			})
 		}
 		restZones = append(restZones, &models.Zone{

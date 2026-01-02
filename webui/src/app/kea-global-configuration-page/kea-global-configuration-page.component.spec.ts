@@ -29,7 +29,7 @@ import { DhcpOptionSetViewComponent } from '../dhcp-option-set-view/dhcp-option-
 import { TagModule } from 'primeng/tag'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { FloatLabelModule } from 'primeng/floatlabel'
-import { AppsPageComponent } from '../daemons-page/daemons-page.component'
+import { DaemonsPageComponent } from '../daemons-page/daemons-page.component'
 
 describe('KeaGlobalConfigurationPageComponent', () => {
     let component: KeaGlobalConfigurationPageComponent
@@ -67,7 +67,7 @@ describe('KeaGlobalConfigurationPageComponent', () => {
                 RouterModule.forRoot([
                     {
                         path: 'apps/:id',
-                        component: AppsPageComponent,
+                        component: DaemonsPageComponent,
                     },
                 ]),
             ],
@@ -93,9 +93,7 @@ describe('KeaGlobalConfigurationPageComponent', () => {
         fixture.detectChanges()
 
         validDaemonConfig = {
-            appId: 2,
-            appName: 'kea-server',
-            appType: 'kea',
+            daemonId: 2,
             daemonName: 'dhcp4',
             editable: true,
             config: {
@@ -328,7 +326,7 @@ describe('KeaGlobalConfigurationPageComponent', () => {
         fixture.detectChanges()
 
         expect(component.updateBreadcrumbs).toHaveBeenCalledTimes(2)
-        expect(component.updateBreadcrumbs).toHaveBeenCalledWith(2, 'kea-server', 'dhcp4')
+        expect(component.updateBreadcrumbs).toHaveBeenCalledWith(2, 'dhcp4')
     }))
 
     it('should display a message on error', fakeAsync(() => {
@@ -368,8 +366,8 @@ describe('KeaGlobalConfigurationPageComponent', () => {
         expect(breadcrumbs.items[4].queryParams).toBeUndefined()
     })
 
-    it('should update breadcrumbs if app, app name and daemon name are provided', () => {
-        component.updateBreadcrumbs(1, 'My App', 'My Daemon')
+    it('should update breadcrumbs if daemon name is provided', () => {
+        component.updateBreadcrumbs(1, 'My Daemon')
         fixture.detectChanges()
 
         const breadcrumbs = fixture.debugElement.query(By.directive(BreadcrumbsComponent))

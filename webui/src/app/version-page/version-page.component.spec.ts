@@ -14,7 +14,7 @@ import { ButtonModule } from 'primeng/button'
 import { RouterModule } from '@angular/router'
 import { Severity, VersionAlert, VersionService } from '../version.service'
 import { of } from 'rxjs'
-import { AppsVersions, ServicesService } from '../backend'
+import { AppsVersions, Daemon, ServicesService } from '../backend'
 import { MessageModule } from 'primeng/message'
 import { BadgeModule } from 'primeng/badge'
 import { By } from '@angular/platform-browser'
@@ -103,13 +103,9 @@ describe('VersionPageComponent', () => {
                 address: 'agent-kea', // warn
                 agentPort: 8888,
                 agentVersion: '1.19.0',
-                apps: [
-                    {
-                        accessPoints: null,
-                        details: {
-                            daemons: [
-                                { backends: null, files: null, hooks: null, id: 12, logTargets: null, name: 'd2' },
-                                { backends: null, files: null, hooks: null, id: 14, logTargets: null, name: 'dhcp6' },
+                daemons: [
+                                { backends: null, files: null, hooks: null, id: 12, logTargets: null, name:  Daemon.NameEnum.D2 },
+                                { backends: null, files: null, hooks: null, id: 14, logTargets: null, name: Daemon.NameEnum.Dhcp6 },
                                 {
                                     active: true,
                                     backends: null,
@@ -117,7 +113,7 @@ describe('VersionPageComponent', () => {
                                     hooks: null,
                                     id: 13,
                                     logTargets: null,
-                                    name: 'dhcp4',
+                                    name: Daemon.NameEnum.Dhcp4,
                                     version: '2.7.2',
                                 },
                                 {
@@ -127,17 +123,10 @@ describe('VersionPageComponent', () => {
                                     hooks: null,
                                     id: 11,
                                     logTargets: null,
-                                    name: 'ca',
+                                    name: Daemon.NameEnum.Ca,
                                     version: '2.7.2',
                                 },
                             ],
-                        },
-                        id: 4,
-                        name: 'kea@agent-kea',
-                        type: 'kea',
-                        version: '2.7.2',
-                    },
-                ],
                 hostname: 'agent-kea',
                 id: 4,
             },
@@ -145,16 +134,12 @@ describe('VersionPageComponent', () => {
                 address: 'agent-bind9', // success
                 agentPort: 8883,
                 agentVersion: '1.19.0',
-                apps: [
-                    {
-                        accessPoints: null,
-                        details: { daemons: null },
-                        id: 9,
-                        name: 'bind9@agent-bind9',
-                        type: 'bind9',
-                        version: 'BIND 9.18.30 (Extended Support Version) <id:cdc8d69>',
-                    },
-                ],
+                daemons: [{
+                    accessPoints: null,
+                    id: 9,
+                    name: Daemon.NameEnum.Bind9,
+                    version: 'BIND 9.18.30 (Extended Support Version) <id:cdc8d69>',
+                }],
                 hostname: 'agent-bind9',
                 id: 9,
             },
@@ -162,13 +147,9 @@ describe('VersionPageComponent', () => {
                 address: 'agent-kea-ha2', // info
                 agentPort: 8885,
                 agentVersion: '1.19.0',
-                apps: [
-                    {
-                        accessPoints: null,
-                        details: {
                             daemons: [
-                                { backends: null, files: null, hooks: null, id: 23, logTargets: null, name: 'd2' },
-                                { backends: null, files: null, hooks: null, id: 25, logTargets: null, name: 'dhcp6' },
+                                { backends: null, files: null, hooks: null, id: 23, logTargets: null, name: Daemon.NameEnum.D2 },
+                                { backends: null, files: null, hooks: null, id: 25, logTargets: null, name: Daemon.NameEnum.Dhcp6 },
                                 {
                                     active: true,
                                     backends: null,
@@ -176,7 +157,7 @@ describe('VersionPageComponent', () => {
                                     hooks: null,
                                     id: 24,
                                     logTargets: null,
-                                    name: 'dhcp4',
+                                    name: Daemon.NameEnum.Dhcp4,
                                     version: '2.6.0',
                                 },
                                 {
@@ -186,17 +167,10 @@ describe('VersionPageComponent', () => {
                                     hooks: null,
                                     id: 26,
                                     logTargets: null,
-                                    name: 'ca',
+                                    name: Daemon.NameEnum.Ca,
                                     version: '2.6.0',
                                 },
                             ],
-                        },
-                        id: 7,
-                        name: 'kea@agent-kea-ha2',
-                        type: 'kea',
-                        version: '2.6.0',
-                    },
-                ],
                 hostname: 'agent-kea-ha2',
                 id: 7,
             },
@@ -204,10 +178,6 @@ describe('VersionPageComponent', () => {
                 address: 'agent-kea6', // err
                 agentPort: 8887,
                 agentVersion: '1.19.0',
-                apps: [
-                    {
-                        accessPoints: null,
-                        details: {
                             daemons: [
                                 {
                                     active: true,
@@ -216,7 +186,7 @@ describe('VersionPageComponent', () => {
                                     hooks: null,
                                     id: 2,
                                     logTargets: null,
-                                    name: 'dhcp6',
+                                    name: Daemon.NameEnum.Dhcp6,
                                     version: '2.7.0',
                                 },
                                 {
@@ -226,18 +196,11 @@ describe('VersionPageComponent', () => {
                                     hooks: null,
                                     id: 1,
                                     logTargets: null,
-                                    name: 'ca',
+                                    name: Daemon.NameEnum.Ca,
                                     version: '2.7.1',
                                 },
                             ],
                             mismatchingDaemons: true,
-                        },
-                        id: 1,
-                        name: 'kea@agent-kea6',
-                        type: 'kea',
-                        version: '2.7.0',
-                    },
-                ],
                 hostname: 'agent-kea6',
                 id: 1,
             },
@@ -285,7 +248,7 @@ describe('VersionPageComponent', () => {
                 },
             })
         )
-        getMachinesAppsVersionsSpy = spyOn(servicesApi, 'getMachinesAppsVersions')
+        getMachinesAppsVersionsSpy = spyOn(servicesApi, 'getMachinesVersions')
         messageAddSpy = spyOn(messageService, 'add').and.callThrough()
     })
 
@@ -321,10 +284,10 @@ describe('VersionPageComponent', () => {
     it('should get daemons versions', () => {
         // Arrange
         apisWorkingFine()
-        const app = fakeMachinesResponse.items.filter((m) => m.address === 'agent-kea')[0].apps[0]
+        const machine = fakeMachinesResponse.items.filter((m) => m.address === 'agent-kea')[0]
 
         // Act & Assert
-        expect(component.getDaemonsVersions(app)).toEqual('dhcp4 2.7.2, ca 2.7.2')
+        expect(component.getDaemonsVersions(machine.daemons)).toEqual('dhcp4 2.7.2, ca 2.7.2')
     })
 
     it('should display offline data info message', () => {

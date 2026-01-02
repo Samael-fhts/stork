@@ -1,12 +1,12 @@
 import { By } from '@angular/platform-browser'
 import { ComponentFixture, TestBed, fakeAsync, tick, waitForAsync, flush } from '@angular/core/testing'
 
-import { AppsPageComponent } from './daemons-page.component'
+import { DaemonsPageComponent } from './daemons-page.component'
 import { MenuModule } from 'primeng/menu'
 import { FormsModule } from '@angular/forms'
 import { TableModule } from 'primeng/table'
 import { AppTabComponent } from '../daemon-tab/daemon-tab.component'
-import { KeaAppTabComponent } from '../kea-daemon-tab/kea-daemon-tab.component'
+import { KeaDaemonTabComponent } from '../kea-daemon-tab/kea-daemon-tab.component'
 import { TooltipModule } from 'primeng/tooltip'
 import { HaStatusComponent } from '../ha-status/ha-status.component'
 import { PanelModule } from 'primeng/panel'
@@ -33,18 +33,18 @@ import { MultiSelectModule } from 'primeng/multiselect'
 import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
 
-describe('AppsPageComponent', () => {
-    let component: AppsPageComponent
-    let fixture: ComponentFixture<AppsPageComponent>
+describe('DaemonsPageComponent', () => {
+    let component: DaemonsPageComponent
+    let fixture: ComponentFixture<DaemonsPageComponent>
     let api: ServicesService
     let msgSrv: MessageService
 
     beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
             declarations: [
-                AppsPageComponent,
+                DaemonsPageComponent,
                 AppTabComponent,
-                KeaAppTabComponent,
+                KeaDaemonTabComponent,
                 LocaltimePipe,
                 HaStatusComponent,
                 BreadcrumbsComponent,
@@ -78,13 +78,13 @@ describe('AppsPageComponent', () => {
                 MessageService,
                 provideHttpClient(withInterceptorsFromDi()),
                 provideHttpClientTesting(),
-                provideRouter([{ path: 'apps/all', component: AppsPageComponent }]),
+                provideRouter([{ path: 'apps/all', component: DaemonsPageComponent }]),
             ],
         }).compileComponents()
     }))
 
     beforeEach(() => {
-        fixture = TestBed.createComponent(AppsPageComponent)
+        fixture = TestBed.createComponent(DaemonsPageComponent)
         component = fixture.componentInstance
         api = fixture.debugElement.injector.get(ServicesService)
         msgSrv = fixture.debugElement.injector.get(MessageService)

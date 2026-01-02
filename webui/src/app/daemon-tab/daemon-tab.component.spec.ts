@@ -15,7 +15,7 @@ import { DialogModule } from 'primeng/dialog'
 import { ConfirmDialogModule } from 'primeng/confirmdialog'
 import { FormsModule } from '@angular/forms'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
-import { AppOverviewComponent } from '../daemon-overview/daemon-overview.component'
+import { DaemonOverviewComponent } from '../daemon-overview/daemon-overview.component'
 import { PanelModule } from 'primeng/panel'
 import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { ServerSentEventsService, ServerSentEventsTestingService } from '../server-sent-events.service'
@@ -87,7 +87,7 @@ describe('AppTabComponent', () => {
                 PlaceholderPipe,
                 DurationPipe,
                 RenameAppDialogComponent,
-                AppOverviewComponent,
+                DaemonOverviewComponent,
                 EventsPanelComponent,
                 EventTextComponent,
                 VersionStatusComponent,

@@ -3,7 +3,7 @@ import { By } from '@angular/platform-browser'
 import { FormsModule } from '@angular/forms'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { PanelModule } from 'primeng/panel'
-import { AppOverviewComponent } from './daemon-overview.component'
+import { DaemonOverviewComponent } from './daemon-overview.component'
 import { ButtonModule } from 'primeng/button'
 import { AuthService } from '../auth.service'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
@@ -14,14 +14,14 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { provideRouter, RouterModule } from '@angular/router'
 
-describe('AppOverviewComponent', () => {
-    let component: AppOverviewComponent
-    let fixture: ComponentFixture<AppOverviewComponent>
+describe('DaemonOverviewComponent', () => {
+    let component: DaemonOverviewComponent
+    let fixture: ComponentFixture<DaemonOverviewComponent>
     let authService: AuthService
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            declarations: [AppOverviewComponent, AccessPointKeyComponent],
+            declarations: [DaemonOverviewComponent, AccessPointKeyComponent],
             imports: [
                 FormsModule,
                 NoopAnimationsModule,
@@ -48,7 +48,7 @@ describe('AppOverviewComponent', () => {
     })
 
     beforeEach(() => {
-        fixture = TestBed.createComponent(AppOverviewComponent)
+        fixture = TestBed.createComponent(DaemonOverviewComponent)
         component = fixture.componentInstance
         fixture.detectChanges()
     })

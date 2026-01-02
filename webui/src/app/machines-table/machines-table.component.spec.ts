@@ -26,7 +26,6 @@ import { FilterMetadata } from 'primeng/api/filtermetadata'
 import { deepCopy } from '../utils'
 import objectContaining = jasmine.objectContaining
 import { By } from '@angular/platform-browser'
-import { AppDaemonsStatusComponent } from '../daemon-status/daemon-status.component'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { AuthService } from '../auth.service'
@@ -34,6 +33,7 @@ import { tableHasFilter } from '../table'
 import { TriStateCheckboxComponent } from '../tri-state-checkbox/tri-state-checkbox.component'
 import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
+import { DaemonStatusComponent } from '../daemon-status/daemon-status.component'
 
 describe('MachinesTableComponent', () => {
     let component: MachinesTableComponent
@@ -70,12 +70,6 @@ describe('MachinesTableComponent', () => {
         address: 'addr zzz',
         authorized: true,
         hostname: 'new zzz',
-        apps: [
-            {
-                id: 1,
-                name: 'kea@localhost',
-                type: 'kea',
-                details: {
                     daemons: [
                         {
                             active: true,
@@ -89,21 +83,10 @@ describe('MachinesTableComponent', () => {
                             id: 2,
                             name: 'ca',
                         },
-                    ],
-                },
-                version: '2.2.0',
-            },
             {
                 id: 2,
-                name: 'bind9@localhost',
-                type: 'bind9',
-                details: {
-                    daemon: {
+                name: 'bind9',
                         active: true,
-                        id: 3,
-                        name: 'named',
-                    },
-                },
                 version: '9.18.30',
             },
         ],
@@ -133,7 +116,7 @@ describe('MachinesTableComponent', () => {
                 VersionStatusComponent,
                 LocaltimePipe,
                 PlaceholderPipe,
-                AppDaemonsStatusComponent,
+                DaemonStatusComponent,
             ],
             imports: [
                 RouterModule.forRoot([]),

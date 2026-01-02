@@ -56,7 +56,7 @@ describe('LogViewPageComponent', () => {
     it('should include app link', () => {
         component.loaded = true
         component.data = { logTargetOutput: '/tmp/xyz', machine: { id: 1 } }
-        component.appName = 'fantastic-app'
+        component.daemonName = 'fantastic-app'
         fixture.detectChanges()
         const appLink = fixture.debugElement.query(By.css('#app-link'))
         const appLinkComponent = appLink.componentInstance

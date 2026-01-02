@@ -120,22 +120,22 @@ describe('VersionStatusComponent', () => {
         setCorrectInputs()
 
         // Act & Assert
-        expect(component.appName).toBe('Kea')
+        expect(component.daemonType).toBe('Kea')
 
-        fixture.componentRef.setInput('app', 'stork')
+        fixture.componentRef.setInput('daemonName', 'stork')
         component.ngOnInit()
         fixture.detectChanges()
-        expect(component.appName).toBe('Stork agent')
+        expect(component.daemonType).toBe('Stork agent')
 
-        fixture.componentRef.setInput('app', 'bind9')
+        fixture.componentRef.setInput('daemonName', 'bind9')
         component.ngOnInit()
         fixture.detectChanges()
-        expect(component.appName).toBe('BIND9')
+        expect(component.daemonType).toBe('BIND9')
 
-        fixture.componentRef.setInput('app', 'pdns')
+        fixture.componentRef.setInput('daemonName', 'pdns')
         component.ngOnInit()
         fixture.detectChanges()
-        expect(component.appName).toBe('PowerDNS')
+        expect(component.daemonType).toBe('PowerDNS')
     })
 
     it('should get current versions data', () => {
@@ -194,7 +194,7 @@ describe('VersionStatusComponent', () => {
 
     it('should display app name', () => {
         // Arrange
-        fixture.componentRef.setInput('showAppName', true)
+        fixture.componentRef.setInput('showDaemonType', true)
 
         // Act & Assert
         setCorrectInputs()
@@ -232,7 +232,7 @@ describe('VersionStatusComponent', () => {
     it('should not display feedback when version undefined', () => {
         // Arrange
         fixture.componentRef.setInput('version', undefined)
-        fixture.componentRef.setInput('app', 'kea')
+        fixture.componentRef.setInput('daemonName', 'dhcp4')
         fixture.detectChanges()
 
         // Act & Assert
@@ -244,7 +244,7 @@ describe('VersionStatusComponent', () => {
 
     it('should skip version checks for non-ISC apps', () => {
         // Arrange
-        fixture.componentRef.setInput('app', 'pdns')
+        fixture.componentRef.setInput('daemonName', 'pdns')
         fixture.detectChanges()
 
         // Act & Assert

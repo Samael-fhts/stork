@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing'
 
 import { Severity, UpdateNotification, VersionAlert, VersionService } from './version.service'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
-import { App, AppsVersions, GeneralService, VersionDetails } from './backend'
+import { AppsVersions, Daemon, GeneralService, VersionDetails } from './backend'
 import { of } from 'rxjs'
 import { deepCopy } from './utils'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
@@ -512,63 +512,50 @@ describe('VersionService', () => {
         // Test some cases with incomplete data.
         expect(service.areKeaDaemonsVersionsMismatching(null)).toBeFalsy()
         expect(service.areKeaDaemonsVersionsMismatching(undefined)).toBeFalsy()
-        expect(service.areKeaDaemonsVersionsMismatching({})).toBeFalsy()
-        expect(service.areKeaDaemonsVersionsMismatching({ type: 'bind9' } as App)).toBeFalsy()
-        expect(service.areKeaDaemonsVersionsMismatching({ type: 'kea' } as App)).toBeFalsy()
-        expect(service.areKeaDaemonsVersionsMismatching({ type: 'kea', details: {} } as App)).toBeFalsy()
-        expect(service.areKeaDaemonsVersionsMismatching({ type: 'kea', details: { daemons: null } } as App)).toBeFalsy()
-        expect(service.areKeaDaemonsVersionsMismatching({ type: 'kea', details: { daemons: [] } } as App)).toBeFalsy()
+        expect(service.areKeaDaemonsVersionsMismatching([])).toBeFalsy()
+        expect(service.areKeaDaemonsVersionsMismatching([{ name: 'bind9' } as Daemon])).toBeFalsy()
+        expect(service.areKeaDaemonsVersionsMismatching([{ name: 'dhcp4' } as Daemon])).toBeFalsy()
+        expect(service.areKeaDaemonsVersionsMismatching([{ name: 'dhcp6' } as Daemon])).toBeFalsy()
+
         expect(
-            service.areKeaDaemonsVersionsMismatching({
-                type: 'kea',
-                details: { daemons: [{ id: 1 }, { id: 2 }] },
-            } as App)
+            service.areKeaDaemonsVersionsMismatching([
+                { id: 1, name: 'dhcp4' },
+                { id: 2, name: 'dhcp6' },
+            ])
         ).toBeFalsy()
         expect(
-            service.areKeaDaemonsVersionsMismatching({
-                type: 'kea',
-                details: { daemons: [{ id: 1 }, { id: 2, version: '2.6.1' }] },
-            } as App)
+            service.areKeaDaemonsVersionsMismatching([
+                { id: 1, name: 'dhcp4' },
+                { id: 2, name: 'dhcp6', version: '2.6.1' },
+            ])
         ).toBeFalsy()
         // Test valid data.
         expect(
-            service.areKeaDaemonsVersionsMismatching({
-                type: 'kea',
-                details: {
-                    daemons: [
-                        { id: 1, version: '2.6.1' },
-                        { id: 2, version: '2.6.1' },
-                    ],
-                },
-            } as App)
+            service.areKeaDaemonsVersionsMismatching([
+                { id: 1, name: 'dhcp4', version: '2.6.1' },
+                { id: 2, name: 'dhcp6', version: '2.6.1' },
+            ])
         ).toBeFalsy()
         expect(
-            service.areKeaDaemonsVersionsMismatching({
-                type: 'kea',
-                details: {
-                    daemons: [{ id: 1 }, { id: 2, version: '2.6.1' }, { id: 3, version: '2.6.1' }],
-                },
-            } as App)
-        ).toBeFalsy()
+            service.areKeaDaemonsVersionsMismatching([
+                { id: 1, name: 'dhcp4' },
+                { id: 2, name: 'dhcp6', version: '2.6.1' },
+                { id: 3, name: 'dhcp6', version: '2.6.1' },
+            ])
+        )
         expect(
-            service.areKeaDaemonsVersionsMismatching({
-                type: 'kea',
-                details: {
-                    daemons: [
-                        { id: 1, version: '2.6.1' },
-                        { id: 2, version: '2.6.1' },
-                        { id: 3, version: '2.6.0' },
-                    ],
-                },
-            } as App)
+            service.areKeaDaemonsVersionsMismatching([
+                { id: 1, name: 'dhcp4', version: '2.6.1' },
+                { id: 2, name: 'dhcp6', version: '2.6.1' },
+                { id: 3, name: 'dhcp6', version: '2.6.0' },
+            ])
         ).toBeTrue()
         expect(
-            service.areKeaDaemonsVersionsMismatching({
-                type: 'kea',
-                details: {
-                    daemons: [{ id: 1 }, { id: 2, version: '2.6.1' }, { id: 3, version: '2.6.0' }],
-                },
-            } as App)
+            service.areKeaDaemonsVersionsMismatching([
+                { id: 1, name: 'dhcp4' },
+                { id: 2, name: 'dhcp6', version: '2.6.1' },
+                { id: 3, name: 'dhcp6', version: '2.6.0' },
+            ])
         ).toBeTrue()
     })
 

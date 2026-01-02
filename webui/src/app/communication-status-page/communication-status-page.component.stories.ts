@@ -18,7 +18,7 @@ import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
 import { provideRouter, RouterModule } from '@angular/router'
 
-let mockGetAppsWithCommunicationIssues = {
+let mockgetDaemonsWithCommunicationIssues = {
     items: [
         // Kea app with the communication issues with Stork Agent.
         {
@@ -316,7 +316,7 @@ export default {
                 method: 'GET',
                 status: 200,
                 delay: 2000,
-                response: mockGetAppsWithCommunicationIssues,
+                response: mockgetDaemonsWithCommunicationIssues,
             },
         ],
     },

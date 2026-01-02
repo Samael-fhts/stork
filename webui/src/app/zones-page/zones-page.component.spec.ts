@@ -12,7 +12,6 @@ import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { PopoverModule } from 'primeng/popover'
 import { Router, RouterModule } from '@angular/router'
 import {
-    DNSAppType,
     DNSClass,
     DNSService,
     ZoneInventoryState,
@@ -135,16 +134,12 @@ describe('ZonesPageComponent', () => {
         body: {
             items: [
                 {
-                    appId: 30,
-                    appName: 'bind9@agent-bind9',
                     createdAt: '2025-03-04T20:37:05.096Z',
                     daemonId: 73,
                     status: 'ok',
                     zoneConfigsCount: 105,
                 },
                 {
-                    appId: 31,
-                    appName: 'bind9@agent-bind9-2',
                     createdAt: '2025-03-04T20:37:13.106Z',
                     daemonId: 74,
                     status: 'erred',
@@ -172,8 +167,7 @@ describe('ZonesPageComponent', () => {
                 id: 21320,
                 localZones: [
                     {
-                        appId: 30,
-                        appName: 'bind9@agent-bind9',
+                        daemonName: 'bind9',
                         _class: 'IN',
                         daemonId: 73,
                         loadedAt: '2025-03-03T17:36:14.000Z',
@@ -182,8 +176,7 @@ describe('ZonesPageComponent', () => {
                         zoneType: 'primary',
                     },
                     {
-                        appId: 31,
-                        appName: 'bind9@agent-bind9-2',
+                        daemonName: 'bind9',
                         _class: 'IN',
                         daemonId: 74,
                         loadedAt: '2025-03-03T17:36:14.000Z',
@@ -199,8 +192,7 @@ describe('ZonesPageComponent', () => {
                 id: 21321,
                 localZones: [
                     {
-                        appId: 30,
-                        appName: 'bind9@agent-bind9',
+                        daemonName: 'bind9',
                         _class: 'IN',
                         daemonId: 73,
                         loadedAt: '2025-03-03T17:36:14.000Z',
@@ -209,8 +201,7 @@ describe('ZonesPageComponent', () => {
                         zoneType: 'primary',
                     },
                     {
-                        appId: 31,
-                        appName: 'bind9@agent-bind9-2',
+                        daemonName: 'bind9',
                         _class: 'IN',
                         daemonId: 74,
                         loadedAt: '2025-03-03T17:36:14.000Z',
@@ -226,8 +217,7 @@ describe('ZonesPageComponent', () => {
                 id: 21322,
                 localZones: [
                     {
-                        appId: 30,
-                        appName: 'bind9@agent-bind9',
+                        daemonName: 'bind9',
                         _class: 'IN',
                         daemonId: 73,
                         loadedAt: '2025-03-03T17:36:14.000Z',
@@ -236,8 +226,7 @@ describe('ZonesPageComponent', () => {
                         zoneType: 'primary',
                     },
                     {
-                        appId: 31,
-                        appName: 'bind9@agent-bind9-2',
+                        daemonName: 'bind9',
                         _class: 'IN',
                         daemonId: 74,
                         loadedAt: '2025-03-03T17:36:14.000Z',
@@ -253,8 +242,7 @@ describe('ZonesPageComponent', () => {
                 id: 21323,
                 localZones: [
                     {
-                        appId: 30,
-                        appName: 'bind9@agent-bind9',
+                        daemonName: 'bind9',
                         _class: 'IN',
                         daemonId: 73,
                         loadedAt: '2025-03-03T17:36:14.000Z',
@@ -264,8 +252,7 @@ describe('ZonesPageComponent', () => {
                         rpz: true,
                     },
                     {
-                        appId: 31,
-                        appName: 'bind9@agent-bind9-2',
+                        daemonName: 'bind9',
                         _class: 'IN',
                         daemonId: 74,
                         loadedAt: '2025-03-03T17:36:14.000Z',
@@ -510,8 +497,8 @@ describe('ZonesPageComponent', () => {
         const innerRows = fixture.debugElement.queryAll(By.css('#zones-table tbody tbody tr'))
         expect(innerRows).toBeTruthy()
         expect(innerRows.length).toEqual(2)
-        expect(innerRows[0].nativeElement.innerText).toContain(fakeZones.items[0].localZones[0].appName)
-        expect(innerRows[1].nativeElement.innerText).toContain(fakeZones.items[0].localZones[1].appName)
+        expect(innerRows[0].nativeElement.innerText).toContain(fakeZones.items[0].localZones[0].daemonName)
+        expect(innerRows[1].nativeElement.innerText).toContain(fakeZones.items[0].localZones[1].daemonName)
     })
 
     it('should display explanation message and fetch zones button', async () => {
@@ -699,9 +686,9 @@ describe('ZonesPageComponent', () => {
         // Arrange + Act + Assert
         expect(component.zoneTypes.length).toBeGreaterThan(0)
         expect(component.zoneClasses.length).toBeGreaterThan(0)
-        expect(component.appTypes.length).toBeGreaterThan(0)
-        expect(component.appTypes[0].value).toBeTruthy()
-        expect(component.appTypes[0].name).toBeTruthy()
+        expect(component.daemonNames.length).toBeGreaterThan(0)
+        expect(component.daemonNames[0].value).toBeTruthy()
+        expect(component.daemonNames[0].name).toBeTruthy()
         expect(component.zoneClasses).not.toContain(DNSClass.Any)
     })
 
@@ -825,7 +812,7 @@ describe('ZonesPageComponent', () => {
                 appId: null,
                 zoneSerial: null,
                 zoneClass: null,
-                appType: inValuesOf(DNSAppType),
+                daemonName: 'bind9',
                 text: null,
             },
         })

@@ -6,7 +6,7 @@ import { MessageService } from 'primeng/api'
 
 import { DHCPService } from '../backend/api/api'
 import { getErrorMessage } from '../utils'
-import { LeasesSearchErredDaemon } from '../backend'
+import { Lease, LeasesSearchErredDaemon } from '../backend'
 
 /**
  * Enumeration specifying the status of the leases search.
@@ -89,7 +89,7 @@ export class LeaseSearchPageComponent implements OnInit {
     /**
      * Holds a list of leases found as a result of the previous search attempt.
      */
-    leases: any[]
+    leases: Lease[]
 
     /**
      * Holds a list of daemons for which an error occurred during last search.

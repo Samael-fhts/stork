@@ -9,7 +9,7 @@ import { AppTabComponent } from './daemon-tab.component'
 import { of } from 'rxjs'
 import { RenameAppDialogComponent } from '../rename-app-dialog/rename-app-dialog.component'
 import { PanelModule } from 'primeng/panel'
-import { AppOverviewComponent } from '../daemon-overview/daemon-overview.component'
+import { DaemonOverviewComponent } from '../daemon-overview/daemon-overview.component'
 import { DialogModule } from 'primeng/dialog'
 import { ButtonModule } from 'primeng/button'
 import { provideRouter, RouterModule } from '@angular/router'
@@ -218,7 +218,7 @@ export default {
                 Bind9ConfigPreviewComponent,
             ],
             declarations: [
-                AppOverviewComponent,
+                DaemonOverviewComponent,
                 AppTabComponent,
                 Bind9DaemonComponent,
                 DaemonNiceNamePipe,
@@ -227,7 +227,7 @@ export default {
                 PdnsDaemonComponent,
                 PlaceholderPipe,
                 RenameAppDialogComponent,
-                AppOverviewComponent,
+                DaemonOverviewComponent,
                 EventsPanelComponent,
                 EventTextComponent,
                 VersionStatusComponent,

@@ -203,7 +203,6 @@ describe('SubnetsTableComponent', () => {
                     localSubnets: [
                         {
                             id: 1,
-                            machineHostname: 'foo',
                         },
                     ],
                 },
@@ -212,7 +211,6 @@ describe('SubnetsTableComponent', () => {
                     localSubnets: [
                         {
                             id: 2,
-                            machineHostname: 'foo',
                         },
                     ],
                 },
@@ -221,7 +219,6 @@ describe('SubnetsTableComponent', () => {
                     localSubnets: [
                         {
                             id: 3,
-                            machineHostname: 'foo',
                         },
                     ],
                 },

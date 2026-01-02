@@ -179,8 +179,8 @@ describe('LeaseSearchPageComponent', () => {
                 id: 0,
                 ipAddress: '192.0.2.3',
                 state: 0,
-                appId: 1,
-                appName: 'kea@frog',
+                daemonId: 1,
+                daemonName: 'dhcp4',
                 hwAddress: '01:02:03:04:05:06',
                 clientId: '51:52:53:54',
                 hostname: 'faq.example.org',
@@ -291,8 +291,8 @@ describe('LeaseSearchPageComponent', () => {
                 id: 0,
                 ipAddress: '192.0.2.3',
                 state: 1,
-                appId: 1,
-                appName: 'kea@frog',
+                daemonId: 1,
+                daemonName: 'dhcp4',
                 subnetId: 123,
                 cltt: 1616149050,
                 validLifetime: 3600,
@@ -372,8 +372,8 @@ describe('LeaseSearchPageComponent', () => {
                 ipAddress: '2001:db8:1::1',
                 leaseType: 'IA_NA',
                 state: 1,
-                appId: 2,
-                appName: 'kea@ipv6',
+                daemonId: 2,
+                daemonName: 'dhcp6',
                 hwAddress: '01:02:03:04:05:06',
                 duid: '01:02:03:04',
                 hostname: 'faq.example.org',
@@ -392,8 +392,8 @@ describe('LeaseSearchPageComponent', () => {
                 prefixLength: 64,
                 leaseType: 'IA_PD',
                 state: 2,
-                appId: 2,
-                appName: 'kea@ipv6',
+                daemonId: 2,
+                daemonName: 'dhcp6',
                 duid: '01:02:03:05',
                 subnetId: 345,
                 iaid: 13,
@@ -546,15 +546,15 @@ describe('LeaseSearchPageComponent', () => {
         expect(leasesSearchSummary.properties.innerText).toBe('Found 2 leases matching 2001:db8:1::1.')
     })
 
-    it('should display erred apps message', () => {
-        component.erredApps = [
+    it('should display erred daemons message', () => {
+        component.erredDaemons = [
             {
                 id: 1,
-                name: 'kea@frog',
+                name: 'dhcp4',
             },
             {
                 id: 1,
-                name: 'kea@frog',
+                name: 'dhcp4',
             },
         ]
         component.lastSearchText = '192.0.2.3'
@@ -566,11 +566,11 @@ describe('LeaseSearchPageComponent', () => {
     })
 
     it('should handle communication error', fakeAsync(() => {
-        // Set erred apps to non-empty array.
-        component.erredApps = [
+        // Set erred daemons to non-empty array.
+        component.erredDaemons = [
             {
                 id: 1,
-                name: 'kea@frog',
+                name: 'dhcp4',
             },
         ]
         // Do the same for leases.
@@ -579,8 +579,8 @@ describe('LeaseSearchPageComponent', () => {
                 id: 0,
                 ipAddress: '192.0.2.3',
                 state: 0,
-                appId: 1,
-                appName: 'kea@frog',
+                daemonId: 1,
+                daemonName: 'dhcp4',
                 hwAddress: '01:02:03:04:05:06',
                 clientId: '01:02:03:04',
                 hostname: 'faq.example.org',
@@ -604,7 +604,7 @@ describe('LeaseSearchPageComponent', () => {
 
         // The lease information and metadata should have been cleared.
         expect(component.leases.length).toBe(0)
-        expect(component.erredApps.length).toBe(0)
+        expect(component.erredDaemons.length).toBe(0)
         expect(component.searchStatus).toBe(component.Status.Searched)
 
         // An error message should have been displayed.
