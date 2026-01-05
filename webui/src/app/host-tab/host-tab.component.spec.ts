@@ -1579,22 +1579,18 @@ describe('HostTabComponent', () => {
             hostname: 'ignored',
             localHosts: [
                 {
-                    appId: 1,
                     daemonId: 1,
                     hostname: 'foo',
                 },
                 {
-                    appId: 1,
                     daemonId: 2,
                     hostname: 'foo',
                 },
                 {
-                    appId: 2,
                     daemonId: 3,
                     hostname: 'bar',
                 },
                 {
-                    appId: 2,
                     daemonId: 4,
                 },
             ],
@@ -1606,9 +1602,9 @@ describe('HostTabComponent', () => {
         expect(groups.length).toBe(3)
 
         for (let group of groups) {
-            const appId = group[0].appId
+            const daemonId = group[0].daemonId
 
-            switch (appId) {
+            switch (daemonId) {
                 case 1:
                     expect(group.length).toBe(2)
                     expect(group[0].daemonId).toBeLessThanOrEqual(2)
@@ -1625,23 +1621,18 @@ describe('HostTabComponent', () => {
         const host = {
             localHosts: [
                 {
-                    appId: 1,
                     daemonId: 1,
                 },
                 {
-                    appId: 1,
                     daemonId: 2,
                 },
                 {
-                    appId: 1,
                     daemonId: 3,
                 },
                 {
-                    appId: 2,
                     daemonId: 4,
                 },
                 {
-                    appId: 2,
                     daemonId: 5,
                 },
             ],

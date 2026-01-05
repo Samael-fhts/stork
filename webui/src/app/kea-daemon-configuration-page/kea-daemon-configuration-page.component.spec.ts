@@ -1,4 +1,4 @@
-import { HttpErrorResponse, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { HttpErrorResponse, HttpEvent, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
@@ -12,7 +12,7 @@ import { PopoverModule } from 'primeng/popover'
 import { PanelModule } from 'primeng/panel'
 import { of, throwError } from 'rxjs'
 import { AuthService } from '../auth.service'
-import { ServicesService, UsersService } from '../backend'
+import { AnyDaemon, Daemon, ServicesService, UsersService } from '../backend'
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { JsonTreeRootComponent } from '../json-tree-root/json-tree-root.component'
@@ -69,19 +69,11 @@ describe('KeaDaemonConfigurationPageComponent', () => {
     }))
 
     beforeEach(() => {
-        const fakeResponse: any = {
-            id: 1,
-            name: 'foo',
-            details: {
-                daemons: [
-                    {
-                        id: 2,
-                        name: 'dhcp6',
-                    },
-                ],
-            },
+        const fakeResponse: AnyDaemon = {
+            id: 2,
+            name: 'dhcp6',
         }
-        spyOn(dataService.servicesApi, 'getApp').and.returnValue(of(fakeResponse))
+        spyOn(dataService.servicesApi, 'getDaemon').and.returnValue(of(fakeResponse as AnyDaemon & HttpEvent<AnyDaemon>))
         spyOn(dataService.servicesApi, 'getDaemonConfig').and.returnValues(
             of({
                 config: {},

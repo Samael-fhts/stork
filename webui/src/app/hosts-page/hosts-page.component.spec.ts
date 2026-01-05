@@ -161,8 +161,8 @@ describe('HostsPageComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 1,
-                        appName: 'frog',
+                        daemonId: 1,
+                        daemonName: 'dhcp4',
                         dataSource: 'config',
                     },
                 ],
@@ -182,8 +182,8 @@ describe('HostsPageComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 2,
-                        appName: 'mouse',
+                        daemonId: 2,
+                        daemonName: 'dhcp4',
                         dataSource: 'config',
                     },
                 ],
@@ -367,8 +367,8 @@ describe('HostsPageComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 1,
-                        appName: 'frog',
+                        daemonId: 1,
+                        daemonName: 'dhcp4',
                         dataSource: 'config',
                     },
                 ],
@@ -866,8 +866,8 @@ describe('HostsPageComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 1,
-                        appName: 'frog',
+                        daemonId: 1,
+                        daemonName: 'dhcp4',
                         dataSource: 'config',
                     },
                 ],
@@ -887,8 +887,8 @@ describe('HostsPageComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 2,
-                        appName: 'mouse',
+                        daemonId: 2,
+                        daemonName: 'dhcp4',
                         dataSource: 'config',
                     },
                 ],
@@ -967,7 +967,7 @@ describe('HostsPageComponent', () => {
 
     xit('should display error message when appId is invalid', fakeAsync(() => {
         // TODO: this test should be moved away from Karma tests.
-        component.hostsTable().hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hostsTable().hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         spyOn(dhcpApi, 'getHosts').and.callThrough()
@@ -986,7 +986,7 @@ describe('HostsPageComponent', () => {
 
     xit('should display error message when subnetId is invalid', fakeAsync(() => {
         // TODO: this test should be moved away from Karma tests.
-        component.hostsTable().hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hostsTable().hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         spyOn(dhcpApi, 'getHosts').and.callThrough()
@@ -1006,7 +1006,7 @@ describe('HostsPageComponent', () => {
 
     xit('should display error message when keaSubnetId is invalid', fakeAsync(() => {
         // TODO: this test should be moved away from Karma tests.
-        component.hostsTable().hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hostsTable().hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         spyOn(dhcpApi, 'getHosts').and.callThrough()
@@ -1026,7 +1026,7 @@ describe('HostsPageComponent', () => {
 
     xit('should display multiple error message for each invalid value', fakeAsync(() => {
         // TODO: this test should be moved away from Karma tests.
-        component.hostsTable().hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hostsTable().hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         spyOn(dhcpApi, 'getHosts').and.callThrough()
@@ -1047,48 +1047,41 @@ describe('HostsPageComponent', () => {
         expect(errMsgs.length).toBe(3)
     }))
 
-    it('should group the local hosts by appId', () => {
+    it('should group the local hosts by daemonId', () => {
         const host = {
             id: 42,
             localHosts: [
                 {
-                    appId: 3,
                     daemonId: 31,
                 },
                 {
-                    appId: 3,
                     daemonId: 32,
                 },
                 {
-                    appId: 3,
                     daemonId: 33,
                 },
                 {
-                    appId: 2,
                     daemonId: 21,
                 },
                 {
-                    appId: 2,
                     daemonId: 22,
                 },
                 {
-                    appId: 1,
                     daemonId: 11,
                 },
             ],
         } as Host
 
         component.hostsTable().hosts = [host]
-        const groups = component.hostsTable().localHostsGroupedByApp[host.id]
+        const groups = component.hostsTable().localHostsGroupedByDaemon[host.id]
 
         expect(groups.length).toBe(3)
         for (let group of groups) {
             expect(group.length).toBeGreaterThanOrEqual(1)
-            const appId = group[0].appId
-            expect(group.length).toBe(appId)
+            const daemonId = group[0].daemonId
+            expect(group.length).toBe(daemonId % 10)
             for (let item of group) {
-                expect(item.daemonId).toBeGreaterThan(10 * appId)
-                expect(item.daemonId).toBeLessThan(10 * (appId + 1))
+                expect(item.daemonId).toBeLessThan(10 * (daemonId + 1))
             }
         }
     })
@@ -1097,12 +1090,10 @@ describe('HostsPageComponent', () => {
         // Conflict
         let localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },
             {
-                appId: 1,
                 daemonId: 2,
                 nextServer: 'bar',
             },
@@ -1114,12 +1105,10 @@ describe('HostsPageComponent', () => {
         // Duplicate
         localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },
             {
-                appId: 1,
                 daemonId: 2,
                 nextServer: 'foo',
             },
@@ -1131,7 +1120,6 @@ describe('HostsPageComponent', () => {
         // Null
         localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },

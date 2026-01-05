@@ -111,30 +111,30 @@ describe('HostsTableComponent', () => {
     it('should group the hosts by application', () => {
         // Arrange
         const hosts: Partial<Host>[] = [
-            { id: 1, localHosts: [{ appId: 11 }] },
-            { id: 2, localHosts: [{ appId: 22 }, { appId: 22 }, { appId: 33 }] },
-            { id: 3, localHosts: [{ appId: 11 }, { appId: 22 }] },
+            { id: 1, localHosts: [{ daemonId: 11 }] },
+            { id: 2, localHosts: [{ daemonId: 22 }, { daemonId: 22 }, { daemonId: 33 }] },
+            { id: 3, localHosts: [{ daemonId: 11 }, { daemonId: 22 }] },
         ]
 
         // Act
         component.hosts = hosts as Host[]
 
         // Assert
-        expect(component.localHostsGroupedByApp[1].length).toBe(1)
-        expect(component.localHostsGroupedByApp[1][0].length).toBe(1)
-        expect(component.localHostsGroupedByApp[1][0][0].appId).toBe(11)
+        expect(component.localHostsGroupedByDaemon[1].length).toBe(1)
+        expect(component.localHostsGroupedByDaemon[1][0].length).toBe(1)
+        expect(component.localHostsGroupedByDaemon[1][0][0].daemonId).toBe(11)
 
-        expect(component.localHostsGroupedByApp[2].length).toBe(2)
-        expect(component.localHostsGroupedByApp[2][0].length).toBe(2)
-        expect(component.localHostsGroupedByApp[2][0][0].appId).toBe(22)
-        expect(component.localHostsGroupedByApp[2][0][1].appId).toBe(22)
-        expect(component.localHostsGroupedByApp[2][1].length).toBe(1)
-        expect(component.localHostsGroupedByApp[2][1][0].appId).toBe(33)
+        expect(component.localHostsGroupedByDaemon[2].length).toBe(2)
+        expect(component.localHostsGroupedByDaemon[2][0].length).toBe(2)
+        expect(component.localHostsGroupedByDaemon[2][0][0].daemonId).toBe(22)
+        expect(component.localHostsGroupedByDaemon[2][0][1].daemonId).toBe(22)
+        expect(component.localHostsGroupedByDaemon[2][1].length).toBe(1)
+        expect(component.localHostsGroupedByDaemon[2][1][0].daemonId).toBe(33)
 
-        expect(component.localHostsGroupedByApp[3][0].length).toBe(1)
-        expect(component.localHostsGroupedByApp[3][0][0].appId).toBe(11)
-        expect(component.localHostsGroupedByApp[3][1].length).toBe(1)
-        expect(component.localHostsGroupedByApp[3][1][0].appId).toBe(22)
+        expect(component.localHostsGroupedByDaemon[3][0].length).toBe(1)
+        expect(component.localHostsGroupedByDaemon[3][0][0].daemonId).toBe(11)
+        expect(component.localHostsGroupedByDaemon[3][1].length).toBe(1)
+        expect(component.localHostsGroupedByDaemon[3][1][0].daemonId).toBe(22)
     })
 
     it('should detect local hosts state', () => {
@@ -187,7 +187,7 @@ describe('HostsTableComponent', () => {
         confirmDialog.onAccept()
         tick()
 
-        expect(dhcpService.startHostsMigration).toHaveBeenCalledWith(1, null, null, 'foo', true)
+        expect(dhcpService.startHostsMigration).toHaveBeenCalledWith(1, null, null, null, 'foo', true)
     }))
 
     it('should extract filter entries properly', () => {
@@ -285,8 +285,8 @@ describe('HostsTableComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 1,
-                        appName: 'frog',
+                        daemonId: 1,
+                        daemonName: 'dhcp4',
                         dataSource: 'config',
                     },
                 ],
@@ -306,8 +306,8 @@ describe('HostsTableComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 2,
-                        appName: 'mouse',
+                        daemonId: 2,
+                        daemonName: 'dhcp4',
                         dataSource: 'config',
                     },
                 ],
@@ -327,8 +327,8 @@ describe('HostsTableComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 3,
-                        appName: 'lion',
+                        daemonId: 3,
+                        daemonName: 'dhcp6',
                         dataSource: 'config',
                     },
                 ],
@@ -373,7 +373,7 @@ describe('HostsTableComponent', () => {
     }))
 
     it('hosts list should be filtered by appId', fakeAsync(() => {
-        component.hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         getHostsSpy.and.callThrough()
@@ -388,7 +388,7 @@ describe('HostsTableComponent', () => {
     }))
 
     it('hosts list should be filtered by subnetId', fakeAsync(() => {
-        component.hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         getHostsSpy.and.callThrough()
@@ -403,7 +403,7 @@ describe('HostsTableComponent', () => {
     }))
 
     it('hosts list should be filtered by conflicts', fakeAsync(() => {
-        component.hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         getHostsSpy.and.callThrough()
@@ -418,7 +418,7 @@ describe('HostsTableComponent', () => {
     }))
 
     it('hosts list should be filtered by non-conflicts', fakeAsync(() => {
-        component.hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         getHostsSpy.and.callThrough()
@@ -440,7 +440,7 @@ describe('HostsTableComponent', () => {
     }))
 
     it('hosts list should be filtered by keaSubnetId', fakeAsync(() => {
-        component.hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         getHostsSpy.and.callThrough()
@@ -459,39 +459,33 @@ describe('HostsTableComponent', () => {
             id: 42,
             localHosts: [
                 {
-                    appId: 3,
                     daemonId: 31,
                 },
                 {
-                    appId: 3,
                     daemonId: 32,
                 },
                 {
-                    appId: 3,
                     daemonId: 33,
                 },
                 {
-                    appId: 2,
                     daemonId: 21,
                 },
                 {
-                    appId: 2,
                     daemonId: 22,
                 },
                 {
-                    appId: 1,
                     daemonId: 11,
                 },
             ],
         } as Host
 
         component.hosts = [host]
-        const groups = component.localHostsGroupedByApp[host.id]
+        const groups = component.localHostsGroupedByDaemon[host.id]
 
         expect(groups.length).toBe(3)
         for (let group of groups) {
             expect(group.length).toBeGreaterThanOrEqual(1)
-            const appId = group[0].appId
+            const appId = group[0].daemonId
             expect(group.length).toBe(appId)
             for (let item of group) {
                 expect(item.daemonId).toBeGreaterThan(10 * appId)
@@ -504,12 +498,10 @@ describe('HostsTableComponent', () => {
         // Conflict
         let localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },
             {
-                appId: 1,
                 daemonId: 2,
                 nextServer: 'bar',
             },
@@ -521,12 +513,10 @@ describe('HostsTableComponent', () => {
         // Duplicate
         localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },
             {
-                appId: 1,
                 daemonId: 2,
                 nextServer: 'foo',
             },
@@ -538,7 +528,6 @@ describe('HostsTableComponent', () => {
         // Null
         localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },
@@ -549,7 +538,7 @@ describe('HostsTableComponent', () => {
     })
 
     it('host table should have valid app name and app link', () => {
-        component.hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
         // Table rows have ids created by appending host id to the host-row- string.
         const row = fixture.debugElement.query(By.css('#host-row-1'))
