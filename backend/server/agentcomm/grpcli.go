@@ -13,6 +13,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
 	agentapi "isc.org/stork/api"
@@ -1068,6 +1069,15 @@ func (agents *connectedAgentsImpl) ReceiveZones(ctx context.Context, daemon Cont
 				// The server should interpret these errors and formulate hints
 				// to the user that some administrative actions may be required.
 				s := status.Convert(err)
+				switch s.Code() {
+				case codes.Canceled:
+					// Cancelled by the caller. No error.
+					return
+				case codes.DeadlineExceeded:
+					// Timeout. Notify the caller so it can present a user-friendly message.
+					_ = yield(nil, context.DeadlineExceeded)
+					return
+				}
 				for _, d := range s.Details() {
 					if info, ok := d.(*errdetails.ErrorInfo); ok {
 						switch info.Reason {

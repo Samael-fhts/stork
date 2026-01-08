@@ -682,6 +682,7 @@ func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.Se
 		// zone inventory initialized.
 		return status.New(codes.FailedPrecondition, "attempted to receive DNS zones from a daemon for which zone inventory was not instantiated").Err()
 	}
+
 	// Set filtering rules based on the request.
 	var filter *dnsmodel.ZoneFilter
 	if req.ViewName != "" || req.Limit > 0 || req.LoadedAfter > 0 || req.LowerBound != "" {
@@ -700,7 +701,8 @@ func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.Se
 		notInitedError *zoneInventoryNotInitedError
 		busyError      *zoneInventoryBusyError
 	)
-	zones, err := inventory.receiveZones(context.Background(), filter)
+	ctx := server.Context()
+	zones, err := inventory.receiveZones(ctx, filter)
 	if err != nil {
 		// Some of the errors require special handling so the client can
 		// interpret them and take specific actions (e.g., try later).
@@ -729,23 +731,33 @@ func (sa *StorkAgent) ReceiveZones(req *agentapi.ReceiveZonesReq, server grpc.Se
 	}
 	// Return the zones over the channel.
 	for result := range zones {
-		if result.err == nil {
-			zone := result.zone
-			apiZone := &agentapi.Zone{
-				Name:           zone.Name(),
-				Class:          zone.Class,
-				Serial:         zone.Serial,
-				Type:           zone.Type,
-				Loaded:         zone.Loaded.Unix(),
-				View:           zone.ViewName,
-				Rpz:            zone.RPZ,
-				TotalZoneCount: zone.TotalZoneCount,
+		if result.err != nil {
+			// Map possible errors to gRPC error codes.
+			switch {
+			case errors.Is(result.err, context.Canceled):
+				return status.Error(codes.Canceled, "stream for receiving zones was closed by the client")
+			case errors.Is(result.err, context.DeadlineExceeded):
+				return status.Error(codes.DeadlineExceeded, "receiving zones timed out")
+			default:
+				return status.Error(codes.Aborted, result.err.Error())
 			}
-			err = server.Send(apiZone)
-			if err != nil {
-				st := status.New(codes.Aborted, err.Error())
-				return st.Err()
-			}
+		}
+		zone := result.zone
+		apiZone := &agentapi.Zone{
+			Name:           zone.Name(),
+			Class:          zone.Class,
+			Serial:         zone.Serial,
+			Type:           zone.Type,
+			Loaded:         zone.Loaded.Unix(),
+			View:           zone.ViewName,
+			Rpz:            zone.RPZ,
+			TotalZoneCount: zone.TotalZoneCount,
+		}
+		err = server.Send(apiZone)
+		if err != nil {
+			// Errors returned by Send() are already encapsulated with the
+			// gRPC status codes.
+			return err
 		}
 	}
 	return nil

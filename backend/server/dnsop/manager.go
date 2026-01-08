@@ -480,7 +480,7 @@ func (manager *managerImpl) FetchZones(poolSize, batchSize int, block bool) (cha
 			go func(daemonsChan <-chan dbmodel.Daemon) {
 				// Read next daemon from the channel.
 				for daemon := range daemonsChan {
-					manager.fetchZonesFromDNSServer(&daemon, batchSize, &wg, &mutex, results)
+					manager.fetchZonesFromDNSServer(context.Background(), &daemon, batchSize, &wg, &mutex, results)
 				}
 			}(daemonsChan)
 		}
@@ -520,7 +520,7 @@ func (manager *managerImpl) FetchZones(poolSize, batchSize int, block bool) (cha
 // between multiple goroutines. The results parameter is a map of errors for
 // respective daemons. This function can merely be called from the
 // FetchZones function.
-func (manager *managerImpl) fetchZonesFromDNSServer(daemon *dbmodel.Daemon, batchSize int, wg *sync.WaitGroup, mutex *sync.Mutex, results map[int64]*dbmodel.ZoneInventoryStateDetails) {
+func (manager *managerImpl) fetchZonesFromDNSServer(ctx context.Context, daemon *dbmodel.Daemon, batchSize int, wg *sync.WaitGroup, mutex *sync.Mutex, results map[int64]*dbmodel.ZoneInventoryStateDetails) {
 	defer wg.Done()
 	var (
 		// Track views. We need to flush the batch when the view changes.
@@ -536,7 +536,7 @@ func (manager *managerImpl) fetchZonesFromDNSServer(daemon *dbmodel.Daemon, batc
 	// performance for large number of zones.
 	batch := dbmodel.NewBatch(manager.db, batchSize, dbmodel.AddZones)
 	state := dbmodel.NewZoneInventoryStateDetails()
-	for zone, err := range manager.agents.ReceiveZones(context.Background(), daemon, nil) {
+	for zone, err := range manager.agents.ReceiveZones(ctx, daemon, nil) {
 		if err != nil {
 			// Returned status depends on the returned error type. Some
 			// errors require special handling.

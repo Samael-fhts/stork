@@ -981,11 +981,17 @@ func (inventory *zoneInventoryImpl) receiveZones(ctx context.Context, filter *dn
 			}
 			zones := view.GetZoneIterator(filter)
 			for zone, err := range zones {
+				var result zoneInventoryReceiveZoneResult
 				select {
 				case <-ctx.Done():
+					if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+						result.err = context.DeadlineExceeded
+					} else {
+						result.err = ctx.Err()
+					}
+					channel <- result
 					break OUTER_LOOP
 				default:
-					result := zoneInventoryReceiveZoneResult{}
 					if err != nil {
 						result.err = err
 					} else {
