@@ -334,6 +334,8 @@
         type: string
       active:
         type: boolean
+      machine:
+        $ref: '#/definitions/SimpleMachine'
 
   SimpleDaemons:
     type: object
