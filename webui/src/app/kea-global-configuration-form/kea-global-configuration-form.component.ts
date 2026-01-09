@@ -8,9 +8,19 @@ import { lastValueFrom } from 'rxjs'
 import { getErrorMessage, getSeverityByIndex, getVersionRange } from '../utils'
 import { MessageService } from 'primeng/api'
 import { KeaGlobalConfigurationForm, SubnetSetFormService } from '../forms/subnet-set-form.service'
-import { FormGroup, UntypedFormArray } from '@angular/forms'
+import { FormGroup, UntypedFormArray, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { createDefaultDhcpOptionFormGroup } from '../forms/dhcp-option-form'
 import { IPType } from '../iptype'
+import { NgIf, NgFor } from '@angular/common'
+import { Fieldset } from 'primeng/fieldset'
+import { SharedParametersFormComponent } from '../shared-parameters-form/shared-parameters-form.component'
+import { Checkbox } from 'primeng/checkbox'
+import { Divider } from 'primeng/divider'
+import { Tag } from 'primeng/tag'
+import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-set-form.component'
+import { Button } from 'primeng/button'
+import { ProgressSpinner } from 'primeng/progressspinner'
+import { Message } from 'primeng/message'
 
 /**
  * A component providing a form for editing global Kea parameters.
@@ -220,7 +230,7 @@ export class KeaGlobalConfigurationFormComponent implements OnInit {
      * Returns an array of server names associated with the configs.
      */
     get servers(): string[] {
-        return this.response?.configs?.map((c) => `${c.appName}/${c.daemonName}`) ?? []
+        return this.response?.configs?.map((c) => c.daemonName) ?? []
     }
 
     /**

@@ -1,14 +1,33 @@
 import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core'
 import { tableHasFilter, tableFiltersToQueryParams, convertSortingFields } from '../table'
 import { DHCPService, Host, HostSortField, LocalHost } from '../backend'
-import { Table, TableLazyLoadEvent } from 'primeng/table'
-import { Router } from '@angular/router'
-import { ConfirmationService, MessageService, TableState } from 'primeng/api'
+import { Table, TableLazyLoadEvent, TableModule } from 'primeng/table'
+import { Router, RouterLink } from '@angular/router'
+import { ConfirmationService, MessageService, TableState, PrimeTemplate } from 'primeng/api'
 import { getErrorMessage, uncamelCase } from '../utils'
 import { hasDifferentLocalHostData } from '../hosts'
 import { debounceTime, last, lastValueFrom, Subject, Subscription } from 'rxjs'
 import { FilterMetadata } from 'primeng/api/filtermetadata'
 import { distinctUntilChanged, map } from 'rxjs/operators'
+import { ManagedAccessDirective } from '../managed-access.directive'
+import { ConfirmDialog } from 'primeng/confirmdialog'
+import { NgFor, NgIf } from '@angular/common'
+import { Button } from 'primeng/button'
+import { Panel } from 'primeng/panel'
+import { Tag } from 'primeng/tag'
+import { HelpTipComponent } from '../help-tip/help-tip.component'
+import { FloatLabel } from 'primeng/floatlabel'
+import { InputNumber } from 'primeng/inputnumber'
+import { FormsModule } from '@angular/forms'
+import { TriStateCheckboxComponent } from '../tri-state-checkbox/tri-state-checkbox.component'
+import { IconField } from 'primeng/iconfield'
+import { InputIcon } from 'primeng/inputicon'
+import { InputText } from 'primeng/inputtext'
+import { IdentifierComponent } from '../identifier/identifier.component'
+import { EntityLinkComponent } from '../entity-link/entity-link.component'
+import { HostDataSourceLabelComponent } from '../host-data-source-label/host-data-source-label.component'
+import { Tooltip } from 'primeng/tooltip'
+import { PluralizePipe } from '../pipes/pluralize.pipe'
 
 /**
  * This component implements a table of hosts reservations.
@@ -20,9 +39,9 @@ import { distinctUntilChanged, map } from 'rxjs/operators'
  */
 @Component({
     selector: 'app-hosts-table',
-    standalone: false,
     templateUrl: './hosts-table.component.html',
     styleUrls: ['./hosts-table.component.sass'],
+    standalone: false,
 })
 export class HostsTableComponent implements OnInit, OnDestroy {
     /**
@@ -75,7 +94,8 @@ export class HostsTableComponent implements OnInit, OnDestroy {
             this.dhcpApi.getHosts(
                 event.first,
                 event.rows,
-                (event.filters['appId'] as FilterMetadata)?.value ?? null,
+                (event.filters['machineId'] as FilterMetadata)?.value ?? null,
+                (event.filters['daemonId'] as FilterMetadata)?.value ?? null,
                 (event.filters['subnetId'] as FilterMetadata)?.value ?? null,
                 (event.filters['keaSubnetId'] as FilterMetadata)?.value ?? null,
                 (event.filters['text'] as FilterMetadata)?.value || null,
@@ -103,10 +123,10 @@ export class HostsTableComponent implements OnInit, OnDestroy {
     }
 
     /**
-     * Holds local hosts of all currently displayed host reservations grouped by app ID.
+    * Holds local hosts of all currently displayed host reservations grouped by daemon ID.
      * It is indexed by host ID.
      */
-    localHostsGroupedByApp: Record<number, LocalHost[][]>
+    localHostsGroupedByDaemon: Record<number, LocalHost[][]>
 
     /**
      * This flag states whether user has privileges to start the migration.
@@ -123,14 +143,14 @@ export class HostsTableComponent implements OnInit, OnDestroy {
 
     /**
      * Sets hosts reservations to be displayed.
-     * Groups the local hosts by app ID and stores the result in
-     * @this.localHostsGroupedByApp.
+     * Groups the local hosts by daemon ID and stores the result in
+     * @this.localHostsGroupedByDaemon.
      */
     set hosts(hosts: Host[]) {
         this.dataCollection = hosts
 
-        // For each host group the local hosts by app ID.
-        this.localHostsGroupedByApp = Object.fromEntries(
+        // For each host group the local hosts by daemon ID.
+        this.localHostsGroupedByDaemon = Object.fromEntries(
             (hosts || []).map((host) => {
                 if (!host.localHosts) {
                     return [host.id, []]
@@ -139,15 +159,15 @@ export class HostsTableComponent implements OnInit, OnDestroy {
                 return [
                     host.id,
                     Object.values(
-                        // Group the local hosts by app ID.
-                        host.localHosts.reduce<Record<number, LocalHost[]>>((accApp, localHost) => {
-                            if (!accApp[localHost.appId]) {
-                                accApp[localHost.appId] = []
+                        // Group the local hosts by daemon ID.
+                        host.localHosts.reduce<Record<number, LocalHost[]>>((accDaemon, localHost) => {
+                            if (!accDaemon[localHost.daemonId]) {
+                                accDaemon[localHost.daemonId] = []
                             }
 
-                            accApp[localHost.appId].push(localHost)
+                            accDaemon[localHost.daemonId].push(localHost)
 
-                            return accApp
+                            return accDaemon
                         }, {})
                     ),
                 ]
@@ -231,7 +251,8 @@ export class HostsTableComponent implements OnInit, OnDestroy {
                 // User confirmed the migration.
                 this.dhcpApi
                     .startHostsMigration(
-                        (this.table?.filters['appId'] as FilterMetadata)?.value ?? null,
+                            (this.table?.filters['machineId'] as FilterMetadata)?.value ?? null,
+                            (this.table?.filters['daemonId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['subnetId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['keaSubnetId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['text'] as FilterMetadata)?.value || null,

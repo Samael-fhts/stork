@@ -8,6 +8,8 @@ import {
     Validators,
     ValidationErrors,
     UntypedFormControl,
+    FormsModule,
+    ReactiveFormsModule,
 } from '@angular/forms'
 import { MessageService, SelectItem } from 'primeng/api'
 import { map } from 'rxjs/operators'
@@ -26,10 +28,24 @@ import { createDefaultDhcpOptionFormGroup } from '../forms/dhcp-option-form'
 import { DhcpOptionSetFormService } from '../forms/dhcp-option-set-form.service'
 import { SelectableDaemon } from '../forms/selectable-daemon'
 import { IPType } from '../iptype'
-import { getErrorMessage, stringToHex } from '../utils'
+import { daemonNameToFriendlyName, getErrorMessage, stringToHex } from '../utils'
 import { SelectableClientClass } from '../forms/selectable-client-class'
 import { hasDifferentLocalHostData } from '../hosts'
 import { GenericFormService } from '../forms/generic-form.service'
+import { NgIf, NgFor, NgSwitch, NgSwitchCase, NgTemplateOutlet } from '@angular/common'
+import { Fieldset } from 'primeng/fieldset'
+import { ToggleSwitch } from 'primeng/toggleswitch'
+import { FloatLabel } from 'primeng/floatlabel'
+import { MultiSelect } from 'primeng/multiselect'
+import { Select } from 'primeng/select'
+import { InputText } from 'primeng/inputtext'
+import { InputNumber } from 'primeng/inputnumber'
+import { Button } from 'primeng/button'
+import { RouterLink } from '@angular/router'
+import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
+import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-set-form.component'
+import { HelpTipComponent } from '../help-tip/help-tip.component'
+import { Message } from 'primeng/message'
 
 /**
  * A form validator checking if a subnet has been selected for
@@ -174,9 +190,9 @@ export interface MappedHostBeginData {
  */
 @Component({
     selector: 'app-host-form',
-    standalone: false,
     templateUrl: './host-form.component.html',
     styleUrls: ['./host-form.component.sass'],
+    standalone: false,
 })
 export class HostFormComponent implements OnInit, OnDestroy {
     /**
@@ -475,11 +491,9 @@ export class HostFormComponent implements OnInit, OnDestroy {
         for (const d of data.daemons) {
             const daemon = {
                 id: d.id,
-                appId: d.app.id,
-                appType: 'kea',
                 name: d.name,
-                version: d.name,
-                label: `${d.app.name}/${d.name}`,
+                version: d.version,
+                label: daemonNameToFriendlyName(d.name),
             }
             daemons.push(daemon)
         }

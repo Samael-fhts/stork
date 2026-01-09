@@ -135,7 +135,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
-                    appName: 'foo@192.0.2.1',
+                    daemonName: 'dhcp4',
                     pools: [
                         {
                             pool: '192.0.2.1-192.0.2.100',
@@ -239,7 +239,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
-                    appName: 'foo@192.0.2.1',
+                    daemonName: 'dhcp4',
                     stats: {
                         'total-addresses': 240,
                         'assigned-addresses': 70,
@@ -284,7 +284,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
-                    appName: 'foo@2001:db8:1::1',
+                    daemonName: 'dhcp6',
                     pools: [
                         {
                             pool: '2001:db8:1::2-2001:db8:1::786',
@@ -343,7 +343,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
-                    appName: 'foo@2001:db8:1::1',
+                    daemonName: 'dhcp6',
                     pools: [
                         {
                             pool: '2001:db8:1::2-2001:db8:1::768',
@@ -414,7 +414,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
-                    appName: 'foo@2001:db8:1::1',
+                    daemonName: 'dhcp6',
                     pools: [
                         {
                             pool: '2001:db8:1::2-2001:db8:1::768',
@@ -460,7 +460,7 @@ describe('SubnetTabComponent', () => {
                 },
                 {
                     id: 25432,
-                    appName: 'bar@2001:db8:2::5',
+                    daemonName: 'dhcp6',
                     pools: [
                         {
                             pool: '2001:db8:1::2-2001:db8:1::768',
@@ -591,7 +591,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
-                    appName: 'foo@2001:db8:1::1',
+                    daemonName: 'dhcp6',
                 },
             ],
         }

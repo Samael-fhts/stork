@@ -69,9 +69,7 @@ import { DashboardComponent } from './dashboard/dashboard.component'
 import { HostsTableComponent } from './hosts-table/hosts-table.component'
 import { MachinesPageComponent } from './machines-page/machines-page.component'
 import { UsersPageComponent } from './users-page/users-page.component'
-import { AppsPageComponent } from './apps-page/apps-page.component'
-import { AppTabComponent } from './app-tab/app-tab.component'
-import { KeaAppTabComponent } from './kea-app-tab/kea-app-tab.component'
+import { DaemonsPageComponent } from './daemons-page/daemons-page.component'
 import { PasswordChangePageComponent } from './password-change-page/password-change-page.component'
 import { ProfilePageComponent } from './profile-page/profile-page.component'
 import { SettingsMenuComponent } from './settings-menu/settings-menu.component'
@@ -88,10 +86,9 @@ import { EntityLinkComponent } from './entity-link/entity-link.component'
 import { EventsPanelComponent } from './events-panel/events-panel.component'
 import { ForbiddenPageComponent } from './forbidden-page/forbidden-page.component'
 import { LogViewPageComponent } from './log-view-page/log-view-page.component'
-import { AppDaemonsStatusComponent } from './app-daemons-status/app-daemons-status.component'
+import { DaemonStatusComponent } from './daemon-status/daemon-status.component'
 import { BreadcrumbsComponent } from './breadcrumbs/breadcrumbs.component'
 import { EventsPageComponent } from './events-page/events-page.component'
-import { RenameAppDialogComponent } from './rename-app-dialog/rename-app-dialog.component'
 import { LeaseSearchPageComponent } from './lease-search-page/lease-search-page.component'
 import { JsonTreeComponent } from './json-tree/json-tree.component'
 import { JsonTreeRootComponent } from './json-tree-root/json-tree-root.component'
@@ -99,7 +96,7 @@ import { KeaDaemonConfigurationPageComponent } from './kea-daemon-configuration-
 import { HostTabComponent } from './host-tab/host-tab.component'
 import { ConfigReviewPanelComponent } from './config-review-panel/config-review-panel.component'
 import { IdentifierComponent } from './identifier/identifier.component'
-import { AppOverviewComponent } from './app-overview/app-overview.component'
+import { DaemonOverviewComponent } from './daemon-overview/daemon-overview.component'
 import { HostFormComponent } from './host-form/host-form.component'
 import { DhcpOptionFormComponent } from './dhcp-option-form/dhcp-option-form.component'
 import { DhcpOptionSetFormComponent } from './dhcp-option-set-form/dhcp-option-set-form.component'
@@ -170,6 +167,8 @@ import { UserFormComponent } from './user-form/user-form.component'
 import { TextFileViewerComponent } from './text-file-viewer/text-file-viewer.component'
 import { Bind9ConfigPreviewComponent } from './bind9-config-preview/bind9-config-preview.component'
 import { Bind9DaemonControlsComponent } from './bind9-daemon-controls/bind9-daemon-controls.component'
+import { DaemonTabComponent } from './daemon-tab/daemon-tab.component'
+import { KeaDaemonComponent } from './kea-daemon/kea-daemon.component'
 
 /** Create the OpenAPI client configuration. */
 export function cfgFactory() {
@@ -316,9 +315,9 @@ const AuraBluePreset = definePreset(Aura, {
         MachinesPageComponent,
         LocaltimePipe,
         UsersPageComponent,
-        AppsPageComponent,
-        AppTabComponent,
-        KeaAppTabComponent,
+        DaemonsPageComponent,
+        DaemonTabComponent,
+        KeaDaemonComponent,
         PasswordChangePageComponent,
         ProfilePageComponent,
         SettingsMenuComponent,
@@ -335,10 +334,9 @@ const AuraBluePreset = definePreset(Aura, {
         EventsPanelComponent,
         ForbiddenPageComponent,
         LogViewPageComponent,
-        AppDaemonsStatusComponent,
+        DaemonStatusComponent,
         BreadcrumbsComponent,
         EventsPageComponent,
-        RenameAppDialogComponent,
         LeaseSearchPageComponent,
         JsonTreeComponent,
         JsonTreeRootComponent,
@@ -346,7 +344,7 @@ const AuraBluePreset = definePreset(Aura, {
         HostTabComponent,
         ConfigReviewPanelComponent,
         IdentifierComponent,
-        AppOverviewComponent,
+        DaemonOverviewComponent,
         HostFormComponent,
         DhcpOptionFormComponent,
         DhcpOptionSetFormComponent,

@@ -112,8 +112,8 @@ export const ViewDhcpv4Host: Story = {
             subnetPrefix: '192.0.2.0/24',
             localHosts: [
                 {
-                    appId: 1,
-                    appName: 'frog',
+                    daemonId: 1,
+                    daemonName: 'dhcp4',
                     dataSource: 'config',
                     clientClasses: ['access-point', 'router', 'cable-modem'],
                     nextServer: '192.0.2.2',
@@ -121,8 +121,8 @@ export const ViewDhcpv4Host: Story = {
                     bootFileName: '/tmp/bootfile',
                 },
                 {
-                    appId: 2,
-                    appName: 'mouse',
+                    daemonId: 2,
+                    daemonName: 'dhcp4',
                     dataSource: 'api',
                     clientClasses: ['access-point', 'router', 'cable-modem'],
                     nextServer: '192.0.2.2',
@@ -169,14 +169,14 @@ export const ViewDhcpv6Host: Story = {
             subnetPrefix: '2001:db8:1::/64',
             localHosts: [
                 {
-                    appId: 1,
-                    appName: 'frog',
+                    daemonId: 1,
+                    daemonName: 'dhcp6',
                     dataSource: 'config',
                     clientClasses: ['access-point', 'router', 'cable-modem'],
                 },
                 {
-                    appId: 2,
-                    appName: 'mouse',
+                    daemonId: 2,
+                    daemonName: 'dhcp6',
                     dataSource: 'api',
                     clientClasses: ['access-point', 'router', 'cable-modem'],
                 },

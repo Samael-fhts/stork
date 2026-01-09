@@ -19,7 +19,6 @@ import { ProgressBarModule } from 'primeng/progressbar'
 import { PopoverModule } from 'primeng/popover'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
-import { AppDaemonsStatusComponent } from '../app-daemons-status/app-daemons-status.component'
 import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { HttpErrorResponse, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import anything = jasmine.anything
@@ -52,6 +51,7 @@ import { TriStateCheckboxComponent } from '../tri-state-checkbox/tri-state-check
 import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
 import { TooltipModule } from 'primeng/tooltip'
+import { DaemonStatusComponent } from '../daemon-status/daemon-status.component'
 
 describe('MachinesPageComponent', () => {
     let component: MachinesPageComponent
@@ -69,7 +69,6 @@ describe('MachinesPageComponent', () => {
             start?: number,
             limit?: number,
             text?: string,
-            app?: string,
             authorized?: boolean,
             sortField?: string,
             sortDir?: number
@@ -125,8 +124,8 @@ describe('MachinesPageComponent', () => {
         ])
 
         getMachinesSpy = servicesApi.getMachines.and.returnValue(of(getAllMachinesResp))
-        getMachinesSpy.withArgs(0, 10, null, null, true, null, null).and.returnValue(of(getAuthorizedMachinesResp))
-        getMachinesSpy.withArgs(0, 10, null, null, false, null, null).and.returnValue(of(getUnauthorizedMachinesResp))
+        getMachinesSpy.withArgs(0, 10, null, true, null, null).and.returnValue(of(getAuthorizedMachinesResp))
+        getMachinesSpy.withArgs(0, 10, null, false, null, null).and.returnValue(of(getUnauthorizedMachinesResp))
 
         getMachinesServerTokenSpy = servicesApi.getMachinesServerToken.and.returnValue(of(serverTokenResp))
         servicesApi.getUnauthorizedMachinesCount.and.returnValue(of(3))
@@ -138,7 +137,7 @@ describe('MachinesPageComponent', () => {
                 PlaceholderPipe,
                 BreadcrumbsComponent,
                 HelpTipComponent,
-                AppDaemonsStatusComponent,
+                DaemonStatusComponent,
                 VersionStatusComponent,
                 MachinesTableComponent,
                 PluralizePipe,
@@ -559,7 +558,7 @@ describe('MachinesPageComponent', () => {
 
         // called one time in loadMachines(event), which lazily loads data for
         // authorized machines table. Text and app filters are undefined.
-        getMachinesSpy.withArgs(0, 10, null, null, true).and.returnValue(of(getAuthorizedMachinesRespAfter))
+        getMachinesSpy.withArgs(0, 10, null, true, null, null).and.returnValue(of(getAuthorizedMachinesRespAfter))
 
         // Navigate to Unauthorized machines only view.
         navigate({ id: 'all' }, { authorized: 'false' })
@@ -597,7 +596,7 @@ describe('MachinesPageComponent', () => {
         const bulkAuthorizeBtn = bulkAuthorizeBtnNodeList[0]
         expect(bulkAuthorizeBtn).toBeTruthy()
 
-        getMachinesSpy.withArgs(0, 10, null, null, false).and.returnValue(of(getUnauthorizedMachinesRespAfter))
+        getMachinesSpy.withArgs(0, 10, null, false, null, null).and.returnValue(of(getUnauthorizedMachinesRespAfter))
         servicesApi.getUnauthorizedMachinesCount.and.returnValue(of(2))
 
         // click "Authorize selected" button
@@ -703,8 +702,8 @@ describe('MachinesPageComponent', () => {
             items: [],
             total: 0,
         }
-        getMachinesSpy.withArgs(0, 10, null, null, true, null, null).and.returnValue(of(getMachinesResp))
-        getMachinesSpy.withArgs(0, 10, null, null, false, null, null).and.returnValue(of(getMachinesResp))
+        getMachinesSpy.withArgs(0, 10, null, true, null, null).and.returnValue(of(getMachinesResp))
+        getMachinesSpy.withArgs(0, 10, null, false, null, null).and.returnValue(of(getMachinesResp))
 
         // Simulate disabled machine registration.
         const getSettingsResp: any = {
@@ -745,8 +744,8 @@ describe('MachinesPageComponent', () => {
             items: [],
             total: 0,
         }
-        getMachinesSpy.withArgs(0, 10, null, null, true, null, null).and.returnValue(of(getMachinesResp))
-        getMachinesSpy.withArgs(0, 10, null, null, false, null, null).and.returnValue(of(getMachinesResp))
+        getMachinesSpy.withArgs(0, 10, null, true, null, null).and.returnValue(of(getMachinesResp))
+        getMachinesSpy.withArgs(0, 10, null, false, null, null).and.returnValue(of(getMachinesResp))
 
         // Navigate to Authorized machines only view.
         navigate({ id: 'all' }, { authorized: 'true' })

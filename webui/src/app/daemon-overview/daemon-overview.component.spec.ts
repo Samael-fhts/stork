@@ -3,25 +3,26 @@ import { By } from '@angular/platform-browser'
 import { FormsModule } from '@angular/forms'
 import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { PanelModule } from 'primeng/panel'
-import { AppOverviewComponent } from './app-overview.component'
+import { DaemonOverviewComponent } from './daemon-overview.component'
 import { ButtonModule } from 'primeng/button'
 import { AuthService } from '../auth.service'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { MessageService } from 'primeng/api'
-import { App } from '../backend'
+import { AnyDaemon } from '../backend'
 import { AccessPointKeyComponent } from '../access-point-key/access-point-key.component'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { provideRouter, RouterModule } from '@angular/router'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
-describe('AppOverviewComponent', () => {
-    let component: AppOverviewComponent
-    let fixture: ComponentFixture<AppOverviewComponent>
+describe('DaemonOverviewComponent', () => {
+    let component: DaemonOverviewComponent
+    let fixture: ComponentFixture<DaemonOverviewComponent>
     let authService: AuthService
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            declarations: [AppOverviewComponent, AccessPointKeyComponent],
+            declarations: [DaemonOverviewComponent, AccessPointKeyComponent, DaemonNiceNamePipe],
             imports: [
                 FormsModule,
                 NoopAnimationsModule,
@@ -48,7 +49,7 @@ describe('AppOverviewComponent', () => {
     })
 
     beforeEach(() => {
-        fixture = TestBed.createComponent(AppOverviewComponent)
+        fixture = TestBed.createComponent(DaemonOverviewComponent)
         component = fixture.componentInstance
         fixture.detectChanges()
     })
@@ -58,7 +59,7 @@ describe('AppOverviewComponent', () => {
     })
 
     it('should display access points', () => {
-        const fakeApp: App = {
+        const fakeDaemon: AnyDaemon = {
             machine: {
                 id: 1,
                 address: '192.0.2.1:8080',
@@ -68,27 +69,25 @@ describe('AppOverviewComponent', () => {
                     type: 'control',
                     address: '192.0.3.1',
                     port: 1234,
-                    useSecureProtocol: true,
+                    protocol: 'https',
                 },
                 {
                     type: 'statistics',
                     address: '2001:db8:1::1',
                     port: 2345,
-                    useSecureProtocol: false,
+                    protocol: 'https',
                 },
             ],
         }
-        component.app = fakeApp
+        component.daemon = fakeDaemon
         fixture.detectChanges()
 
-        // There should be a table holding access points.
         const tableElement = fixture.debugElement.query(By.css('table'))
         expect(tableElement).toBeTruthy()
 
         const rows = tableElement.queryAll(By.css('tr'))
         expect(rows.length).toBe(3)
 
-        // The first row holds the machine address.
         let tds = rows[0].queryAll(By.css('td'))
         expect(tds.length).toBe(2)
         expect(tds[0].nativeElement.innerText.trim()).toContain('Hosted on machine:')
@@ -96,25 +95,21 @@ describe('AppOverviewComponent', () => {
         expect(machineLinkElement).toBeTruthy()
         expect(machineLinkElement.attributes.href).toBe('/machines/1')
 
-        // The second row holds the control access point.
         tds = rows[1].queryAll(By.css('td'))
         expect(tds.length).toBe(2)
         expect(tds[0].nativeElement.innerText.trim()).toContain('Control access point:')
         expect(tds[1].nativeElement.innerText.trim()).toContain('192.0.3.1:1234')
 
-        // Ensure that the icon indicating secured connection is displayed.
         let iconSpan = tds[1].query(By.css('span'))
         expect(iconSpan).toBeTruthy()
         expect(iconSpan.classes.hasOwnProperty('pi-lock')).toBeTruthy()
         expect(iconSpan.attributes.pTooltip).toBe('secured connection')
 
-        // The third row holds the statistics access point.
         tds = rows[2].queryAll(By.css('td'))
         expect(tds.length).toBe(2)
         expect(tds[0].nativeElement.innerText.trim()).toContain('Statistics access point:')
         expect(tds[1].nativeElement.innerText.trim()).toContain('[2001:db8:1::1]:2345')
 
-        // Ensure that the icon indicating unsecured connection is displayed.
         iconSpan = tds[1].query(By.css('span'))
         expect(iconSpan).toBeTruthy()
         expect(iconSpan.classes.hasOwnProperty('pi-lock-open')).toBeTruthy()
@@ -131,12 +126,12 @@ describe('AppOverviewComponent', () => {
     it('should hide keys for non-super-admin users', () => {
         spyOn(authService, 'hasPrivilege').and.returnValue(false)
         spyOn(authService, 'superAdmin').and.returnValue(false)
-        fixture.componentRef.setInput('app', {
-            type: 'bind9',
+        fixture.componentRef.setInput('daemon', {
+            name: 'named',
             machine: { id: 1, address: '192.0.2.1:8080' },
-            accessPoints: [{ address: '192.0.2.1', port: 8080, useSecureProtocol: true, type: 'control' }],
+            accessPoints: [{ address: '192.0.2.1', port: 8080, protocol: 'https', type: 'control' }],
             id: 1,
-        })
+        } as AnyDaemon)
         fixture.detectChanges()
         expect(authService.hasPrivilege).toHaveBeenCalled()
         const spanDE = fixture.debugElement.query(By.css('span#access-point-key'))
@@ -144,19 +139,19 @@ describe('AppOverviewComponent', () => {
         expect(spanDE.nativeElement.innerText).toBe('')
     })
 
-    it('should hide keys for non-BIND9 application', () => {
-        component.app = { type: 'kea' }
+    it('should hide keys for non-BIND9 daemon', () => {
+        component.daemon = { name: 'dhcp4' } as AnyDaemon
         expect(fixture.debugElement.query(By.directive(AccessPointKeyComponent))).toBeFalsy()
     })
 
-    it('should show keys for BIND9 application and super-admin user', () => {
+    it('should show keys for BIND9 daemon and super-admin user', () => {
         spyOn(authService, 'hasPrivilege').and.returnValue(true)
-        fixture.componentRef.setInput('app', {
-            type: 'bind9',
+        fixture.componentRef.setInput('daemon', {
+            name: 'named',
             machine: { id: 1, address: '192.0.2.1:8080' },
-            accessPoints: [{ address: '192.0.2.1', port: 8080, useSecureProtocol: true, type: 'control' }],
+            accessPoints: [{ address: '192.0.2.1', port: 8080, protocol: 'https', type: 'control' }],
             id: 1,
-        })
+        } as AnyDaemon)
         fixture.detectChanges()
         expect(authService.hasPrivilege).toHaveBeenCalled()
         expect(fixture.debugElement.query(By.directive(AccessPointKeyComponent))).toBeTruthy()

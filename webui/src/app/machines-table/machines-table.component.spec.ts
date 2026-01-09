@@ -70,40 +70,25 @@ describe('MachinesTableComponent', () => {
         address: 'addr zzz',
         authorized: true,
         hostname: 'new zzz',
-        apps: [
+        daemons: [
             {
+                active: true,
+                extendedVersion: '2.2.0',
                 id: 1,
-                name: 'kea@localhost',
-                type: 'kea',
-                details: {
-                    daemons: [
-                        {
-                            active: true,
-                            extendedVersion: '2.2.0',
-                            id: 1,
-                            name: 'dhcp4',
-                        },
-                        {
-                            active: false,
-                            extendedVersion: '2.3.0',
-                            id: 2,
-                            name: 'ca',
-                        },
-                    ],
-                },
+                name: 'dhcp4',
                 version: '2.2.0',
             },
             {
+                active: false,
+                extendedVersion: '2.3.0',
                 id: 2,
-                name: 'bind9@localhost',
-                type: 'bind9',
-                details: {
-                    daemon: {
-                        active: true,
-                        id: 3,
-                        name: 'named',
-                    },
-                },
+                name: 'ca',
+                version: '2.2.0',
+            },
+            {
+                active: true,
+                id: 3,
+                name: 'named',
                 version: '9.18.30',
             },
         ],
@@ -185,7 +170,7 @@ describe('MachinesTableComponent', () => {
         fixture.detectChanges()
 
         // Assert
-        expect(getMachinesSpy).toHaveBeenCalledOnceWith(0, 10, null, null, null, null, null)
+        expect(getMachinesSpy).toHaveBeenCalledOnceWith(0, 10, null, null, null, null)
         expect(component.dataCollection).toBe(getAllMachinesResp.items)
         expect(component.totalRecords).toBe(5)
         expect(servicesApi.getUnauthorizedMachinesCount).toHaveBeenCalledTimes(1)
@@ -211,7 +196,7 @@ describe('MachinesTableComponent', () => {
         fixture.detectChanges()
 
         // Assert
-        expect(getMachinesSpy).toHaveBeenCalledOnceWith(0, 10, null, null, null, null, null)
+        expect(getMachinesSpy).toHaveBeenCalledOnceWith(0, 10, null, null, null, null)
         expect(component.dataCollection).toEqual([])
         expect(component.totalRecords).toBe(0)
         expect(component.dataLoading).toBeFalse()
@@ -232,7 +217,7 @@ describe('MachinesTableComponent', () => {
         fixture.detectChanges()
 
         // Assert
-        expect(getMachinesSpy).toHaveBeenCalledOnceWith(100, 30, 'foo', null, true, null, null)
+        expect(getMachinesSpy).toHaveBeenCalledOnceWith(100, 30, 'foo', true, null, null)
         expect(servicesApi.getUnauthorizedMachinesCount).toHaveBeenCalledTimes(1)
         expect(component.unauthorizedMachinesCount).toBe(5)
         expect(unauthorizedMachinesCountChangeSpy).toHaveBeenCalledOnceWith(5)
@@ -371,7 +356,7 @@ describe('MachinesTableComponent', () => {
         fixture.detectChanges()
 
         // Assert
-        expect(getMachinesSpy).toHaveBeenCalledOnceWith(0, 10, null, null, null, null, null)
+        expect(getMachinesSpy).toHaveBeenCalledOnceWith(0, 10, null, null, null, null)
         expect(component.dataCollection).toEqual([])
         expect(component.totalRecords).toBeUndefined()
         expect(msgSpy).toHaveBeenCalledOnceWith(

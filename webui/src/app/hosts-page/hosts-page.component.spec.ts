@@ -161,8 +161,7 @@ describe('HostsPageComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 1,
-                        appName: 'frog',
+                        daemonId: 1,
                         dataSource: 'config',
                     },
                 ],
@@ -182,8 +181,7 @@ describe('HostsPageComponent', () => {
                 ],
                 localHosts: [
                     {
-                        appId: 2,
-                        appName: 'mouse',
+                        daemonId: 2,
                         dataSource: 'config',
                     },
                 ],
@@ -283,8 +281,8 @@ describe('HostsPageComponent', () => {
         //         ],
         //         localHosts: [
         //             {
-        //                 appId: 1,
-        //                 appName: 'frog',
+        //                 daemonId: 1,
+        //                 daemonName: 'dhcp4',
         //                 dataSource: 'config',
         //             },
         //         ],
@@ -304,8 +302,8 @@ describe('HostsPageComponent', () => {
         //         ],
         //         localHosts: [
         //             {
-        //                 appId: 2,
-        //                 appName: 'mouse',
+        //                 daemonId: 2,
+        //                 daemonName: 'dhcp4',
         //                 dataSource: 'config',
         //             },
         //         ],
@@ -365,13 +363,7 @@ describe('HostsPageComponent', () => {
                         address: '192.0.2.1',
                     },
                 ],
-                localHosts: [
-                    {
-                        appId: 1,
-                        appName: 'frog',
-                        dataSource: 'config',
-                    },
-                ],
+                localHosts: [{ daemonId: 1, dataSource: 'config' }],
             },
         ]
         fixture.detectChanges()
@@ -415,13 +407,7 @@ describe('HostsPageComponent', () => {
                     address: '192.0.2.1',
                 },
             ],
-            localHosts: [
-                {
-                    appId: 1,
-                    appName: 'frog',
-                    dataSource: 'config',
-                },
-            ],
+            localHosts: [{ daemonId: 1, dataSource: 'config' }],
         }
         // Do not initialize the hosts list. Instead, simulate returning the
         // host information from the server. The component should send the
@@ -864,13 +850,7 @@ describe('HostsPageComponent', () => {
                         address: '192.0.2.1',
                     },
                 ],
-                localHosts: [
-                    {
-                        appId: 1,
-                        appName: 'frog',
-                        dataSource: 'config',
-                    },
-                ],
+                localHosts: [{ daemonId: 1, dataSource: 'config' }],
             },
             {
                 id: 2,
@@ -885,13 +865,7 @@ describe('HostsPageComponent', () => {
                         address: '192.0.2.2',
                     },
                 ],
-                localHosts: [
-                    {
-                        appId: 2,
-                        appName: 'mouse',
-                        dataSource: 'config',
-                    },
-                ],
+                localHosts: [{ daemonId: 2, dataSource: 'config' }],
             },
         ]
         fixture.detectChanges()
@@ -965,28 +939,31 @@ describe('HostsPageComponent', () => {
         expect(breadcrumbsComponent.items[1].label).toEqual('Host Reservations')
     })
 
-    xit('should display error message when appId is invalid', fakeAsync(() => {
+    xit('should display error message when daemonId is invalid', fakeAsync(() => {
         // TODO: this test should be moved away from Karma tests.
-        component.hostsTable().hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hostsTable().hosts = [
+            { id: 1, localHosts: [{ daemonId: 1, dataSource: 'config' }] },
+        ]
         fixture.detectChanges()
 
         spyOn(dhcpApi, 'getHosts').and.callThrough()
 
-        // component.hostsTable().updateFilterFromQueryParameters(convertToParamMap({ appId: 'abc' }))
         tick()
         fixture.detectChanges()
 
         // Invalid filter should not be applied, so dhcpApi.getHosts should be called with the last valid filter.
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null, null, null)
 
         const errMsg = fixture.debugElement.query(By.css('.p-error'))
         expect(errMsg).toBeTruthy()
-        expect(errMsg.nativeElement.innerText).toBe('Please specify appId as a number (e.g., appId=4).')
+        expect(errMsg.nativeElement.innerText).toBe('Please specify daemonId as a number (e.g., daemonId=4).')
     }))
 
     xit('should display error message when subnetId is invalid', fakeAsync(() => {
         // TODO: this test should be moved away from Karma tests.
-        component.hostsTable().hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hostsTable().hosts = [
+            { id: 1, localHosts: [{ daemonId: 1, dataSource: 'config' }] },
+        ]
         fixture.detectChanges()
 
         spyOn(dhcpApi, 'getHosts').and.callThrough()
@@ -997,7 +974,7 @@ describe('HostsPageComponent', () => {
         fixture.detectChanges()
 
         // Invalid filter should not be applied, so dhcpApi.getHosts should be called with the last valid filter.
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null, null, null)
 
         const errMsg = fixture.debugElement.query(By.css('.p-error'))
         expect(errMsg).toBeTruthy()
@@ -1006,7 +983,9 @@ describe('HostsPageComponent', () => {
 
     xit('should display error message when keaSubnetId is invalid', fakeAsync(() => {
         // TODO: this test should be moved away from Karma tests.
-        component.hostsTable().hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hostsTable().hosts = [
+            { id: 1, localHosts: [{ daemonId: 1, dataSource: 'config' }] },
+        ]
         fixture.detectChanges()
 
         spyOn(dhcpApi, 'getHosts').and.callThrough()
@@ -1017,7 +996,7 @@ describe('HostsPageComponent', () => {
         fixture.detectChanges()
 
         // Invalid filter should not be applied, so dhcpApi.getHosts should be called with the last valid filter.
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null, null, null)
 
         const errMsg = fixture.debugElement.query(By.css('.p-error'))
         expect(errMsg).toBeTruthy()
@@ -1026,7 +1005,9 @@ describe('HostsPageComponent', () => {
 
     xit('should display multiple error message for each invalid value', fakeAsync(() => {
         // TODO: this test should be moved away from Karma tests.
-        component.hostsTable().hosts = [{ id: 1, localHosts: [{ appId: 1, appName: 'frog', dataSource: 'config' }] }]
+        component.hostsTable().hosts = [
+            { id: 1, localHosts: [{ daemonId: 1, dataSource: 'config' }] },
+        ]
         fixture.detectChanges()
 
         spyOn(dhcpApi, 'getHosts').and.callThrough()
@@ -1034,75 +1015,53 @@ describe('HostsPageComponent', () => {
         // component.hostsTable().queryParamNumericKeys = ['subnetId']
         // component.hostsTable().queryParamBooleanKeys = ['isGlobal']
         // component.hostsTable().updateFilterFromQueryParameters(
-        //     convertToParamMap({ appId: 'foo', subnetId: 'bar', isGlobal: 'tru' })
+        //     convertToParamMap({ daemonId: 'foo', subnetId: 'bar', isGlobal: 'tru' })
         // )
 
         tick()
         fixture.detectChanges()
 
         // Invalid filter should not be applied, so dhcpApi.getHosts should be called with the last valid filter.
-        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null)
+        expect(dhcpApi.getHosts).toHaveBeenCalledWith(0, 10, null, null, null, null, null, null, null, null)
 
         const errMsgs = fixture.debugElement.queryAll(By.css('.p-error'))
         expect(errMsgs.length).toBe(3)
     }))
 
-    it('should group the local hosts by appId', () => {
+    it('should group the local hosts by daemonId', () => {
         const host = {
             id: 42,
             localHosts: [
-                {
-                    appId: 3,
-                    daemonId: 31,
-                },
-                {
-                    appId: 3,
-                    daemonId: 32,
-                },
-                {
-                    appId: 3,
-                    daemonId: 33,
-                },
-                {
-                    appId: 2,
-                    daemonId: 21,
-                },
-                {
-                    appId: 2,
-                    daemonId: 22,
-                },
-                {
-                    appId: 1,
-                    daemonId: 11,
-                },
+                { daemonId: 31 },
+                { daemonId: 32 },
+                { daemonId: 33 },
+                { daemonId: 21 },
+                { daemonId: 22 },
+                { daemonId: 11 },
             ],
         } as Host
 
         component.hostsTable().hosts = [host]
-        const groups = component.hostsTable().localHostsGroupedByApp[host.id]
+        const groups = component.hostsTable().localHostsGroupedByDaemon[host.id]
 
-        expect(groups.length).toBe(3)
-        for (let group of groups) {
-            expect(group.length).toBeGreaterThanOrEqual(1)
-            const appId = group[0].appId
-            expect(group.length).toBe(appId)
-            for (let item of group) {
-                expect(item.daemonId).toBeGreaterThan(10 * appId)
-                expect(item.daemonId).toBeLessThan(10 * (appId + 1))
-            }
-        }
+        expect(groups.length).toBe(6)
+        const daemonIds = groups.map((g) => g[0].daemonId).sort()
+        expect(daemonIds).toEqual([11, 21, 22, 31, 32, 33])
+
+        const groupByDaemon = Object.fromEntries(groups.map((g) => [g[0].daemonId, g]))
+        expect(groupByDaemon[31].length).toBe(1)
+        expect(groupByDaemon[21].length).toBe(1)
+        expect(groupByDaemon[11].length).toBe(1)
     })
 
     it('should recognize the state of local hosts', () => {
         // Conflict
         let localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },
             {
-                appId: 1,
                 daemonId: 2,
                 nextServer: 'bar',
             },
@@ -1114,12 +1073,10 @@ describe('HostsPageComponent', () => {
         // Duplicate
         localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },
             {
-                appId: 1,
                 daemonId: 2,
                 nextServer: 'foo',
             },
@@ -1131,7 +1088,6 @@ describe('HostsPageComponent', () => {
         // Null
         localHosts = [
             {
-                appId: 1,
                 daemonId: 1,
                 nextServer: 'foo',
             },

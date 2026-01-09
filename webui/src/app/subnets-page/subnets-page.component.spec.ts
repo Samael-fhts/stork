@@ -171,8 +171,8 @@ describe('SubnetsPageComponent', () => {
                         id: 5,
                         localSubnets: [
                             {
-                                appId: 27,
-                                appName: 'kea@localhost',
+                                daemonId: 27,
+                                daemonName: "dhcp4",
                                 id: 1,
                                 machineAddress: 'localhost',
                                 machineHostname: 'lv-pc',
@@ -183,8 +183,8 @@ describe('SubnetsPageComponent', () => {
                                 ],
                             },
                             {
-                                appId: 28,
-                                appName: 'kea2@localhost',
+                                daemonId: 28,
+                                daemonName: "dhcp4",
                                 // Misconfiguration,  all local subnets in a
                                 // subnet should share the same subnet ID. In
                                 // this case, we display a value from the first
@@ -214,8 +214,8 @@ describe('SubnetsPageComponent', () => {
                         id: 42,
                         localSubnets: [
                             {
-                                appId: 27,
-                                appName: 'kea@localhost',
+                                daemonId: 27,
+                                daemonName: "dhcp4",
                                 machineAddress: 'localhost',
                                 machineHostname: 'lv-pc',
                                 pools: [
@@ -233,22 +233,22 @@ describe('SubnetsPageComponent', () => {
                         localSubnets: [
                             {
                                 id: 4,
-                                appId: 28,
-                                appName: 'ha@localhost',
+                                daemonId: 28,
+                                daemonName: "dhcp4",
                                 machineAddress: 'localhost',
                                 machineHostname: 'ha-cluster-1',
                             },
                             {
                                 id: 4,
-                                appId: 28,
-                                appName: 'ha@localhost',
+                                daemonId: 28,
+                                daemonName: "dhcp4",
                                 machineAddress: 'localhost',
                                 machineHostname: 'ha-cluster-2',
                             },
                             {
                                 id: 4,
-                                appId: 28,
-                                appName: 'ha@localhost',
+                                daemonId: 28,
+                                daemonName: "dhcp4",
                                 machineAddress: 'localhost',
                                 machineHostname: 'ha-cluster-3',
                             },
@@ -266,8 +266,8 @@ describe('SubnetsPageComponent', () => {
                         id: 5,
                         localSubnets: [
                             {
-                                appId: 28,
-                                appName: 'kea2@localhost',
+                                daemonId: 28,
+                                daemonName: "dhcp4",
                                 id: 2,
                                 machineAddress: 'host',
                                 machineHostname: 'lv-pc2',
@@ -303,7 +303,7 @@ describe('SubnetsPageComponent', () => {
                     {
                         id: 123,
                         daemonId: 1,
-                        appName: 'server 1',
+                        daemonName: "dhcp4",
                         pools: [],
                         keaConfigSubnetParameters: {
                             subnetLevelParameters: {
@@ -473,7 +473,7 @@ describe('SubnetsPageComponent', () => {
                 {
                     id: 123,
                     daemonId: 1,
-                    appName: 'server 1',
+                    daemonName: "dhcp4",
                     pools: [],
                     keaConfigSubnetParameters: {
                         subnetLevelParameters: {
@@ -533,7 +533,7 @@ describe('SubnetsPageComponent', () => {
                 {
                     id: 123,
                     daemonId: 1,
-                    appName: 'server 1',
+                    daemonName: "dhcp4",
                     pools: [],
                     keaConfigSubnetParameters: {
                         subnetLevelParameters: {
@@ -906,7 +906,7 @@ describe('SubnetsPageComponent', () => {
                 {
                     id: 123,
                     daemonId: 1,
-                    appName: 'server 1',
+                    daemonName: "dhcp4",
                     pools: [],
                     keaConfigSubnetParameters: {
                         subnetLevelParameters: {

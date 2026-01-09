@@ -4,6 +4,8 @@ import { ToastMessageOptions, MessageService } from 'primeng/api'
 import { EventStream, ServerSentEventsService } from '../server-sent-events.service'
 import { Subscription, filter, lastValueFrom, map } from 'rxjs'
 import { formatNoun, getErrorMessage } from '../utils'
+import { Message } from 'primeng/message'
+import { RouterLink } from '@angular/router'
 
 /**
  * A panel displaying important messages using the events system.
@@ -15,9 +17,9 @@ import { formatNoun, getErrorMessage } from '../utils'
  */
 @Component({
     selector: 'app-priority-errors-panel',
-    standalone: false,
     templateUrl: './priority-errors-panel.component.html',
     styleUrls: ['./priority-errors-panel.component.sass'],
+    standalone: false,
 })
 export class PriorityErrorsPanelComponent implements OnInit, OnDestroy {
     /**
@@ -73,7 +75,7 @@ export class PriorityErrorsPanelComponent implements OnInit, OnDestroy {
     ngOnInit(): void {
         // Send the requests to the server to check the current situation.
         // Subscribe to the events when we're done with all the requests.
-        Promise.all([this.getAppsWithCommunicationIssues(), this.getUnauthorizedMachinesCount()]).then(() => {
+        Promise.all([this.getDaemonsWithCommunicationIssues(), this.getUnauthorizedMachinesCount()]).then(() => {
             this.subscribe()
         })
     }
@@ -151,10 +153,10 @@ export class PriorityErrorsPanelComponent implements OnInit, OnDestroy {
      *
      * @returns A promise resolved when the communication completes.
      */
-    async getAppsWithCommunicationIssues(): Promise<void> {
+    async getDaemonsWithCommunicationIssues(): Promise<void> {
         try {
             try {
-                const data = await lastValueFrom(this.servicesApi.getAppsWithCommunicationIssues())
+                const data = await lastValueFrom(this.servicesApi.getDaemonsWithCommunicationIssues())
                 if (data.total > 0) {
                     this.connectivityIssuesCount.set(data.total)
                     const message: ToastMessageOptions = {
@@ -179,7 +181,7 @@ export class PriorityErrorsPanelComponent implements OnInit, OnDestroy {
         } finally {
             // Use a backoff mechanism with a timeout.
             this.setBackoff(EventStream.Connectivity, true)
-            this.setBackoffTimeout(EventStream.Connectivity, () => this.getAppsWithCommunicationIssues())
+            this.setBackoffTimeout(EventStream.Connectivity, () => this.getDaemonsWithCommunicationIssues())
         }
     }
 
@@ -244,7 +246,7 @@ export class PriorityErrorsPanelComponent implements OnInit, OnDestroy {
             )
             .subscribe((stream) => {
                 if (stream === EventStream.All || stream === EventStream.Connectivity) {
-                    this.runConditionally(EventStream.Connectivity, () => this.getAppsWithCommunicationIssues())
+                    this.runConditionally(EventStream.Connectivity, () => this.getDaemonsWithCommunicationIssues())
                 }
                 if (stream === EventStream.All || stream === EventStream.Registration) {
                     this.runConditionally(EventStream.Registration, () => this.getUnauthorizedMachinesCount())

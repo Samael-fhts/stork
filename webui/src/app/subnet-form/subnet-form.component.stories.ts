@@ -39,41 +39,26 @@ let mockCreateSubnetBeginData: CreateSubnetBeginResponse = {
         {
             id: 1,
             name: 'dhcp4',
-            app: {
-                name: 'first',
-            },
             version: '2.7.8',
         },
         {
             id: 3,
             name: 'dhcp6',
-            app: {
-                name: 'first',
-            },
             version: '2.7.8',
         },
         {
             id: 2,
             name: 'dhcp4',
-            app: {
-                name: 'second',
-            },
             version: '2.6.0',
         },
         {
             id: 4,
             name: 'dhcp6',
-            app: {
-                name: 'second',
-            },
             version: '2.7.8',
         },
         {
             id: 5,
             name: 'dhcp6',
-            app: {
-                name: 'third',
-            },
             version: '2.7.8',
         },
     ],
@@ -122,11 +107,8 @@ let mockUpdateSubnet4BeginData: UpdateSubnetBeginResponse = {
         localSubnets: [
             {
                 id: 123,
-                appId: 234,
                 daemonId: 1,
-                appName: 'server 1',
-                machineAddress: '10.1.1.1.',
-                machineHostname: 'myhost.example.org',
+                daemonName: 'dhcp4',
                 pools: [
                     {
                         pool: '192.0.2.10-192.0.2.100',
@@ -179,11 +161,8 @@ let mockUpdateSubnet4BeginData: UpdateSubnetBeginResponse = {
             },
             {
                 id: 123,
-                appId: 234,
                 daemonId: 2,
-                appName: 'server 2',
-                machineAddress: '10.1.1.1.',
-                machineHostname: 'myhost.example.org',
+                daemonName: 'dhcp4',
                 pools: [
                     {
                         pool: '192.0.2.10-192.0.2.100',
@@ -223,41 +202,26 @@ let mockUpdateSubnet4BeginData: UpdateSubnetBeginResponse = {
         {
             id: 1,
             name: 'dhcp4',
-            app: {
-                name: 'first',
-            },
             version: '2.7.8',
         },
         {
             id: 3,
             name: 'dhcp6',
-            app: {
-                name: 'first',
-            },
             version: '2.7.8',
         },
         {
             id: 2,
             name: 'dhcp4',
-            app: {
-                name: 'second',
-            },
             version: '2.6.0',
         },
         {
             id: 4,
             name: 'dhcp6',
-            app: {
-                name: 'second',
-            },
             version: '2.7.8',
         },
         {
             id: 5,
             name: 'dhcp6',
-            app: {
-                name: 'third',
-            },
             version: '2.7.8',
         },
     ],
@@ -305,11 +269,8 @@ let mockUpdateSubnet6BeginData: UpdateSubnetBeginResponse = {
         localSubnets: [
             {
                 id: 234,
-                appId: 345,
                 daemonId: 3,
-                appName: 'server 1',
-                machineAddress: '10.1.1.1',
-                machineHostname: 'myhost.example.org',
+                daemonName: 'dhcp4',
                 pools: [
                     {
                         pool: '2001:db8:1::10-2001:db8:1::100',
@@ -352,11 +313,8 @@ let mockUpdateSubnet6BeginData: UpdateSubnetBeginResponse = {
             },
             {
                 id: 345,
-                appId: 456,
                 daemonId: 4,
-                appName: 'server 2',
-                machineAddress: '10.1.1.1.',
-                machineHostname: 'myhost.example.org',
+                daemonName: 'dhcp4',
                 pools: [
                     {
                         pool: '2001:db8:1::10-2001:db8:1::100',
@@ -403,41 +361,26 @@ let mockUpdateSubnet6BeginData: UpdateSubnetBeginResponse = {
         {
             id: 1,
             name: 'dhcp4',
-            app: {
-                name: 'first',
-            },
             version: '2.7.8',
         },
         {
             id: 3,
             name: 'dhcp6',
-            app: {
-                name: 'first',
-            },
             version: '2.7.8',
         },
         {
             id: 2,
             name: 'dhcp4',
-            app: {
-                name: 'second',
-            },
             version: '2.5.0',
         },
         {
             id: 4,
             name: 'dhcp6',
-            app: {
-                name: 'second',
-            },
             version: '2.7.8',
         },
         {
             id: 5,
             name: 'dhcp6',
-            app: {
-                name: 'third',
-            },
             version: '2.7.8',
         },
     ],

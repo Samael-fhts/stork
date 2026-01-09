@@ -11,6 +11,7 @@ import { ButtonModule } from 'primeng/button'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
 import { SharedModule } from 'primeng/api'
 import { EntityLinkComponent } from '../entity-link/entity-link.component'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 
 describe('LogViewPageComponent', () => {
@@ -19,7 +20,7 @@ describe('LogViewPageComponent', () => {
 
     beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
-            declarations: [LogViewPageComponent, EntityLinkComponent],
+            declarations: [LogViewPageComponent, EntityLinkComponent, DaemonNiceNamePipe],
             imports: [
                 PanelModule,
                 NoopAnimationsModule,
@@ -53,15 +54,17 @@ describe('LogViewPageComponent', () => {
         expect(component).toBeTruthy()
     })
 
-    it('should include app link', () => {
+    it('should include daemon link', () => {
         component.loaded = true
         component.data = { logTargetOutput: '/tmp/xyz', machine: { id: 1 } }
-        component.appName = 'fantastic-app'
+        component.daemonName = 'fantastic-daemon'
+        component.daemonId = 15
         fixture.detectChanges()
-        const appLink = fixture.debugElement.query(By.css('#app-link'))
-        const appLinkComponent = appLink.componentInstance
-        expect(appLinkComponent).toBeDefined()
-        expect(appLinkComponent.attrs.hasOwnProperty('name')).toBeTrue()
-        expect(appLinkComponent.attrs.name).toEqual('fantastic-app')
+        const daemonLink = fixture.debugElement.query(By.css('#daemon-link'))
+        const daemonLinkComponent = daemonLink.componentInstance
+        expect(daemonLinkComponent).toBeDefined()
+        expect(daemonLinkComponent.attrs.hasOwnProperty('name')).toBeTrue()
+        expect(daemonLinkComponent.attrs.name).toEqual('fantastic-daemon')
+        expect(daemonLinkComponent.attrs.id).toEqual(15)
     })
 })

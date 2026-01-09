@@ -17,6 +17,7 @@ import { ButtonModule } from 'primeng/button'
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
 import { BreadcrumbModule } from 'primeng/breadcrumb'
 import { provideRouter, RouterModule } from '@angular/router'
+import { of } from 'rxjs'
 
 let mockGetAppsWithCommunicationIssues = {
     items: [
@@ -228,7 +229,7 @@ let mockGetAppsWithCommunicationIssues = {
                     id: 6,
                     monitored: true,
                     name: 'named',
-                    rndcCommErrors: 4,
+                        daemonCommErrors: 4,
                 },
             },
             id: 6,
@@ -262,7 +263,7 @@ let mockGetAppsWithCommunicationIssues = {
                     monitored: true,
                     name: 'named',
                     statsCommErrors: 7,
-                },
+            getDaemonsWithCommunicationIssues: () => of(mockGetAppsWithCommunicationIssues),
             },
             id: 7,
             machine: {
@@ -312,7 +313,7 @@ export default {
     parameters: {
         mockData: [
             {
-                url: 'http://localhost/api/apps/communication-issues',
+                url: 'http://localhost/api/daemons/communication-issues',
                 method: 'GET',
                 status: 200,
                 delay: 2000,

@@ -30,11 +30,10 @@ import { DhcpOptionSetViewComponent } from '../dhcp-option-set-view/dhcp-option-
 import { TreeModule } from 'primeng/tree'
 import { TagModule } from 'primeng/tag'
 import { FloatLabelModule } from 'primeng/floatlabel'
+import { KeaDaemonConfig } from '../backend'
 
-const mockGetDaemonConfig = {
-    appName: 'kea-server',
-    appType: 'kea',
-    appId: 1,
+const mockGetDaemonConfig: KeaDaemonConfig = {
+    daemonId: 1,
     daemonName: 'dhcp4',
     config: {
         Dhcp4: {
@@ -290,9 +289,7 @@ export const Empty: Story = {
                 status: 200,
                 delay: 2000,
                 response: {
-                    appName: 'kea-server',
-                    appType: 'kea',
-                    appId: 1,
+                    daemonId: 1,
                     daemonName: 'dhcp4',
                     config: {},
                     options: {},

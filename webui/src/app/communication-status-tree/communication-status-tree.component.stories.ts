@@ -242,7 +242,7 @@ export const IssuesTree: Story = {
                         id: 6,
                         monitored: true,
                         name: 'named',
-                        rndcCommErrors: 4,
+                            daemonCommErrors: 4,
                     },
                 },
                 id: 6,

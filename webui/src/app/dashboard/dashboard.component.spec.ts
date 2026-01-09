@@ -4,7 +4,6 @@ import { DashboardComponent } from './dashboard.component'
 import { PanelModule } from 'primeng/panel'
 import { ButtonModule } from 'primeng/button'
 import {
-    AppsStats,
     AppsVersions,
     DhcpOverview,
     DHCPService,
@@ -125,16 +124,15 @@ describe('DashboardComponent', () => {
             },
             dhcpDaemons: [
                 {
+                    id: 27,
                     active: true,
                     agentCommErrors: 6,
-                    appId: 27,
-                    appName: 'kea@localhost',
-                    appVersion: '2.0.0',
                     haOverview: [],
-                    machine: 'pc',
+                    machine: { id: 15, address: 'pc' },
                     machineId: 15,
                     monitored: true,
                     name: 'dhcp4',
+                    version: '2.0.0',
                     uptime: 3652,
                     rps1: 1.5212,
                     rps2: 0.3458,
@@ -167,11 +165,9 @@ describe('DashboardComponent', () => {
                         id: 5,
                         localSubnets: [
                             {
-                                appId: 27,
-                                appName: 'kea@localhost',
+                                daemonId: 27,
+                                daemonName: "dhcp4",
                                 id: 41,
-                                machineAddress: 'localhost',
-                                machineHostname: 'pc',
                                 pools: [
                                     {
                                         pool: '1.0.0.4-1.0.255.254',
@@ -198,10 +194,8 @@ describe('DashboardComponent', () => {
                         id: 6,
                         localSubnets: [
                             {
-                                appId: 27,
-                                appName: 'kea@localhost',
-                                machineAddress: 'localhost',
-                                machineHostname: 'pc',
+                                daemonId: 27,
+                                daemonName: "dhcp4",
                                 pools: [
                                     {
                                         pool: '10.3::1-10.3::100',
@@ -225,67 +219,56 @@ describe('DashboardComponent', () => {
         }
 
         spyOn(dhcpService, 'getDhcpOverview').and.returnValues(of({} as any), of(fakeOverview as any))
-        spyOn(dataService, 'getAppsStats').and.returnValue(
-            of({
-                keaAppsTotal: 1,
-                dnsAppsNotOk: 0,
-                dnsAppsTotal: 1,
-                keaAppsNotOk: 0,
-            } as AppsStats)
+            spyOn(dataService, 'getDaemonsStats').and.returnValue(
+                of({
+                    dhcpDaemonsTotal: 2,
+                    dnsDaemonsTotal: 1,
+                    dhcpDaemonsNotOk: 1,
+                    dnsDaemonsNotOk: 0,
+                } as DaemonsStats)
         )
 
-        const zonesFetchStatusResponse = {
+        const zonesFetchStatusResponse: ZoneInventoryStates = {
             items: [
                 {
-                    appId: 11,
-                    appName: 'bind9@agent-bind9',
-                    builtinZoneCount: 104,
+                    builtinZonesCount: 104,
                     createdAt: '2025-04-14T13:09:06.460Z',
                     daemonId: 27,
-                    distinctZoneCount: 106,
+                    distinctZonesCount: 106,
                     status: 'ok',
-                    zoneCount: 206,
+                    zoneConfigsCount: 206,
                 },
             ],
             total: 1,
         }
-        spyOn(dnsService, 'getZonesFetch').and.returnValue(of(zonesFetchStatusResponse as any))
-        const appsResponse = {
-            items: [
-                {
-                    accessPoints: [
-                        { address: '127.0.0.1', port: 953, type: 'control' },
-                        { address: '127.0.0.1', port: 8053, type: 'statistics' },
-                    ],
-                    details: {
-                        daemons: [],
-                        daemon: {
-                            active: true,
-                            agentCommErrors: 200,
-                            autoZoneCount: 200,
-                            id: 27,
-                            monitored: true,
-                            name: 'named',
-                            reloadedAt: '2025-04-12T11:58:41.000Z',
-                            uptime: 5356,
-                            version: 'BIND 9.18.35 (Extended Support Version) <id:f506f80>',
-                            views: [
-                                { name: 'guest', queryHits: 0, queryMisses: 0 },
-                                { name: 'trusted', queryHits: 0, queryMisses: 0 },
-                            ],
-                            zoneCount: 4,
-                        },
+            spyOn(dnsService, 'getZonesFetch').and.returnValue(of(zonesFetchStatusResponse as any))
+            const daemonsResponse = {
+                items: [
+                    {
+                        accessPoints: [
+                            { address: '127.0.0.1', port: 953, type: 'control' },
+                            { address: '127.0.0.1', port: 8053, type: 'statistics' },
+                        ],
+                        active: true,
+                        agentCommErrors: 200,
+                        autoZoneCount: 200,
+                        id: 27,
+                        monitored: true,
+                        name: 'bind9',
+                        reloadedAt: '2025-04-12T11:58:41.000Z',
+                        uptime: 5356,
+                        version: 'BIND 9.18.35 (Extended Support Version) <id:f506f80>',
+                        views: [
+                            { name: 'guest', queryHits: 0, queryMisses: 0 },
+                            { name: 'trusted', queryHits: 0, queryMisses: 0 },
+                        ],
+                        zoneCount: 4,
+                        machine: { address: 'agent-bind9', hostname: 'agent-bind9', id: 15 },
                     },
-                    id: 11,
-                    machine: { address: 'agent-bind9', hostname: 'agent-bind9', id: 15 },
-                    name: 'bind9@agent-bind9',
-                    type: 'bind9',
-                    version: 'BIND 9.18.35 (Extended Support Version) <id:f506f80>',
-                },
-            ],
-            total: 1,
-        }
-        spyOn(servicesApi, 'getApps').and.returnValue(of(appsResponse as any))
+                ],
+                total: 1,
+            }
+            spyOn(servicesApi, 'getDaemons').and.returnValue(of(daemonsResponse as any))
 
         fixture = TestBed.createComponent(DashboardComponent)
         component = fixture.componentInstance
@@ -570,27 +553,27 @@ describe('DashboardComponent', () => {
         expect(versionStatus[0].properties.outerHTML).toContain('test feedback')
     })
 
-    it('should return whether both dhcp and dns apps exist', () => {
-        component.appsStats.keaAppsTotal = 0
-        component.appsStats.dnsAppsTotal = 0
-        expect(component.appsStats.keaAppsTotal).toBe(0)
-        expect(component.appsStats.dnsAppsTotal).toBe(0)
-        expect(component.bothDHCPAndDNSAppsExist)
-            .withContext('in the beginning there are no dhcp nor dns apps')
+    it('should return whether both dhcp and dns daemons exist', () => {
+        component.stats.dhcpDaemonsTotal = 0
+        component.stats.dnsDaemonsTotal = 0
+        expect(component.stats.dhcpDaemonsTotal).toBe(0)
+        expect(component.stats.dnsDaemonsTotal).toBe(0)
+        expect(component.bothDHCPAndDNSDaemonsExist)
+            .withContext('in the beginning there are no dhcp nor dns daemons')
             .toBeFalse()
-        component.appsStats.dnsAppsTotal = 2
-        expect(component.bothDHCPAndDNSAppsExist).withContext('only dns apps exist').toBeFalse()
-        component.appsStats.dnsAppsTotal = 0
-        component.appsStats.keaAppsTotal = 2
-        expect(component.bothDHCPAndDNSAppsExist).withContext('only dhcp apps exist').toBeFalse()
-        component.appsStats.dnsAppsTotal = 2
-        expect(component.bothDHCPAndDNSAppsExist).withContext('both dhcp and dns apps exist').toBeTrue()
+        component.stats.dnsDaemonsTotal = 2
+        expect(component.bothDHCPAndDNSDaemonsExist).withContext('only dns daemons exist').toBeFalse()
+        component.stats.dnsDaemonsTotal = 0
+        component.stats.dhcpDaemonsTotal = 2
+        expect(component.bothDHCPAndDNSDaemonsExist).withContext('only dhcp daemons exist').toBeFalse()
+        component.stats.dnsDaemonsTotal = 2
+        expect(component.bothDHCPAndDNSDaemonsExist).withContext('both dhcp and dns daemons exist').toBeTrue()
     })
 
     it('should return that both dhcp and dns dashboards are hidden', () => {
         localStorage.clear()
-        expect(component.appsStats.keaAppsTotal).toBe(1)
-        expect(component.appsStats.dnsAppsTotal).toBe(1)
+        expect(component.stats.dhcpDaemonsTotal).toBe(2)
+        expect(component.stats.dnsDaemonsTotal).toBe(1)
         expect(localStorage.getItem('dns-dashboard-hidden'))
             .withContext('there should be no state stored in local storage yet')
             .toBeNull()
@@ -603,8 +586,8 @@ describe('DashboardComponent', () => {
 
     it('should return that one dashboard is not hidden', () => {
         localStorage.clear()
-        component.appsStats.keaAppsTotal = 2
-        component.appsStats.dnsAppsTotal = 0
+        component.stats.dhcpDaemonsTotal = 2
+        component.stats.dnsDaemonsTotal = 0
         expect(localStorage.getItem('dns-dashboard-hidden'))
             .withContext('there should be no state stored in local storage yet')
             .toBeNull()
@@ -620,8 +603,8 @@ describe('DashboardComponent', () => {
         expect(expandedDashboardPanels.length).toBe(1)
         expect(expandedDashboardPanels[0].nativeElement.innerText).toContain('DHCP Dashboard')
 
-        component.appsStats.keaAppsTotal = 0
-        component.appsStats.dnsAppsTotal = 2
+        component.stats.dhcpDaemonsTotal = 0
+        component.stats.dnsDaemonsTotal = 2
         expect(component.isDNSDashboardHidden()).toBeFalse()
         fixture.detectChanges()
         expandedDashboardPanels = fixture.debugElement.queryAll(By.css('.p-panel.p-panel-toggleable.p-panel-expanded'))

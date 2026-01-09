@@ -20,6 +20,8 @@ import { ServerSentEventsService, ServerSentEventsTestingService } from '../serv
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { provideRouter, RouterModule } from '@angular/router'
+import { ConfirmationService } from 'primeng/api'
+import { CommonModule } from '@angular/common'
 
 describe('EventsPageComponent', () => {
     let component: EventsPageComponent
@@ -35,6 +37,7 @@ describe('EventsPageComponent', () => {
                 HelpTipComponent,
             ],
             imports: [
+                CommonModule,
                 FormsModule,
                 SelectButtonModule,
                 ButtonModule,
@@ -47,6 +50,7 @@ describe('EventsPageComponent', () => {
                 RouterModule,
             ],
             providers: [
+                ConfirmationService,
                 EventsService,
                 MessageService,
                 { provide: ServerSentEventsService, useClass: ServerSentEventsTestingService },

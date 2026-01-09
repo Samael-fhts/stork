@@ -1,10 +1,26 @@
 import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core'
 import { SharedNetworkWithUniquePools, hasDifferentLocalSharedNetworkOptions } from '../subnets'
-import { NamedCascadedParameters } from '../cascaded-parameters-board/cascaded-parameters-board.component'
+import {
+    NamedCascadedParameters,
+    CascadedParametersBoardComponent,
+} from '../cascaded-parameters-board/cascaded-parameters-board.component'
 import { DHCPOption, DHCPService, KeaConfigSubnetDerivedParameters, SharedNetwork } from '../backend'
 import { ConfirmationService, MessageService } from 'primeng/api'
 import { lastValueFrom } from 'rxjs'
-import { getErrorMessage } from '../utils'
+import { daemonNameToFriendlyName, getErrorMessage } from '../utils'
+import { ConfirmDialog } from 'primeng/confirmdialog'
+import { NgIf, NgFor } from '@angular/common'
+import { HelpTipComponent } from '../help-tip/help-tip.component'
+import { Button } from 'primeng/button'
+import { ManagedAccessDirective } from '../managed-access.directive'
+import { Fieldset } from 'primeng/fieldset'
+import { TableModule } from 'primeng/table'
+import { EntityLinkComponent } from '../entity-link/entity-link.component'
+import { SubnetBarComponent } from '../subnet-bar/subnet-bar.component'
+import { PoolBarsComponent } from '../pool-bars/pool-bars.component'
+import { UtilizationStatsChartsComponent } from '../utilization-stats-charts/utilization-stats-charts.component'
+import { RouterLink } from '@angular/router'
+import { DhcpOptionSetViewComponent } from '../dhcp-option-set-view/dhcp-option-set-view.component'
 
 @Component({
     selector: 'app-shared-network-tab',
@@ -75,7 +91,7 @@ export class SharedNetworkTabComponent implements OnInit {
         if (this.sharedNetwork?.localSharedNetworks) {
             for (let ls of this.sharedNetwork.localSharedNetworks) {
                 this.dhcpParameters.push({
-                    name: ls.appName,
+                    name: daemonNameToFriendlyName(ls.daemonName),
                     parameters: [
                         ls.keaConfigSharedNetworkParameters?.sharedNetworkLevelParameters,
                         ls.keaConfigSharedNetworkParameters?.globalParameters,
