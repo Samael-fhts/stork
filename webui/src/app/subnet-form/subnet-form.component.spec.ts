@@ -17,6 +17,7 @@ describe('SubnetFormComponent', () => {
     let dhcpApi: DHCPService
     let messageService: MessageService
 
+    // TODO: This structure doesn't implement CreateSubnetBeginResponse.
     let cannedResponseBeginSubnet4: any = {
         id: 123,
         subnet: {
@@ -27,9 +28,8 @@ describe('SubnetFormComponent', () => {
             localSubnets: [
                 {
                     id: 123,
-                    appId: 234,
                     daemonId: 1,
-                    appName: 'server 1',
+                    daemonName: 'dhcp4',
                     machineAddress: '10.1.1.1.',
                     machineHostname: 'myhost.example.org',
                     pools: [
@@ -73,9 +73,8 @@ describe('SubnetFormComponent', () => {
                 },
                 {
                     id: 123,
-                    appId: 234,
                     daemonId: 2,
-                    appName: 'server 2',
+                    daemonName: 'dhcp4',
                     machineAddress: '10.1.1.1.',
                     machineHostname: 'myhost.example.org',
                     pools: [
@@ -121,39 +120,24 @@ describe('SubnetFormComponent', () => {
             {
                 id: 1,
                 name: 'dhcp4',
-                app: {
-                    name: 'first',
-                },
                 version: '2.7.4',
             },
             {
                 id: 3,
                 name: 'dhcp6',
-                app: {
-                    name: 'first',
-                },
             },
             {
                 id: 2,
                 name: 'dhcp4',
-                app: {
-                    name: 'second',
-                },
                 version: '2.7.3',
             },
             {
                 id: 4,
                 name: 'dhcp6',
-                app: {
-                    name: 'second',
-                },
             },
             {
                 id: 5,
                 name: 'dhcp6',
-                app: {
-                    name: 'third',
-                },
             },
         ],
         sharedNetworks4: [
@@ -191,6 +175,7 @@ describe('SubnetFormComponent', () => {
         sharedNetworks6: [],
     }
 
+    // TODO: This structure doesn't implement CreateSubnetBeginResponse.
     let cannedResponseBeginSubnet6: any = {
         id: 345,
         subnet: {
@@ -199,9 +184,8 @@ describe('SubnetFormComponent', () => {
             localSubnets: [
                 {
                     id: 234,
-                    appId: 345,
                     daemonId: 3,
-                    appName: 'server 1',
+                    daemonName: 'dhcp6',
                     machineAddress: '10.1.1.1',
                     machineHostname: 'myhost.example.org',
                     pools: [
@@ -252,9 +236,8 @@ describe('SubnetFormComponent', () => {
                 },
                 {
                     id: 345,
-                    appId: 456,
                     daemonId: 4,
-                    appName: 'server 2',
+                    daemonName: 'dhcp6',
                     machineAddress: '10.1.1.1.',
                     machineHostname: 'myhost.example.org',
                     pools: [
@@ -307,39 +290,24 @@ describe('SubnetFormComponent', () => {
             {
                 id: 1,
                 name: 'dhcp4',
-                app: {
-                    name: 'first',
-                },
             },
             {
                 id: 3,
                 name: 'dhcp6',
-                app: {
-                    name: 'first',
-                },
                 version: '2.7.4',
             },
             {
                 id: 2,
                 name: 'dhcp4',
-                app: {
-                    name: 'second',
-                },
             },
             {
                 id: 4,
                 name: 'dhcp6',
-                app: {
-                    name: 'second',
-                },
                 version: '2.7.3',
             },
             {
                 id: 5,
                 name: 'dhcp6',
-                app: {
-                    name: 'third',
-                },
                 version: '2.7.3',
             },
         ],

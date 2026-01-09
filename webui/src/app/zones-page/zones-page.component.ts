@@ -1,8 +1,8 @@
 import { ChangeDetectorRef, Component, NgZone, OnDestroy, OnInit, signal, ViewChild } from '@angular/core'
 import { ConfirmationService, MenuItem, MessageService, TableState, PrimeTemplate } from 'primeng/api'
 import {
-    DNSAppType,
     DNSClass,
+    DNSDaemonName,
     DNSService,
     DNSZoneType,
     LocalZone,
@@ -26,7 +26,7 @@ import {
 } from 'rxjs/operators'
 import { debounceTime, EMPTY, interval, lastValueFrom, of, Subject, Subscription, timer } from 'rxjs'
 import { Table, TableLazyLoadEvent, TableModule } from 'primeng/table'
-import { getErrorMessage, unrootZone } from '../utils'
+import { daemonNameToFriendlyName, getErrorMessage, unrootZone } from '../utils'
 import { HttpResponse, HttpStatusCode } from '@angular/common/http'
 import { FilterMetadata } from 'primeng/api/filtermetadata'
 import { convertSortingFields, tableFiltersToQueryParams, tableHasFilter } from '../table'
@@ -175,14 +175,14 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
     fetchInProgress: boolean = false
 
     /**
-     * Keeps count of DNS apps for which zones fetch was completed. This number comes from backend.
+    * Keeps count of DNS daemons for which zones fetch was completed. This number comes from backend.
      */
-    fetchAppsCompletedCount: number = 0
+    fetchDaemonsCompletedCount: number = 0
 
     /**
-     * Keeps total count of DNS apps for which zones fetch is currently in progress. This number comes from backend.
+    * Keeps total count of DNS daemons for which zones fetch is currently in progress. This number comes from backend.
      */
-    fetchTotalAppsCount: number = 0
+    fetchTotalDaemonsCount: number = 0
 
     /**
      * Flag stating whether Zones Fetch Status dialog is visible or not.
@@ -200,9 +200,9 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
     putZonesFetchLocked: boolean = false
 
     /**
-     * Column names for tables which display local zones.
+    * Column names for tables which display local zones.
      */
-    localZoneColumns: string[] = ['App Name', 'App ID', 'View', 'Zone Type', 'Serial', 'Class', 'Loaded At']
+    localZoneColumns: string[] = ['Daemon Name', 'Daemon ID', 'View', 'Zone Type', 'Serial', 'Class', 'Loaded At']
 
     /**
      * Reference to Array ctor to be used in the HTML template.
@@ -259,11 +259,11 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
         takeWhile((resp) => this.fetchInProgress && resp.status === HttpStatusCode.Accepted, true),
         tap((resp) => {
             if (resp.status === HttpStatusCode.Accepted) {
-                this.fetchAppsCompletedCount = resp.completedAppsCount
-                this.fetchTotalAppsCount = resp.appsCount
+                this.fetchDaemonsCompletedCount = resp.completedDaemonsCount
+                this.fetchTotalDaemonsCount = resp.daemonsCount
                 this.onLazyLoadZones(this.zonesTable?.createLazyLoadMetadata(), false)
             } else if (resp.status === HttpStatusCode.Ok) {
-                this.fetchAppsCompletedCount = this.fetchTotalAppsCount
+                this.fetchDaemonsCompletedCount = this.fetchTotalDaemonsCount
                 this.zonesFetchStates = resp.items ?? []
                 this.zonesFetchStatesTotal = resp.total ?? 0
                 if (this.fetchInProgress) {
@@ -361,25 +361,9 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
     ]
 
     /**
-     * DNS app types values used for the UI filter dropdown options.
+     * DNS daemon names values used for the UI filter dropdown options.
      */
-    appTypes: { name: string; value: string }[] = []
-
-    /**
-     * Returns label for the DNS App type.
-     * @param appType DNS App type
-     * @return App type label
-     */
-    private _getDNSAppName(appType: DNSAppType) {
-        switch (appType) {
-            case DNSAppType.Bind9:
-                return 'BIND9'
-            case DNSAppType.Pdns:
-                return 'PowerDNS'
-            default:
-                return (<string>appType).toUpperCase()
-        }
-    }
+    daemonNames: { name: string; value: string }[] = []
 
     /**
      * Object containing supported zone filters which values are provided via URL deep-link.
@@ -416,8 +400,8 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
      */
     ngOnInit(): void {
         this.supportedQueryParamFilters = {
-            appId: { type: 'numeric', matchMode: 'contains' },
-            appType: { type: 'enum', matchMode: 'equals', enumValues: Object.values(DNSAppType) },
+            daemonId: { type: 'numeric', matchMode: 'contains' },
+            daemonName: { type: 'enum', matchMode: 'equals', enumValues: Object.values(DNSDaemonName) },
             zoneType: { type: 'enum', matchMode: 'equals', enumValues: Object.values(DNSZoneType), arrayType: true },
             rpz: { type: 'enum', matchMode: 'equals', enumValues: ['include', 'exclude', 'only'] },
             zoneClass: { type: 'enum', matchMode: 'equals', enumValues: Object.values(DNSClass) },
@@ -438,8 +422,8 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
             this.zoneClasses.push(DNSClass[c])
         }
 
-        for (const a in DNSAppType) {
-            this.appTypes.push({ name: this._getDNSAppName(<any>a), value: DNSAppType[a] })
+        for (const n in DNSDaemonName) {
+            this.daemonNames.push({ name: daemonNameToFriendlyName(<any>n), value: DNSDaemonName[n] })
         }
 
         this._restoreZonesTableRowsPerPage()
@@ -497,8 +481,8 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
                         this.zonesFetchStates = []
                         this.zonesFetchStatesTotal = 0
 
-                        this.fetchAppsCompletedCount = resp.completedAppsCount
-                        this.fetchTotalAppsCount = resp.appsCount
+                        this.fetchDaemonsCompletedCount = resp.completedDaemonsCount
+                        this.fetchTotalDaemonsCount = resp.daemonsCount
 
                         if (!this._isPolling) {
                             this._isPolling = true
@@ -513,7 +497,7 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
 
                         if (this.fetchInProgress) {
                             this.fetchInProgress = false
-                            this.fetchAppsCompletedCount = this.fetchTotalAppsCount
+                            this.fetchDaemonsCompletedCount = this.fetchTotalDaemonsCount
                             this.messageService.add({
                                 severity: 'success',
                                 summary: 'Zones fetch complete',
@@ -596,7 +580,7 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
      */
     private _sendPutZonesFetch() {
         this._subscriptions.add(this._putZonesFetchGuard.subscribe())
-        this.fetchAppsCompletedCount = 0
+        this.fetchDaemonsCompletedCount = 0
 
         lastValueFrom(
             this.dnsService.putZonesFetch().pipe(
@@ -665,13 +649,13 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
                 .getZones(
                     event?.first ?? 0,
                     event?.rows ?? 10,
-                    (event?.filters?.appType as FilterMetadata)?.value ?? null,
+                    (event?.filters?.daemonName as FilterMetadata)?.value ?? null,
                     // Exclude builtin zones by default when none of the zone types are selected.
                     (event?.filters?.zoneType as FilterMetadata)?.value ??
                         this.zoneTypes.filter((t) => t !== 'builtin'),
                     (event?.filters?.zoneClass as FilterMetadata)?.value ?? null,
                     (event?.filters?.text as FilterMetadata)?.value || null,
-                    (event?.filters?.appId as FilterMetadata)?.value || null,
+                    (event?.filters?.daemonId as FilterMetadata)?.value || null,
                     (event?.filters?.zoneSerial as FilterMetadata)?.value || null,
                     this._getRPZFilterValue((event?.filters?.rpz as FilterMetadata)?.value),
                     ...convertSortingFields<ZoneSortField>(event)
