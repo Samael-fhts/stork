@@ -1340,7 +1340,7 @@ func (r *RestAPI) GetDaemons(ctx context.Context, params services.GetDaemonsPara
 // drop down list with available daemons or to validate user's input against daemons' names
 // available in the system.
 func (r *RestAPI) GetDaemonsDirectory(ctx context.Context, params services.GetDaemonsDirectoryParams) middleware.Responder {
-	dbDaemons, err := dbmodel.GetAllDaemons(r.DB)
+	dbDaemons, err := dbmodel.GetAllDaemonsWithRelations(r.DB, params.Text, params.Domain, dbmodel.DaemonRelationMachine)
 	if err != nil {
 		msg := "Cannot get daemons directory from the database"
 		log.WithError(err).Error(msg)
@@ -1352,7 +1352,13 @@ func (r *RestAPI) GetDaemonsDirectory(ctx context.Context, params services.GetDa
 
 	daemons := &models.SimpleDaemons{}
 	for _, dbDaemon := range dbDaemons {
-		daemon := r.simpleDaemonToRestAPI(&dbDaemon)
+		daemon := &models.SimpleDaemon{
+			ID:      dbDaemon.ID,
+			Name:    string(dbDaemon.Name),
+			Version: dbDaemon.Version,
+			Active:  dbDaemon.Active,
+			Machine: r.simpleMachineToRestAPI(*dbDaemon.Machine),
+		}
 		daemons.Items = append(daemons.Items, daemon)
 	}
 	daemons.Total = int64(len(daemons.Items))
@@ -1365,7 +1371,7 @@ func (r *RestAPI) GetDaemonsDirectory(ctx context.Context, params services.GetDa
 // It includes a lack of communication with the agent or the daemons behind it.
 func (r *RestAPI) GetDaemonsWithCommunicationIssues(ctx context.Context, params services.GetDaemonsWithCommunicationIssuesParams) middleware.Responder {
 	// Get all daemons with a minimal set of relations.
-	dbDaemons, err := dbmodel.GetAllDaemonsWithRelations(r.DB, dbmodel.DaemonRelationMachine, dbmodel.DaemonRelationAccessPoints)
+	dbDaemons, err := dbmodel.GetAllDaemonsWithRelations(r.DB, nil, nil, dbmodel.DaemonRelationMachine, dbmodel.DaemonRelationAccessPoints)
 	if err != nil {
 		msg := "Cannot get daemons from the database"
 		log.WithError(err).Error(msg)
