@@ -8,7 +8,7 @@ import { of, throwError } from 'rxjs'
 
 import { AppsVersions, DHCPService, KeaDaemon, ServicesService, UsersService } from '../backend'
 import { ServerDataService } from '../server-data.service'
-import { provideNoopAnimations } from '@angular/platform-browser/animations'
+import { NoopAnimationsModule, provideNoopAnimations } from '@angular/platform-browser/animations'
 import { ServerSentEventsService, ServerSentEventsTestingService } from '../server-sent-events.service'
 import { VersionStatusComponent } from '../version-status/version-status.component'
 import { Severity, VersionService } from '../version.service'
@@ -37,50 +37,9 @@ import { PopoverModule } from 'primeng/popover'
 import { DataViewModule } from 'primeng/dataview'
 import { ConfigCheckerPreferenceUpdaterComponent } from '../config-checker-preference-updater/config-checker-preference-updater.component'
 import { ConfigCheckerPreferencePickerComponent } from '../config-checker-preference-picker/config-checker-preference-picker.component'
-
-const dhcp4Daemon: KeaDaemon = {
-    id: 1,
-    pid: 1234,
-    name: 'dhcp4',
-    active: false,
-    monitored: true,
-    version: '1.9.4',
-    extendedVersion: '1.9.4-extended',
-    uptime: 100,
-    reloadedAt: '2025-01-01T12:00:00Z',
-    hooks: [],
-    files: [
-        {
-            filetype: 'Lease file',
-            filename: '/tmp/kea-leases4.csv',
-        },
-    ],
-    backends: [
-        {
-            backendType: 'mysql',
-            database: 'kea',
-            host: 'localhost',
-            dataTypes: ['Leases', 'Host Reservations'],
-        },
-    ],
-    machine: { id: 1 },
-}
-
-const dhcp6Daemon: KeaDaemon = {
-    id: 2,
-    pid: 2345,
-    name: 'dhcp6',
-    active: false,
-    monitored: true,
-    version: '1.9.5',
-    extendedVersion: '1.9.5-extended',
-    uptime: 100,
-    reloadedAt: '2025-01-01T12:00:00Z',
-    hooks: [],
-    files: [],
-    backends: [],
-    machine: { id: 1 },
-}
+import { ConfigCheckerPreferencePageComponent } from '../config-checker-preference-page/config-checker-preference-page.component'
+import { EventTextComponent } from '../event-text/event-text.component'
+import { ToggleButtonModule } from 'primeng/togglebutton'
 
 describe('KeaDaemonComponent', () => {
     let component: KeaDaemonComponent
@@ -112,7 +71,6 @@ describe('KeaDaemonComponent', () => {
             ],
             imports: [
                 ManagedAccessDirective,
-                CommonModule,
                 PanelModule,
                 ButtonModule,
                 ProgressSpinnerModule,
@@ -126,6 +84,7 @@ describe('KeaDaemonComponent', () => {
                 PopoverModule,
                 DataViewModule,
                 RouterModule,
+                ToggleButtonModule,
             ],
             providers: [
                 UsersService,
@@ -144,6 +103,34 @@ describe('KeaDaemonComponent', () => {
     }))
 
     beforeEach(() => {
+        const dhcp4Daemon: KeaDaemon = {
+    id: 1,
+    pid: 1234,
+    name: 'dhcp4',
+    active: false,
+    monitored: true,
+    version: '1.9.4',
+    extendedVersion: '1.9.4-extended',
+    uptime: 100,
+    reloadedAt: '2025-01-01T12:00:00Z',
+    hooks: [],
+    files: [
+        {
+            filetype: 'Lease file',
+            filename: '/tmp/kea-leases4.csv',
+        },
+    ],
+    backends: [
+        {
+            backendType: 'mysql',
+            database: 'kea',
+            host: 'localhost',
+            dataTypes: ['Leases', 'Host Reservations'],
+        },
+    ],
+    machine: { id: 1 },
+}
+
         fixture = TestBed.createComponent(KeaDaemonComponent)
         component = fixture.componentInstance
         servicesApi = fixture.debugElement.injector.get(ServicesService)
@@ -326,16 +313,16 @@ describe('KeaDaemonComponent', () => {
     })
 
     it('should properly recognize the DHCP daemons', () => {
-        expect(component.isDhcpDaemon).toBeTrue()
         component.daemon = { name: 'dhcp4' }
         expect(component.isDhcpDaemon).toBeTrue()
         component.daemon = { name: 'dhcp6' }
-        expect(component.isDhcpDaemon).toBeFalse()
+        expect(component.isDhcpDaemon).toBeTrue()
         component.daemon = { name: 'd2' }
         expect(component.isDhcpDaemon).toBeFalse()
         component.daemon = { name: 'netconf' }
         expect(component.isDhcpDaemon).toBeFalse()
         component.daemon = { name: 'foobar' }
+        expect(component.isDhcpDaemon).toBeFalse()
     })
 
     it('should display version status component', () => {
