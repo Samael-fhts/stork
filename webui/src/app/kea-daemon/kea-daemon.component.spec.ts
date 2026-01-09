@@ -1,5 +1,5 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing'
-import { ActivatedRoute, provideRouter, RouterLink } from '@angular/router'
+import { ActivatedRoute, provideRouter, RouterLink, RouterModule } from '@angular/router'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { MessageService } from 'primeng/api'
 import { MockLocationStrategy } from '@angular/common/testing'
@@ -34,6 +34,9 @@ import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { KeaDaemonComponent } from './kea-daemon.component'
 import { CommonModule } from '@angular/common'
 import { PopoverModule } from 'primeng/popover'
+import { DataViewModule } from 'primeng/dataview'
+import { ConfigCheckerPreferenceUpdaterComponent } from '../config-checker-preference-updater/config-checker-preference-updater.component'
+import { ConfigCheckerPreferencePickerComponent } from '../config-checker-preference-picker/config-checker-preference-picker.component'
 
 const dhcp4Daemon: KeaDaemon = {
     id: 1,
@@ -95,6 +98,7 @@ describe('KeaDaemonComponent', () => {
 
         TestBed.configureTestingModule({
             declarations: [
+                KeaDaemonComponent,
                 DaemonOverviewComponent,
                 HelpTipComponent,
                 ConfigReviewPanelComponent,
@@ -103,6 +107,8 @@ describe('KeaDaemonComponent', () => {
                 PlaceholderPipe,
                 VersionStatusComponent,
                 LocaltimePipe,
+                ConfigCheckerPreferenceUpdaterComponent,
+                ConfigCheckerPreferencePickerComponent,
             ],
             imports: [
                 ManagedAccessDirective,
@@ -118,6 +124,8 @@ describe('KeaDaemonComponent', () => {
                 TableModule,
                 TabViewComponent,
                 PopoverModule,
+                DataViewModule,
+                RouterModule,
             ],
             providers: [
                 UsersService,
