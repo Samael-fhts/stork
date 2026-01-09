@@ -5,15 +5,17 @@ import { PanelModule } from 'primeng/panel'
 import { ButtonModule } from 'primeng/button'
 import {
     AppsVersions,
+    DaemonsStats,
     DhcpOverview,
     DHCPService,
     DNSService,
     ServicesService,
     SettingsService,
     UsersService,
+    ZoneInventoryStates,
 } from '../backend'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
-import { MessageService } from 'primeng/api'
+import { ConfirmationService, MessageService } from 'primeng/api'
 import { LocationStrategy, PathLocationStrategy } from '@angular/common'
 import { of } from 'rxjs'
 import { By } from '@angular/platform-browser'
@@ -91,6 +93,7 @@ describe('DashboardComponent', () => {
                 MessageService,
                 UsersService,
                 SettingsService,
+                ConfirmationService,
                 { provide: LocationStrategy, useClass: PathLocationStrategy },
                 { provide: ServerSentEventsService, useClass: ServerSentEventsTestingService },
                 { provide: VersionService, useValue: versionServiceStub },

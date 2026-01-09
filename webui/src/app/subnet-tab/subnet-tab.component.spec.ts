@@ -45,6 +45,7 @@ import { AuthService } from '../auth.service'
 import { UtilizationBarComponent } from '../utilization-bar/utilization-bar.component'
 import { PoolBarsComponent } from '../pool-bars/pool-bars.component'
 import { OutOfPoolBarComponent } from '../out-of-pool-bar/out-of-pool-bar.component'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('SubnetTabComponent', () => {
     let component: SubnetTabComponent
@@ -79,6 +80,7 @@ describe('SubnetTabComponent', () => {
                 UtilizationBarComponent,
                 PoolBarsComponent,
                 OutOfPoolBarComponent,
+                DaemonNiceNamePipe,
             ],
             imports: [
                 ButtonModule,
@@ -135,6 +137,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
+                    daemonId: 42,
                     daemonName: 'dhcp4',
                     pools: [
                         {
@@ -193,7 +196,7 @@ describe('SubnetTabComponent', () => {
         expect(fieldsets.length).toBe(6)
 
         expect(fieldsets[0].nativeElement.innerText).toContain('DHCP Servers Using the Subnet')
-        expect(fieldsets[0].nativeElement.innerText).toContain('foo@192.0.2.1')
+        expect(fieldsets[0].nativeElement.innerText).toContain('[42] DHCPv4')
         expect(fieldsets[0].nativeElement.innerText).toContain('12223')
 
         expect(fieldsets[1].nativeElement.innerText).toContain('Pools')
@@ -239,6 +242,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
+                    daemonId: 42,
                     daemonName: 'dhcp4',
                     stats: {
                         'total-addresses': 240,
@@ -256,7 +260,7 @@ describe('SubnetTabComponent', () => {
         expect(fieldsets.length).toBe(6)
 
         expect(fieldsets[0].nativeElement.innerText).toContain('DHCP Servers Using the Subnet')
-        expect(fieldsets[0].nativeElement.innerText).toContain('foo@192.0.2.1')
+        expect(fieldsets[0].nativeElement.innerText).toContain('[42] DHCPv4')
         expect(fieldsets[0].nativeElement.innerText).toContain('12223')
 
         expect(fieldsets[1].nativeElement.innerText).toContain('Pools')
@@ -284,6 +288,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
+                    daemonId: 42,
                     daemonName: 'dhcp6',
                     pools: [
                         {
@@ -306,7 +311,7 @@ describe('SubnetTabComponent', () => {
         expect(fieldsets.length).toBe(6)
 
         expect(fieldsets[0].nativeElement.innerText).toContain('DHCP Servers Using the Subnet')
-        expect(fieldsets[0].nativeElement.innerText).toContain('foo@2001:db8:1::1')
+        expect(fieldsets[0].nativeElement.innerText).toContain('[42] DHCPv6')
         expect(fieldsets[0].nativeElement.innerText).toContain('12223')
 
         expect(fieldsets[1].nativeElement.innerText).toContain('Pools')
@@ -414,6 +419,7 @@ describe('SubnetTabComponent', () => {
             localSubnets: [
                 {
                     id: 12223,
+                    daemonId: 42,
                     daemonName: 'dhcp6',
                     pools: [
                         {
@@ -460,6 +466,7 @@ describe('SubnetTabComponent', () => {
                 },
                 {
                     id: 25432,
+                    daemonId: 43,
                     daemonName: 'dhcp6',
                     pools: [
                         {
@@ -517,13 +524,13 @@ describe('SubnetTabComponent', () => {
         expect(fieldsets.length).toBe(9)
 
         expect(fieldsets[0].nativeElement.innerText).toContain('DHCP Servers Using the Subnet')
-        expect(fieldsets[0].nativeElement.innerText).toContain('foo@2001:db8:1::1')
+        expect(fieldsets[0].nativeElement.innerText).toContain('[42] DHCPv6')
         expect(fieldsets[0].nativeElement.innerText).toContain('12223')
         expect(fieldsets[0].nativeElement.innerText).toContain('bar@2001:db8:2::5')
         expect(fieldsets[0].nativeElement.innerText).toContain('25432')
 
         expect(fieldsets[1].nativeElement.innerText).toContain('Pools')
-        expect(fieldsets[1].nativeElement.innerText).toContain('foo@2001:db8:1::1')
+        expect(fieldsets[1].nativeElement.innerText).toContain('[42] DHCPv6')
 
         let poolBar = fieldsets[1].query(By.css('app-address-pool-bar'))
         expect(poolBar).toBeTruthy()
@@ -533,7 +540,7 @@ describe('SubnetTabComponent', () => {
         expect(prefixBars.length).toBe(1)
 
         expect(fieldsets[2].nativeElement.innerText).toContain('Pools')
-        expect(fieldsets[2].nativeElement.innerText).toContain('bar@2001:db8:2::5')
+        expect(fieldsets[2].nativeElement.innerText).toContain('[43] DHCPv6')
 
         poolBar = fieldsets[2].query(By.css('app-address-pool-bar'))
         expect(poolBar).toBeTruthy()

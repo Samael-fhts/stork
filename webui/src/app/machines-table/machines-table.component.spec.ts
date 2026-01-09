@@ -26,7 +26,6 @@ import { FilterMetadata } from 'primeng/api/filtermetadata'
 import { deepCopy } from '../utils'
 import objectContaining = jasmine.objectContaining
 import { By } from '@angular/platform-browser'
-import { AppDaemonsStatusComponent } from '../app-daemons-status/app-daemons-status.component'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { AuthService } from '../auth.service'
@@ -34,6 +33,8 @@ import { tableHasFilter } from '../table'
 import { TriStateCheckboxComponent } from '../tri-state-checkbox/tri-state-checkbox.component'
 import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
+import { DaemonStatusComponent } from '../daemon-status/daemon-status.component'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('MachinesTableComponent', () => {
     let component: MachinesTableComponent
@@ -118,7 +119,8 @@ describe('MachinesTableComponent', () => {
                 VersionStatusComponent,
                 LocaltimePipe,
                 PlaceholderPipe,
-                AppDaemonsStatusComponent,
+                DaemonStatusComponent,
+                DaemonNiceNamePipe,
             ],
             imports: [
                 RouterModule.forRoot([]),
@@ -478,42 +480,27 @@ describe('MachinesTableComponent', () => {
                     id: 1,
                     authorized: true,
                     hostname: 'zzz',
-                    apps: [
-                        {
-                            id: 1,
-                            name: 'kea@localhost',
-                            type: 'kea',
-                            details: {
-                                daemons: [
+                    daemons: [
                                     {
                                         active: true,
                                         extendedVersion: '2.2.0',
                                         id: 1,
                                         name: 'dhcp4',
+                                        version: '2.2.0',
                                     },
                                     {
                                         active: false,
                                         extendedVersion: '2.3.0',
                                         id: 2,
                                         name: 'ca',
+                                        version: '2.2.0',
                                     },
-                                ],
-                            },
-                            version: '2.2.0',
-                        },
-                        {
-                            id: 2,
-                            name: 'bind9@localhost',
-                            type: 'bind9',
-                            details: {
-                                daemon: {
-                                    active: true,
-                                    id: 3,
-                                    name: 'named',
-                                },
-                            },
-                            version: '9.18.30',
-                        },
+                                    {
+                                        active: true,
+                                        id: 3,
+                                        name: 'named',
+                                        version: '9.18.30',
+                                    },
                     ],
                     agentVersion: '1.19.0',
                 },

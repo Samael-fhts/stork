@@ -217,7 +217,7 @@ describe('HostsTableComponent', () => {
             machineId: { value: 5 },
             daemonId: { value: 1 },
             subnetId: { value: 2 },
-            localSubnetId: { value: 7 },
+            keaSubnetId: { value: 7 },
             isGlobal: { value: true },
             text: { value: 'foo' },
         }
@@ -232,7 +232,7 @@ describe('HostsTableComponent', () => {
         confirmDialog.onAccept()
         tick()
 
-        expect(dhcpService.startHostsMigration).toHaveBeenCalledWith(1, null, null, null, 'foo', true)
+        expect(dhcpService.startHostsMigration).toHaveBeenCalledWith(5, 1, 2, 7, 'foo', true)
     }))
 
     it('should extract filter entries properly', () => {
@@ -269,14 +269,14 @@ describe('HostsTableComponent', () => {
         component.table.filters = {
             machineId: { value: 1 },
             subnetId: { value: 1 },
-            localSubnetId: { value: 10 },
+            keaSubnetId: { value: 10 },
             isGlobal: { value: false },
             text: { value: 'foo' },
         }
         expect(component.migrationFilterEntries).toEqual([
             ['Conflict', 'false'],
             ['Is Global', 'false'],
-            ['Local Subnet ID', '10'],
+            ['Kea Subnet ID', '10'],
             ['Machine ID', '1'],
             ['Subnet ID', '1'],
             ['Text', 'foo'],
@@ -302,7 +302,7 @@ describe('HostsTableComponent', () => {
         inputNumbers[2].componentInstance.handleOnInput(new InputEvent('input'), '', 0) // subnetId
         tick(300)
         fixture.detectChanges()
-        inputNumbers[3].componentInstance.handleOnInput(new InputEvent('input'), '', 0) // localSubnetId
+        inputNumbers[3].componentInstance.handleOnInput(new InputEvent('input'), '', 0) // keaSubnetId
         tick(300)
         fixture.detectChanges()
 
@@ -314,7 +314,7 @@ describe('HostsTableComponent', () => {
                 machineId: 1,
                 daemonId: 1,
                 subnetId: 1,
-                localSubnetId: 1,
+                keaSubnetId: 1,
                 isGlobal: null,
                 conflict: null,
                 text: null,
@@ -427,7 +427,7 @@ describe('HostsTableComponent', () => {
                 machineId: 2,
                 daemonId: null,
                 subnetId: null,
-                localSubnetId: null,
+                keaSubnetId: null,
                 isGlobal: null,
                 conflict: null,
                 text: null,
@@ -450,7 +450,7 @@ describe('HostsTableComponent', () => {
                 machineId: null,
                 daemonId: null,
                 subnetId: 89,
-                localSubnetId: null,
+                keaSubnetId: null,
                 isGlobal: null,
                 conflict: null,
                 text: null,
@@ -473,7 +473,7 @@ describe('HostsTableComponent', () => {
                 machineId: null,
                 daemonId: null,
                 subnetId: null,
-                localSubnetId: null,
+                keaSubnetId: null,
                 isGlobal: null,
                 conflict: true,
                 text: null,
@@ -496,7 +496,7 @@ describe('HostsTableComponent', () => {
                 machineId: null,
                 daemonId: null,
                 subnetId: null,
-                localSubnetId: null,
+                keaSubnetId: null,
                 isGlobal: null,
                 conflict: false,
                 text: null,
@@ -519,7 +519,7 @@ describe('HostsTableComponent', () => {
                 machineId: null,
                 daemonId: null,
                 subnetId: null,
-                localSubnetId: 101,
+                keaSubnetId: 101,
                 isGlobal: null,
                 conflict: null,
                 text: null,

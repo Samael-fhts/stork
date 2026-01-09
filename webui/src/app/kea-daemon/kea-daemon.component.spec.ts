@@ -95,16 +95,17 @@ describe('KeaDaemonComponent', () => {
 
         TestBed.configureTestingModule({
             declarations: [
-                ManagedAccessDirective,
                 DaemonOverviewComponent,
                 HelpTipComponent,
                 ConfigReviewPanelComponent,
                 HaStatusComponent,
                 EventsPanelComponent,
-                LocaltimePipe,
                 PlaceholderPipe,
+                VersionStatusComponent,
+                LocaltimePipe,
             ],
             imports: [
+                ManagedAccessDirective,
                 CommonModule,
                 PanelModule,
                 ButtonModule,
@@ -113,7 +114,6 @@ describe('KeaDaemonComponent', () => {
                 FormsModule,
                 MessageModule,
                 FieldsetModule,
-                VersionStatusComponent,
                 TooltipModule,
                 TableModule,
                 TabViewComponent,
