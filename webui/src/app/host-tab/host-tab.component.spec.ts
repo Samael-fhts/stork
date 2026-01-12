@@ -1295,9 +1295,14 @@ describe('HostTabComponent', () => {
                 },
                 {
                     daemonId: 22,
+                    dataSource: 'api'
                 },
                 {
                     daemonId: 11,
+                },
+                {
+                    daemonId: 22,
+                    dataSource: 'config'
                 },
             ],
         } as Host
@@ -1305,14 +1310,12 @@ describe('HostTabComponent', () => {
         component.host = host
         const groups = component.localHostsGroups.daemonID
 
-        const expectedCounts: Record<number, number> = { 11: 1, 21: 2, 31: 3 }
-        expect(groups.length).toBe(Object.keys(expectedCounts).length)
+        expect(groups.length).toBe(6)
         for (let group of groups) {
-            expect(group.length).toBeGreaterThanOrEqual(1)
-            const daemonId = group[0].daemonId
-            expect(group.length).toBe(expectedCounts[daemonId])
-            for (let item of group) {
-                expect(item.daemonId).toBe(daemonId)
+            if (group[0].daemonId == 22) {
+                expect(group.length).toBe(2)
+            } else {
+                expect(group.length).toBe(1)
             }
         }
     })
@@ -1345,8 +1348,20 @@ describe('HostTabComponent', () => {
                     nextServer: 'baz',
                 },
                 {
+                    daemonId: 4,
+                    bootFileName: 'foo',
+                    serverHostname: 'bar',
+                    nextServer: 'baz',
+                },
+                {
                     daemonId: 5,
                     bootFileName: 'foo',
+                    serverHostname: 'bar',
+                    nextServer: 'baz',
+                },
+                {
+                    daemonId: 5,
+                    bootFileName: 'oof',
                     serverHostname: 'bar',
                     nextServer: 'baz',
                 },
@@ -1356,21 +1371,19 @@ describe('HostTabComponent', () => {
         component.host = host
         const groups = component.localHostsGroups.bootFields
 
-        expect(groups.length).toBe(4)
+        expect(groups.length).toBe(6)
         for (let group of groups) {
             expect(group.length).toBeGreaterThanOrEqual(1)
-            const daemonId = group[0].daemonId
-
-            switch (daemonId) {
+            switch (group[0].daemonId) {
                 case 1:
-                    expect(group.length).toBe(1)
-                    expect(group[0].daemonId).toBeLessThanOrEqual(3)
-                    break
                 case 2:
+                case 3:
+                case 5:
+                    expect(group.length).toBe(1)
+                    break;
+                case 4:
                     expect(group.length).toBe(2)
-                    for (const item of group) {
-                        expect(item.daemonId).toBeGreaterThanOrEqual(4)
-                    }
+                    break;
             }
         }
     })
@@ -1395,8 +1408,16 @@ describe('HostTabComponent', () => {
                     clientClasses: ['foo', 'bar'],
                 },
                 {
+                    daemonId: 4,
+                    clientClasses: ['foo', 'bar'],
+                },
+                {
                     daemonId: 5,
                     clientClasses: ['foo', 'bar'],
+                },
+                {
+                    daemonId: 5,
+                    clientClasses: ['oof', 'bar'],
                 },
             ],
         } as Host
@@ -1404,21 +1425,19 @@ describe('HostTabComponent', () => {
         component.host = host
         const groups = component.localHostsGroups.clientClasses
 
-        expect(groups.length).toBe(4)
+        expect(groups.length).toBe(6)
         for (let group of groups) {
             expect(group.length).toBeGreaterThanOrEqual(1)
-            const daemonId = group[0].daemonId
-
-            switch (daemonId) {
+            switch (group[0].daemonId) {
                 case 1:
-                    expect(group.length).toBe(1)
-                    expect(group[0].daemonId).toBeLessThanOrEqual(3)
-                    break
                 case 2:
+                case 3:
+                case 5:
+                    expect(group.length).toBe(1)
+                    break;
+                case 4:
                     expect(group.length).toBe(2)
-                    for (const item of group) {
-                        expect(item.daemonId).toBeGreaterThanOrEqual(4)
-                    }
+                    break;
             }
         }
     })
@@ -1443,8 +1462,16 @@ describe('HostTabComponent', () => {
                     optionsHash: 'foo',
                 },
                 {
+                    daemonId: 4,
+                    optionsHash: 'foo',
+                },
+                {
                     daemonId: 5,
                     optionsHash: 'foo',
+                },
+                {
+                    daemonId: 5,
+                    optionsHash: 'oof',
                 },
             ],
         }
@@ -1452,21 +1479,19 @@ describe('HostTabComponent', () => {
         component.host = host
         const groups = component.localHostsGroups.dhcpOptions
 
-        expect(groups.length).toBe(4)
+        expect(groups.length).toBe(6)
         for (let group of groups) {
             expect(group.length).toBeGreaterThanOrEqual(1)
-            const daemonId = group[0].daemonId
-
-            switch (daemonId) {
+            switch (group[0].daemonId) {
                 case 1:
-                    expect(group.length).toBe(1)
-                    expect(group[0].daemonId).toBeLessThanOrEqual(3)
-                    break
                 case 2:
+                case 3:
+                case 5:
+                    expect(group.length).toBe(1)
+                    break;
+                case 4:
                     expect(group.length).toBe(2)
-                    for (const item of group) {
-                        expect(item.daemonId).toBeGreaterThanOrEqual(4)
-                    }
+                    break;
             }
         }
     })
@@ -1505,6 +1530,14 @@ describe('HostTabComponent', () => {
                     ],
                 },
                 {
+                    daemonId: 3,
+                    ipReservations: [
+                        {
+                            address: '10.0.0.3',
+                        },
+                    ],
+                },
+                {
                     daemonId: 4,
                     ipReservations: [
                         {
@@ -1515,26 +1548,34 @@ describe('HostTabComponent', () => {
                         },
                     ],
                 },
+                {
+                    daemonId: 4,
+                    ipReservations: [
+                        {
+                            address: '10.0.0.1',
+                        },
+                        {
+                            address: '10.0.0.2',
+                        },
+                    ],
+                },
             ],
         }
 
         component.host = host
         const groups = component.localHostsGroups.ipReservations
-
-        expect(groups.length).toBe(3)
-
+        expect(groups.length).toBe(5)
         for (let group of groups) {
-            const daemonId = group[0].daemonId
-
-            switch (daemonId) {
+            expect(group.length).toBeGreaterThanOrEqual(1)
+            switch (group[0].daemonId) {
                 case 1:
-                    expect(group.length).toBe(2)
-                    expect(group[0].daemonId).toBeLessThanOrEqual(2)
-                    break
                 case 2:
+                case 4:
                     expect(group.length).toBe(1)
-                    expect(group[0].daemonId).toBeGreaterThanOrEqual(3)
-                    expect(group[0].daemonId).toBeLessThanOrEqual(4)
+                    break;
+                case 3:
+                    expect(group.length).toBe(2)
+                    break;
             }
         }
     })
@@ -1552,8 +1593,16 @@ describe('HostTabComponent', () => {
                     hostname: 'foo',
                 },
                 {
+                    daemonId: 2,
+                    hostname: 'foo',
+                },
+                {
                     daemonId: 3,
                     hostname: 'bar',
+                },
+                {
+                    daemonId: 3,
+                    hostname: 'boz',
                 },
                 {
                     daemonId: 4,
@@ -1564,20 +1613,18 @@ describe('HostTabComponent', () => {
         component.host = host
         const groups = component.localHostsGroups.hostname
 
-        expect(groups.length).toBe(3)
-
+        expect(groups.length).toBe(5)
         for (let group of groups) {
-            const daemonId = group[0].daemonId
-
-            switch (daemonId) {
+            expect(group.length).toBeGreaterThanOrEqual(1)
+            switch (group[0].daemonId) {
                 case 1:
-                    expect(group.length).toBe(2)
-                    expect(group[0].daemonId).toBeLessThanOrEqual(2)
-                    break
-                case 2:
+                case 3:
+                case 4:
                     expect(group.length).toBe(1)
-                    expect(group[0].daemonId).toBeGreaterThanOrEqual(3)
-                    expect(group[0].daemonId).toBeLessThanOrEqual(4)
+                    break;
+                case 2:
+                    expect(group.length).toBe(2)
+                    break;
             }
         }
     })
