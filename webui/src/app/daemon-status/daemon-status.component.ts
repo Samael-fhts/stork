@@ -1,6 +1,6 @@
 import { Component, Input } from '@angular/core'
 
-import { daemonStatusIconName, daemonStatusIconColor, daemonStatusIconTooltip } from '../utils'
+import { daemonStatusIconClass, daemonStatusIconTooltip } from '../utils'
 import { AnyDaemon } from '../backend'
 
 @Component({
@@ -16,11 +16,7 @@ export class DaemonStatusComponent {
         return daemonStatusIconTooltip(this.daemon)
     }
 
-    get daemonStatusIconColor() {
-        return daemonStatusIconColor(this.daemon)
-    }
-
-    get daemonStatusIconName() {
-        return daemonStatusIconName(this.daemon)
+    get daemonStatusIconClass() {
+        return daemonStatusIconClass(this.daemon)
     }
 }
