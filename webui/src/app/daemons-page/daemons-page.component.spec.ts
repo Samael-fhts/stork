@@ -29,7 +29,6 @@ import { FloatLabelModule } from 'primeng/floatlabel'
 import { MultiSelectModule } from 'primeng/multiselect'
 import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
-import { NO_ERRORS_SCHEMA } from '@angular/core'
 
 describe('DaemonsPageComponent', () => {
     let component: DaemonsPageComponent

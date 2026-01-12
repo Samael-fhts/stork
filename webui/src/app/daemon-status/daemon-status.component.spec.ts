@@ -5,11 +5,6 @@ import { TooltipModule } from 'primeng/tooltip'
 import { RouterTestingModule } from '@angular/router/testing'
 import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
-class Daemon {
-    id = 1
-    name = 'dhcp4'
-}
-
 describe('DaemonStatusComponent', () => {
     let component: DaemonStatusComponent
     let fixture: ComponentFixture<DaemonStatusComponent>

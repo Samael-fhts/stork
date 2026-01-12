@@ -2,7 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing'
 
 import { CommunicationStatusTreeComponent } from './communication-status-tree.component'
 import { TreeModule } from 'primeng/tree'
-import { AnyDaemon, Bind9Daemon, KeaDaemon } from '../backend'
 
 describe('CommunicationStatusTreeComponent', () => {
     let component: CommunicationStatusTreeComponent

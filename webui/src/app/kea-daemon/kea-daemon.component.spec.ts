@@ -1,14 +1,13 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing'
-import { ActivatedRoute, provideRouter, RouterLink, RouterModule } from '@angular/router'
+import { provideRouter, RouterModule } from '@angular/router'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { MessageService } from 'primeng/api'
 import { MockLocationStrategy } from '@angular/common/testing'
 import { By } from '@angular/platform-browser'
-import { of, throwError } from 'rxjs'
+import { of } from 'rxjs'
 
 import { AppsVersions, DHCPService, KeaDaemon, ServicesService, UsersService } from '../backend'
-import { ServerDataService } from '../server-data.service'
-import { NoopAnimationsModule, provideNoopAnimations } from '@angular/platform-browser/animations'
+import { provideNoopAnimations } from '@angular/platform-browser/animations'
 import { ServerSentEventsService, ServerSentEventsTestingService } from '../server-sent-events.service'
 import { VersionStatusComponent } from '../version-status/version-status.component'
 import { Severity, VersionService } from '../version.service'
@@ -32,20 +31,15 @@ import { EventsPanelComponent } from '../events-panel/events-panel.component'
 import { LocaltimePipe } from '../pipes/localtime.pipe'
 import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { KeaDaemonComponent } from './kea-daemon.component'
-import { CommonModule } from '@angular/common'
 import { PopoverModule } from 'primeng/popover'
 import { DataViewModule } from 'primeng/dataview'
 import { ConfigCheckerPreferenceUpdaterComponent } from '../config-checker-preference-updater/config-checker-preference-updater.component'
 import { ConfigCheckerPreferencePickerComponent } from '../config-checker-preference-picker/config-checker-preference-picker.component'
-import { ConfigCheckerPreferencePageComponent } from '../config-checker-preference-page/config-checker-preference-page.component'
-import { EventTextComponent } from '../event-text/event-text.component'
 import { ToggleButtonModule } from 'primeng/togglebutton'
 
 describe('KeaDaemonComponent', () => {
     let component: KeaDaemonComponent
     let fixture: ComponentFixture<KeaDaemonComponent>
-    let servicesApi: ServicesService
-    let route: ActivatedRoute
     let versionServiceStub: Partial<VersionService>
 
     beforeEach(waitForAsync(() => {
@@ -133,8 +127,6 @@ describe('KeaDaemonComponent', () => {
 
         fixture = TestBed.createComponent(KeaDaemonComponent)
         component = fixture.componentInstance
-        servicesApi = fixture.debugElement.injector.get(ServicesService)
-        route = fixture.debugElement.injector.get(ActivatedRoute)
         fixture.debugElement.injector.get(VersionService)
         component.daemon = dhcp4Daemon
         fixture.detectChanges()

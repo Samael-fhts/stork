@@ -8,8 +8,6 @@ import {
     Validators,
     ValidationErrors,
     UntypedFormControl,
-    FormsModule,
-    ReactiveFormsModule,
 } from '@angular/forms'
 import { MessageService, SelectItem } from 'primeng/api'
 import { map } from 'rxjs/operators'
@@ -32,20 +30,6 @@ import { daemonNameToFriendlyName, getErrorMessage, stringToHex } from '../utils
 import { SelectableClientClass } from '../forms/selectable-client-class'
 import { hasDifferentLocalHostData } from '../hosts'
 import { GenericFormService } from '../forms/generic-form.service'
-import { NgIf, NgFor, NgSwitch, NgSwitchCase, NgTemplateOutlet } from '@angular/common'
-import { Fieldset } from 'primeng/fieldset'
-import { ToggleSwitch } from 'primeng/toggleswitch'
-import { FloatLabel } from 'primeng/floatlabel'
-import { MultiSelect } from 'primeng/multiselect'
-import { Select } from 'primeng/select'
-import { InputText } from 'primeng/inputtext'
-import { InputNumber } from 'primeng/inputnumber'
-import { Button } from 'primeng/button'
-import { RouterLink } from '@angular/router'
-import { DhcpClientClassSetFormComponent } from '../dhcp-client-class-set-form/dhcp-client-class-set-form.component'
-import { DhcpOptionSetFormComponent } from '../dhcp-option-set-form/dhcp-option-set-form.component'
-import { HelpTipComponent } from '../help-tip/help-tip.component'
-import { Message } from 'primeng/message'
 
 /**
  * A form validator checking if a subnet has been selected for

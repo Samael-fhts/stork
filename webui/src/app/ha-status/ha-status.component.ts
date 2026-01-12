@@ -4,13 +4,6 @@ import { ServicesService } from '../backend/api/api'
 import { KeaHAServerStatus, ServiceStatus } from '../backend'
 import { MessageService } from 'primeng/api'
 import { datetimeToLocal, getErrorMessage } from '../utils'
-import { NgIf, NgFor, NgSwitch, NgSwitchCase, LowerCasePipe } from '@angular/common'
-import { TableModule } from 'primeng/table'
-import { Button } from 'primeng/button'
-import { EntityLinkComponent } from '../entity-link/entity-link.component'
-import { ProgressBar } from 'primeng/progressbar'
-import { HelpTipComponent } from '../help-tip/help-tip.component'
-import { ProgressSpinner } from 'primeng/progressspinner'
 
 /**
  * An interface representing HA table cell data.

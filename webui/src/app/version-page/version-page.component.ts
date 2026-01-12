@@ -1,19 +1,10 @@
 import { Component, OnDestroy, OnInit } from '@angular/core'
 import { DaemonName, isKeaDaemon, Severity, UpdateNotification, VersionService } from '../version.service'
-import { AppsVersions, Machine, ServicesService, VersionDetails, SimpleMachine, SimpleDaemon } from '../backend'
+import { AppsVersions, ServicesService, VersionDetails, SimpleMachine, SimpleDaemon } from '../backend'
 import { deepCopy, getErrorMessage, getIconBySeverity } from '../utils'
 import { Observable, of, Subscription, tap } from 'rxjs'
 import { catchError, concatMap, map } from 'rxjs/operators'
 import { MessageService } from 'primeng/api'
-import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
-import { NgIf, NgFor, AsyncPipe, UpperCasePipe, TitleCasePipe, DatePipe } from '@angular/common'
-import { Message } from 'primeng/message'
-import { Button } from 'primeng/button'
-import { Panel } from 'primeng/panel'
-import { TableModule } from 'primeng/table'
-import { Badge } from 'primeng/badge'
-import { RouterLink } from '@angular/router'
-import { VersionStatusComponent } from '../version-status/version-status.component'
 
 /**
  * This component displays current known released versions of ISC Kea, BIND 9, and Stork.

@@ -4,7 +4,6 @@ import { debounceTime, lastValueFrom, Subject, Subscription } from 'rxjs'
 import { MessageService, MenuItem, ConfirmationService, TableState } from 'primeng/api'
 
 import {
-    daemonNameToFriendlyName,
     daemonStatusErred,
     daemonStatusIconColor as daemonStatusIconColorFn,
     daemonStatusIconName as daemonStatusIconNameFn,
@@ -299,22 +298,30 @@ export class DaemonsPageComponent implements OnInit, OnDestroy {
         }
     }
 
-    daemonTypeLabel(daemon: AnyDaemon) {
-        return daemonNameToFriendlyName(daemon?.name)?.toUpperCase() ?? daemon?.name
-    }
-
+    /**
+     * Returns an CSS icon name to indicate the daemon status.
+     */
     daemonStatusIconName(daemon: AnyDaemon) {
         return daemonStatusIconNameFn(daemon as any)
     }
 
+    /**
+     * Returns a color that should be used to display the status icon.
+     */
     daemonStatusIconColor(daemon: AnyDaemon) {
         return daemonStatusIconColorFn(daemon as any)
     }
 
+    /**
+     * Returns a tooltip that should be assigned to the status icon.
+     */
     daemonStatusIconTooltip(daemon: AnyDaemon) {
         return daemonStatusIconTooltipFn(daemon as any)
     }
 
+    /**
+     * Handler called when the refresh button has been clicked.
+     */
     onRefreshDaemon(daemonId: number) {
         this.tabView()?.onUpdateTabEntity(daemonId)
     }

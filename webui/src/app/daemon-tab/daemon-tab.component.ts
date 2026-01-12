@@ -1,12 +1,8 @@
 import { Component, EventEmitter, Input, Output } from '@angular/core'
 
 import { AnyDaemon } from '../backend'
-import {
-    daemonNameToFriendlyName,
-    daemonStatusIconColor,
-    daemonStatusIconName,
-    daemonStatusIconTooltip,
-} from '../utils'
+import { daemonStatusIconColor, daemonStatusIconName, daemonStatusIconTooltip } from '../utils'
+import { isKeaDaemon } from '../version.service'
 
 @Component({
     selector: 'app-daemon-tab',
@@ -30,23 +26,18 @@ export class DaemonTabComponent {
         return daemonStatusIconTooltip(this.daemon)
     }
 
-    isKeaDaemon(daemon: AnyDaemon) {
-        const keaDaemons = ['dhcp4', 'dhcp6', 'd2', 'ca', 'netconf']
-        return keaDaemons.includes(daemon?.name)
+    /**
+     * Indicates if the given daemon is a Kea daemon.
+     * @param daemon
+     * @returns true if the daemon is Kea daemon; otherwise false.
+     */
+    get isKeaDaemon() {
+        return isKeaDaemon(this.daemon?.name)
     }
 
-    appTypeForEvents(daemon: AnyDaemon) {
-        if (this.isKeaDaemon(daemon)) {
-            return 'kea'
-        }
-
-        if (daemon?.name === 'bind9') {
-            return 'bind9'
-        }
-
-        return null
-    }
-
+    /**
+     * Emits the refresh event.
+     */
     refresh() {
         if (this.daemon?.id !== undefined) {
             this.refreshDaemon.emit(this.daemon.id)

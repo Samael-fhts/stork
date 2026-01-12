@@ -1,43 +1,13 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core'
-import { ActivatedRoute, RouterLink } from '@angular/router'
-import { forkJoin } from 'rxjs'
+import { Component, Input } from '@angular/core'
+import { ActivatedRoute } from '@angular/router'
 import { prerelease, gte } from 'semver'
 
 import { MessageService } from 'primeng/api'
 
 import { ServicesService } from '../backend'
-import { ServerDataService } from '../server-data.service'
 
-import {
-    durationToString,
-    daemonStatusErred,
-    daemonStatusIconName,
-    daemonStatusIconColor,
-    daemonStatusIconTooltip,
-    getErrorMessage,
-    daemonNameToFriendlyName,
-} from '../utils'
+import { durationToString, daemonStatusIconName, daemonStatusIconColor, daemonStatusIconTooltip } from '../utils'
 import { KeaDaemon, ModelFile } from '../backend'
-import { ManagedAccessDirective } from '../managed-access.directive'
-import { Panel } from 'primeng/panel'
-import { NgIf, NgClass, NgFor } from '@angular/common'
-import { Button } from 'primeng/button'
-import { ProgressSpinner } from 'primeng/progressspinner'
-import { TabViewComponent } from '../tab-view/tab-view.component'
-import { ToggleSwitch } from 'primeng/toggleswitch'
-import { FormsModule } from '@angular/forms'
-import { Message } from 'primeng/message'
-import { Fieldset } from 'primeng/fieldset'
-import { VersionStatusComponent } from '../version-status/version-status.component'
-import { Tooltip } from 'primeng/tooltip'
-import { TableModule } from 'primeng/table'
-import { HelpTipComponent } from '../help-tip/help-tip.component'
-import { ConfigReviewPanelComponent } from '../config-review-panel/config-review-panel.component'
-import { HaStatusComponent } from '../ha-status/ha-status.component'
-import { EventsPanelComponent } from '../events-panel/events-panel.component'
-import { LocaltimePipe } from '../pipes/localtime.pipe'
-import { PlaceholderPipe } from '../pipes/placeholder.pipe'
-import { DaemonOverviewComponent } from '../daemon-overview/daemon-overview.component'
 
 @Component({
     selector: 'app-kea-daemon',

@@ -7,12 +7,6 @@ import { switchMap } from 'rxjs/operators'
 import { ServicesService } from '../backend/api/api'
 import { ServerDataService } from '../server-data.service'
 import { KeaDaemonConfig } from '../backend'
-import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
-import { Panel } from 'primeng/panel'
-import { NgIf } from '@angular/common'
-import { Button } from 'primeng/button'
-import { JsonTreeRootComponent } from '../json-tree-root/json-tree-root.component'
-import { Message } from 'primeng/message'
 
 /**
  * A component providing a dedicated page displaying Kea daemon configuration.
