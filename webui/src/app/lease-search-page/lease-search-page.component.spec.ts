@@ -50,7 +50,7 @@ describe('LeaseSearchPageComponent', () => {
                 JsonTreeRootComponent,
                 IdentifierComponent,
                 ByteCharacterComponent,
-                DaemonNiceNamePipe
+                DaemonNiceNamePipe,
             ],
             imports: [
                 FormsModule,
