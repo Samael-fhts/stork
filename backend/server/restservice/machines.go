@@ -1358,6 +1358,7 @@ func (r *RestAPI) GetDaemonsDirectory(ctx context.Context, params services.GetDa
 			Version: dbDaemon.Version,
 			Active:  dbDaemon.Active,
 			Machine: r.simpleMachineToRestAPI(*dbDaemon.Machine),
+			MachineID: dbDaemon.MachineID,
 		}
 		daemons.Items = append(daemons.Items, daemon)
 	}
