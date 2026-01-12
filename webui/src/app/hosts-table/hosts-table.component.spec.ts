@@ -144,7 +144,7 @@ describe('HostsTableComponent', () => {
         const single: LocalHost[] = [
             {
                 daemonId: 1,
-                daemonName: "dhcp4",
+                daemonName: 'dhcp4',
                 optionsHash: 'hash1',
                 clientClasses: ['class1'],
                 nextServer: 'srv1',
@@ -156,7 +156,7 @@ describe('HostsTableComponent', () => {
         const conflict: LocalHost[] = [
             {
                 daemonId: 1,
-                daemonName: "dhcp4",
+                daemonName: 'dhcp4',
                 optionsHash: 'hash1',
                 clientClasses: ['class1'],
                 nextServer: 'srv1',
@@ -165,7 +165,7 @@ describe('HostsTableComponent', () => {
             },
             {
                 daemonId: 1,
-                daemonName: "dhcp4",
+                daemonName: 'dhcp4',
                 optionsHash: 'hash2',
                 clientClasses: ['class2'],
                 nextServer: 'srv2',
@@ -177,7 +177,7 @@ describe('HostsTableComponent', () => {
         const duplicate: LocalHost[] = [
             {
                 daemonId: 1,
-                daemonName: "dhcp4",
+                daemonName: 'dhcp4',
                 optionsHash: 'hash1',
                 clientClasses: ['class1'],
                 nextServer: 'srv1',
@@ -186,7 +186,7 @@ describe('HostsTableComponent', () => {
             },
             {
                 daemonId: 1,
-                daemonName: "dhcp4",
+                daemonName: 'dhcp4',
                 optionsHash: 'hash1',
                 clientClasses: ['class1'],
                 nextServer: 'srv1',
@@ -341,7 +341,7 @@ describe('HostsTableComponent', () => {
                         address: '192.0.2.1',
                     },
                 ],
-                localHosts: [{ daemonId: 1, daemonName: "dhcp4", dataSource: 'config' } as LocalHost],
+                localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' } as LocalHost],
             },
             {
                 id: 2,
@@ -356,7 +356,7 @@ describe('HostsTableComponent', () => {
                         address: '192.0.2.2',
                     },
                 ],
-                localHosts: [{ daemonId: 2, daemonName: "dhcp4", dataSource: 'config' } as LocalHost],
+                localHosts: [{ daemonId: 2, daemonName: 'dhcp4', dataSource: 'config' } as LocalHost],
             },
             {
                 id: 3,
@@ -371,7 +371,7 @@ describe('HostsTableComponent', () => {
                         address: '192.0.2.2',
                     },
                 ],
-                localHosts: [{ daemonId: 3, daemonName: "dhcp4", dataSource: 'config' } as LocalHost],
+                localHosts: [{ daemonId: 3, daemonName: 'dhcp4', dataSource: 'config' } as LocalHost],
             },
         ]
         fixture.detectChanges()
@@ -413,7 +413,7 @@ describe('HostsTableComponent', () => {
     }))
 
     it('hosts list should be filtered by machineId', fakeAsync(() => {
-        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: "dhcp4", dataSource: 'config' }] }]
+        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         getHostsSpy.and.callThrough()
@@ -505,7 +505,7 @@ describe('HostsTableComponent', () => {
     }))
 
     it('hosts list should be filtered by keaSubnetId', fakeAsync(() => {
-        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: "dhcp4", dataSource: 'config' }] }]
+        component.hosts = [{ id: 1, localHosts: [{ daemonId: 1, daemonName: 'dhcp4', dataSource: 'config' }] }]
         fixture.detectChanges()
 
         getHostsSpy.and.callThrough()

@@ -104,32 +104,32 @@ describe('KeaDaemonComponent', () => {
 
     beforeEach(() => {
         const dhcp4Daemon: KeaDaemon = {
-    id: 1,
-    pid: 1234,
-    name: 'dhcp4',
-    active: false,
-    monitored: true,
-    version: '1.9.4',
-    extendedVersion: '1.9.4-extended',
-    uptime: 100,
-    reloadedAt: '2025-01-01T12:00:00Z',
-    hooks: [],
-    files: [
-        {
-            filetype: 'Lease file',
-            filename: '/tmp/kea-leases4.csv',
-        },
-    ],
-    backends: [
-        {
-            backendType: 'mysql',
-            database: 'kea',
-            host: 'localhost',
-            dataTypes: ['Leases', 'Host Reservations'],
-        },
-    ],
-    machine: { id: 1 },
-}
+            id: 1,
+            pid: 1234,
+            name: 'dhcp4',
+            active: false,
+            monitored: true,
+            version: '1.9.4',
+            extendedVersion: '1.9.4-extended',
+            uptime: 100,
+            reloadedAt: '2025-01-01T12:00:00Z',
+            hooks: [],
+            files: [
+                {
+                    filetype: 'Lease file',
+                    filename: '/tmp/kea-leases4.csv',
+                },
+            ],
+            backends: [
+                {
+                    backendType: 'mysql',
+                    database: 'kea',
+                    host: 'localhost',
+                    dataTypes: ['Leases', 'Host Reservations'],
+                },
+            ],
+            machine: { id: 1 },
+        }
 
         fixture = TestBed.createComponent(KeaDaemonComponent)
         component = fixture.componentInstance

@@ -445,7 +445,6 @@ describe('SharedNetworkTabComponent', () => {
             ],
         }
 
-
         component.ngOnInit()
         fixture.detectChanges()
 

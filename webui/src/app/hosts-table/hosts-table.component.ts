@@ -123,7 +123,7 @@ export class HostsTableComponent implements OnInit, OnDestroy {
     }
 
     /**
-    * Holds local hosts of all currently displayed host reservations grouped by daemon ID.
+     * Holds local hosts of all currently displayed host reservations grouped by daemon ID.
      * It is indexed by host ID.
      */
     localHostsGroupedByDaemon: Record<number, LocalHost[][]>
@@ -251,8 +251,8 @@ export class HostsTableComponent implements OnInit, OnDestroy {
                 // User confirmed the migration.
                 this.dhcpApi
                     .startHostsMigration(
-                            (this.table?.filters['machineId'] as FilterMetadata)?.value ?? null,
-                            (this.table?.filters['daemonId'] as FilterMetadata)?.value ?? null,
+                        (this.table?.filters['machineId'] as FilterMetadata)?.value ?? null,
+                        (this.table?.filters['daemonId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['subnetId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['keaSubnetId'] as FilterMetadata)?.value ?? null,
                         (this.table?.filters['text'] as FilterMetadata)?.value || null,

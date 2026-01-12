@@ -136,8 +136,8 @@ export class VersionPageComponent implements OnInit, OnDestroy {
     storkServerUpdateAvailable$: Observable<UpdateNotification>
 
     /**
-    * An array of Machines in the "summary of ISC software versions detected by Stork" table.
-    */
+     * An array of Machines in the "summary of ISC software versions detected by Stork" table.
+     */
     machines: SimpleMachine[]
 
     /**
@@ -240,47 +240,49 @@ export class VersionPageComponent implements OnInit, OnDestroy {
                         )
                     }),
                     map((data) => {
-                        data.items?.map((m: SimpleMachine & { versionCheckSeverity: Severity, mismatchingDaemons: boolean }) => {
-                            m.versionCheckSeverity = Severity.success
-                            m.versionCheckSeverity = Math.min(
-                                this.severityMap[
-                                    this.versionService.getSoftwareVersionFeedback(
-                                        m.agentVersion,
-                                        'stork',
-                                        this._processedData
-                                    )?.severity ?? Severity.success
-                                ],
-                                m.versionCheckSeverity
-                            )
+                        data.items?.map(
+                            (m: SimpleMachine & { versionCheckSeverity: Severity; mismatchingDaemons: boolean }) => {
+                                m.versionCheckSeverity = Severity.success
+                                m.versionCheckSeverity = Math.min(
+                                    this.severityMap[
+                                        this.versionService.getSoftwareVersionFeedback(
+                                            m.agentVersion,
+                                            'stork',
+                                            this._processedData
+                                        )?.severity ?? Severity.success
+                                    ],
+                                    m.versionCheckSeverity
+                                )
 
-                            let keaDaemons: SimpleDaemon[] = []
-                            m.daemons
-                                ?.filter((daemon: SimpleDaemon) => daemon?.version)
-                                .forEach((daemon: SimpleDaemon) => {
-                                    m.versionCheckSeverity = Math.min(
-                                        this.severityMap[
-                                            this.versionService.getSoftwareVersionFeedback(
-                                                daemon.version,
-                                                daemon.name as DaemonName,
-                                                this._processedData
-                                            )?.severity ?? Severity.success
-                                        ],
-                                        m.versionCheckSeverity
-                                    )
-                                    if (isKeaDaemon(daemon.name)) {
-                                        keaDaemons.push(daemon)
-                                    }
-                                })
+                                let keaDaemons: SimpleDaemon[] = []
+                                m.daemons
+                                    ?.filter((daemon: SimpleDaemon) => daemon?.version)
+                                    .forEach((daemon: SimpleDaemon) => {
+                                        m.versionCheckSeverity = Math.min(
+                                            this.severityMap[
+                                                this.versionService.getSoftwareVersionFeedback(
+                                                    daemon.version,
+                                                    daemon.name as DaemonName,
+                                                    this._processedData
+                                                )?.severity ?? Severity.success
+                                            ],
+                                            m.versionCheckSeverity
+                                        )
+                                        if (isKeaDaemon(daemon.name)) {
+                                            keaDaemons.push(daemon)
+                                        }
+                                    })
 
-                            if (keaDaemons.length > 0 && this.versionService.areVersionsMismatching(keaDaemons)) {
-                                m.versionCheckSeverity = Severity.error
-                                m.mismatchingDaemons = true
-                                this.versionService.detectAlertingSeverity(m.versionCheckSeverity)
+                                if (keaDaemons.length > 0 && this.versionService.areVersionsMismatching(keaDaemons)) {
+                                    m.versionCheckSeverity = Severity.error
+                                    m.mismatchingDaemons = true
+                                    this.versionService.detectAlertingSeverity(m.versionCheckSeverity)
+                                }
+
+                                this.counters[m.versionCheckSeverity]++
+                                return m
                             }
-
-                            this.counters[m.versionCheckSeverity]++
-                            return m
-                        })
+                        )
                         return data
                     })
                 )

@@ -11,16 +11,7 @@ import { BreadcrumbModule } from 'primeng/breadcrumb'
 import { HelpTipComponent } from '../help-tip/help-tip.component'
 import { PopoverModule } from 'primeng/popover'
 import { Router, RouterModule } from '@angular/router'
-import {
-    DNSClass,
-    DNSService,
-    ZoneInventoryState,
-    ZoneInventoryStates,
-    ZoneRR,
-    ZoneRRs,
-    Zones,
-    Zone,
-} from '../backend'
+import { DNSClass, DNSService, ZoneInventoryState, ZoneInventoryStates, ZoneRR, ZoneRRs, Zones, Zone } from '../backend'
 import { Observable, of } from 'rxjs'
 import {
     HttpEventType,
@@ -165,7 +156,7 @@ describe('ZonesPageComponent', () => {
                     {
                         _class: 'IN',
                         daemonId: 73,
-                        daemonName: "named",
+                        daemonName: 'named',
                         loadedAt: '2025-03-03T17:36:14.000Z',
                         serial: 0,
                         view: '_default',
@@ -174,7 +165,7 @@ describe('ZonesPageComponent', () => {
                     {
                         _class: 'IN',
                         daemonId: 74,
-                        daemonName: "named",
+                        daemonName: 'named',
                         loadedAt: '2025-03-03T17:36:14.000Z',
                         serial: 0,
                         view: '_default',
@@ -190,7 +181,7 @@ describe('ZonesPageComponent', () => {
                     {
                         _class: 'IN',
                         daemonId: 73,
-                        daemonName: "named",
+                        daemonName: 'named',
                         loadedAt: '2025-03-03T17:36:14.000Z',
                         serial: 0,
                         view: '_default',
@@ -199,7 +190,7 @@ describe('ZonesPageComponent', () => {
                     {
                         _class: 'IN',
                         daemonId: 74,
-                        daemonName: "named",
+                        daemonName: 'named',
                         loadedAt: '2025-03-03T17:36:14.000Z',
                         serial: 0,
                         view: '_default',
@@ -215,7 +206,7 @@ describe('ZonesPageComponent', () => {
                     {
                         _class: 'IN',
                         daemonId: 73,
-                        daemonName: "named",
+                        daemonName: 'named',
                         loadedAt: '2025-03-03T17:36:14.000Z',
                         serial: 0,
                         view: '_default',
@@ -224,7 +215,7 @@ describe('ZonesPageComponent', () => {
                     {
                         _class: 'IN',
                         daemonId: 74,
-                        daemonName: "named",
+                        daemonName: 'named',
                         loadedAt: '2025-03-03T17:36:14.000Z',
                         serial: 0,
                         view: '_default',
@@ -240,7 +231,7 @@ describe('ZonesPageComponent', () => {
                     {
                         _class: 'IN',
                         daemonId: 73,
-                        daemonName: "named",
+                        daemonName: 'named',
                         loadedAt: '2025-03-03T17:36:14.000Z',
                         serial: 0,
                         view: '_default',
@@ -250,7 +241,7 @@ describe('ZonesPageComponent', () => {
                     {
                         _class: 'IN',
                         daemonId: 74,
-                        daemonName: "named",
+                        daemonName: 'named',
                         loadedAt: '2025-03-03T17:36:14.000Z',
                         serial: 0,
                         view: '_default',

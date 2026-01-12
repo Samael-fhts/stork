@@ -108,7 +108,11 @@ export class KeaDaemonComponent {
      *         false otherwise.
      */
     get daemonStatusErred(): boolean {
-        return this.daemon.active && ((this.daemon.agentCommErrors ?? 0) + (this.daemon.caCommErrors ?? 0) + (this.daemon.daemonCommErrors ?? 0)) > 0
+        return (
+            this.daemon.active &&
+            (this.daemon.agentCommErrors ?? 0) + (this.daemon.caCommErrors ?? 0) + (this.daemon.daemonCommErrors ?? 0) >
+                0
+        )
     }
 
     /**
