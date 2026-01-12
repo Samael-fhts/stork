@@ -41,41 +41,26 @@ let mockCreateSharedNetwork4BeginData: CreateSharedNetworkBeginResponse = {
         {
             id: 1,
             name: 'dhcp4',
-            app: {
-                name: 'first',
-            },
             version: '2.7.0',
         },
         {
             id: 3,
             name: 'dhcp6',
-            app: {
-                name: 'first',
-            },
             version: '2.7.0',
         },
         {
             id: 2,
             name: 'dhcp4',
-            app: {
-                name: 'second',
-            },
             version: '2.4.0',
         },
         {
             id: 4,
             name: 'dhcp6',
-            app: {
-                name: 'second',
-            },
             version: '2.7.0',
         },
         {
             id: 5,
             name: 'dhcp6',
-            app: {
-                name: 'third',
-            },
             version: '2.7.0',
         },
     ],
@@ -147,41 +132,26 @@ let mockUpdateSharedNetwork4BeginData: UpdateSharedNetworkBeginResponse = {
         {
             id: 1,
             name: 'dhcp4',
-            app: {
-                name: 'first',
-            },
             version: '2.7.0',
         },
         {
             id: 3,
             name: 'dhcp6',
-            app: {
-                name: 'first',
-            },
             version: '2.7.0',
         },
         {
             id: 2,
             name: 'dhcp4',
-            app: {
-                name: 'second',
-            },
             version: '2.4.0',
         },
         {
             id: 4,
             name: 'dhcp6',
-            app: {
-                name: 'second',
-            },
             version: '2.7.0',
         },
         {
             id: 5,
             name: 'dhcp6',
-            app: {
-                name: 'third',
-            },
             version: '2.7.0',
         },
     ],
@@ -253,41 +223,26 @@ let mockUpdateSharedNetwork6BeginData: UpdateSharedNetworkBeginResponse = {
         {
             id: 1,
             name: 'dhcp4',
-            app: {
-                name: 'first',
-            },
             version: '2.7.0',
         },
         {
             id: 3,
             name: 'dhcp6',
-            app: {
-                name: 'first',
-            },
             version: '2.7.0',
         },
         {
             id: 2,
             name: 'dhcp4',
-            app: {
-                name: 'second',
-            },
             version: '2.7.0',
         },
         {
             id: 4,
             name: 'dhcp6',
-            app: {
-                name: 'second',
-            },
             version: '2.7.0',
         },
         {
             id: 5,
             name: 'dhcp6',
-            app: {
-                name: 'third',
-            },
             version: '2.7.0',
         },
     ],

@@ -103,6 +103,7 @@ describe('SharedNetworkFormComponent', () => {
             ],
             subnets: [
                 {
+                    id: 123,
                     subnet: '192.0.2.0/24',
                     sharedNetwork: 'floor3',
                     sharedNetworkId: 3,
@@ -125,44 +126,26 @@ describe('SharedNetworkFormComponent', () => {
             {
                 id: 1,
                 name: 'dhcp4',
-                app: {
-                    name: 'first',
-                },
             },
             {
                 id: 3,
                 name: 'dhcp6',
-                app: {
-                    name: 'first',
-                },
             },
             {
                 id: 2,
                 name: 'dhcp4',
-                app: {
-                    name: 'second',
-                },
             },
             {
                 id: 4,
                 name: 'dhcp6',
-                app: {
-                    name: 'second',
-                },
             },
             {
                 id: 5,
                 name: 'dhcp6',
-                app: {
-                    name: 'third',
-                },
             },
             {
                 id: 6,
                 name: 'dhcp4',
-                app: {
-                    name: 'fifth',
-                },
             },
         ],
         sharedNetworks4: ['floor1', 'floor2', 'floor3', 'stanza'],
