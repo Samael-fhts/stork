@@ -29,6 +29,7 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
 import { ButtonModule } from 'primeng/button'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('LeaseSearchPageComponent', () => {
     let component: LeaseSearchPageComponent
@@ -49,6 +50,7 @@ describe('LeaseSearchPageComponent', () => {
                 JsonTreeRootComponent,
                 IdentifierComponent,
                 ByteCharacterComponent,
+                DaemonNiceNamePipe
             ],
             imports: [
                 FormsModule,

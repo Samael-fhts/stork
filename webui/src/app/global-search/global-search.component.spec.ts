@@ -9,6 +9,7 @@ import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { FormsModule } from '@angular/forms'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { provideRouter, RouterModule } from '@angular/router'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('GlobalSearchComponent', () => {
     let component: GlobalSearchComponent
@@ -16,7 +17,7 @@ describe('GlobalSearchComponent', () => {
 
     beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
-            declarations: [GlobalSearchComponent],
+            declarations: [GlobalSearchComponent, DaemonNiceNamePipe],
             imports: [PopoverModule, NoopAnimationsModule, FormsModule, RouterModule],
             providers: [
                 SearchService,
