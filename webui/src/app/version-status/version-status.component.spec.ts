@@ -105,7 +105,7 @@ describe('VersionStatusComponent', () => {
      * Sets correct values of required input properties.
      */
     function setCorrectInputs() {
-        fixture.componentRef.setInput('app', 'kea')
+        fixture.componentRef.setInput('daemonName', 'dhcp4')
         fixture.componentRef.setInput('version', '2.6.1')
         fixture.detectChanges()
     }
@@ -122,17 +122,17 @@ describe('VersionStatusComponent', () => {
         // Act & Assert
         expect(component.appName).toBe('Kea')
 
-        fixture.componentRef.setInput('app', 'stork')
+        fixture.componentRef.setInput('daemonName', 'stork')
         component.ngOnInit()
         fixture.detectChanges()
         expect(component.appName).toBe('Stork agent')
 
-        fixture.componentRef.setInput('app', 'bind9')
+        fixture.componentRef.setInput('daemonName', 'named')
         component.ngOnInit()
         fixture.detectChanges()
         expect(component.appName).toBe('BIND9')
 
-        fixture.componentRef.setInput('app', 'pdns')
+        fixture.componentRef.setInput('daemonName', 'pdns')
         component.ngOnInit()
         fixture.detectChanges()
         expect(component.appName).toBe('PowerDNS')
@@ -153,7 +153,7 @@ describe('VersionStatusComponent', () => {
 
     it('should not get current versions data for invalid semver', () => {
         // Arrange
-        fixture.componentRef.setInput('app', 'kea')
+        fixture.componentRef.setInput('daemonName', 'dhcp4')
         fixture.componentRef.setInput('version', 'a.b.c')
         fixture.detectChanges()
 
@@ -232,7 +232,7 @@ describe('VersionStatusComponent', () => {
     it('should not display feedback when version undefined', () => {
         // Arrange
         fixture.componentRef.setInput('version', undefined)
-        fixture.componentRef.setInput('app', 'kea')
+        fixture.componentRef.setInput('daemonName', 'dhcp4')
         fixture.detectChanges()
 
         // Act & Assert
@@ -244,7 +244,7 @@ describe('VersionStatusComponent', () => {
 
     it('should skip version checks for non-ISC apps', () => {
         // Arrange
-        fixture.componentRef.setInput('app', 'pdns')
+        fixture.componentRef.setInput('daemonName', 'pdns')
         fixture.detectChanges()
 
         // Act & Assert

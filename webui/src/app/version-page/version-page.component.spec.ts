@@ -250,7 +250,7 @@ describe('VersionPageComponent', () => {
                 },
             })
         )
-        getMachinesAppsVersionsSpy = spyOn(servicesApi, 'getDaemonsWithCommunicationIssues')
+        getMachinesAppsVersionsSpy = spyOn(servicesApi, 'getMachinesVersions')
         messageAddSpy = spyOn(messageService, 'add').and.callThrough()
     })
 
