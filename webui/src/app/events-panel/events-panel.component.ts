@@ -42,7 +42,6 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
     @Input() filter = {
         level: 0,
         machine: null,
-        appType: null,
         daemonType: null,
         user: null,
     }
@@ -75,10 +74,6 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
 
     users: any
     machines: Machine[] = []
-    appTypes = [
-        { value: 'kea', name: 'Kea', id: 'kea-events' },
-        { value: 'bind9', name: 'BIND 9', id: 'bind-events' },
-    ]
     daemonTypes = [
         { value: 'dhcp4', name: 'DHCPv4', id: 'kea4-events' },
         { value: 'dhcp6', name: 'DHCPv6', id: 'kea6-events' },
@@ -88,7 +83,6 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
         { value: 'netconf', name: 'NETCONF', id: 'netconf-events' },
     ]
     selectedMachine: any
-    selectedAppType: any
     selectedDaemonType: any
     selectedUser: any
 
@@ -145,14 +139,6 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
                 this.eventHandler(event.originalEvent)
             })
 
-        if (this.filter.appType) {
-            for (const at of this.appTypes) {
-                if (at.value === this.filter.appType) {
-                    this.selectedAppType = at
-                    break
-                }
-            }
-        }
         if (this.filter.daemonType) {
             for (const dt of this.daemonTypes) {
                 if (dt.value === this.filter.daemonType) {
@@ -327,16 +313,6 @@ export class EventsPanelComponent implements OnInit, OnChanges, OnDestroy {
             this.filter.machine = null
         } else {
             this.filter.machine = event.value.id
-        }
-        this.applyFilter()
-    }
-
-    /** Callback called on selecting an application in dropdown. */
-    onAppTypeSelect(event) {
-        if (event.value === null) {
-            this.filter.appType = null
-        } else {
-            this.filter.appType = event.value.value
         }
         this.applyFilter()
     }
