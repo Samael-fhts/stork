@@ -1,7 +1,7 @@
 import { HttpClientModule } from '@angular/common/http'
 import { RouterModule } from '@angular/router'
 import { applicationConfig, Meta, moduleMetadata, StoryObj } from '@storybook/angular'
-import { MessageService } from 'primeng/api'
+import { ConfirmationService, MessageService } from 'primeng/api'
 import { PaginatorModule } from 'primeng/paginator'
 import { Events, EventsService, ServicesService, UsersService } from '../backend'
 import { toastDecorator } from '../utils-stories'
@@ -13,6 +13,7 @@ import { LocaltimePipe } from '../pipes/localtime.pipe'
 import { EventTextComponent } from '../event-text/event-text.component'
 import { ButtonModule } from 'primeng/button'
 import { importProvidersFrom } from '@angular/core'
+import { ConfirmDialogModule } from 'primeng/confirmdialog'
 
 export default {
     title: 'App/EventsPanel',
@@ -25,10 +26,11 @@ export default {
                 ServicesService,
                 MessageService,
                 importProvidersFrom(HttpClientModule),
+                ConfirmationService,
             ],
         }),
         moduleMetadata({
-            imports: [HttpClientModule, PaginatorModule, RouterModule, TableModule, ToastModule, ButtonModule],
+            imports: [HttpClientModule, PaginatorModule, RouterModule, TableModule, ToastModule, ButtonModule, ConfirmDialogModule],
             declarations: [EventsPanelComponent, LocaltimePipe, EventTextComponent],
         }),
         toastDecorator,
