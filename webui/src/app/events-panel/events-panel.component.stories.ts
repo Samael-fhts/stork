@@ -30,7 +30,15 @@ export default {
             ],
         }),
         moduleMetadata({
-            imports: [HttpClientModule, PaginatorModule, RouterModule, TableModule, ToastModule, ButtonModule, ConfirmDialogModule],
+            imports: [
+                HttpClientModule,
+                PaginatorModule,
+                RouterModule,
+                TableModule,
+                ToastModule,
+                ButtonModule,
+                ConfirmDialogModule,
+            ],
             declarations: [EventsPanelComponent, LocaltimePipe, EventTextComponent],
         }),
         toastDecorator,
