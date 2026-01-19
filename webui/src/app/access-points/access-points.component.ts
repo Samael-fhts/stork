@@ -1,18 +1,16 @@
 import { Component, Input } from '@angular/core'
-import { AnyDaemon } from '../backend'
+import { AccessPoint, AnyDaemon } from '../backend'
 
 /**
- * A component that displays daemon overview.
- *
- * It comprises the information about the daemon and machine access points.
+ * A component that displays daemon access points.
  */
 @Component({
-    selector: 'app-daemon-overview',
+    selector: 'app-access-points',
     standalone: false,
-    templateUrl: './daemon-overview.component.html',
-    styleUrls: ['./daemon-overview.component.sass'],
+    templateUrl: './access-points.component.html',
+    styleUrls: ['./access-points.component.sass'],
 })
-export class DaemonOverviewComponent {
+export class AccessPointsComponent {
     /** Pointer to the structure holding the daemon information. */
     @Input() daemon: AnyDaemon
 

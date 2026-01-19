@@ -5,13 +5,19 @@ import { AppsVersions, Bind9DaemonView } from '../backend'
 import { By } from '@angular/platform-browser'
 import { VersionStatusComponent } from '../version-status/version-status.component'
 import { Severity, VersionService } from '../version.service'
-import { MessageService } from 'primeng/api'
+import { ConfirmationService, MessageService } from 'primeng/api'
 import { DurationPipe } from '../pipes/duration.pipe'
 import { LocaltimePipe } from '../pipes/localtime.pipe'
 import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { of } from 'rxjs'
 import { provideRouter, RouterModule } from '@angular/router'
 import { TooltipModule } from 'primeng/tooltip'
+import { EventsPanelComponent } from '../events-panel/events-panel.component'
+import { AccessPointsComponent } from '../access-points/access-points.component'
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { provideHttpClientTesting } from '@angular/common/http/testing'
+import { ConfirmDialogModule } from 'primeng/confirmdialog'
+import { TableModule } from 'primeng/table'
 
 class Daemon {
     id = 1
@@ -31,9 +37,10 @@ describe('Bind9DaemonComponent', () => {
             getSoftwareVersionFeedback: () => ({ severity: Severity.success, messages: ['test feedback'] }),
         }
         await TestBed.configureTestingModule({
-            declarations: [Bind9DaemonComponent, DurationPipe, LocaltimePipe, PlaceholderPipe, VersionStatusComponent],
-            imports: [RouterModule, TooltipModule],
-            providers: [provideRouter([]), { provide: VersionService, useValue: versionServiceStub }, MessageService],
+            declarations: [Bind9DaemonComponent, DurationPipe, LocaltimePipe, PlaceholderPipe, VersionStatusComponent, EventsPanelComponent, AccessPointsComponent],
+            imports: [RouterModule, TooltipModule, ConfirmDialogModule, TableModule],
+            providers: [provideRouter([]), { provide: VersionService, useValue: versionServiceStub }, MessageService, provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(), ConfirmationService],
         }).compileComponents()
 
         fixture = TestBed.createComponent(Bind9DaemonComponent)

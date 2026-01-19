@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing'
 import { provideRouter, RouterModule } from '@angular/router'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
-import { MessageService } from 'primeng/api'
+import { ConfirmationService, MessageService } from 'primeng/api'
 import { MockLocationStrategy } from '@angular/common/testing'
 import { By } from '@angular/platform-browser'
 import { of } from 'rxjs'
@@ -16,7 +16,7 @@ import { ManagedAccessDirective } from '../managed-access.directive'
 import { PanelModule } from 'primeng/panel'
 import { ButtonModule } from 'primeng/button'
 import { ProgressSpinnerModule } from 'primeng/progressspinner'
-import { DaemonOverviewComponent } from '../daemon-overview/daemon-overview.component'
+import { AccessPointsComponent } from '../access-points/access-points.component'
 import { TabViewComponent } from '../tab-view/tab-view.component'
 import { ToggleSwitchModule } from 'primeng/toggleswitch'
 import { FormsModule } from '@angular/forms'
@@ -36,6 +36,7 @@ import { DataViewModule } from 'primeng/dataview'
 import { ConfigCheckerPreferenceUpdaterComponent } from '../config-checker-preference-updater/config-checker-preference-updater.component'
 import { ConfigCheckerPreferencePickerComponent } from '../config-checker-preference-picker/config-checker-preference-picker.component'
 import { ToggleButtonModule } from 'primeng/togglebutton'
+import { ConfirmDialogModule } from 'primeng/confirmdialog'
 
 describe('KeaDaemonComponent', () => {
     let component: KeaDaemonComponent
@@ -52,7 +53,7 @@ describe('KeaDaemonComponent', () => {
         TestBed.configureTestingModule({
             declarations: [
                 KeaDaemonComponent,
-                DaemonOverviewComponent,
+                AccessPointsComponent,
                 HelpTipComponent,
                 ConfigReviewPanelComponent,
                 HaStatusComponent,
@@ -79,6 +80,7 @@ describe('KeaDaemonComponent', () => {
                 DataViewModule,
                 RouterModule,
                 ToggleButtonModule,
+                ConfirmDialogModule,
             ],
             providers: [
                 UsersService,
@@ -86,6 +88,7 @@ describe('KeaDaemonComponent', () => {
                 ServicesService,
                 MessageService,
                 MockLocationStrategy,
+                ConfirmationService,
                 { provide: ServerSentEventsService, useClass: ServerSentEventsTestingService },
                 { provide: VersionService, useValue: versionServiceStub },
                 provideHttpClient(withInterceptorsFromDi()),

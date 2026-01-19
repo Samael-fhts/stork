@@ -4,6 +4,13 @@ import { PdnsDaemonComponent } from './pdns-daemon.component'
 import { PlaceholderPipe } from '../pipes/placeholder.pipe'
 import { DurationPipe } from '../pipes/duration.pipe'
 import { PdnsDaemon } from '../backend'
+import { AccessPointsComponent } from '../access-points/access-points.component'
+import { EventsPanelComponent } from '../events-panel/events-panel.component'
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
+import { provideHttpClientTesting } from '@angular/common/http/testing'
+import { ConfirmationService, MessageService } from 'primeng/api'
+import { ConfirmDialogModule } from 'primeng/confirmdialog'
+import { TableModule } from 'primeng/table'
 
 const daemon: PdnsDaemon = {
     name: 'pdns',
@@ -25,7 +32,10 @@ describe('PdnsDaemonComponent', () => {
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            declarations: [PdnsDaemonComponent, DurationPipe, PlaceholderPipe],
+            declarations: [PdnsDaemonComponent, DurationPipe, PlaceholderPipe, AccessPointsComponent, EventsPanelComponent],
+            imports: [ConfirmDialogModule, TableModule],
+            providers: [provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(), MessageService, ConfirmationService]
         }).compileComponents()
 
         fixture = TestBed.createComponent(PdnsDaemonComponent)

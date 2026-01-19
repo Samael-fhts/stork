@@ -96,7 +96,7 @@ import { KeaDaemonConfigurationPageComponent } from './kea-daemon-configuration-
 import { HostTabComponent } from './host-tab/host-tab.component'
 import { ConfigReviewPanelComponent } from './config-review-panel/config-review-panel.component'
 import { IdentifierComponent } from './identifier/identifier.component'
-import { DaemonOverviewComponent } from './daemon-overview/daemon-overview.component'
+import { AccessPointsComponent } from './access-points/access-points.component'
 import { HostFormComponent } from './host-form/host-form.component'
 import { DhcpOptionFormComponent } from './dhcp-option-form/dhcp-option-form.component'
 import { DhcpOptionSetFormComponent } from './dhcp-option-set-form/dhcp-option-set-form.component'
@@ -344,7 +344,7 @@ const AuraBluePreset = definePreset(Aura, {
         HostTabComponent,
         ConfigReviewPanelComponent,
         IdentifierComponent,
-        DaemonOverviewComponent,
+        AccessPointsComponent,
         HostFormComponent,
         DhcpOptionFormComponent,
         DhcpOptionSetFormComponent,
