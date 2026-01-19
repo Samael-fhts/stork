@@ -36,6 +36,7 @@ import { FilterMetadata } from 'primeng/api/filtermetadata'
 import { MessageModule } from 'primeng/message'
 import { LocalNumberPipe } from '../pipes/local-number.pipe'
 import { AddressPoolBarComponent } from '../address-pool-bar/address-pool-bar.component'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('SubnetsTableComponent', () => {
     let component: SubnetsTableComponent
@@ -58,6 +59,8 @@ describe('SubnetsTableComponent', () => {
                 OutOfPoolBarComponent,
                 LocalNumberPipe,
                 AddressPoolBarComponent,
+                DaemonNiceNamePipe,
+                EntityLinkComponent,
             ],
             imports: [
                 TableModule,

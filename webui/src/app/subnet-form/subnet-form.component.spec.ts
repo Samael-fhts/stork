@@ -1055,7 +1055,7 @@ describe('SubnetFormComponent', () => {
         expect(parameters.get('allocator.values.0')?.value).toBe('iterative')
 
         expect(component.state.servers.length).toBe(1)
-        expect(component.state.servers[0]).toBe('dhcp4')
+        expect(component.state.servers[0]).toBe('[2] DHCPv4')
 
         flush()
         // TODO: this test should be probably moved away from Karma tests. flush() is saving us from: Error: 11 timer(s) still in the queue.

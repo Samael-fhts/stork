@@ -50,6 +50,7 @@ import { TabViewComponent } from '../tab-view/tab-view.component'
 import { TriStateCheckboxComponent } from '../tri-state-checkbox/tri-state-checkbox.component'
 import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('HostsPageComponent', () => {
     let component: HostsPageComponent
@@ -76,6 +77,8 @@ describe('HostsPageComponent', () => {
                 PluralizePipe,
                 HostsTableComponent,
                 ByteCharacterComponent,
+                EntityLinkComponent,
+                DaemonNiceNamePipe,
             ],
             imports: [
                 ButtonModule,

@@ -55,6 +55,8 @@ import { TabViewComponent } from '../tab-view/tab-view.component'
 import { TooltipModule } from 'primeng/tooltip'
 import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
+import { EntityLinkComponent } from '../entity-link/entity-link.component'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('ZonesPageComponent', () => {
     let component: ZonesPageComponent
@@ -330,6 +332,8 @@ describe('ZonesPageComponent', () => {
                 LocaltimePipe,
                 PluralizePipe,
                 UnrootPipe,
+                EntityLinkComponent,
+                DaemonNiceNamePipe,
             ],
             providers: [
                 { provide: MessageService, useValue: messageService },

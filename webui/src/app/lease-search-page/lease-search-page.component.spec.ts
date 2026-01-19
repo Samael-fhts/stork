@@ -30,6 +30,7 @@ import { IconFieldModule } from 'primeng/iconfield'
 import { InputIconModule } from 'primeng/inputicon'
 import { ButtonModule } from 'primeng/button'
 import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
+import { EntityLinkComponent } from '../entity-link/entity-link.component'
 
 describe('LeaseSearchPageComponent', () => {
     let component: LeaseSearchPageComponent
@@ -51,6 +52,7 @@ describe('LeaseSearchPageComponent', () => {
                 IdentifierComponent,
                 ByteCharacterComponent,
                 DaemonNiceNamePipe,
+                EntityLinkComponent,
             ],
             imports: [
                 FormsModule,
@@ -210,11 +212,12 @@ describe('LeaseSearchPageComponent', () => {
         expect(cols[1].nativeElement.innerText).toBe('192.0.2.3')
         expect(cols[2].nativeElement.innerText).toBe('IPv4 address')
         expect(cols[3].nativeElement.innerText).toBe('Valid')
-        expect(cols[4].nativeElement.innerText).toBe('dhcp4')
+        expect(cols[4].nativeElement.innerText).toBe('[1] DHCPv4')
 
         // Validate app link.
-        expect(cols[4].children.length).toBe(1)
-        expect(cols[4].children[0].attributes.href).toBe('/daemons/1')
+        const daemonLink = cols[4].query(By.css('#daemon-link-1'))
+        expect(daemonLink).toBeTruthy()
+        expect(daemonLink.attributes.href).toBe('/daemons/1')
 
         // Simulate expanding the lease information.
         expandButton.click()
@@ -316,11 +319,12 @@ describe('LeaseSearchPageComponent', () => {
         expect(cols[1].nativeElement.innerText).toBe('192.0.2.3')
         expect(cols[2].nativeElement.innerText).toBe('IPv4 address')
         expect(cols[3].nativeElement.innerText).toBe('Declined')
-        expect(cols[4].nativeElement.innerText).toBe('dhcp4')
+        expect(cols[4].nativeElement.innerText).toBe('[1] DHCPv4')
 
         // Validate app link.
-        expect(cols[4].children.length).toBe(1)
-        expect(cols[4].children[0].attributes.href).toBe('/daemons/1')
+        const daemonLink = cols[4].query(By.css('#daemon-link-1'))
+        expect(daemonLink).toBeTruthy()
+        expect(daemonLink.attributes.href).toBe('/daemons/1')
 
         // Simulate expanding the lease information.
         expandButton.click()
@@ -422,11 +426,12 @@ describe('LeaseSearchPageComponent', () => {
         expect(cols[1].nativeElement.innerText).toBe('2001:db8:1::1')
         expect(cols[2].nativeElement.innerText).toBe('IPv6 address (IA_NA)')
         expect(cols[3].nativeElement.innerText).toBe('Declined')
-        expect(cols[4].nativeElement.innerText).toBe('dhcp6')
+        expect(cols[4].nativeElement.innerText).toBe('[2] DHCPv6')
 
         // Validate app link.
-        expect(cols[4].children.length).toBe(1)
-        expect(cols[4].children[0].attributes.href).toBe('/daemons/2')
+        const daemonLink1 = cols[4].query(By.css('#daemon-link-2'))
+        expect(daemonLink1).toBeTruthy()
+        expect(daemonLink1.attributes.href).toBe('/daemons/2')
 
         // Prefix lease.
 
@@ -439,11 +444,12 @@ describe('LeaseSearchPageComponent', () => {
         expect(cols[6].nativeElement.innerText).toBe('3000::/64')
         expect(cols[7].nativeElement.innerText).toBe('IPv6 prefix (IA_PD)')
         expect(cols[8].nativeElement.innerText).toBe('Expired/Reclaimed')
-        expect(cols[9].nativeElement.innerText).toBe('dhcp6')
+        expect(cols[9].nativeElement.innerText).toBe('[2] DHCPv6')
 
         // Validate app link.
-        expect(cols[9].children.length).toBe(1)
-        expect(cols[9].children[0].attributes.href).toBe('/daemons/2')
+        const daemonLink2 = cols[9].query(By.css('#daemon-link-2'))
+        expect(daemonLink2).toBeTruthy()
+        expect(daemonLink2.attributes.href).toBe('/daemons/2')
 
         // Simulate expanding the lease information.
         expandButton1.click()

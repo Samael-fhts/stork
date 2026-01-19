@@ -30,6 +30,7 @@ import { HostDataSourceLabelComponent } from '../host-data-source-label/host-dat
 import { IdentifierComponent } from '../identifier/identifier.component'
 import { EntityLinkComponent } from '../entity-link/entity-link.component'
 import { ByteCharacterComponent } from '../byte-character/byte-character.component'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('HostsTableComponent', () => {
     let component: HostsTableComponent
@@ -49,6 +50,7 @@ describe('HostsTableComponent', () => {
                 HostDataSourceLabelComponent,
                 EntityLinkComponent,
                 ByteCharacterComponent,
+                DaemonNiceNamePipe,
             ],
             imports: [
                 TableModule,

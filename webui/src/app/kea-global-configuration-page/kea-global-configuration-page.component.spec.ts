@@ -30,6 +30,8 @@ import { TagModule } from 'primeng/tag'
 import { ManagedAccessDirective } from '../managed-access.directive'
 import { FloatLabelModule } from 'primeng/floatlabel'
 import { DaemonsPageComponent } from '../daemons-page/daemons-page.component'
+import { EntityLinkComponent } from '../entity-link/entity-link.component'
+import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 
 describe('KeaGlobalConfigurationPageComponent', () => {
     let component: KeaGlobalConfigurationPageComponent
@@ -51,6 +53,8 @@ describe('KeaGlobalConfigurationPageComponent', () => {
                 PlaceholderPipe,
                 UncamelPipe,
                 UnhyphenPipe,
+                EntityLinkComponent,
+                DaemonNiceNamePipe,
             ],
             imports: [
                 BreadcrumbModule,

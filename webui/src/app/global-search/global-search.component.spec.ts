@@ -10,6 +10,7 @@ import { FormsModule } from '@angular/forms'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { provideRouter, RouterModule } from '@angular/router'
 import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
+import { EntityLinkComponent } from '../entity-link/entity-link.component'
 
 describe('GlobalSearchComponent', () => {
     let component: GlobalSearchComponent
@@ -17,7 +18,7 @@ describe('GlobalSearchComponent', () => {
 
     beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
-            declarations: [GlobalSearchComponent, DaemonNiceNamePipe],
+            declarations: [GlobalSearchComponent, DaemonNiceNamePipe, EntityLinkComponent, DaemonNiceNamePipe],
             imports: [PopoverModule, NoopAnimationsModule, FormsModule, RouterModule],
             providers: [
                 SearchService,
@@ -59,8 +60,10 @@ describe('GlobalSearchComponent', () => {
         expect(daemonsDiv.children.length).toBe(2)
         const daemonDiv = daemonsDiv.children[1]
         expect(daemonDiv.children.length).toBe(1)
-        const daemonAnchor = daemonDiv.children[0]
-        expect(daemonAnchor.nativeElement.innerText).toBe('dhcp-server')
-        expect(daemonAnchor.attributes.href).toBe('/daemons/1')
+        // Entity link component wraps the daemon display
+        const daemonLink = daemonDiv.query(By.css('#daemon-link-1'))
+        expect(daemonLink).toBeTruthy()
+        expect(daemonLink.nativeElement.innerText).toBe('[1] dhcp-server')
+        expect(daemonLink.attributes.href).toBe('/daemons/1')
     })
 })
