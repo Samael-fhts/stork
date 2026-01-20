@@ -32,10 +32,20 @@ describe('PdnsDaemonComponent', () => {
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            declarations: [PdnsDaemonComponent, DurationPipe, PlaceholderPipe, AccessPointsComponent, EventsPanelComponent],
+            declarations: [
+                PdnsDaemonComponent,
+                DurationPipe,
+                PlaceholderPipe,
+                AccessPointsComponent,
+                EventsPanelComponent,
+            ],
             imports: [ConfirmDialogModule, TableModule],
-            providers: [provideHttpClient(withInterceptorsFromDi()),
-                provideHttpClientTesting(), MessageService, ConfirmationService]
+            providers: [
+                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(),
+                MessageService,
+                ConfirmationService,
+            ],
         }).compileComponents()
 
         fixture = TestBed.createComponent(PdnsDaemonComponent)

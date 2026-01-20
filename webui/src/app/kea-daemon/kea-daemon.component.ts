@@ -81,8 +81,7 @@ export class KeaDaemonComponent {
         const daemon = this.daemon()
         return (
             daemon.active &&
-            (daemon.agentCommErrors ?? 0) + (daemon.caCommErrors ?? 0) + (daemon.daemonCommErrors ?? 0) >
-                0
+            (daemon.agentCommErrors ?? 0) + (daemon.caCommErrors ?? 0) + (daemon.daemonCommErrors ?? 0) > 0
         )
     })
 

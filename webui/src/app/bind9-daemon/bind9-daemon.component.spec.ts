@@ -37,10 +37,24 @@ describe('Bind9DaemonComponent', () => {
             getSoftwareVersionFeedback: () => ({ severity: Severity.success, messages: ['test feedback'] }),
         }
         await TestBed.configureTestingModule({
-            declarations: [Bind9DaemonComponent, DurationPipe, LocaltimePipe, PlaceholderPipe, VersionStatusComponent, EventsPanelComponent, AccessPointsComponent],
+            declarations: [
+                Bind9DaemonComponent,
+                DurationPipe,
+                LocaltimePipe,
+                PlaceholderPipe,
+                VersionStatusComponent,
+                EventsPanelComponent,
+                AccessPointsComponent,
+            ],
             imports: [RouterModule, TooltipModule, ConfirmDialogModule, TableModule],
-            providers: [provideRouter([]), { provide: VersionService, useValue: versionServiceStub }, MessageService, provideHttpClient(withInterceptorsFromDi()),
-                provideHttpClientTesting(), ConfirmationService],
+            providers: [
+                provideRouter([]),
+                { provide: VersionService, useValue: versionServiceStub },
+                MessageService,
+                provideHttpClient(withInterceptorsFromDi()),
+                provideHttpClientTesting(),
+                ConfirmationService,
+            ],
         }).compileComponents()
 
         fixture = TestBed.createComponent(Bind9DaemonComponent)
