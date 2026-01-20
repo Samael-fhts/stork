@@ -8,7 +8,6 @@ import { debounceTime, lastValueFrom, Subject, Subscription } from 'rxjs'
 import { getErrorMessage } from '../utils'
 import { FilterMetadata } from 'primeng/api/filtermetadata'
 import { distinctUntilChanged, map } from 'rxjs/operators'
-import { Message } from 'primeng/message'
 
 /**
  * This component is dedicated to display the table of Machines. It supports

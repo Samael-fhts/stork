@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core'
-import { Bind9Daemon, Bind9DaemonView, DNSZoneType } from '../backend'
+import { Bind9Daemon, Bind9DaemonView } from '../backend'
 
 /**
  * Component for displaying information about a BIND9 daemon.

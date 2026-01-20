@@ -13,7 +13,6 @@ import { Menu } from 'primeng/menu'
 import { SelectButtonChangeEvent } from 'primeng/selectbutton'
 import { AuthService } from '../auth.service'
 import { TabViewComponent } from '../tab-view/tab-view.component'
-import { Message } from 'primeng/message'
 
 /**
  * This component implements a page which displays authorized

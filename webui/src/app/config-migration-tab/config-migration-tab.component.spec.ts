@@ -20,7 +20,6 @@ import { ManagedAccessDirective } from '../managed-access.directive'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { MessageService } from 'primeng/api'
 import { AuthService } from '../auth.service'
-import { ToastModule } from 'primeng/toast'
 
 describe('ConfigMigrationTabComponent', () => {
     let component: ConfigMigrationTabComponent

@@ -1,7 +1,7 @@
 import { Component, OnInit } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { ServicesService } from '../backend/api/api'
-import { daemonNameToFriendlyName, getErrorMessage } from '../utils'
+import { getErrorMessage } from '../utils'
 
 /**
  * Component providing a simple log viewer for remote log files.

@@ -1,4 +1,4 @@
-import { Component, computed, input, Input } from '@angular/core'
+import { Component, computed, input } from '@angular/core'
 
 import { daemonStatusIconClass, daemonStatusIconTooltip } from '../utils'
 import { AnyDaemon } from '../backend'

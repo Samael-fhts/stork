@@ -1,5 +1,5 @@
 import { Component, Input } from '@angular/core'
-import { AccessPoint, AnyDaemon } from '../backend'
+import { AnyDaemon } from '../backend'
 
 /**
  * A component that displays daemon access points.

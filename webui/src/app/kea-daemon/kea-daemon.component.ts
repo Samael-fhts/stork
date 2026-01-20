@@ -1,4 +1,4 @@
-import { Component, computed, input, Input } from '@angular/core'
+import { Component, computed, input } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { prerelease, gte } from 'semver'
 
@@ -6,7 +6,7 @@ import { MessageService } from 'primeng/api'
 
 import { ServicesService } from '../backend'
 
-import { durationToString, daemonStatusIconClass, daemonStatusIconTooltip } from '../utils'
+import { durationToString, daemonStatusIconTooltip } from '../utils'
 import { KeaDaemon, ModelFile } from '../backend'
 
 @Component({
