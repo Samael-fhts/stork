@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core'
+import { Component, computed, input, Input } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { prerelease, gte } from 'semver'
 
@@ -16,7 +16,7 @@ import { KeaDaemon, ModelFile } from '../backend'
     standalone: false,
 })
 export class KeaDaemonComponent {
-    @Input() daemon: KeaDaemon
+    daemon = input<KeaDaemon>(null)
 
     /**
      * Holds Kea documentation anchors indexed by hook libraries base names.
@@ -71,48 +71,41 @@ export class KeaDaemonComponent {
     }
 
     /**
-     * Returns boolean value indicating if there is an issue with communication
+     * Indicates if there is an issue with communication
      * with the active daemon.
      *
      * @return true if there is a communication problem with the daemon,
      *         false otherwise.
      */
-    get daemonStatusErred(): boolean {
+    daemonStatusErred = computed(() => {
+        const daemon = this.daemon()
         return (
-            this.daemon.active &&
-            (this.daemon.agentCommErrors ?? 0) + (this.daemon.caCommErrors ?? 0) + (this.daemon.daemonCommErrors ?? 0) >
+            daemon.active &&
+            (daemon.agentCommErrors ?? 0) + (daemon.caCommErrors ?? 0) + (daemon.daemonCommErrors ?? 0) >
                 0
         )
-    }
+    })
 
     /**
-     * Returns the CSS classes of the icon to be used when presenting daemon status.
-     */
-    get daemonStatusIconClass() {
-        return daemonStatusIconClass(this.daemon)
-    }
-
-    /**
-     * Returns error text to be displayed when there is a communication issue
+     * An error text to be displayed when there is a communication issue
      * with a given daemon
      *
      * @returns Error text. It includes hints about the communication
      *          problems when such problems occur, e.g. it includes the
      *          hint whether the communication is with the agent or daemon.
      */
-    get daemonStatusErrorText() {
-        return daemonStatusIconTooltip(this.daemon)
-    }
+    daemonStatusErrorText = computed(() => daemonStatusIconTooltip(this.daemon()))
 
     /**
      * Changes the monitored state of the given daemon. It sends a request
      * to API.
      */
     changeMonitored() {
-        const dmn = { monitored: !this.daemon.monitored }
-        this.servicesApi.updateDaemon(this.daemon.id, dmn).subscribe(
+        const daemon = this.daemon()
+        const dmn = { monitored: !daemon.monitored }
+        this.servicesApi.updateDaemon(daemon.id, dmn).subscribe(
             (/* data */) => {
-                this.daemon.monitored = dmn.monitored
+                daemon.monitored = dmn.monitored
             },
             (/* err */) => {
                 console.warn('Failed to update monitoring flag in daemon')
@@ -120,15 +113,14 @@ export class KeaDaemonComponent {
         )
     }
 
-    /** Returns true if the daemon was never running correctly. */
-    get isNeverFetchedDaemon() {
-        return this.daemon.reloadedAt == null
-    }
+    /** Indicates if the daemon was never running correctly. */
+    isNeverFetchedDaemon = computed(() => this.daemon().reloadedAt == null)
 
-    /** Returns true if the daemon is DHCP daemon. */
-    get isDhcpDaemon() {
-        return this.daemon.name === 'dhcp4' || this.daemon.name === 'dhcp6'
-    }
+    /** Indicates if the daemon is DHCP daemon. */
+    isDhcpDaemon = computed(() => {
+        const daemon = this.daemon()
+        return daemon.name === 'dhcp4' || daemon.name === 'dhcp6'
+    })
 
     /**
      * Checks if the specified log target can be viewed

@@ -131,7 +131,7 @@ describe('KeaDaemonComponent', () => {
         fixture = TestBed.createComponent(KeaDaemonComponent)
         component = fixture.componentInstance
         fixture.debugElement.injector.get(VersionService)
-        component.daemon = dhcp4Daemon
+        fixture.componentRef.setInput('daemon', dhcp4Daemon)
         fixture.detectChanges()
     })
 
@@ -184,8 +184,8 @@ describe('KeaDaemonComponent', () => {
     })
 
     it('should not display data storage when files and backends are blank', () => {
-        component.daemon.files = []
-        component.daemon.backends = []
+        component.daemon().files = []
+        component.daemon().backends = []
         fixture.detectChanges()
         const dataStorage = fixture.debugElement.query(By.css('#data-storage-div'))
         expect(dataStorage).toBeNull()
@@ -246,7 +246,7 @@ describe('KeaDaemonComponent', () => {
     })
 
     it('should display hook libraries', () => {
-        component.daemon.hooks = [
+        component.daemon().hooks = [
             '/libdhcp_cb_cmds.so',
             '/lib/libdhcp_custom.so',
             '/usr/lib/libdhcp_fake.so',
@@ -289,12 +289,12 @@ describe('KeaDaemonComponent', () => {
     })
 
     it('should properly recognize that daemon was never monitored', () => {
-        component.daemon = {}
-        expect(component.isNeverFetchedDaemon).toBeTrue()
-        component.daemon = { reloadedAt: undefined }
-        expect(component.isNeverFetchedDaemon).toBeTrue()
-        component.daemon = { reloadedAt: null }
-        expect(component.isNeverFetchedDaemon).toBeTrue()
+        fixture.componentRef.setInput('daemon', {})
+        expect(component.isNeverFetchedDaemon()).toBeTrue()
+        fixture.componentRef.setInput('daemon', { reloadedAt: undefined })
+        expect(component.isNeverFetchedDaemon()).toBeTrue()
+        fixture.componentRef.setInput('daemon', { reloadedAt: null })
+        expect(component.isNeverFetchedDaemon()).toBeTrue()
         // Any value.
         for (const timestamp of [
             '1970-01-01T12:00:00Z',
@@ -302,22 +302,22 @@ describe('KeaDaemonComponent', () => {
             '0001-01-01T00:00:00.000Z',
             'foobar',
         ]) {
-            component.daemon = { reloadedAt: timestamp }
-            expect(component.isNeverFetchedDaemon).toBeFalse()
+            fixture.componentRef.setInput('daemon', { reloadedAt: timestamp })
+            expect(component.isNeverFetchedDaemon()).toBeFalse()
         }
     })
 
     it('should properly recognize the DHCP daemons', () => {
-        component.daemon = { name: 'dhcp4' }
-        expect(component.isDhcpDaemon).toBeTrue()
-        component.daemon = { name: 'dhcp6' }
-        expect(component.isDhcpDaemon).toBeTrue()
-        component.daemon = { name: 'd2' }
-        expect(component.isDhcpDaemon).toBeFalse()
-        component.daemon = { name: 'netconf' }
-        expect(component.isDhcpDaemon).toBeFalse()
-        component.daemon = { name: 'foobar' }
-        expect(component.isDhcpDaemon).toBeFalse()
+        fixture.componentRef.setInput('daemon', { name: 'dhcp4' })
+        expect(component.isDhcpDaemon()).toBeTrue()
+        fixture.componentRef.setInput('daemon', { name: 'dhcp6' })
+        expect(component.isDhcpDaemon()).toBeTrue()
+        fixture.componentRef.setInput('daemon', { name: 'd2' })
+        expect(component.isDhcpDaemon()).toBeFalse()
+        fixture.componentRef.setInput('daemon', { name: 'netconf' })
+        expect(component.isDhcpDaemon()).toBeFalse()
+        fixture.componentRef.setInput('daemon', { name: 'foobar' })
+        expect(component.isDhcpDaemon()).toBeFalse()
     })
 
     it('should display version status component', () => {

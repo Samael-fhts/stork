@@ -19,10 +19,10 @@ describe('DaemonStatusComponent', () => {
     beforeEach(() => {
         fixture = TestBed.createComponent(DaemonStatusComponent)
         component = fixture.componentInstance
-        component.daemon = {
+        fixture.componentRef.setInput('daemon', {
             id: 1,
             name: 'dhcp4',
-        }
+        })
         fixture.detectChanges()
     })
 
