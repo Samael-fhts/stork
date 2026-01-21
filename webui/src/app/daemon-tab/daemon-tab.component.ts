@@ -11,7 +11,7 @@ import { isKeaDaemon } from '../version.service'
     styleUrl: './daemon-tab.component.sass',
 })
 export class DaemonTabComponent {
-    daemon = input.required<AnyDaemon>(null)
+    daemon = input<AnyDaemon>(null)
     @Output() refreshDaemon = new EventEmitter<number>()
 
     /**

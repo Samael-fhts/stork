@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing'
 
 import { Bind9DaemonComponent } from './bind9-daemon.component'
-import { AppsVersions, Bind9DaemonView } from '../backend'
+import { AppsVersions, Bind9DaemonView, Daemon } from '../backend'
 import { By } from '@angular/platform-browser'
 import { VersionStatusComponent } from '../version-status/version-status.component'
 import { Severity, VersionService } from '../version.service'
@@ -18,12 +18,6 @@ import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { ConfirmDialogModule } from 'primeng/confirmdialog'
 import { TableModule } from 'primeng/table'
-
-class Daemon {
-    id = 1
-    name = 'named'
-    version = '9.18.30'
-}
 
 describe('Bind9DaemonComponent', () => {
     let component: Bind9DaemonComponent
@@ -60,7 +54,11 @@ describe('Bind9DaemonComponent', () => {
         fixture = TestBed.createComponent(Bind9DaemonComponent)
         fixture.debugElement.injector.get(VersionService)
         component = fixture.componentInstance
-        const daemon = new Daemon()
+        const daemon: Daemon = {
+            id: 1,
+            name: Daemon.NameEnum.Named,
+            version: '9.18.30'
+        }
         component.daemon = daemon
         fixture.detectChanges()
     })
