@@ -725,6 +725,7 @@ describe('ZonesPageComponent', () => {
                 zoneSerial: '1',
                 zoneClass: null,
                 text: null,
+                daemonName: null,
             },
         })
     }))
@@ -748,6 +749,7 @@ describe('ZonesPageComponent', () => {
                 zoneSerial: null,
                 zoneClass: null,
                 text: null,
+                daemonName: null,
             },
         })
     }))
@@ -772,6 +774,7 @@ describe('ZonesPageComponent', () => {
                 zoneSerial: null,
                 zoneClass: null,
                 text: 'test',
+                daemonName: null,
             },
         })
     }))
