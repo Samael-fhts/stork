@@ -78,7 +78,7 @@ describe('AccessPointsComponent', () => {
 
         const content = (fixture.nativeElement as HTMLElement).innerText
 
-        expect(content).toContain('control')
+        expect(content).toContain('Control')
         expect(content).toContain('192.0.3.1:1234')
 
         const icon = fixture.debugElement.query(By.css('.pi-lock'))
@@ -105,7 +105,7 @@ describe('AccessPointsComponent', () => {
 
         const content = (fixture.nativeElement as HTMLElement).innerText
 
-        expect(content).toContain('statistics')
+        expect(content).toContain('Statistics')
         expect(content).toContain('[2001:db8:1::1]:2345')
 
         const icon = fixture.debugElement.query(By.css('.pi-lock-open'))
@@ -138,8 +138,8 @@ describe('AccessPointsComponent', () => {
 
         const content = (fixture.nativeElement as HTMLElement).innerText
 
-        expect(content).toContain('control')
-        expect(content).toContain('statistics')
+        expect(content).toContain('Control')
+        expect(content).toContain('Statistics')
     })
 
     it('should format address', () => {
