@@ -1207,6 +1207,8 @@ func TestReceiveZonesFilterByView(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	ctx := context.Background()
+	mock.EXPECT().Context().AnyTimes().Return(ctx)
 
 	// The zones from the _default view should be returned in order.
 	var mocks []any
@@ -1284,6 +1286,8 @@ func TestReceiveZonesPDNS(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	ctx := context.Background()
+	mock.EXPECT().Context().AnyTimes().Return(ctx)
 
 	// The zones from the localhost view should be returned in order.
 	var mocks []any
@@ -1373,6 +1377,8 @@ func TestReceiveRPZZones(t *testing.T) {
 
 	// Mock the streaming server.
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	ctx := context.Background()
+	mock.EXPECT().Context().AnyTimes().Return(ctx)
 
 	// The zones from the _default view should be returned in order.
 	var mocks []any
@@ -1459,6 +1465,8 @@ func TestReceiveZonesFilterByLoadedAfter(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	ctx := context.Background()
+	mock.EXPECT().Context().AnyTimes().Return(ctx)
 
 	// Run the actual test.
 	err = sa.ReceiveZones(&agentapi.ReceiveZonesReq{
@@ -1527,6 +1535,8 @@ func TestReceiveZonesFilterLowerBound(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	ctx := context.Background()
+	mock.EXPECT().Context().AnyTimes().Return(ctx)
 
 	// The zones from the _default view should be returned in order
 	// starting from 6th zones up to 9th.
@@ -1584,6 +1594,8 @@ func TestReceiveZonesNilZoneInventory(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	ctx := context.Background()
+	mock.EXPECT().Context().AnyTimes().Return(ctx)
 
 	// Run the actual test.
 	err := sa.ReceiveZones(&agentapi.ReceiveZonesReq{
@@ -1593,6 +1605,224 @@ func TestReceiveZonesNilZoneInventory(t *testing.T) {
 		LoadedAfter:    time.Date(2024, 2, 3, 15, 19, 0, 0, time.UTC).Unix(),
 	}, mock)
 	require.Contains(t, err.Error(), "attempted to receive DNS zones from a daemon for which zone inventory was not instantiated")
+}
+
+// Test that context cancellation is propagated while getting the zones
+// from the zone inventory.
+func TestReceiveZonesCancelWhileReceiving(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Setup server response.
+	defaultZones := generateRandomZones(10)
+	slices.SortFunc(defaultZones, func(zone1, zone2 *dnsmodel.Zone) int {
+		return storkutil.CompareNames(zone1.Name(), zone2.Name())
+	})
+
+	// Return the channel that indicates context cancellation
+	// and closes the channel. This simulates the case when the zone
+	// inventory indicates context cancellation.
+	ch := make(chan zoneInventoryReceiveZoneResult)
+	go func() {
+		ch <- zoneInventoryReceiveZoneResult{
+			err: context.Canceled,
+		}
+		close(ch)
+	}()
+
+	// Create zone inventory mock.
+	inventory := NewMockZoneInventory(ctrl)
+	inventory.EXPECT().receiveZones(gomock.Any(), gomock.Any()).Return(ch, nil)
+
+	sa, _, teardown := setupAgentTest()
+	defer teardown()
+
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		dnsDaemonImpl: dnsDaemonImpl{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
+		},
+	})
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
+
+	// Mock the streaming server.
+	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	mock.EXPECT().Context().Return(context.Background())
+
+	// Run the actual test.
+	err := sa.ReceiveZones(&agentapi.ReceiveZonesReq{
+		ControlAddress: "127.0.0.1",
+		ControlPort:    1234,
+		ViewName:       "_default",
+		LoadedAfter:    time.Date(2024, 2, 3, 15, 19, 0, 0, time.UTC).Unix(),
+	}, mock)
+	require.Equal(t, codes.Canceled, status.Code(err))
+	require.ErrorContains(t, err, "stream for receiving zones was closed by the client")
+}
+
+// Test that context deadline exceeded is propagated while getting the zones
+// from the zone inventory.
+func TestReceiveZonesDeadlineExceededWhileReceiving(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Setup server response.
+	defaultZones := generateRandomZones(10)
+	slices.SortFunc(defaultZones, func(zone1, zone2 *dnsmodel.Zone) int {
+		return storkutil.CompareNames(zone1.Name(), zone2.Name())
+	})
+
+	// Return the channel that indicates context deadline exceeded
+	// and closes the channel. This simulates the case when the zone
+	// inventory indicates context deadline exceeded.
+	ch := make(chan zoneInventoryReceiveZoneResult)
+	go func() {
+		ch <- zoneInventoryReceiveZoneResult{
+			err: context.DeadlineExceeded,
+		}
+		close(ch)
+	}()
+
+	// Create zone inventory mock.
+	inventory := NewMockZoneInventory(ctrl)
+	inventory.EXPECT().receiveZones(gomock.Any(), gomock.Any()).Return(ch, nil)
+
+	sa, _, teardown := setupAgentTest()
+	defer teardown()
+
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		dnsDaemonImpl: dnsDaemonImpl{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
+		},
+	})
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
+
+	// Mock the streaming server.
+	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	mock.EXPECT().Context().Return(context.Background())
+
+	// Run the actual test.
+	err := sa.ReceiveZones(&agentapi.ReceiveZonesReq{
+		ControlAddress: "127.0.0.1",
+		ControlPort:    1234,
+		ViewName:       "_default",
+		LoadedAfter:    time.Date(2024, 2, 3, 15, 19, 0, 0, time.UTC).Unix(),
+	}, mock)
+	require.Equal(t, codes.DeadlineExceeded, status.Code(err))
+	require.ErrorContains(t, err, "receiving zones timed out")
+}
+
+// Test that context cancellation is propagated while sending the zones
+// to the client.
+func TestReceiveZonesCancelWhileSending(t *testing.T) {
+	// Setup server response.
+	defaultZones := generateRandomZones(10)
+	slices.SortFunc(defaultZones, func(zone1, zone2 *dnsmodel.Zone) int {
+		return storkutil.CompareNames(zone1.Name(), zone2.Name())
+	})
+	bindZones := generateRandomZones(20)
+	response := map[string]any{
+		"views": map[string]any{
+			"_default": map[string]any{
+				"zones": defaultZones,
+			},
+			"_bind": map[string]any{
+				"zones": bindZones,
+			},
+		},
+	}
+	bind9StatsClient, off := setGetViewsResponseOK(t, response)
+	defer off()
+
+	// Create zone inventory.
+	config := parseDefaultBind9Config(t)
+	inventory := newZoneInventory(newZoneInventoryStorageMemory(), config, bind9StatsClient, "localhost", 5380)
+	inventory.start()
+	defer inventory.stop()
+
+	// Populate the zones into inventory.
+	done, err := inventory.populate(false)
+	require.NoError(t, err)
+	require.Equal(t, zoneInventoryStateInitial, inventory.getVisitedState(zoneInventoryStateInitial).name)
+	if inventory.getCurrentState().name == zoneInventoryStatePopulating {
+		<-done
+	}
+
+	sa, _, teardown := setupAgentTest()
+	defer teardown()
+
+	// Add a BIND9 daemon with the inventory.
+	var daemons []Daemon
+	daemons = append(daemons, &Bind9Daemon{
+		dnsDaemonImpl: dnsDaemonImpl{
+			daemon: daemon{
+				Name: daemonname.Bind9,
+				AccessPoints: []AccessPoint{{
+					Type:     AccessPointControl,
+					Address:  "127.0.0.1",
+					Port:     1234,
+					Key:      "key",
+					Protocol: protocoltype.RNDC,
+				}},
+			},
+			zoneInventory: inventory,
+		},
+	})
+	fdm, _ := sa.Monitor.(*FakeMonitor)
+	fdm.Daemons = daemons
+
+	// Mock the streaming server.
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	mock.EXPECT().Context().Return(context.Background())
+
+	apiZone := &agentapi.Zone{
+		Name:           defaultZones[0].Name(),
+		Class:          defaultZones[0].Class,
+		Serial:         defaultZones[0].Serial,
+		Type:           defaultZones[0].Type,
+		Loaded:         defaultZones[0].Loaded.Unix(),
+		View:           "_default",
+		TotalZoneCount: 10,
+	}
+	// The server indicates context cancellation by returning a gRPC error
+	// with the code Canceled.
+	mock.EXPECT().Send(apiZone).Times(1).Return(status.Error(codes.Canceled, "stream for receiving zones was closed by the client"))
+
+	// Run the actual test.
+	err = sa.ReceiveZones(&agentapi.ReceiveZonesReq{
+		ControlAddress: "127.0.0.1",
+		ControlPort:    1234,
+		ViewName:       "_default",
+		LoadedAfter:    time.Date(2024, 2, 3, 15, 19, 0, 0, time.UTC).Unix(),
+	}, mock)
+	require.Contains(t, err.Error(), "stream for receiving zones was closed by the client")
 }
 
 // Test that an error is returned when the daemon is not a DNS server.
@@ -1686,6 +1916,8 @@ func TestReceiveZonesZoneInventoryNotInited(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	ctx := context.Background()
+	mock.EXPECT().Context().Return(ctx)
 
 	// Run the actual test.
 	err := sa.ReceiveZones(&agentapi.ReceiveZonesReq{
@@ -1775,6 +2007,7 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	mock := NewMockServerStreamingServer[agentapi.Zone](ctrl)
+	mock.EXPECT().Context().Return(ctx)
 
 	// Run the actual test.
 	err = sa.ReceiveZones(&agentapi.ReceiveZonesReq{

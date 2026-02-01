@@ -1692,10 +1692,84 @@ func TestZoneInventoryReceiveZonesCancel(t *testing.T) {
 	// Cancel getting the zones.
 	cancel()
 
-	// It should be ok to read from the closed channel. It may be nil
-	// or non-nil value, depending on whether cancel has taken effect
-	// already.
-	<-channel
+	// Read remaining data from the channel. Depending on the timing,
+	// the channel may return actual data or a context canceled error.
+	// The last returned result should be the context canceled error.
+	for result := range channel {
+		if result.err != nil {
+			require.ErrorIs(t, result.err, context.Canceled)
+			break
+		}
+	}
+
+	// The inventory should fall back to the RECEIVED_ZONES state.
+	require.Eventually(t, func() bool {
+		return inventory.getCurrentState().name == zoneInventoryStateReceivedZones
+	}, time.Second, time.Millisecond)
+
+	// Make sure that the inventory is in the correct state.
+	require.Equal(t, zoneInventoryStateReceivedZones, inventory.getCurrentState().name)
+}
+
+// Test that receiving the zones over the channel stops when the context times out.
+func TestZoneInventoryReceiveZonesTimeout(t *testing.T) {
+	// Setup server response.
+	response := map[string]any{
+		"views": map[string]any{
+			"_default": map[string]any{
+				"zones": generateRandomZones(10),
+			},
+		},
+	}
+	bind9StatsClient, off := setGetViewsResponseOK(t, response)
+	defer off()
+
+	// Create the zone inventory.
+	sandbox := testutil.NewSandbox()
+	defer sandbox.Close()
+	storage, err := newZoneInventoryStorageMemoryDisk(sandbox.BasePath)
+	require.NoError(t, err)
+	config := parseDefaultBind9Config(t)
+	inventory := newZoneInventory(storage, config, bind9StatsClient, "localhost", 5380)
+	inventory.start()
+	defer inventory.stop()
+
+	// Populate the zones from the DNS server to the inventory.
+	done, err := inventory.populate(false)
+	require.NoError(t, err)
+	if inventory.getCurrentState().name == zoneInventoryStatePopulating {
+		<-done
+	}
+	err = inventory.getCurrentState().err
+	require.NoError(t, err)
+
+	// Create the context with a zero timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 0)
+	defer cancel()
+
+	// Start receiving the zones.
+	channel, err := inventory.receiveZones(ctx, nil)
+	require.NoError(t, err)
+
+	// Wait for the inventory to start loading.
+	require.Eventually(t, func() bool {
+		return inventory.getCurrentState().name == zoneInventoryStateReceivingZones
+	}, time.Second, time.Millisecond)
+
+	// Wait for the timeout.
+	require.Eventually(t, func() bool {
+		return ctx.Err() != nil
+	}, time.Second, time.Millisecond)
+
+	// Read remaining data from the channel. Depending on the timing,
+	// the channel may return actual data or a context deadline exceeded error.
+	// The last returned result should be the context deadline exceeded error.
+	for result := range channel {
+		if result.err != nil {
+			require.ErrorIs(t, result.err, context.DeadlineExceeded)
+			break
+		}
+	}
 
 	// The inventory should fall back to the RECEIVED_ZONES state.
 	require.Eventually(t, func() bool {
