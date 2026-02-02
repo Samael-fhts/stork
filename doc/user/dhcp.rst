@@ -8,7 +8,7 @@ Kea DHCP Integration with Stork
 ===============================
 
 Prior to version 3.0.0, Kea exposed the control API via the Kea Control Agent
-daemon. Communication with the other Kea daemons was routed through that daemon.
+daemon. Communication with the other Kea daemons was routed through that daemon .
 From version 3.0.0 onward, each Kea daemon (DHCP4, DHCP6, D2, and NETCONF)
 provides a direct control channel which works without the Kea Control Agent. As
 a result, the Kea Control Agent is deprecated as of Kea 3.0.0
