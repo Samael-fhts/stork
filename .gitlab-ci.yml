@@ -700,6 +700,7 @@ build_hooks_legacy_arm64:
     - build_hooks_arm64
   variables:
     ARCH: arm64
+  retry: 2 # usually retrying the job helps to overcome the issue "fatal: not a git repository: hooks/stork-server-ldap/../../.git/modules/hooks/ldap"
 
 unittest_hooks:
   extends: .base_build_debian
