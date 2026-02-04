@@ -65,6 +65,7 @@ import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
 import { SplitButton } from 'primeng/splitbutton'
 import { TableCaptionComponent } from '../table-caption/table-caption.component'
 import { AuthService } from '../auth.service'
+import { DaemonFilterComponent } from '../daemon-filter/daemon-filter.component'
 
 /**
  * An interface extending the LocalZone with the properties useful
@@ -117,6 +118,7 @@ interface ExtendedLocalZone extends LocalZone {
         DaemonNiceNamePipe,
         SplitButton,
         TableCaptionComponent,
+        DaemonFilterComponent,
     ],
 })
 export class ZonesPageComponent implements OnInit, OnDestroy {
