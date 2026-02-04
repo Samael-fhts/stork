@@ -59,7 +59,6 @@ import { PluralizePipe } from '../pipes/pluralize.pipe'
 import { UnrootPipe } from '../pipes/unroot.pipe'
 import { ZoneViewerComponent } from '../zone-viewer/zone-viewer.component'
 import { ZoneTypeAliasPipe } from '../pipes/zone-type-alias.pipe'
-import { Toast } from 'primeng/toast'
 import { Checkbox } from 'primeng/checkbox'
 import { EntityLinkComponent } from '../entity-link/entity-link.component'
 import { DaemonNiceNamePipe } from '../pipes/daemon-name.pipe'
@@ -113,7 +112,6 @@ interface ExtendedLocalZone extends LocalZone {
         UnrootPipe,
         ZoneViewerComponent,
         ZoneTypeAliasPipe,
-        Toast,
         Checkbox,
         EntityLinkComponent,
         DaemonNiceNamePipe,
