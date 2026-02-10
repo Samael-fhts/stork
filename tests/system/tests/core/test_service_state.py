@@ -23,7 +23,7 @@ def test_has_healthcheck():
     assert not state_missing.has_healthcheck()
 
 
-def test_is_heathy():
+def test_is_healthy():
     # Arrange
     state_healthy = ServiceState("running", 0, "healthy", None)
     state_unhealthy = ServiceState("running", 0, "unhealthy", None)

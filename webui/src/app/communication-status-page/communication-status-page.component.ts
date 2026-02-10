@@ -44,7 +44,7 @@ export class CommunicationStatusPageComponent implements OnInit {
      * Constructor.
      *
      * @param messageService message service used for displaying communication
-     *        errros with the Stork server.
+     *        errors with the Stork server.
      * @param servicesService a service used for fetching the communication issues
      *        from the Stork server.
      */

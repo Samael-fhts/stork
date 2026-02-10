@@ -268,7 +268,7 @@ func TestRowSourceFollowsAcrossFileSwap(t *testing.T) {
 	}
 }
 
-// Confirm that RowSource conitnues producing rows from a file when EnsureWatching is called with the same file path.
+// Confirm that RowSource continues producing rows from a file when EnsureWatching is called with the same file path.
 func TestRowSourceEnsureWatchingNoChange(t *testing.T) {
 	// Arrange
 	tmpdir := t.TempDir()

@@ -310,7 +310,7 @@ func metricsMiddleware(next http.Handler, collector metrics.Collector) http.Hand
 	})
 }
 
-// Middelware that trims the base URL from the request URL.
+// Middleware that trims the base URL from the request URL.
 func trimBaseURLMiddleware(next http.Handler, baseURL string) http.Handler {
 	if baseURL == "" || baseURL == "/" {
 		// Nothing to do.

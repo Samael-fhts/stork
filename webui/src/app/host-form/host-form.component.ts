@@ -464,7 +464,7 @@ export class HostFormComponent implements OnInit, OnDestroy {
      * Sends a request to the server to begin a new transaction for updating
      * a host reservation.
      *
-     * If the call is successful, the form components initialized wih the
+     * If the call is successful, the form components initialized with the
      * returned data, i.e., a list of available servers, subnets, host reservation
      * information. If an error occurs, the error text is remembered and displayed
      * along with the retry button.

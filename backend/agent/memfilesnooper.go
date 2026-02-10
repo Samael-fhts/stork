@@ -358,7 +358,7 @@ func ParseRowAsLease4(record []string, minCLTT uint64) (*keadata.Lease, error) {
 // than) minCLTT, this parser will return nil and also a nil error.
 func ParseRowAsLease6(record []string, minCLTT uint64) (*keadata.Lease, error) {
 	if len(record) == 0 {
-		return nil, errors.New("cannot parse empty sljice as a lease structure")
+		return nil, errors.New("cannot parse empty slice as a lease structure")
 	}
 	if record[0] == "address" {
 		return nil, errors.New("cannot parse column headers as a lease structure")
