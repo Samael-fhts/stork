@@ -178,10 +178,8 @@ func (s *Subscriber) findMatchingEventStreams(event *dbmodel.Event) (streams []d
 	for _, stream := range s.filters.SSEStreams {
 		if stream == dbmodel.SSERegularMessage && (!s.useFilter || s.filters.isInFilter(event)) {
 			streams = append(streams, dbmodel.SSERegularMessage)
-		} else {
-			if slices.Contains(event.SSEStreams, stream) {
-				streams = append(streams, stream)
-			}
+		} else if slices.Contains(event.SSEStreams, stream) {
+			streams = append(streams, stream)
 		}
 	}
 	return streams
