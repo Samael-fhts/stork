@@ -1,9 +1,11 @@
 package kea
 
 import (
-	// "context"
+	"context"
+	"iter"
 
 	"github.com/go-pg/pg/v10"
+	"github.com/pkg/errors"
 	// "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	// keaconfig "isc.org/stork/daemoncfg/kea"
@@ -135,5 +137,28 @@ func (puller *LeasesPuller) pullLeases() error {
 }
 
 func (puller *LeasesPuller) getLeasesFromDaemon(daemon *dbmodel.Daemon) error {
+	if daemon.KeaDaemon == nil || !daemon.Active {
+		log.WithField("daemon_id", daemon.ID).Debug("Skipping daemon because it is not Kea or it is inactive")
+		return nil
+	}
+
+	if !daemon.Name.IsDHCP() {
+		log.WithField("daemon_id", daemon.ID).Debug("Skipping daemon because it is not a DHCPD")
+		return nil
+	}
+
+	ctx := context.Background()
+	// TODO: retreive last seen CLTT
+	for response, err := range puller.Agents.ReceiveKeaLeases(ctx, daemon, 0) {
+		switch {
+		case err != nil:
+			return err
+		case response == nil:
+			return errors.New("unexpected nil in response stream of Kea leases")
+		// Everything worked; happy path.
+		default:
+			// TODO: collect leases
+		}
+	}
 	return nil
 }
