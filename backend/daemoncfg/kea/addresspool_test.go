@@ -8,7 +8,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=keaconfig_test -destination=addresspoolmock_test.go isc.org/stork/daemoncfg/kea AddressPool
+//go:generate go tool go.uber.org/mock/mockgen -package=keaconfig_test -destination=addresspoolmock_test.go isc.org/stork/daemoncfg/kea AddressPool
 
 // Test parsing a pool address range, ensuring that the whitespace
 // is removed between the lower bound and the upper bound.

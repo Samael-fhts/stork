@@ -25,7 +25,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=agent -destination=zoneinventorymock_test.go -mock_names=zoneInventoryAXFRExecutor=MockZoneInventoryAXFRExecutor isc.org/stork/agent zoneInventoryAXFRExecutor
+//go:generate go tool go.uber.org/mock/mockgen -package=agent -destination=zoneinventorymock_test.go -mock_names=zoneInventoryAXFRExecutor=MockZoneInventoryAXFRExecutor isc.org/stork/agent zoneInventoryAXFRExecutor
 
 // This function generates a root zone.
 func generateRootZone() *dnsmodel.Zone {

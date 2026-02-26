@@ -18,7 +18,7 @@ import (
 	storktest "isc.org/stork/server/test/dbmodel"
 )
 
-//go:generate mockgen -package=daemons -destination=dispatchermock_test.go isc.org/stork/server/configreview Dispatcher
+//go:generate go tool go.uber.org/mock/mockgen -package=daemons -destination=dispatchermock_test.go isc.org/stork/server/configreview Dispatcher
 
 // Check creating and shutting down StatePuller.
 func TestStatsPullerBasic(t *testing.T) {

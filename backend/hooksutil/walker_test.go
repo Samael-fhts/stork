@@ -12,7 +12,7 @@ import (
 	"isc.org/stork/testutil"
 )
 
-//go:generate mockgen -package=hooksutil -destination=hooklookupmock_test.go isc.org/stork/hooksutil HookLookup
+//go:generate go tool go.uber.org/mock/mockgen -package=hooksutil -destination=hooklookupmock_test.go isc.org/stork/hooksutil HookLookup
 
 // Test that the function walk over the compatible hooks returns an error if
 // it finds an incompatible library.

@@ -20,7 +20,7 @@ import (
 //go:embed testdata/rndc-output.txt
 var mockRndcOutput []byte
 
-//go:generate mockgen -package=bind9 -destination=connectedagentsmock_test.go -source=../../agentcomm/agentcomm.go ConnectedAgents
+//go:generate go tool go.uber.org/mock/mockgen -package=bind9 -destination=connectedagentsmock_test.go -source=../../agentcomm/agentcomm.go ConnectedAgents
 
 // Test retrieving state of BIND 9 daemon.
 func TestGetDaemonState(t *testing.T) {

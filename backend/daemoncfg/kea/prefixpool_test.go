@@ -7,7 +7,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=keaconfig_test -destination=prefixpoolmock_test.go isc.org/stork/daemoncfg/kea PrefixPool
+//go:generate go tool go.uber.org/mock/mockgen -package=keaconfig_test -destination=prefixpoolmock_test.go isc.org/stork/daemoncfg/kea PrefixPool
 
 // Test getting a delegated prefix pool prefix.
 func TestGetCanonicalPrefix(t *testing.T) {

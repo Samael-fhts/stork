@@ -27,7 +27,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=restservice -destination=migratormock_test.go isc.org/stork/server/configmigrator MigrationManager
+//go:generate go tool go.uber.org/mock/mockgen -package=restservice -destination=migratormock_test.go isc.org/stork/server/configmigrator MigrationManager
 
 func mockStatusError(cmdResponses []interface{}) {
 	bytes := `{

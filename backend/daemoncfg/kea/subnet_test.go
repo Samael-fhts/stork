@@ -12,7 +12,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=keaconfig_test -destination=subnetmock_test.go isc.org/stork/daemoncfg/kea SubnetAccessor
+//go:generate go tool go.uber.org/mock/mockgen -package=keaconfig_test -destination=subnetmock_test.go isc.org/stork/daemoncfg/kea SubnetAccessor
 
 //go:embed keaconfig_test_subnet4_all_keys.json
 var AllKeysDHCPv4JSON []byte

@@ -39,7 +39,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=restservice -destination=connectedagentsmock_test.go isc.org/stork/server/agentcomm ConnectedAgents
+//go:generate go tool go.uber.org/mock/mockgen -package=restservice -destination=connectedagentsmock_test.go isc.org/stork/server/agentcomm ConnectedAgents
 
 // Type of the function returning agent communication stats wrapped.
 type wrapperFunc = func(string, int64) *agentcomm.CommStatsWrapper

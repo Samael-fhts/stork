@@ -23,7 +23,7 @@ import (
 	"isc.org/stork/testutil"
 )
 
-//go:generate mockgen -package=dnsop -destination=connectedagentsmock_test.go -source=../agentcomm/agentcomm.go ConnectedAgents
+//go:generate go tool go.uber.org/mock/mockgen -package=dnsop -destination=connectedagentsmock_test.go -source=../agentcomm/agentcomm.go ConnectedAgents
 
 //go:embed testdata/valid-zone.json
 var validZoneData []byte

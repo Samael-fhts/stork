@@ -22,8 +22,8 @@ import (
 	"isc.org/stork/testutil"
 )
 
-//go:generate mockgen -source process.go -package=agent -destination=processmock_test.go -mock_names=processLister=MockProcessLister,supportedProcess=MockSupportedProcess isc.org/agent supportedProcess processLister
-//go:generate mockgen -source monitor.go -package=agent -destination=monitormock_test.go -mock_names=agentManager=MockAgentManager isc.org/agent agentManager
+//go:generate go tool go.uber.org/mock/mockgen -source process.go -package=agent -destination=processmock_test.go -mock_names=processLister=MockProcessLister,supportedProcess=MockSupportedProcess isc.org/agent supportedProcess processLister
+//go:generate go tool go.uber.org/mock/mockgen -source monitor.go -package=agent -destination=monitormock_test.go -mock_names=agentManager=MockAgentManager isc.org/agent agentManager
 
 const defaultBind9Config = `
 	key "foo" {

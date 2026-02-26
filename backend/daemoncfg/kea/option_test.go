@@ -11,7 +11,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=keaconfig_test -destination=optionmock_test.go isc.org/stork/datamodel/dhcp DHCPOptionAccessor
+//go:generate go tool go.uber.org/mock/mockgen -package=keaconfig_test -destination=optionmock_test.go isc.org/stork/datamodel/dhcp DHCPOptionAccessor
 
 // DHCP option field used in the tests implementing the DHCPOptionField
 // interface.
