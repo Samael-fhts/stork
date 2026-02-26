@@ -2,12 +2,12 @@ package kea
 
 import (
 	"context"
-	"iter"
+	"sync"
 
 	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
-	// "github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
+
 	// keaconfig "isc.org/stork/daemoncfg/kea"
 	// keactrl "isc.org/stork/daemonctrl/kea"
 	// "isc.org/stork/datamodel/daemonname"
@@ -122,15 +122,27 @@ func (puller *LeasesPuller) pullLeases() error {
 	}
 
 	// Get lease records from each daemon.
+	var wg sync.WaitGroup
+	errorPipe := make(chan error, len(selectedDaemons))
+	for _, daemon := range selectedDaemons {
+		wg.Go(func() {
+			err := puller.getLeasesFromDaemon(daemon)
+			if err != nil {
+				log.WithError(err).Warnf("Could not retreive leases from daemon %d", daemon.ID)
+				errorPipe <- err
+			} else {
+				errorPipe <- nil
+			}
+		})
+	}
+	wg.Wait()
 	var errors []error
 	daemonsOkCnt := 0
-	for _, daemon := range selectedDaemons {
-		err := puller.getLeasesFromDaemon(daemon)
-		if err != nil {
-			errors = append(errors, err)
-			log.WithError(err).Warnf("Could not retreive leases from daemon %d", daemon.ID)
-		} else {
+	for err := range errorPipe {
+		if err == nil {
 			daemonsOkCnt++
+		} else {
+			errors = append(errors, err)
 		}
 	}
 	return storkutil.CombineErrors("errors occurred while trying to pull leases from one or more daemons", errors)
@@ -148,17 +160,31 @@ func (puller *LeasesPuller) getLeasesFromDaemon(daemon *dbmodel.Daemon) error {
 	}
 
 	ctx := context.Background()
-	// TODO: retreive last seen CLTT
-	for response, err := range puller.Agents.ReceiveKeaLeases(ctx, daemon, 0) {
-		switch {
-		case err != nil:
-			return err
-		case response == nil:
-			return errors.New("unexpected nil in response stream of Kea leases")
-		// Everything worked; happy path.
-		default:
-			// TODO: collect leases
+	// TODO: review performance of this code to see if batching would help
+	return puller.db.RunInTransaction(ctx, func(tx *pg.Tx) error {
+		var maxCLTT uint64
+		err := tx.Model((*dbmodel.Lease)(nil)).
+			ColumnExpr("MAX(?)", pg.Ident("cltt")).
+			Where("daemonID = ?", daemon.ID).
+			Select(&maxCLTT)
+		if err != nil {
+			log.WithError(err).WithField("daemonID", daemon.ID).Info("Failed to fetch last CLTT from database for daemon")
+			maxCLTT = 0
 		}
-	}
-	return nil
+		for response, err := range puller.Agents.ReceiveKeaLeases(ctx, daemon, maxCLTT) {
+			switch {
+			case err != nil:
+				return err
+			case response == nil:
+				return errors.New("unexpected nil in response stream of Kea leases")
+			default:
+				// Non-error response.
+				err := dbmodel.AddLease(tx, dbmodel.LeaseFromGRPC(response.Lease, daemon.ID))
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	})
 }

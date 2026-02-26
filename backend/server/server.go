@@ -202,6 +202,12 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 		return err
 	}
 
+	// Set up Kea leases puller.
+	ss.Pullers.LeasesPuller, err = kea.NewLeasesPuller(ss.DB, ss.Agents)
+	if err != nil {
+		return err
+	}
+
 	if ss.GeneralSettings.EnableMetricsEndpoint {
 		ss.MetricsCollector, err = metrics.NewCollector(
 			metrics.NewDatabaseMetricsSource(ss.DB),
