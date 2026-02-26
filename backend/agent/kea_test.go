@@ -23,7 +23,7 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=agent -destination=commandexecutormock_test.go isc.org/stork/util CommandExecutor
+//go:generate go tool go.uber.org/mock/mockgen -package=agent -destination=commandexecutormock_test.go isc.org/stork/util CommandExecutor
 
 // Test the case that the command is successfully sent to Kea.
 func TestSendCommand(t *testing.T) {

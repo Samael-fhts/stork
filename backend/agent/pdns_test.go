@@ -13,8 +13,8 @@ import (
 	"isc.org/stork/datamodel/protocoltype"
 )
 
-//go:generate mockgen -package=agent -destination=pdnsconfigparsermock_test.go -mock_names=pdnsConfigParser=MockPDNSConfigParser isc.org/stork/agent pdnsConfigParser
-//go:generate mockgen -package=agent -destination=commandexecutormock_test.go -mock_names=commandExecutor=MockCommandExecutor isc.org/stork/util CommandExecutor
+//go:generate go tool go.uber.org/mock/mockgen -package=agent -destination=pdnsconfigparsermock_test.go -mock_names=pdnsConfigParser=MockPDNSConfigParser isc.org/stork/agent pdnsConfigParser
+//go:generate go tool go.uber.org/mock/mockgen -package=agent -destination=commandexecutormock_test.go -mock_names=commandExecutor=MockCommandExecutor isc.org/stork/util CommandExecutor
 
 // Test that the function correctly checks if two PowerDNS daemons are the same.
 // Note that it is not checking them for equality. It merely checks if they

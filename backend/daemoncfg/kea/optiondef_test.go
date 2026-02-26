@@ -7,8 +7,8 @@ import (
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 )
 
-//go:generate mockgen -package=keaconfig_test -destination=optiondefmock_test.go isc.org/stork/daemoncfg/kea DHCPOptionDefinition
-//go:generate mockgen -package=keaconfig_test -destination=optiondeflookupmock_test.go isc.org/stork/daemoncfg/kea DHCPOptionDefinitionLookup
+//go:generate go tool go.uber.org/mock/mockgen -package=keaconfig_test -destination=optiondefmock_test.go isc.org/stork/daemoncfg/kea DHCPOptionDefinition
+//go:generate go tool go.uber.org/mock/mockgen -package=keaconfig_test -destination=optiondeflookupmock_test.go isc.org/stork/daemoncfg/kea DHCPOptionDefinitionLookup
 
 // Test DHCPOptionDefinition interface.
 func TestDHCPOptionDefinition(t *testing.T) {

@@ -10,7 +10,7 @@ import (
 	dhcpmodel "isc.org/stork/datamodel/dhcp"
 )
 
-//go:generate mockgen -package=keaconfig_test -destination=sharednetworkmock_test.go isc.org/stork/daemoncfg/kea SharedNetworkAccessor
+//go:generate go tool go.uber.org/mock/mockgen -package=keaconfig_test -destination=sharednetworkmock_test.go isc.org/stork/daemoncfg/kea SharedNetworkAccessor
 
 // Returns a JSON structure with all configurable DHCPv4 shared network parameters
 // in Kea. It has been initially created from the Kea's all-keys.json file and then

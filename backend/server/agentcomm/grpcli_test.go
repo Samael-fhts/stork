@@ -99,9 +99,9 @@ func (*gzipMatcher) String() string {
 	return "gzip matcher"
 }
 
-//go:generate mockgen -package=agentcomm -destination=apimock_test.go -source=../../api/agent_grpc.pb.go isc.org/stork/api AgentClient
-//go:generate mockgen -package=agentcomm -destination=agentcommmock_test.go -source=agentcomm.go -mock_names=agentConnector=MockAgentConnector agentConnector
-//go:generate mockgen -package=agentcomm -destination=serverstreamingclientmock_test.go google.golang.org/grpc ServerStreamingClient
+//go:generate go tool go.uber.org/mock/mockgen -package=agentcomm -destination=apimock_test.go -source=../../api/agent_grpc.pb.go isc.org/stork/api AgentClient
+//go:generate go tool go.uber.org/mock/mockgen -package=agentcomm -destination=agentcommmock_test.go -source=agentcomm.go -mock_names=agentConnector=MockAgentConnector agentConnector
+//go:generate go tool go.uber.org/mock/mockgen -package=agentcomm -destination=serverstreamingclientmock_test.go google.golang.org/grpc ServerStreamingClient
 
 // Check if Ping works.
 func TestPing(t *testing.T) {

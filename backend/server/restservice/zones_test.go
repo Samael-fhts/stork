@@ -39,7 +39,7 @@ func (err *testError) Error() string {
 	return "test error"
 }
 
-//go:generate mockgen -package=restservice -destination=dnsopmanagermock_test.go -source=../dnsop/manager.go isc.org/stork/server/dnsop Manager
+//go:generate go tool go.uber.org/mock/mockgen -package=restservice -destination=dnsopmanagermock_test.go -source=../dnsop/manager.go isc.org/stork/server/dnsop Manager
 
 // Test getting zones from the database over the REST API.
 func TestGetZones(t *testing.T) {

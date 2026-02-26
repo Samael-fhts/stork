@@ -12,8 +12,8 @@ import (
 	dbtest "isc.org/stork/server/database/test"
 )
 
-//go:generate mockgen -package=pdns -destination=connectedagentsmock_test.go -source=../../agentcomm/agentcomm.go ConnectedAgents
-//go:generate mockgen -package=pdns -destination=eventcentermock_test.go -source=../../eventcenter/eventcenter.go EventCenter
+//go:generate go tool go.uber.org/mock/mockgen -package=pdns -destination=connectedagentsmock_test.go -source=../../agentcomm/agentcomm.go ConnectedAgents
+//go:generate go tool go.uber.org/mock/mockgen -package=pdns -destination=eventcentermock_test.go -source=../../eventcenter/eventcenter.go EventCenter
 
 // Error type used in tests.
 type testError struct{}

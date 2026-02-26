@@ -21,7 +21,7 @@ import (
 
 var _ = (os.FileInfo)((*testFileInfo)(nil))
 
-//go:generate mockgen -package=agent -destination=bind9mock_test.go -mock_names=bind9FileParser=MockBind9FileParser,zoneInventory=MockZoneInventory isc.org/stork/agent bind9FileParser,zoneInventory
+//go:generate go tool go.uber.org/mock/mockgen -package=agent -destination=bind9mock_test.go -mock_names=bind9FileParser=MockBind9FileParser,zoneInventory=MockZoneInventory isc.org/stork/agent bind9FileParser,zoneInventory
 
 // Test that the function correctly checks if two BIND 9 daemons are the same.
 // Note that it is not checking them for equality. It merely checks if they

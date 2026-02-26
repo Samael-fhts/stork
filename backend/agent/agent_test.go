@@ -40,8 +40,8 @@ import (
 	storkutil "isc.org/stork/util"
 )
 
-//go:generate mockgen -package=agent -destination=serverstreamingservermock_test.go google.golang.org/grpc ServerStreamingServer
-//go:generate mockgen -package=agent -destination=dnsconfigaccessormock_test.go -mock_names=dnsConfigAccessor=MockDNSConfigAccessor isc.org/stork/agent dnsConfigAccessor
+//go:generate go tool go.uber.org/mock/mockgen -package=agent -destination=serverstreamingservermock_test.go google.golang.org/grpc ServerStreamingServer
+//go:generate go tool go.uber.org/mock/mockgen -package=agent -destination=dnsconfigaccessormock_test.go -mock_names=dnsConfigAccessor=MockDNSConfigAccessor isc.org/stork/agent dnsConfigAccessor
 
 //go:embed testdata/valid-zone.json
 var validZoneData []byte

@@ -10,7 +10,7 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-//go:generate mockgen -package=configmigrator -destination=migratormock_test.go isc.org/stork/server/configmigrator Migrator
+//go:generate go tool go.uber.org/mock/mockgen -package=configmigrator -destination=migratormock_test.go isc.org/stork/server/configmigrator Migrator
 
 // A helper function to read all items from the channels.
 func readChannels(ch <-chan migrationChunkStatus) (errs []MigrationError, generalErr error) {
