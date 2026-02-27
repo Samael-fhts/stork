@@ -110,6 +110,7 @@ tasks:
 
   generate_backend:
     deps:
+      - generate_swaggeryaml
       - task: generate_storkcodegen_rule
         vars:
           INPUT: codegen/std_dhcpv4_option_def.json
