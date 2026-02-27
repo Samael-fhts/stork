@@ -30,9 +30,10 @@ tasks:
       - backend/cmd/stork-code-gen/stork-code-gen std-option-defs --input {{.INPUT}} --output {{.OUTPUT}} --template {{.TEMPLATE}}
 
   generate_swaggeryaml:
+    deps: [node_modules]
     run: once
     cmds:
-      - cd webui && npx yamlinc -o api/swagger.yaml api/swagger.in.yaml
+      - cd webui && npx yamlinc -o ../api/swagger.yaml ../api/swagger.in.yaml
 
   go_mod_tidy:
     run: once
@@ -83,7 +84,7 @@ tasks:
   generate_frontendapi:
     deps: [generate_swaggeryaml]
     cmds:
-      - java -jar tools/openapi-generator-cli.jar generate -i api/swagger.yaml -g typescript-angular -o webui/src/app/backend --additional-properties snapshot=true,ngVersion=10.1.5,modelPropertyNaming=camelcase
+      - java -jar tools/openapi-generator-cli.jar generate -i api/swagger.yaml -g typescript-angular -o webui/src/app/backend --additional-properties snapshot=true,ngVersion=10.1.5,modelPropertyNaming=camelCase
 
   generate_frontend:
     deps:
@@ -102,10 +103,10 @@ tasks:
     cmds:
       - task: fmt_prettier_rule
         vars:
-          FILE: webui/src/app/std-dhcpv4-option-defs.ts
+          FILE: src/app/std-dhcpv4-option-defs.ts
       - task: fmt_prettier_rule
         vars:
-          FILE: webui/src/app/std-dhcpv6-option-defs.ts
+          FILE: src/app/std-dhcpv6-option-defs.ts
 
   generate_backend:
     deps:
