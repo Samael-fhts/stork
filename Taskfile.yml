@@ -1,0 +1,123 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  GREETING: Hello, world!
+
+tasks:
+  default:
+    desc: Print a greeting message
+    cmds:
+      - echo "{{.GREETING}}"
+    silent: true
+
+  build:
+    deps: [build_backend, build_frontend]
+
+  build_go_rule:
+    deps: [go_mod_tidy]
+    cmds:
+      - go -C backend build -o cmd/{{.BINARY}}/{{.BINARY}} {{.BUILDCMD}}
+
+  fmt_prettier_rule:
+    cmds:
+      - cd webui && npx prettier --config .prettierrc --write {{.FILE}}
+
+  generate_storkcodegen_rule:
+    deps: [build_storkcodegen]
+    cmds:
+      - backend/cmd/stork-code-gen/stork-code-gen std-option-defs --input {{.INPUT}} --output {{.OUTPUT}} --template {{.TEMPLATE}}
+
+  generate_swaggeryaml:
+    run: once
+    cmds:
+      - cd webui && npx yamlinc -o api/swagger.yaml api/swagger.in.yaml
+
+  go_mod_tidy:
+    run: once
+    cmds:
+      - cd backend && go mod tidy
+
+  build_backend_exes:
+    deps:
+      - task: build_go_rule
+        vars:
+          BINARY: stork-server
+          BUILDCMD: ./cmd/stork-server
+      - task: build_go_rule
+        vars:
+          BINARY: stork-agent
+          BUILDCMD: ./cmd/stork-agent
+      - task: build_go_rule
+        vars:
+          BINARY: stork-tool
+          BUILDCMD: ./cmd/stork-tool
+    
+  build_backend:
+    deps:
+      - go_mod_tidy
+      - generate_backend
+    cmds:
+      - task: build_backend_exes
+
+  build_storkcodegen:
+    deps: [go_mod_tidy]
+    run: once
+    cmds:
+      - task: build_go_rule
+        vars:
+          BINARY: stork-code-gen
+          BUILDCMD: ./cmd/stork-code-gen
+
+  build_frontend:
+    deps: [node_modules, generate_frontend]
+    cmds:
+      - cd webui && npx ng build --configuration production
+      
+  node_modules:
+    run: once
+    cmds:
+      - cd webui && npm clean-install --prefer-offline
+
+  generate_frontendapi:
+    deps: [generate_swaggeryaml]
+    cmds:
+      - java -jar tools/openapi-generator-cli.jar generate -i api/swagger.yaml -g typescript-angular -o webui/src/app/backend --additional-properties snapshot=true,ngVersion=10.1.5,modelPropertyNaming=camelcase
+
+  generate_frontend:
+    deps:
+      - node_modules
+      - generate_frontendapi
+      - task: generate_storkcodegen_rule
+        vars:
+          INPUT: codegen/std_dhcpv4_option_def.json
+          OUTPUT: webui/src/app/std-dhcpv4-option-defs.ts
+          TEMPLATE: webui/src/app/std-dhcpv4-option-defs.ts.template
+      - task: generate_storkcodegen_rule
+        vars:
+          INPUT: codegen/std_dhcpv6_option_def.json
+          OUTPUT: webui/src/app/std-dhcpv6-option-defs.ts
+          TEMPLATE: webui/src/app/std-dhcpv6-option-defs.ts.template
+    cmds:
+      - task: fmt_prettier_rule
+        vars:
+          FILE: webui/src/app/std-dhcpv4-option-defs.ts
+      - task: fmt_prettier_rule
+        vars:
+          FILE: webui/src/app/std-dhcpv6-option-defs.ts
+
+  generate_backend:
+    deps:
+      - task: generate_storkcodegen_rule
+        vars:
+          INPUT: codegen/std_dhcpv4_option_def.json
+          OUTPUT: backend/daemoncfg/kea/stdoptiondef4.go
+          TEMPLATE: backend/daemoncfg/kea/stdoptiondef4.go.template
+      - task: generate_storkcodegen_rule
+        vars:
+          INPUT: codegen/std_dhcpv6_option_def.json
+          OUTPUT: backend/daemoncfg/kea/stdoptiondef6.go
+          TEMPLATE: backend/daemoncfg/kea/stdoptiondef6.go.template
+    cmds:
+      - go -C backend generate ./...
