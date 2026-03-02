@@ -64,7 +64,7 @@ func TestNewUserAuthenticate(t *testing.T) {
 	require.False(t, con)
 	require.NoError(t, err)
 
-	require.Greater(t, user.ID, 0)
+	require.NotZero(t, user.ID)
 
 	authOk, err := Authenticate(db, user, "pass")
 	require.NoError(t, err)
@@ -371,7 +371,7 @@ func TestSetPassword(t *testing.T) {
 	require.False(t, con)
 	require.NoError(t, err)
 
-	require.Greater(t, user.ID, 0)
+	require.NotZero(t, user.ID)
 
 	// Set new password for the user.
 	err = SetPassword(db, user.ID, "newpass")
@@ -475,7 +475,7 @@ func TestGetUsers(t *testing.T) {
 	require.Len(t, users, 101)
 	require.EqualValues(t, 101, total)
 
-	prevID := 0
+	var prevID int64
 	for _, u := range users {
 		// Make sure that by default the users are ordered by ID.
 		require.Greater(t, u.ID, prevID)
@@ -516,7 +516,7 @@ func TestGetUsersPage(t *testing.T) {
 	require.EqualValues(t, 51, users[0].ID)
 	require.EqualValues(t, 101, total)
 
-	prevID := 0
+	var prevID int64
 	for _, u := range users {
 		// Make sure that by default the users are ordered by ID.
 		require.Greater(t, u.ID, prevID)
@@ -537,7 +537,7 @@ func TestGetUsersLastPage(t *testing.T) {
 	require.EqualValues(t, 91, users[0].ID)
 	require.EqualValues(t, 101, total)
 
-	prevID := 0
+	var prevID int64
 	for _, u := range users {
 		// Make sure that by default the users are ordered by ID.
 		require.Greater(t, u.ID, prevID)
@@ -607,7 +607,7 @@ func TestUserGroups(t *testing.T) {
 
 	_, err := CreateUser(db, user)
 	require.NoError(t, err)
-	require.Greater(t, user.ID, 0)
+	require.NotZero(t, user.ID)
 
 	// Fetch the user by id. It should also return the groups it belongs to.
 	returned, err := GetUserByID(db, user.ID)
@@ -697,7 +697,7 @@ func TestAddToGroupByID(t *testing.T) {
 	}
 	_, err := CreateUser(db, user)
 	require.NoError(t, err)
-	require.Greater(t, user.ID, 0)
+	require.NotZero(t, user.ID)
 
 	// Associate the user with two predefined groups.
 	added, err := user.AddToGroupByID(db, &SystemGroup{ID: 1})

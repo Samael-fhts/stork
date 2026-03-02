@@ -330,7 +330,7 @@ func TestCreateUser(t *testing.T) {
 	require.Equal(t, okRsp.Payload.Name, su.Name)
 
 	// Also check that the user is indeed in the database.
-	returned, err := dbmodel.GetUserByID(db, int(*okRsp.Payload.ID))
+	returned, err := dbmodel.GetUserByID(db, *okRsp.Payload.ID)
 	require.NoError(t, err)
 	require.Equal(t, su.Login, returned.Login)
 
@@ -416,7 +416,7 @@ func TestDeleteUserInvalidUserID(t *testing.T) {
 
 	// Try using invalid user ID - it should raise an error
 	params := users.DeleteUserParams{
-		ID: int64(su.ID + 1),
+		ID: su.ID + 1,
 	}
 
 	rsp := rapi.DeleteUser(ctx, params)
@@ -460,7 +460,7 @@ func TestDeleteUserSameUserAsSession(t *testing.T) {
 
 	// Try same user ID as current session - it should raise an error - trying to delete itself
 	params := users.DeleteUserParams{
-		ID: int64(su.ID),
+		ID: su.ID,
 	}
 
 	rsp := rapi.DeleteUser(ctx, params)
@@ -512,7 +512,7 @@ func TestDeleteUser(t *testing.T) {
 	err = rapi.SessionManager.LoginHandler(ctx, &su)
 	require.NoError(t, err)
 	params := users.DeleteUserParams{
-		ID: int64(su2.ID),
+		ID: su2.ID,
 	}
 
 	rsp := rapi.DeleteUser(ctx, params)
@@ -525,7 +525,7 @@ func TestDeleteUser(t *testing.T) {
 	require.Equal(t, okRsp.Payload.Name, su2.Name)
 
 	// Also check that the user is indeed not in the database.
-	returned, err := dbmodel.GetUserByID(db, int(*okRsp.Payload.ID))
+	returned, err := dbmodel.GetUserByID(db, *okRsp.Payload.ID)
 	require.NoError(t, err)
 	require.Nil(t, returned)
 
@@ -585,7 +585,7 @@ func TestDeleteUserInGroup(t *testing.T) {
 	require.NoError(t, err)
 
 	params := users.DeleteUserParams{
-		ID: int64(su2.ID),
+		ID: su2.ID,
 	}
 
 	rsp := rapi.DeleteUser(ctx, params)
@@ -598,7 +598,7 @@ func TestDeleteUserInGroup(t *testing.T) {
 	require.Equal(t, okRsp.Payload.Name, su2.Name)
 
 	// Also check that the user is indeed not in the database.
-	returned, err := dbmodel.GetUserByID(db, int(*okRsp.Payload.ID))
+	returned, err := dbmodel.GetUserByID(db, *okRsp.Payload.ID)
 	require.NoError(t, err)
 	require.Nil(t, returned)
 
@@ -983,7 +983,7 @@ func TestUpdateUserPasswordMissingData(t *testing.T) {
 
 	// Try empty request - it should raise an error.
 	params := users.UpdateUserPasswordParams{
-		ID: int64(user.ID),
+		ID: user.ID,
 	}
 	rsp := rapi.UpdateUserPassword(ctx, params)
 	require.IsType(t, &users.UpdateUserPasswordDefault{}, rsp)
@@ -1017,7 +1017,7 @@ func TestUpdateUserPasswordWrongUserID(t *testing.T) {
 
 	// Update user password via the API with wrong ID.
 	params := users.UpdateUserPasswordParams{
-		ID: int64(user.ID + 1),
+		ID: user.ID + 1,
 		Passwords: &models.PasswordChange{
 			Newpassword: storkutil.Ptr(models.Password("updated")),
 			Oldpassword: storkutil.Ptr(models.Password("pass")),
@@ -1055,7 +1055,7 @@ func TestUpdateUserPassword(t *testing.T) {
 
 	// Update user password via the API.
 	params := users.UpdateUserPasswordParams{
-		ID: int64(user.ID),
+		ID: user.ID,
 		Passwords: &models.PasswordChange{
 			Newpassword: storkutil.Ptr(models.Password("updatedPass2026!")),
 			Oldpassword: storkutil.Ptr(models.Password("pass")),
@@ -1068,7 +1068,7 @@ func TestUpdateUserPassword(t *testing.T) {
 	// HTTP error 400 (Bad Request) because the old password is
 	// not matching anymore.
 	params = users.UpdateUserPasswordParams{
-		ID: int64(user.ID),
+		ID: user.ID,
 		Passwords: &models.PasswordChange{
 			Newpassword: storkutil.Ptr(models.Password("updatedPass2026!")),
 			Oldpassword: storkutil.Ptr(models.Password("pass")),
@@ -1082,7 +1082,7 @@ func TestUpdateUserPassword(t *testing.T) {
 	// An attempt to update the password with a new password that doesn't
 	// meet the password policy should also result in HTTP error 400 (Bad Request).
 	params = users.UpdateUserPasswordParams{
-		ID: int64(user.ID),
+		ID: user.ID,
 		Passwords: &models.PasswordChange{
 			Newpassword: storkutil.Ptr(models.Password("short©")),
 			Oldpassword: storkutil.Ptr(models.Password("updatedPass2026!")),
@@ -1126,7 +1126,7 @@ func TestUpdateUserPasswordResetChangePasswordFlag(t *testing.T) {
 
 	// Update user password via the API.
 	params := users.UpdateUserPasswordParams{
-		ID: int64(user.ID),
+		ID: user.ID,
 		Passwords: &models.PasswordChange{
 			Newpassword: storkutil.Ptr(models.Password("updatedPass2026!")),
 			Oldpassword: storkutil.Ptr(models.Password("pass")),
@@ -1166,7 +1166,7 @@ func TestUpdateUserPasswordForPasswordlessUser(t *testing.T) {
 
 	// Update user password via the API.
 	params := users.UpdateUserPasswordParams{
-		ID: int64(user.ID),
+		ID: user.ID,
 		Passwords: &models.PasswordChange{
 			Newpassword: storkutil.Ptr(models.Password("updatedPass2026!")),
 		},
@@ -1568,7 +1568,7 @@ func TestCreateSessionOfExternalUser(t *testing.T) {
 	// Assert
 	require.IsType(t, &users.CreateSessionOK{}, rsp)
 	okRsp := rsp.(*users.CreateSessionOK)
-	require.Greater(t, *okRsp.Payload.ID, int64(0))
+	require.NotZero(t, *okRsp.Payload.ID)
 }
 
 // Test that the internal authentication method is always returned.

@@ -1544,7 +1544,7 @@ func TestCreateSubnet4BeginSubmit(t *testing.T) {
 	}
 
 	// Make sure that the transaction is done.
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -2037,7 +2037,7 @@ func TestCreateSubnetBeginCancel(t *testing.T) {
 	rsp2 := rapi.CreateSubnetDelete(ctx, params2)
 	require.IsType(t, &dhcp.CreateSubnetDeleteOK{}, rsp2)
 
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -2468,7 +2468,7 @@ func TestUpdateSubnet4BeginSubmit(t *testing.T) {
 	}
 
 	// Make sure that the transaction is done.
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -2786,7 +2786,7 @@ func TestUpdateSubnet4BeginSubmitChangeSharedNetwork(t *testing.T) {
 	}
 
 	// Make sure that the transaction is done.
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -2982,7 +2982,7 @@ func TestUpdateSubnet4BeginSubmitAddToSharedNetwork(t *testing.T) {
 	}
 
 	// Make sure that the transaction is done.
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -3176,7 +3176,7 @@ func TestUpdateSubnet4BeginSubmitRemoveFromSharedNetwork(t *testing.T) {
 	}
 
 	// Make sure that the transaction is done.
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -3496,7 +3496,7 @@ func TestUpdateSubnet6BeginSubmit(t *testing.T) {
 	}
 
 	// Make sure that the transaction is done.
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -3719,7 +3719,7 @@ func TestUpdateSubnet6BeginSubmitRemoveFromSharedNetwork(t *testing.T) {
 	}
 
 	// Make sure that the transaction is done.
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -3916,7 +3916,7 @@ func TestUpdateSubnet6BeginSubmitAddToSharedNetwork(t *testing.T) {
 	}
 
 	// Make sure that the transaction is done.
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent
@@ -4395,7 +4395,7 @@ func TestUpdateSubnetBeginCancel(t *testing.T) {
 	rsp2 := rapi.UpdateSubnetDelete(ctx, params2)
 	require.IsType(t, &dhcp.UpdateSubnetDeleteOK{}, rsp2)
 
-	cctx, _ := cm.RecoverContext(transactionID, int64(user.ID))
+	cctx, _ := cm.RecoverContext(transactionID, user.ID)
 	// Remove the context from the config manager before testing that
 	// the returned context is nil. If it happens to be non-nil the
 	// require.Nil() would otherwise spit out errors about the concurrent

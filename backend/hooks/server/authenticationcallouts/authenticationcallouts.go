@@ -33,7 +33,7 @@ type AuthenticationMetadataForm interface {
 }
 
 // User group ID enum.
-type UserGroupID int
+type UserGroupID int64
 
 // List of the user group IDs used in the server.
 const (
