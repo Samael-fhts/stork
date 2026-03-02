@@ -232,9 +232,9 @@ func TestCreateUserWithEmptyPassword(t *testing.T) {
 	require.False(t, conflict)
 }
 
-// Test that logins and emails of the users from the same authentication service
-// must be unique.
-func TestCreateUsersWithDuplicatedPasswordFromTheSameAuthentication(t *testing.T) {
+// Test that logins and emails of the users authenticated with the internal
+// method cannot be duplicated.
+func TestCreateUsersWithDuplicatedPasswordFromInternalAuthentication(t *testing.T) {
 	// Arrange
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
@@ -265,6 +265,49 @@ func TestCreateUsersWithDuplicatedPasswordFromTheSameAuthentication(t *testing.T
 	// Assert
 	require.Error(t, errLogin)
 	require.Error(t, errEmail)
+}
+
+// Test that logins and emails of the users from the same but not internal
+// authentication service may be duplicated.
+func TestCreateUsersWithDuplicatedPasswordFromNonInternalAuthentication(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	user := &SystemUser{
+		Login:                  "same",
+		Email:                  "same",
+		Name:                   "n",
+		Lastname:               "l",
+		AuthenticationMethodID: "external",
+	}
+
+	_, _ = CreateUser(db, user)
+
+	// Act
+	_, errLogin := CreateUser(db, &SystemUser{
+		Login:                  "same",
+		Email:                  "unique",
+		AuthenticationMethodID: "external",
+		ExternalID:             "ex-id-1",
+		Name:                   "n-login",
+		Lastname:               "l-login",
+	})
+	_, errEmail := CreateUser(db, &SystemUser{
+		Login:                  "unique",
+		Email:                  "same",
+		AuthenticationMethodID: "external",
+		ExternalID:             "ex-id-2",
+		Name:                   "n-email",
+		Lastname:               "l-email",
+	})
+
+	// Assert
+	require.NoError(t, errLogin)
+	require.NoError(t, errEmail)
+	users, _, err := GetUsersByPage(db, 0, 10, nil, "", "")
+	require.NoError(t, err)
+	require.Len(t, users, 3)
 }
 
 // Test that logins and emails of the users from the different authentication
