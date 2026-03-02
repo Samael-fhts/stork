@@ -25,19 +25,16 @@ const (
 	colorYellow = "\033[33m"
 )
 
-// CheckDeps detects required tools and their versions, reports all missing
-// tools (does not stop at the first), and returns an error if any are missing.
-// Green = found and version OK; Red = missing (required); Yellow = missing optional or version too old.
-func CheckDeps() error {
-	type tool struct {
-		name        string
-		versionArgs []string
-		minVersion  string   // from rakelib/00_init.rake where defined; empty = no check
-		installHint string
-		optional    bool
-	}
+type tool struct {
+	name        string
+	versionArgs []string
+	minVersion  string // from rakelib/00_init.rake where defined; empty = no check
+	installHint string
+	optional    bool
+}
 
-	tools := []tool{
+func CheckBuildDeps() error {
+	buildTools := []tool{
 		{"go", []string{"version"}, "1.25.7", "Install Go: https://go.dev/dl/ or distro (e.g. apt install golang-go)", false},
 		{"node", []string{"--version"}, "20.20.0", "Install Node.js: https://nodejs.org/ or distro (e.g. apt install nodejs)", false},
 		{"npm", []string{"--version"}, "11.9.0", "Comes with Node.js; ensure node is on PATH", false},
@@ -51,10 +48,38 @@ func CheckDeps() error {
 		{"wget", []string{"--version"}, "", "Distro (e.g. apt install wget)", false},
 		{"unzip", []string{"-v"}, "", "Distro (e.g. apt install unzip)", false},
 		{"git", []string{"--version"}, "", "Distro (e.g. apt install git)", false},
-		{"docker", []string{"--version"}, "", "Distro or https://docs.docker.com/get-docker/", true},
 		{"tar", []string{"--version"}, "", "Usually preinstalled (GNU tar)", false},
 		{"sed", []string{"--version"}, "", "Usually preinstalled", false},
 		{"openssl", []string{"version"}, "", "Distro (e.g. apt install openssl)", false},
+	}
+
+	return checkDeps(buildTools)
+}
+
+func CheckDevDeps() error {
+	devTools := []tool{
+		{"chromedriver", []string{"--version"}, "", "Distro (e.g. apt install chromium-chromedriver)", false},
+		{"playwright", []string{"--version"}, "", "npm install -g playwright", false},
+		{"pytest", []string{"--version"}, "", "pip install pytest", false},
+		{"pylint", []string{"--version"}, "", "pip install pylint", false},
+		{"flake8", []string{"--version"}, "", "pip install flake8", false},
+		{"black", []string{"--version"}, "", "pip install black", false},
+		{"docker", []string{"--version"}, "", "Distro or https://docs.docker.com/get-docker/", true},
+	}
+
+	return checkDeps(devTools)
+}
+
+// CheckDeps detects required tools and their versions, reports all missing
+// tools (does not stop at the first), and returns an error if any are missing.
+// Green = found and version OK; Red = missing (required); Yellow = missing optional or version too old.
+func checkDeps(tools []tool) error {
+	type tool struct {
+		name        string
+		versionArgs []string
+		minVersion  string // from rakelib/00_init.rake where defined; empty = no check
+		installHint string
+		optional    bool
 	}
 
 	type statusLine struct {
