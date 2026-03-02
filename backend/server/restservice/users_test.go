@@ -26,7 +26,7 @@ func TestCreateUserMissingIdentifier(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	// Both login and email missing here.
@@ -57,7 +57,7 @@ func TestCreateUserConflictLogin(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	// Email is missing here.
@@ -97,7 +97,7 @@ func TestCreateUserConflictEmail(t *testing.T) {
 		Lastname: "bar",
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	// Login is missing here.
@@ -137,7 +137,7 @@ func TestCreateUserConflictEmailEmpty(t *testing.T) {
 		Lastname: "bar",
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	su := dbmodel.SystemUser{
@@ -172,7 +172,7 @@ func TestCreateUserConflictEmailEmptyLogin(t *testing.T) {
 		Lastname: "bar",
 	})
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	// Login is missing here.
@@ -203,7 +203,7 @@ func TestCreateUserEmptyParams(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	// Try empty params - it should raise an error
@@ -222,7 +222,7 @@ func TestCreateUserEmptyFirstAndLastNames(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	params := users.CreateUserParams{
@@ -249,7 +249,7 @@ func TestCreateUserEmptyRequest(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	// Try empty request - it should raise an error
@@ -268,7 +268,7 @@ func TestCreateUserMissingData(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	// Try missing data - it should raise an error
@@ -289,7 +289,7 @@ func TestCreateUser(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	// Create the user and verify the response.
@@ -346,7 +346,7 @@ func TestDeleteUserEmptyParams(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -387,7 +387,7 @@ func TestDeleteUserInvalidUserID(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -431,7 +431,7 @@ func TestDeleteUserSameUserAsSession(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -475,7 +475,7 @@ func TestDeleteUser(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -542,7 +542,7 @@ func TestDeleteUserInGroup(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -615,7 +615,7 @@ func TestUpdateUserEmptyParams(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -646,7 +646,7 @@ func TestUpdateUserEmptyParamsForInternalUser(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	su := dbmodel.SystemUser{
@@ -682,7 +682,7 @@ func TestUpdateUserEmptyParamsForExternalUser(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	su := dbmodel.SystemUser{
@@ -715,7 +715,7 @@ func TestUpdateUserEmptyRequest(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -746,7 +746,7 @@ func TestUpdateUserMissingData(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -779,7 +779,7 @@ func TestUpdateUserInvalidUserID(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -814,7 +814,7 @@ func TestUpdateUserWithPassword(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -878,7 +878,7 @@ func TestUpdateUserWithoutPassword(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -928,7 +928,7 @@ func TestUpdateUserWithEmptyPassword(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
@@ -966,7 +966,7 @@ func TestUpdateUserPasswordMissingData(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
@@ -997,7 +997,7 @@ func TestUpdateUserPasswordWrongUserID(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
@@ -1035,7 +1035,7 @@ func TestUpdateUserPassword(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
@@ -1105,7 +1105,7 @@ func TestUpdateUserPasswordResetChangePasswordFlag(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
@@ -1150,7 +1150,7 @@ func TestUpdateUserPasswordForPasswordlessUser(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
@@ -1229,7 +1229,7 @@ func TestGetGroups(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, db)
 
 	params := users.GetGroupsParams{}
@@ -1248,7 +1248,7 @@ func TestGetUsers(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
@@ -1335,7 +1335,7 @@ func TestGetUser(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, err := NewRestAPI(dbSettings, db)
 	require.NoError(t, err)
 
@@ -1377,7 +1377,7 @@ func TestCreateSessionEmptyParams(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	hookManager := hookmanager.NewHookManager()
 	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
 
@@ -1401,7 +1401,7 @@ func TestCreateSessionInvalidCredentials(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	hookManager := hookmanager.NewHookManager()
 	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
 
@@ -1436,7 +1436,7 @@ func TestCreateSession(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	hookManager := hookmanager.NewHookManager()
 	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
 
@@ -1501,7 +1501,7 @@ func TestDeleteSessionOfExternalUser(t *testing.T) {
 	hookManager.RegisterCalloutCarrier(mock)
 	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
 
-	ctx, _ := rapi.SessionManager.Load(context.Background(), "")
+	ctx, _ := rapi.SessionManager.Load(t.Context(), "")
 
 	_ = rapi.SessionManager.LoginHandler(ctx, &dbmodel.SystemUser{
 		ID:                     42,
@@ -1553,7 +1553,7 @@ func TestCreateSessionOfExternalUser(t *testing.T) {
 	hookManager.RegisterCalloutCarrier(mock)
 	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
 
-	ctx, _ := rapi.SessionManager.Load(context.Background(), "")
+	ctx, _ := rapi.SessionManager.Load(t.Context(), "")
 
 	// Act
 	params := users.CreateSessionParams{
@@ -1575,7 +1575,7 @@ func TestCreateSessionOfExternalUser(t *testing.T) {
 func TestGetAuthenticationMethodsInternal(t *testing.T) {
 	// Arrange
 	dbSettings := &dbops.DatabaseSettings{}
-	ctx := context.Background()
+	ctx := t.Context()
 	hookManager := hookmanager.NewHookManager()
 	rapi, _ := NewRestAPI(dbSettings, hookManager)
 
@@ -1620,7 +1620,7 @@ func TestGetAuthenticationMethodsFromHooks(t *testing.T) {
 	hookManager.RegisterCalloutCarriers(mocks)
 
 	dbSettings := &dbops.DatabaseSettings{}
-	ctx := context.Background()
+	ctx := t.Context()
 	rapi, _ := NewRestAPI(dbSettings, hookManager)
 
 	// Act
@@ -1646,7 +1646,7 @@ func TestGetSession(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	ctx := context.Background()
+	ctx := t.Context()
 	hookManager := hookmanager.NewHookManager()
 	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
 
