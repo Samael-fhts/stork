@@ -1,7 +1,6 @@
 package restservice
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -92,7 +91,7 @@ func TestCreateUserConflictEmail(t *testing.T) {
 
 	_, _ = dbmodel.CreateUser(db, &dbmodel.SystemUser{
 		Login:    "foo",
-		Email:    "foo@example.com",
+		Email:    "foo@example.org",
 		Name:     "foo",
 		Lastname: "bar",
 	})
@@ -103,7 +102,7 @@ func TestCreateUserConflictEmail(t *testing.T) {
 	// Login is missing here.
 	su := dbmodel.SystemUser{
 		Login:    "bar",
-		Email:    "foo@example.com",
+		Email:    "foo@example.org",
 		Lastname: "Doe",
 		Name:     "John",
 	}
@@ -167,7 +166,7 @@ func TestCreateUserConflictEmailEmptyLogin(t *testing.T) {
 	defer teardown()
 
 	_, _ = dbmodel.CreateUser(db, &dbmodel.SystemUser{
-		Email:    "foo@example.com",
+		Email:    "foo@example.org",
 		Name:     "foo",
 		Lastname: "bar",
 	})
@@ -177,7 +176,7 @@ func TestCreateUserConflictEmailEmptyLogin(t *testing.T) {
 
 	// Login is missing here.
 	su := dbmodel.SystemUser{
-		Email:    "foo@example.com",
+		Email:    "foo@example.org",
 		Lastname: "Doe",
 		Name:     "John",
 	}
@@ -1525,7 +1524,7 @@ func TestCreateSessionOfExternalUser(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	identifier := "foo@example.com"
+	identifier := "foo@example.org"
 	secret := "secret"
 	authenticationMethodID := "external"
 
@@ -1568,7 +1567,293 @@ func TestCreateSessionOfExternalUser(t *testing.T) {
 	// Assert
 	require.IsType(t, &users.CreateSessionOK{}, rsp)
 	okRsp := rsp.(*users.CreateSessionOK)
+	require.NotNil(t, okRsp.Payload.ID)
 	require.NotZero(t, *okRsp.Payload.ID)
+	user, err := dbmodel.GetUserByID(db, *okRsp.Payload.ID)
+	require.NotNil(t, user)
+	require.NoError(t, err)
+	require.Equal(t, identifier, user.Email)
+	require.Equal(t, "foo", user.Login)
+	require.Equal(t, "oof", user.Lastname)
+	require.Equal(t, "ofo", user.Name)
+	require.Equal(t, "external-id", user.ExternalID)
+}
+
+// Tests that the user data authenticated by an external service is updated in
+// the database when creating a session.
+func TestCreateSessionOfExternalUserUpdatesData(t *testing.T) {
+	// Arrange
+	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	authenticationMethodID := "external"
+	metadataMock := NewMockAuthenticationMetadata(ctrl)
+	metadataMock.EXPECT().
+		GetID().
+		Return(authenticationMethodID).
+		Times(2)
+
+	mock := NewMockAuthenticationCalloutCarrier(ctrl)
+	gomock.InOrder(
+		// First log-in.
+		mock.EXPECT().
+			Authenticate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&authenticationcallouts.User{
+				ID:       "external-id",
+				Login:    "foo",
+				Email:    "foo@example.org",
+				Lastname: "oof",
+				Name:     "ofo",
+			}, nil),
+		// Second log-in with updated data.
+		mock.EXPECT().
+			Authenticate(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).
+			Return(&authenticationcallouts.User{
+				ID:       "external-id",
+				Login:    "foo",
+				Email:    "foo@example.org",
+				Lastname: "bar",
+				Name:     "baz",
+			}, nil),
+	)
+	mock.EXPECT().
+		GetMetadata().
+		Return(metadataMock).
+		Times(2)
+
+	hookManager := hookmanager.NewHookManager()
+	hookManager.RegisterCalloutCarrier(mock)
+	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
+
+	ctx, _ := rapi.SessionManager.Load(t.Context(), "")
+
+	// Act
+	params := users.CreateSessionParams{
+		Credentials: &models.SessionCredentials{
+			Identifier:             storkutil.Ptr("foo"),
+			Secret:                 storkutil.Ptr("secret"),
+			AuthenticationMethodID: &authenticationMethodID,
+		},
+	}
+	rsp1 := rapi.CreateSession(ctx, params)
+	rsp2 := rapi.CreateSession(ctx, params)
+
+	// Assert
+	require.IsType(t, &users.CreateSessionOK{}, rsp1)
+	require.IsType(t, &users.CreateSessionOK{}, rsp2)
+	okRsp1 := rsp1.(*users.CreateSessionOK)
+	okRsp2 := rsp2.(*users.CreateSessionOK)
+	require.Equal(t, *okRsp1.Payload.ID, *okRsp2.Payload.ID)
+	user, err := dbmodel.GetUserByID(db, *okRsp1.Payload.ID)
+	require.NotNil(t, user)
+	require.NoError(t, err)
+	require.Equal(t, "bar", user.Lastname)
+	require.Equal(t, "baz", user.Name)
+}
+
+// Test that the external users may have duplicated logins and they don't cause
+// conflict with the internal users.
+func TestCreateSessionOfExternalUserLoginConflict(t *testing.T) {
+	// Arrange
+	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	user := &dbmodel.SystemUser{
+		Login:    "login",
+		Email:    "baz@example.org",
+		Lastname: "baz",
+		Name:     "baz",
+	}
+	password := "pass"
+	con, err := dbmodel.CreateUserWithPassword(db, user, password)
+	require.False(t, con)
+	require.NoError(t, err)
+
+	authenticationMethodID := "external"
+	metadataMock := NewMockAuthenticationMetadata(ctrl)
+	metadataMock.EXPECT().
+		GetID().
+		Return(authenticationMethodID).
+		Times(2)
+
+	mock := NewMockAuthenticationCalloutCarrier(ctrl)
+	gomock.InOrder(
+		// First log-in.
+		mock.EXPECT().
+			Authenticate(gomock.Any(), gomock.Any(), gomock.Eq(storkutil.Ptr("foo@example.org")), gomock.Any()).
+			Return(&authenticationcallouts.User{
+				ID:       "external-id-1",
+				Login:    "login",
+				Email:    "foo@example.org",
+				Lastname: "foo",
+				Name:     "foo",
+			}, nil),
+		// Second log-in with updated data.
+		mock.EXPECT().
+			Authenticate(gomock.Any(), gomock.Any(), gomock.Eq(storkutil.Ptr("bar@example.org")), gomock.Any()).
+			Return(&authenticationcallouts.User{
+				ID:       "external-id-2",
+				Login:    "login",
+				Email:    "bar@example.org",
+				Lastname: "bar",
+				Name:     "bar",
+			}, nil),
+	)
+	mock.EXPECT().
+		GetMetadata().
+		Return(metadataMock).
+		Times(2)
+
+	hookManager := hookmanager.NewHookManager()
+	hookManager.RegisterCalloutCarrier(mock)
+	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
+
+	ctx, _ := rapi.SessionManager.Load(t.Context(), "")
+
+	// Act
+	rsp1 := rapi.CreateSession(ctx, users.CreateSessionParams{
+		Credentials: &models.SessionCredentials{
+			Identifier:             storkutil.Ptr("foo@example.org"),
+			Secret:                 storkutil.Ptr("secret"),
+			AuthenticationMethodID: &authenticationMethodID,
+		},
+	})
+	rsp2 := rapi.CreateSession(ctx, users.CreateSessionParams{
+		Credentials: &models.SessionCredentials{
+			Identifier:             storkutil.Ptr("bar@example.org"),
+			Secret:                 storkutil.Ptr("secret"),
+			AuthenticationMethodID: &authenticationMethodID,
+		},
+	})
+	rsp3 := rapi.CreateSession(ctx, users.CreateSessionParams{
+		Credentials: &models.SessionCredentials{
+			Identifier: storkutil.Ptr("baz@example.org"),
+			Secret:     &password,
+		},
+	})
+
+	// Assert
+	require.IsType(t, &users.CreateSessionOK{}, rsp1)
+	require.IsType(t, &users.CreateSessionOK{}, rsp2)
+	require.IsType(t, &users.CreateSessionOK{}, rsp3)
+	okRsp1 := rsp1.(*users.CreateSessionOK)
+	okRsp2 := rsp2.(*users.CreateSessionOK)
+	okRsp3 := rsp3.(*users.CreateSessionOK)
+	require.NotEqual(t, *okRsp1.Payload.ID, *okRsp2.Payload.ID)
+	require.NotEqual(t, *okRsp1.Payload.ID, *okRsp3.Payload.ID)
+	require.Equal(t, "foo", okRsp1.Payload.Name)
+	require.Equal(t, "bar", okRsp2.Payload.Name)
+	require.Equal(t, "baz", okRsp3.Payload.Name)
+	require.Equal(t, "login", okRsp1.Payload.Login)
+	require.Equal(t, "login", okRsp2.Payload.Login)
+	require.Equal(t, "login", okRsp3.Payload.Login)
+}
+
+// Test that the external users may have duplicated email and they don't cause
+// conflict with the internal users.
+func TestCreateSessionOfExternalUserEmailConflict(t *testing.T) {
+	// Arrange
+	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	user := &dbmodel.SystemUser{
+		Login:    "baz",
+		Email:    "common@example.org",
+		Lastname: "baz",
+		Name:     "baz",
+	}
+	password := "pass"
+	con, err := dbmodel.CreateUserWithPassword(db, user, password)
+	require.False(t, con)
+	require.NoError(t, err)
+
+	authenticationMethodID := "external"
+	metadataMock := NewMockAuthenticationMetadata(ctrl)
+	metadataMock.EXPECT().
+		GetID().
+		Return(authenticationMethodID).
+		Times(2)
+
+	mock := NewMockAuthenticationCalloutCarrier(ctrl)
+	gomock.InOrder(
+		// First log-in.
+		mock.EXPECT().
+			Authenticate(gomock.Any(), gomock.Any(), gomock.Eq(storkutil.Ptr("foo")), gomock.Any()).
+			Return(&authenticationcallouts.User{
+				ID:       "external-id-1",
+				Login:    "foo",
+				Email:    "common@example.org",
+				Lastname: "foo",
+				Name:     "foo",
+			}, nil),
+		// Second log-in with updated data.
+		mock.EXPECT().
+			Authenticate(gomock.Any(), gomock.Any(), gomock.Eq(storkutil.Ptr("bar")), gomock.Any()).
+			Return(&authenticationcallouts.User{
+				ID:       "external-id-2",
+				Login:    "bar",
+				Email:    "common@example.org",
+				Lastname: "bar",
+				Name:     "bar",
+			}, nil),
+	)
+	mock.EXPECT().
+		GetMetadata().
+		Return(metadataMock).
+		Times(2)
+
+	hookManager := hookmanager.NewHookManager()
+	hookManager.RegisterCalloutCarrier(mock)
+	rapi, _ := NewRestAPI(dbSettings, db, hookManager)
+
+	ctx, _ := rapi.SessionManager.Load(t.Context(), "")
+
+	// Act
+	rsp1 := rapi.CreateSession(ctx, users.CreateSessionParams{
+		Credentials: &models.SessionCredentials{
+			Identifier:             storkutil.Ptr("foo"),
+			Secret:                 storkutil.Ptr("secret"),
+			AuthenticationMethodID: &authenticationMethodID,
+		},
+	})
+	rsp2 := rapi.CreateSession(ctx, users.CreateSessionParams{
+		Credentials: &models.SessionCredentials{
+			Identifier:             storkutil.Ptr("bar"),
+			Secret:                 storkutil.Ptr("secret"),
+			AuthenticationMethodID: &authenticationMethodID,
+		},
+	})
+	rsp3 := rapi.CreateSession(ctx, users.CreateSessionParams{
+		Credentials: &models.SessionCredentials{
+			Identifier: storkutil.Ptr("baz"),
+			Secret:     &password,
+		},
+	})
+
+	// Assert
+	require.IsType(t, &users.CreateSessionOK{}, rsp1)
+	require.IsType(t, &users.CreateSessionOK{}, rsp2)
+	require.IsType(t, &users.CreateSessionOK{}, rsp3)
+	okRsp1 := rsp1.(*users.CreateSessionOK)
+	okRsp2 := rsp2.(*users.CreateSessionOK)
+	okRsp3 := rsp3.(*users.CreateSessionOK)
+	require.NotEqual(t, *okRsp1.Payload.ID, *okRsp2.Payload.ID)
+	require.NotEqual(t, *okRsp1.Payload.ID, *okRsp3.Payload.ID)
+	require.Equal(t, "foo", okRsp1.Payload.Name)
+	require.Equal(t, "bar", okRsp2.Payload.Name)
+	require.Equal(t, "baz", okRsp3.Payload.Name)
+	require.Equal(t, "common@example.org", okRsp1.Payload.Email)
+	require.Equal(t, "common@example.org", okRsp2.Payload.Email)
+	require.Equal(t, "common@example.org", okRsp3.Payload.Email)
 }
 
 // Test that the internal authentication method is always returned.
