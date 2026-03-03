@@ -46,7 +46,14 @@ const (
 // heavy dbmodel dependencies.
 type User struct {
 	// It must be a unique and persistent ID.
-	ID       string
+	ID string
+	// If the unique and persistent ID turns out not to be unique or
+	// persistent, it can be updated. The previous ID should be set to the
+	// legacy ID and the new identifier should be set as ID. The value stored
+	// in the database will be changed on the next login.
+	// There should not be any collisions between the old and new IDs. Otherwise, the user may be logged into the wrong account.
+	// Set to an empty string to turn off ID updating.
+	LegacyID string
 	Login    string
 	Email    string
 	Lastname string

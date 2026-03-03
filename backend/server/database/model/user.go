@@ -359,15 +359,22 @@ func GetUserByID(db *dbops.PgDB, id int64) (*SystemUser, error) {
 }
 
 // Fetches the internal database ID of the user using the authentication method
-// and the external user ID. Returns zero and no error if the user doesn't
-// exist.
-func GetUserByExternalID(db *dbops.PgDB, authenticationMethodID, externalID string) (*SystemUser, error) {
+// and the external user ID. Accepts also a legacy external ID that is checked
+// when the primary external ID is not found. Returns zero and no error if the
+// user doesn't exist.
+func GetUserByExternalID(db *dbops.PgDB, authenticationMethodID, externalID, legacyExternalID string) (*SystemUser, error) {
 	user := &SystemUser{}
 	err := db.Model(user).
 		Relation("Groups").
 		Column("id").
 		Where("auth_method = ?", authenticationMethodID).
-		Where("external_id = ?", externalID).
+		WhereGroup(func(q *orm.Query) (*orm.Query, error) {
+			q = q.Where("external_id = ?", externalID)
+			if legacyExternalID != "" {
+				q = q.WhereOr("external_id = ?", legacyExternalID)
+			}
+			return q, nil
+		}).
 		Select()
 	if errors.Is(err, pg.ErrNoRows) {
 		return nil, nil

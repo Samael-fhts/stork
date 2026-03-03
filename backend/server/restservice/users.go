@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/go-openapi/runtime/middleware"
+	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
@@ -126,27 +127,57 @@ func (r *RestAPI) externalAuthentication(ctx context.Context, params users.Creat
 		ChangePassword:         false,
 	}
 
-	conflict, err := dbmodel.CreateUser(r.DB, systemUser)
-	if conflict {
-		var dbUser *dbmodel.SystemUser
+	// Check if there is a user with the same authentication method and
+	// external ID.
+	dbUser, err := dbmodel.GetUserByExternalID(
+		r.DB,
+		*params.Credentials.AuthenticationMethodID,
+		calloutUser.ID,
+		calloutUser.LegacyID,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// If there is no user with the same authentication method and external ID,
+	// create a new user.
+	if dbUser == nil {
+		conflict, err := dbmodel.CreateUser(r.DB, systemUser)
+		var pgErr pg.Error
+		if conflict && errors.As(err, &pgErr) && pgErr.Field('n') == "system_user_external_id_unique_idx" {
+			// The user was created in the database by another request in the
+			// meantime.
+			// Continue.
+		} else if err != nil {
+			// Another error occurred or another index was violated.
+			return nil, err
+		} else {
+			// The user was created successfully.
+			return systemUser, nil
+		}
+
+		// The user was created in the database by another request in the
+		// meantime.
 		dbUser, err = dbmodel.GetUserByExternalID(
 			r.DB,
 			*params.Credentials.AuthenticationMethodID,
 			calloutUser.ID,
+			"",
 		)
 		if err != nil {
-			return nil, errors.Errorf("cannot fetch the internal user profile")
+			return nil, err
 		}
-
-		systemUser.ID = dbUser.ID
-
-		if calloutUser.Groups == nil {
-			// The groups are not managed by the hook.
-			systemUser.Groups = dbUser.Groups
-		}
-
-		_, err = dbmodel.UpdateUser(r.DB, systemUser)
 	}
+
+	// Update the user profile in the database.
+	systemUser.ID = dbUser.ID
+
+	if calloutUser.Groups == nil {
+		// The groups are not managed by the hook.
+		systemUser.Groups = dbUser.Groups
+	}
+
+	_, err = dbmodel.UpdateUser(r.DB, systemUser)
 	return systemUser, err
 }
 
@@ -185,8 +216,8 @@ func (r *RestAPI) CreateSession(ctx context.Context, params users.CreateSessionP
 			WithError(err).
 			WithField("method", authenticationMethod).
 			WithField("identifier", *params.Credentials.Identifier).
-			Debug("Cannot authenticate a user")
-		return users.NewCreateSessionBadRequest()
+			Error("Cannot authenticate a user")
+		return users.NewCreateSessionOK()
 	}
 
 	err = r.SessionManager.LoginHandler(ctx, systemUser)
@@ -194,8 +225,8 @@ func (r *RestAPI) CreateSession(ctx context.Context, params users.CreateSessionP
 		log.
 			WithError(err).
 			WithField("identifier", *params.Credentials.Identifier).
-			Debug("Cannot log in a user")
-		return users.NewCreateSessionBadRequest()
+			Error("Cannot log in a user")
+		return users.NewCreateSessionOK()
 	}
 
 	rspUser := newRestUser(*systemUser)

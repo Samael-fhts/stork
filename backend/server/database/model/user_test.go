@@ -712,8 +712,74 @@ func TestGetUserIDByExternalID(t *testing.T) {
 	_, _ = CreateUser(db, user)
 
 	// Act
-	nonExistUser, nonExistErr := GetUserByExternalID(db, "method", "nonExistingID")
-	dbUser, err := GetUserByExternalID(db, "method", "externalID")
+	nonExistUser, nonExistErr := GetUserByExternalID(db, "method", "nonExistingID", "nonExistingLegacyID")
+	dbUser, err := GetUserByExternalID(db, "method", "externalID", "legacyID")
+
+	// Assert
+	require.NoError(t, nonExistErr)
+	require.Zero(t, nonExistUser)
+
+	require.NoError(t, err)
+	require.EqualValues(t, user.ID, dbUser.ID)
+	require.Len(t, dbUser.Groups, 1)
+	require.EqualValues(t, SuperAdminGroupID, dbUser.Groups[0].ID)
+}
+
+// Test that the internal database ID is fetched by the authentication method
+// and the external ID properly. Legacy external ID is not provided.
+func TestGetUserIDByExternalIDNoLegacyID(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	user := &SystemUser{
+		Login:                  "login",
+		Email:                  "email@example.com",
+		Lastname:               "Last",
+		Name:                   "Name",
+		AuthenticationMethodID: "method",
+		ExternalID:             "externalID",
+		Groups:                 []*SystemGroup{{ID: SuperAdminGroupID}},
+	}
+
+	_, _ = CreateUser(db, user)
+
+	// Act
+	nonExistUser, nonExistErr := GetUserByExternalID(db, "method", "nonExistingID", "")
+	dbUser, err := GetUserByExternalID(db, "method", "externalID", "")
+
+	// Assert
+	require.NoError(t, nonExistErr)
+	require.Zero(t, nonExistUser)
+
+	require.NoError(t, err)
+	require.EqualValues(t, user.ID, dbUser.ID)
+	require.Len(t, dbUser.Groups, 1)
+	require.EqualValues(t, SuperAdminGroupID, dbUser.Groups[0].ID)
+}
+
+// Test that the internal database ID is fetched by the authentication method
+// and the legacy external ID properly.
+func TestGetUserIDByLegacyExternalID(t *testing.T) {
+	// Arrange
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	user := &SystemUser{
+		Login:                  "login",
+		Email:                  "email@example.com",
+		Lastname:               "Last",
+		Name:                   "Name",
+		AuthenticationMethodID: "method",
+		ExternalID:             "legacyID",
+		Groups:                 []*SystemGroup{{ID: SuperAdminGroupID}},
+	}
+
+	_, _ = CreateUser(db, user)
+
+	// Act
+	nonExistUser, nonExistErr := GetUserByExternalID(db, "method", "nonExistingID", "nonExistingLegacyID")
+	dbUser, err := GetUserByExternalID(db, "method", "externalID", "legacyID")
 
 	// Assert
 	require.NoError(t, nonExistErr)
