@@ -144,14 +144,15 @@ func (r *RestAPI) externalAuthentication(ctx context.Context, params users.Creat
 	if dbUser == nil {
 		conflict, err := dbmodel.CreateUser(r.DB, systemUser)
 		var pgErr pg.Error
-		if conflict && errors.As(err, &pgErr) && pgErr.Field('n') == "system_user_external_id_unique_idx" {
+		switch {
+		case conflict && errors.As(err, &pgErr) && pgErr.Field('n') == "system_user_external_id_unique_idx":
 			// The user was created in the database by another request in the
 			// meantime.
 			// Continue.
-		} else if err != nil {
+		case err != nil:
 			// Another error occurred or another index was violated.
 			return nil, err
-		} else {
+		default:
 			// The user was created successfully.
 			return systemUser, nil
 		}
@@ -217,7 +218,7 @@ func (r *RestAPI) CreateSession(ctx context.Context, params users.CreateSessionP
 			WithField("method", authenticationMethod).
 			WithField("identifier", *params.Credentials.Identifier).
 			Error("Cannot authenticate a user")
-		return users.NewCreateSessionOK()
+		return users.NewCreateSessionBadRequest()
 	}
 
 	err = r.SessionManager.LoginHandler(ctx, systemUser)
@@ -226,7 +227,7 @@ func (r *RestAPI) CreateSession(ctx context.Context, params users.CreateSessionP
 			WithError(err).
 			WithField("identifier", *params.Credentials.Identifier).
 			Error("Cannot log in a user")
-		return users.NewCreateSessionOK()
+		return users.NewCreateSessionBadRequest()
 	}
 
 	rspUser := newRestUser(*systemUser)
