@@ -53,18 +53,20 @@ func init() {
 
 // Represents database connection settings.
 type DatabaseSettings struct {
-	DBName       string
-	User         string
-	Password     string
-	Host         string
-	Port         int
-	SSLMode      string
-	SSLCert      string
-	SSLKey       string
-	SSLRootCert  string
-	TraceSQL     LoggingQueryPreset
-	WriteTimeout time.Duration
-	ReadTimeout  time.Duration
+	DBName        string
+	User          string
+	Password      string
+	Host          string
+	Port          int
+	SSLMode       string
+	SSLCert       string
+	SSLKey        string
+	SSLRootCert   string
+	TraceSQL      LoggingQueryPreset
+	WriteTimeout  time.Duration
+	ReadTimeout   time.Duration
+	RetryAttempts int
+	RetryWait     time.Duration
 }
 
 // Converts generic connection parameters to go-pg specific parameters.
@@ -96,4 +98,11 @@ func (s *DatabaseSettings) convertToPgOptions() (*PgOptions, error) {
 	}
 
 	return pgopts, nil
+}
+
+// Disables the retry mechanism for database operations. It is used in tests to
+// make them fail faster.
+func (s *DatabaseSettings) DisableRetry() {
+	s.RetryAttempts = 0
+	s.RetryWait = 0
 }
