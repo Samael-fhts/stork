@@ -340,9 +340,6 @@ namespace :systemtest do
 
         ENV["KEA_PUBLIC_REPO"] = "public/#{directory}"
         ENV["KEA_PREMIUM_REPO"] = "#{ENV["CS_REPO_ACCESS_TOKEN"]}/#{directory}-prv"
-        if !kea_prior_2_7_7 then
-            ENV["KEA_PREMIUM_REPO"] = ENV["KEA_PUBLIC_REPO"]
-        end
 
         ENV["BIND9_VERSION"] = bind9_version
         ENV["KEA_VERSION"] = kea_version
