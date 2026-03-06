@@ -255,6 +255,8 @@ func TestConvertDatabaseCLIFlagsToSettings(t *testing.T) {
 	require.EqualValues(t, LoggingQueryPresetRuntime, settings.TraceSQL)
 	require.EqualValues(t, 24*time.Minute, settings.ReadTimeout)
 	require.EqualValues(t, 42*time.Second, settings.WriteTimeout)
+	require.EqualValues(t, 10, settings.RetryAttempts)
+	require.EqualValues(t, 2*time.Second, settings.RetryWait)
 }
 
 // Test that the database CLI flags with URL are converted to the database
@@ -289,6 +291,8 @@ func TestConvertDatabaseCLIFlagsWithURLToSettings(t *testing.T) {
 	require.EqualValues(t, LoggingQueryPresetRuntime, settings.TraceSQL)
 	require.EqualValues(t, 24*time.Minute, settings.ReadTimeout)
 	require.EqualValues(t, 42*time.Second, settings.WriteTimeout)
+	require.EqualValues(t, 10, settings.RetryAttempts)
+	require.EqualValues(t, 2*time.Second, settings.RetryWait)
 }
 
 // Test that the database CLI flags cannot be converted to settings if they

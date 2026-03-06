@@ -222,18 +222,20 @@ type DatabaseCLIFlags struct {
 // provided simultaneously with the standard parameters.
 func (s *DatabaseCLIFlags) ConvertToDatabaseSettings() (*DatabaseSettings, error) {
 	settings := &DatabaseSettings{
-		DBName:       s.DBName,
-		User:         s.User,
-		Password:     s.Password,
-		Host:         s.Host,
-		Port:         s.Port,
-		SSLMode:      s.SSLMode,
-		SSLCert:      s.SSLCert,
-		SSLKey:       s.SSLKey,
-		SSLRootCert:  s.SSLRootCert,
-		TraceSQL:     newLoggingQueryPreset(s.TraceSQL),
-		ReadTimeout:  s.ReadTimeout,
-		WriteTimeout: s.WriteTimeout,
+		DBName:        s.DBName,
+		User:          s.User,
+		Password:      s.Password,
+		Host:          s.Host,
+		Port:          s.Port,
+		SSLMode:       s.SSLMode,
+		SSLCert:       s.SSLCert,
+		SSLKey:        s.SSLKey,
+		SSLRootCert:   s.SSLRootCert,
+		TraceSQL:      newLoggingQueryPreset(s.TraceSQL),
+		ReadTimeout:   s.ReadTimeout,
+		WriteTimeout:  s.WriteTimeout,
+		RetryAttempts: 10,
+		RetryWait:     2 * time.Second,
 	}
 
 	if s.URL != "" {

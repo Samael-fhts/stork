@@ -112,6 +112,7 @@ func TestDropDatabaseIfExistsForExistingDatabase(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	settings.DBName = databaseName
+	settings.DisableRetry()
 	_, err = dbops.NewPgDBConn(settings)
 	require.ErrorContains(t, err, fmt.Sprintf("database \"%s\" does not exist", databaseName))
 }
@@ -129,6 +130,7 @@ func TestDropDatabaseIfExistsForNonExistingDatabase(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 	settings.DBName = databaseName
+	settings.DisableRetry()
 	_, err = dbops.NewPgDBConn(settings)
 	require.ErrorContains(t, err, fmt.Sprintf(`database "%s" does not exist`, databaseName))
 }

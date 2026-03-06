@@ -43,7 +43,7 @@ func NewPgDBConn(settings *DatabaseSettings) (*PgDB, error) {
 
 	log.Printf("Checking connection to database")
 	// Test connection to database.
-	for tries := 0; tries < 10; tries++ {
+	for tries := 0; tries < settings.RetryAttempts; tries++ {
 		var pgError pg.Error
 
 		err = db.Ping(db.Context())
@@ -73,8 +73,8 @@ func NewPgDBConn(settings *DatabaseSettings) (*PgDB, error) {
 				break
 			}
 		}
-		log.WithError(err).Warnf("Problem connecting to db, trying again in 2 seconds, %d/10", tries+1)
-		time.Sleep(2 * time.Second)
+		log.WithError(err).Warnf("Problem connecting to db, trying again in %s, %d/%d", settings.RetryWait, tries+1, settings.RetryAttempts)
+		time.Sleep(settings.RetryWait)
 	}
 	if err != nil {
 		db.Close()
