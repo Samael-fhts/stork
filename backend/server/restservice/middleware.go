@@ -389,12 +389,26 @@ func securityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func oidcMiddleware(next http.Handler, oidcControl *OIDCControl) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/oidc/login") {
+			oidcControl.LoginHandler(w, r)
+		} else if strings.HasPrefix(r.URL.Path, "/oidc/callback") {
+			oidcControl.CallbackHandler(w, r)
+		} else {
+			next.ServeHTTP(w, r)
+		}
+	})
+}
+
 // Global middleware function provides a common place to setup middlewares for
 // the server. It is invoked before everything.
 func (r *RestAPI) GlobalMiddleware(handler http.Handler, serverAddress url.URL, staticFilesDir string, eventCenter eventcenter.EventCenter, maxBodySize int64) http.Handler {
 	// last handler is executed first for incoming request
 	handler = fileServerMiddleware(handler, staticFilesDir)
 	handler = agentInstallerMiddleware(handler, serverAddress, staticFilesDir)
+	handler = oidcMiddleware(handler, r.OIDCControl)
+	handler = r.InnerMiddleware(handler)
 	handler = sseMiddleware(handler, eventCenter)
 	handler = metricsMiddleware(handler, r.MetricsCollector)
 	handler = trimBaseURLMiddleware(handler, serverAddress.Path)

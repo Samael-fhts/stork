@@ -241,12 +241,15 @@ func (ss *StorkServer) Bootstrap(reload bool) (err error) {
 	// Config migration service manages list of pending migrations.
 	migrationService := configmigrator.NewMigrationManager()
 
+	// OIDC auth endpoints control.
+	oidcControl := restservice.NewOIDCControl(ss.DB)
+
 	// setup ReST API service
 	r, err := restservice.NewRestAPI(&ss.RestAPISettings, &ss.DBSettings,
 		ss.DB, ss.Agents, ss.EventCenter,
 		ss.Pullers, ss.ReviewDispatcher, ss.MetricsCollector, ss.ConfigManager,
 		ss.DHCPOptionDefinitionLookup, ss.HookManager, endpointControl,
-		ss.DNSManager, migrationService, ss.DaemonLocker)
+		ss.DNSManager, migrationService, ss.DaemonLocker, oidcControl)
 	if err != nil {
 		ss.Pullers.HAStatusPuller.Shutdown()
 		ss.Pullers.KeaHostsPuller.Shutdown()

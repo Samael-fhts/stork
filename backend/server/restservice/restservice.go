@@ -85,6 +85,7 @@ type RestAPI struct {
 	DNSManager                 dnsop.Manager
 	DaemonLocker               config.DaemonLocker
 	MigrationService           configmigrator.MigrationManager
+	OIDCControl                *OIDCControl
 
 	Agents agentcomm.ConnectedAgents
 
@@ -221,6 +222,10 @@ func NewRestAPI(args ...interface{}) (*RestAPI, error) {
 			api.EndpointControl = arg.(*EndpointControl)
 			continue
 		}
+		if argType.AssignableTo(reflect.TypeOf((*OIDCControl)(nil))) {
+			api.OIDCControl = arg.(*OIDCControl)
+			continue
+		}
 		return nil, pkgerrors.Errorf("unknown argument type %s specified for NewRestAPI", argType.Elem().Name())
 	}
 
@@ -236,6 +241,7 @@ func NewRestAPI(args ...interface{}) (*RestAPI, error) {
 		return nil, pkgerrors.Wrap(err, "unable to establish connection to the session database")
 	}
 	api.SessionManager = sm
+	api.OIDCControl.SetSessionManager(sm)
 
 	// All ok.
 	return api, nil
