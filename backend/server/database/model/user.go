@@ -106,6 +106,31 @@ func CreateUser(db *pg.DB, user *SystemUser) (conflict bool, err error) {
 	return
 }
 
+func CreateOrUpdateExternalUser(db *pg.DB, user *SystemUser) (*SystemUser, error) {
+	conflict, err := CreateUser(db, user)
+	if conflict {
+		var dbUser *SystemUser
+		dbUser, err = GetUserByExternalID(
+			db,
+			user.AuthenticationMethodID,
+			user.ExternalID,
+		)
+		if err != nil {
+			return nil, pkgerrors.Errorf("cannot fetch the internal user profile")
+		}
+
+		user.ID = dbUser.ID
+
+		if user.Groups == nil {
+			// The groups are not managed by the hook.
+			user.Groups = dbUser.Groups
+		}
+
+		_, err = UpdateUser(db, user)
+	}
+	return user, err
+}
+
 // Creates new user in the database with a given password. The returned
 // conflict value indicates if the created user information is in conflict
 // with some existing user in the database, e.g. duplicated login or email.

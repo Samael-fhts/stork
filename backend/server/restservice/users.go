@@ -128,27 +128,7 @@ func (r *RestAPI) externalAuthentication(ctx context.Context, params users.Creat
 		ChangePassword:         false,
 	}
 
-	conflict, err := dbmodel.CreateUser(r.DB, systemUser)
-	if conflict {
-		var dbUser *dbmodel.SystemUser
-		dbUser, err = dbmodel.GetUserByExternalID(
-			r.DB,
-			*params.Credentials.AuthenticationMethodID,
-			calloutUser.ID,
-		)
-		if err != nil {
-			return nil, errors.Errorf("cannot fetch the internal user profile")
-		}
-
-		systemUser.ID = dbUser.ID
-
-		if calloutUser.Groups == nil {
-			// The groups are not managed by the hook.
-			systemUser.Groups = dbUser.Groups
-		}
-
-		_, err = dbmodel.UpdateUser(r.DB, systemUser)
-	}
+	systemUser, err = dbmodel.CreateOrUpdateExternalUser(r.DB, systemUser)
 	return systemUser, err
 }
 

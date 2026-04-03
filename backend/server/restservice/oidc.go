@@ -167,7 +167,8 @@ func (ctl *OIDCControl) CallbackHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "oidc error parsing claims", http.StatusInternalServerError)
 		return
 	}
-	// at this point, oidc auth is considered successful
+	// At this point, oidc auth is considered successful.
+	// Let's create simple SystemUser.
 	groups := []*dbmodel.SystemGroup{}
 	groups = append(groups, &dbmodel.SystemGroup{
 		ID: dbmodel.SuperAdminGroupID,
@@ -182,30 +183,10 @@ func (ctl *OIDCControl) CallbackHandler(w http.ResponseWriter, r *http.Request) 
 		ExternalID:             claims.Sub,
 		ChangePassword:         false,
 	}
-	dbSimpleUser, err := dbmodel.GetUserByExternalID(ctl.db, "oidc", claims.Sub)
+	systemUser, err = dbmodel.CreateOrUpdateExternalUser(ctl.db, systemUser)
 	if err != nil {
-		http.Error(w, "oidc error system user cannot be fetched from db", http.StatusInternalServerError)
+		http.Error(w, "oidc error creating or updating system user in db from oidc user id", http.StatusInternalServerError)
 		return
-	}
-	if dbSimpleUser == nil {
-		_, err := dbmodel.CreateUser(ctl.db, systemUser)
-		if err != nil {
-			http.Error(w, "oidc error creating system user in DB ", http.StatusInternalServerError)
-			return
-		}
-		dbSimpleUser, err = dbmodel.GetUserByExternalID(ctl.db, "oidc", claims.Sub)
-		if err != nil {
-			http.Error(w, "oidc error system user cannot be fetched from db", http.StatusInternalServerError)
-			return
-		}
-		systemUser.ID = dbSimpleUser.ID
-	} else {
-		systemUser.ID = dbSimpleUser.ID
-		_, err = dbmodel.UpdateUser(ctl.db, systemUser)
-		if err != nil {
-			http.Error(w, "oidc error updating system user in db", http.StatusInternalServerError)
-			return
-		}
 	}
 	err = ctl.sessionManager.LoginHandler(ctx, systemUser)
 	if err != nil {
