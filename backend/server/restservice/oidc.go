@@ -6,7 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"net/http"
+	"strings"
+	"time"
 
+	"github.com/alexedwards/scs/v2"
 	"github.com/coreos/go-oidc/v3/oidc"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
@@ -16,10 +19,11 @@ import (
 )
 
 type OIDCControl struct {
-	oauth2Config   oauth2.Config
-	tokenVerifier  *oidc.IDTokenVerifier
-	sessionManager *dbsession.SessionMgr
-	db             *dbops.PgDB
+	oauth2Config  oauth2.Config
+	tokenVerifier *oidc.IDTokenVerifier
+	dbSession     *dbsession.SessionMgr
+	db            *dbops.PgDB
+	authSession   *scs.SessionManager
 }
 
 // this will be configured
@@ -53,15 +57,23 @@ func NewOIDCControl(db *dbops.PgDB) *OIDCControl {
 		Endpoint:     op.Endpoint(),
 		Scopes:       []string{oidc.ScopeOpenID, "email", "profile"},
 	}
+	// Prepare in-memory session manager used only for storing OIDC auth data in sessions.
+	inMemorySession := scs.New()
+	inMemorySession.Lifetime = 24 * time.Hour
+	inMemorySession.Cookie.HttpOnly = true
+	inMemorySession.Cookie.Secure = false // To be changed to true for prod?
+	inMemorySession.Cookie.SameSite = http.SameSiteLaxMode
+	inMemorySession.Cookie.Name = "auth_session"
 	return &OIDCControl{
 		oauth2Config:  oauth2Config,
 		tokenVerifier: tokenVerifier,
 		db:            db,
+		authSession:   inMemorySession,
 	}
 }
 
-func (ctl *OIDCControl) SetSessionManager(sessionManager *dbsession.SessionMgr) {
-	ctl.sessionManager = sessionManager
+func (ctl *OIDCControl) SetDBSessionManager(sessionManager *dbsession.SessionMgr) {
+	ctl.dbSession = sessionManager
 }
 
 func generateRandBytes(n int) (bytes []byte, err error) {
@@ -94,7 +106,33 @@ func generatePKCE() (codeVerifier string, codeChallenge string, err error) {
 	return
 }
 
-func (ctl *OIDCControl) LoginHandler(w http.ResponseWriter, r *http.Request) {
+func (ctl *OIDCControl) putOIDCData(ctx context.Context, state string, nonce string, codeVerifier string) {
+	ctl.authSession.Put(ctx, "state", state)
+	ctl.authSession.Put(ctx, "nonce", nonce)
+	ctl.authSession.Put(ctx, "code_verifier", codeVerifier)
+}
+
+func (ctl *OIDCControl) popOIDCData(ctx context.Context) (state string, nonce string, codeVerifier string) {
+	state = ctl.authSession.PopString(ctx, "state")
+	nonce = ctl.authSession.PopString(ctx, "nonce")
+	codeVerifier = ctl.authSession.PopString(ctx, "code_verifier")
+	return
+}
+
+func (ctl *OIDCControl) OIDCMiddleware(next http.Handler) http.Handler {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/oidc/login") {
+			ctl.loginHandler(w, r)
+		} else if strings.HasPrefix(r.URL.Path, "/oidc/callback") {
+			ctl.callbackHandler(w, r)
+		} else {
+			next.ServeHTTP(w, r)
+		}
+	})
+	return ctl.authSession.LoadAndSave(ctl.dbSession.SessionMiddleware(handler))
+}
+
+func (ctl *OIDCControl) loginHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	state, err := generateRandBase64Str()
@@ -113,7 +151,7 @@ func (ctl *OIDCControl) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctl.sessionManager.StoreOidcData(ctx, state, nonce, codeVerifier)
+	ctl.putOIDCData(ctx, state, nonce, codeVerifier)
 
 	authURL := ctl.oauth2Config.AuthCodeURL(
 		state,
@@ -125,10 +163,10 @@ func (ctl *OIDCControl) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, authURL, http.StatusFound)
 }
 
-func (ctl *OIDCControl) CallbackHandler(w http.ResponseWriter, r *http.Request) {
+func (ctl *OIDCControl) callbackHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	expectedState, expectedNonce, codeVerifier := ctl.sessionManager.GetOidcData(ctx)
+	expectedState, expectedNonce, codeVerifier := ctl.popOIDCData(ctx)
 
 	if r.URL.Query().Get("state") != expectedState {
 		http.Error(w, "oidc received invalid state", http.StatusBadRequest)
@@ -188,7 +226,7 @@ func (ctl *OIDCControl) CallbackHandler(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "oidc error creating or updating system user in db from oidc user id", http.StatusInternalServerError)
 		return
 	}
-	err = ctl.sessionManager.LoginHandler(ctx, systemUser)
+	err = ctl.dbSession.LoginHandler(ctx, systemUser)
 	if err != nil {
 		http.Error(w, "oidc error creating session in SM", http.StatusInternalServerError)
 		return

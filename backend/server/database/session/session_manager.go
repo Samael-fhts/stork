@@ -165,17 +165,3 @@ func (s *SessionMgr) Load(ctx context.Context, token string) (context.Context, e
 	ctx2, err := s.scsSessionMgr.Load(ctx, token)
 	return ctx2, err
 }
-
-func (s *SessionMgr) StoreOidcData(ctx context.Context, state string, nonce string, codeVerifier string) error {
-	s.scsSessionMgr.Put(ctx, "state", state)
-	s.scsSessionMgr.Put(ctx, "nonce", nonce)
-	s.scsSessionMgr.Put(ctx, "code_verifier", codeVerifier)
-	return nil
-}
-
-func (s *SessionMgr) GetOidcData(ctx context.Context) (state string, nonce string, codeVerifier string) {
-	state = s.scsSessionMgr.PopString(ctx, "state")
-	nonce = s.scsSessionMgr.PopString(ctx, "nonce")
-	codeVerifier = s.scsSessionMgr.PopString(ctx, "code_verifier")
-	return
-}

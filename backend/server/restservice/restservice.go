@@ -241,7 +241,7 @@ func NewRestAPI(args ...interface{}) (*RestAPI, error) {
 		return nil, pkgerrors.Wrap(err, "unable to establish connection to the session database")
 	}
 	api.SessionManager = sm
-	api.OIDCControl.SetSessionManager(sm)
+	api.OIDCControl.SetDBSessionManager(sm)
 
 	// All ok.
 	return api, nil
