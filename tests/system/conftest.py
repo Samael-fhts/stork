@@ -20,6 +20,7 @@ from core.fixtures import (  # noqa: F401
     package_service,
     postgres_service,
     register_service,
+    webui_service,
     finish,
 )
 from core.compose_factory import create_docker_compose

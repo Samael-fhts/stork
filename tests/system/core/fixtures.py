@@ -217,6 +217,32 @@ def server_service(request):
     with wrappers.Server(compose, service_name) as wrapper:
         yield wrapper
 
+@pytest.fixture
+def webui_service(server_service: wrappers.Server):
+    """
+    A fixture that sets up the Stork WebUI service and guarantees that it is
+    operational.
+
+    Parameters
+    ----------
+    server_service : core.wrappers.Server
+        The Stork Server wrapper. The WebUI service depends on the Server
+        service, so we need to prepare the Server fixture before.
+
+    Returns
+    -------
+    core.wrappers.WebUI
+        WebUI wrapper for the docker-compose service
+
+    """
+
+    service_name = "webui-apache"
+
+    compose = create_docker_compose()
+    compose.bootstrap(service_name)
+    compose.wait_for_operational(service_name)
+    wrapper = wrappers.WebUI(compose, service_name, server_service)
+    return wrapper
 
 @pytest.fixture
 def kea_service(request):

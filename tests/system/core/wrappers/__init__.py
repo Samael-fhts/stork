@@ -5,6 +5,7 @@ from core.wrappers.perfdhcp import Perfdhcp
 from core.wrappers.external import ExternalPackages
 from core.wrappers.postgres import Postgres
 from core.wrappers.register import Register
+from core.wrappers.webui import WebUI
 
 __all__ = [
     "Server",
@@ -14,4 +15,5 @@ __all__ = [
     "ExternalPackages",
     "Postgres",
     "Register",
+    "WebUI"
 ]
