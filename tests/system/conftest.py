@@ -208,6 +208,8 @@ def pytest_collection_modifyitems(
             continue
         callspec = item.callspec
         for _, fixture_args in callspec.params.items():
+            if not isinstance(fixture_args, dict):
+                continue
             service_name = fixture_args.get("service_name")
             if service_name is not None and not compose.is_enabled(service_name):
                 item.add_marker(skip_missing_tag)
