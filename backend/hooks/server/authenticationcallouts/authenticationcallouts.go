@@ -4,6 +4,7 @@ import (
 	"context"
 	"io"
 	"net/http"
+	"net/url"
 )
 
 // The metadata of the authentication method is used to display a selector on
@@ -74,4 +75,13 @@ type AuthenticationCallouts interface {
 	// redirecting to external authentication provider, Single Sign On, Basic
 	// Auth, Token-based authentication, or Multi-Factor authentication
 	GetMetadata() AuthenticationMetadata
+}
+
+type Middleware func(http.Handler) http.Handler
+
+type AuthenticateCallback func(user User, methodID string, ctx context.Context) error
+
+type AuthenticationMiddleware interface {
+	GetMiddleware(authenticateCallback AuthenticateCallback) Middleware
+	ConfigureMiddleware(serverURL url.URL)
 }
