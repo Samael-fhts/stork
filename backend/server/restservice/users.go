@@ -93,9 +93,15 @@ func (r *RestAPI) externalAuthentication(ctx context.Context, params users.Creat
 		params.Credentials.Identifier,
 		params.Credentials.Secret,
 	)
-
-	if calloutUser == nil || err != nil {
+	if err != nil {
 		return nil, errors.WithMessage(err, "cannot authenticate a user")
+	}
+	return r.ExternalAuthentication(calloutUser, *params.Credentials.AuthenticationMethodID)
+}
+
+func (r *RestAPI) ExternalAuthentication(calloutUser *authenticationcallouts.User, authenticationMethodID string) (*dbmodel.SystemUser, error) {
+	if calloutUser == nil {
+		return nil, errors.New("cannot authenticate a user")
 	}
 
 	groupIDMapping := map[authenticationcallouts.UserGroupID]int{
@@ -123,7 +129,7 @@ func (r *RestAPI) externalAuthentication(ctx context.Context, params users.Creat
 		Lastname:               calloutUser.Lastname,
 		Name:                   calloutUser.Name,
 		Groups:                 groups,
-		AuthenticationMethodID: *params.Credentials.AuthenticationMethodID,
+		AuthenticationMethodID: authenticationMethodID,
 		ExternalID:             calloutUser.ID,
 		ChangePassword:         false,
 	}
@@ -133,7 +139,7 @@ func (r *RestAPI) externalAuthentication(ctx context.Context, params users.Creat
 		var dbUser *dbmodel.SystemUser
 		dbUser, err = dbmodel.GetUserByExternalID(
 			r.DB,
-			*params.Credentials.AuthenticationMethodID,
+			authenticationMethodID,
 			calloutUser.ID,
 		)
 		if err != nil {
