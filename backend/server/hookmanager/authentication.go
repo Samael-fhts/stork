@@ -3,6 +3,7 @@ package hookmanager
 import (
 	"context"
 	"net/http"
+	"net/url"
 
 	"github.com/pkg/errors"
 	"isc.org/stork/hooks/server/authenticationcallouts"
@@ -56,4 +57,16 @@ func (hm *HookManager) GetAuthenticationMetadata() []authenticationcallouts.Auth
 	return hooksutil.CallSequential(hm.GetExecutor(), func(carrier authenticationcallouts.AuthenticationCallouts) authenticationcallouts.AuthenticationMetadata {
 		return carrier.GetMetadata()
 	})
+}
+
+func (hm *HookManager) AuthMiddleware(next http.Handler, callback authenticationcallouts.AuthenticateCallback, serverURL url.URL) http.Handler {
+	middleware := next
+	hooksutil.CallSequential(hm.GetExecutor(), func(carrier authenticationcallouts.AuthenticationCallouts) error {
+		if middlewareHook, ok := carrier.(authenticationcallouts.AuthenticationMiddleware); ok {
+			middlewareHook.ConfigureMiddleware(serverURL)
+			middleware = middlewareHook.GetMiddleware(callback)(middleware)
+		}
+		return nil
+	})
+	return middleware
 }
