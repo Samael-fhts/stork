@@ -1,6 +1,7 @@
 package restservice
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -13,6 +14,7 @@ import (
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 
+	"isc.org/stork/hooks/server/authenticationcallouts"
 	"isc.org/stork/server/auth"
 	"isc.org/stork/server/eventcenter"
 	"isc.org/stork/server/metrics"
@@ -400,12 +402,24 @@ func securityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+func (r *RestAPI) authHookMiddleware(next http.Handler, serverAddress url.URL) http.Handler {
+	handler := r.HookManager.AuthMiddleware(next, func(user authenticationcallouts.User, methodID string, ctx context.Context) error {
+		sysUSer, err := r.ExternalAuthentication(&user, methodID)
+		if sysUSer != nil && err == nil {
+			err = r.SessionManager.LoginHandler(ctx, sysUSer)
+		}
+		return err
+	}, serverAddress)
+	return r.InnerMiddleware(handler)
+}
+
 // Global middleware function provides a common place to setup middlewares for
 // the server. It is invoked before everything.
 func (r *RestAPI) GlobalMiddleware(handler http.Handler, serverAddress url.URL, staticFilesDir string, eventCenter eventcenter.EventCenter, maxBodySize int64) http.Handler {
 	// last handler is executed first for incoming request
 	handler = fileServerMiddleware(handler, staticFilesDir)
 	handler = agentInstallerMiddleware(handler, serverAddress, staticFilesDir)
+	handler = r.authHookMiddleware(handler, serverAddress)
 	handler = sseMiddleware(handler, eventCenter)
 	handler = metricsMiddleware(handler, r.MetricsCollector)
 	handler = trimBaseURLMiddleware(handler, serverAddress.Path)
