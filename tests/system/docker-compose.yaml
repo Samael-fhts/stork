@@ -15,6 +15,10 @@ services:
     environment:
       API_HOST: server
       API_PORT: 8080
+    healthcheck:
+      interval: 250ms
+      timeout: 1s
+      retries: 40
 
   server-base:
     platform: linux/amd64
