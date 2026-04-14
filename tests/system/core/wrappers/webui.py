@@ -10,3 +10,6 @@ class WebUI(ComposeServiceWrapper):
         mapped = self._compose.port(service_name, internal_port)
         self.url = f"http://{mapped[0]}:{mapped[1]}/"
         self._server_service = server_service
+
+    def server(self):
+        return self._server_service

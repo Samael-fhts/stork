@@ -811,3 +811,7 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         if status.end_date is None:
             raise NoSuccessException("the migration is in progress")
         return status
+    
+    def session_cookie(self) -> Optional[str]:
+        """Returns the session cookie if exists."""
+        return self._api_client.cookie
