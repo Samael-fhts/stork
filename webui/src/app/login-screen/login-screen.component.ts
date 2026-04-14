@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core'
+import { Component, OnInit, inject, signal } from '@angular/core'
 import { UntypedFormBuilder, UntypedFormGroup, Validators, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, ActivatedRoute } from '@angular/router'
 
@@ -10,10 +10,10 @@ import { lastValueFrom } from 'rxjs'
 import { NgIf } from '@angular/common'
 import { ProgressSpinner } from 'primeng/progressspinner'
 import { FloatLabel } from 'primeng/floatlabel'
-import { Select } from 'primeng/select'
+import { Select, SelectChangeEvent } from 'primeng/select'
 import { InputText } from 'primeng/inputtext'
 import { Password } from 'primeng/password'
-import { Button } from 'primeng/button'
+import { Button, ButtonDirective, ButtonLabel } from 'primeng/button'
 import { Message } from 'primeng/message'
 
 /**
@@ -46,6 +46,8 @@ import { Message } from 'primeng/message'
         Password,
         Button,
         Message,
+        ButtonLabel,
+        ButtonDirective,
     ],
 })
 export class LoginScreenComponent implements OnInit {
@@ -197,6 +199,30 @@ export class LoginScreenComponent implements OnInit {
     keyUp(event) {
         if (event.key === 'Enter') {
             this.signIn()
+        }
+    }
+
+    /**
+     * Signal keeping true if selected authentication method is OIDC (no password, no login forms should be displayed); false otherwise.
+     */
+    oidcAuth = signal<boolean>(false)
+
+    /**
+     * Signal keeping last read OIDC authentication method label that is used on the "Log in with..." button.
+     */
+    oidcLabel = signal<string>('')
+
+    /**
+     * Callback called whenever authentication method is changed in the Select form element.
+     * @param event
+     * @protected
+     */
+    protected authMethodChange(event: SelectChangeEvent) {
+        const authMethod = event.value as AuthenticationMethod
+        const id = (authMethod.id ?? '') as string
+        this.oidcAuth.set(!authMethod.formLabelSecret && id.indexOf('oidc') === 0)
+        if (this.oidcAuth()) {
+            this.oidcLabel.set(authMethod.name)
         }
     }
 }
