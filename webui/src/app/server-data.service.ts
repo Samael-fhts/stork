@@ -7,6 +7,7 @@ import { AuthService } from './auth.service'
 import { ServicesService, UsersService } from './backend/api/api'
 import { DaemonsStats } from './backend/model/daemonsStats'
 import { Groups } from './backend/model/groups'
+import { Group } from './backend'
 
 /**
  * Service for providing and caching data from the server.
@@ -91,7 +92,7 @@ export class ServerDataService {
      * @param groupItems List of all groups returned by the server.
      * @returns Group name or unknown string if the group is not found.
      */
-    public getGroupName(groupId: number, groupItems: any[]): string {
+    public getGroupName(groupId: number, groupItems: Group[]): string {
         // The superadmin group is well known and doesn't require
         // iterating over the list of groups fetched from the server.
         // Especially, if the server didn't respond properly for
@@ -106,6 +107,19 @@ export class ServerDataService {
             }
         }
         return 'unknown'
+    }
+
+    /**
+     *
+     * @param ids
+     * @param groupItems
+     */
+    public getAllGroupsNames(ids: number[], groupItems: Group[]): string {
+        const names: string[] = []
+        for (const id of ids) {
+            names.push(this.getGroupName(id, groupItems))
+        }
+        return names.join(', ')
     }
 
     /**
