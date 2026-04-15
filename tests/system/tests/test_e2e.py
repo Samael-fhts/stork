@@ -38,6 +38,22 @@ def test_e2e_inject_cookie(webui_service: WebUI, context: BrowserContext):
     page = context.new_page()
     page.goto(webui_service.url)
 
+
+def test_e2e_custom_not_found_page(webui_service: WebUI, context: BrowserContext):
+    """Checks that the custom 404 page is shown when navigating to a non-existent path. And user is able to navigate
+       back to the dashboard using the link on 404 page."""    
+    webui_service.log_in_as_admin()
+    webui_service.inject_session_cookie(context)
+    page = context.new_page()
+    page.goto(webui_service.url + "/not/existent/path")
+
+    expect(page.get_by_role("alert")).to_contain_text("Page Not Found")
+    goto_dashboard = page.get_by_role("link", name="Go to Dashboard page")
+    expect(goto_dashboard).to_be_visible()
+    goto_dashboard.click()
+    expect(page.get_by_text("Welcome to Stork!")).to_be_visible()
+
+
 def test_e2e_login(webui_service: WebUI, page: Page):
     page.goto(webui_service.url)
 
