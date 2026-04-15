@@ -29,6 +29,7 @@ from openapi_client.models.puller import Puller
 from openapi_client.exceptions import ServiceException
 from openapi_client.models.zone_inventory_states import ZoneInventoryStates
 from openapi_client.models.zones import Zones
+from openapi_client.models.password_change import PasswordChange
 
 T1 = TypeVar("T1")
 T2 = TypeVar("T2")
@@ -171,6 +172,12 @@ class Server(ComposeServiceWrapper):  # pylint: disable=too-many-public-methods)
         api_instance = UsersApi(self._api_client)
         api_instance.delete_session()
         self._api_client.cookie = None
+
+    def change_password(self, user_id, old_password: str, new_password: str):
+        """Changes the password for the user."""
+        api_instance = UsersApi(self._api_client)
+        password_change = PasswordChange(oldpassword=old_password, newpassword=new_password)
+        api_instance.update_user_password(user_id, password_change)
 
     # List / Search
 

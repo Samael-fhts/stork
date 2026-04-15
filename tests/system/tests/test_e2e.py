@@ -11,23 +11,30 @@ def test_e2e_version(webui_service: WebUI, page: Page):
     version = server.read_version().version
 
     page.goto(webui_service.url)
+
     expect(page.get_by_text("version:")).to_be_visible()
     expect(page.locator("app-login-screen")).to_contain_text("version: {}".format(version))
 
-def test_e2e_inject_cookie(webui_service: WebUI, context: BrowserContext):
+
+def test_e2e_version_popup(webui_service: WebUI, context: BrowserContext):
+
     server = webui_service.server()
-    server.log_in_as_admin()
-    cookie = server.session_cookie()
-    print("Session cookie: {}".format(cookie))
+    version = server.read_version().version
+    webui_service.log_in_as_admin()
+    webui_service.inject_session_cookie(context)
 
-    chunks = cookie.split(";")
-    cookie_dict = {}
-    for chunk in chunks:
-        if "=" in chunk:
-            key, value = chunk.strip().split("=", 1)
-            cookie_dict[key] = value
+    page = context.new_page()
+    page.goto(webui_service.url)
+    page.get_by_role("link").filter(has_text=re.compile(r"^$")).hover()
 
-    context.add_cookies([{"name": "session", "value": cookie_dict["session"], "url": webui_service.url}])
+    tooltip = page.get_by_role("tooltip")
+    expect(tooltip).to_be_visible()
+    expect(tooltip).to_contain_text("Version: {}".format(version))
+
+def test_e2e_inject_cookie(webui_service: WebUI, context: BrowserContext):
+
+    webui_service.log_in_as_admin()
+    webui_service.inject_session_cookie(context)
     page = context.new_page()
     page.goto(webui_service.url)
 
