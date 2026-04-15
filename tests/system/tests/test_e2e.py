@@ -1,5 +1,5 @@
 from core.wrappers import WebUI
-from playwright.sync_api import Page, BrowserContext, expect
+from playwright.sync_api import Page, expect
 import pytest
 import re
 
@@ -16,12 +16,11 @@ def test_e2e_version(webui_service: WebUI, page: Page):
     expect(page.locator("app-login-screen")).to_contain_text("version: {}".format(version))
 
 
-def test_e2e_version_popup(webui_service: WebUI, context: BrowserContext):
-
+def test_e2e_version_popup(webui_service: WebUI):
+    """Checks if the version tooltip is shown and contains correct version information."""
     server = webui_service.server()
     version = server.read_version().version
-    webui_service.log_in_as_admin()
-    webui_service.inject_session_cookie(context)
+    context = webui_service.log_in_as_admin()
 
     page = context.new_page()
     page.goto(webui_service.url)
@@ -31,19 +30,16 @@ def test_e2e_version_popup(webui_service: WebUI, context: BrowserContext):
     expect(tooltip).to_be_visible()
     expect(tooltip).to_contain_text("Version: {}".format(version))
 
-def test_e2e_inject_cookie(webui_service: WebUI, context: BrowserContext):
-
-    webui_service.log_in_as_admin()
-    webui_service.inject_session_cookie(context)
+def test_e2e_inject_cookie(webui_service: WebUI):
+    context = webui_service.log_in_as_admin()
     page = context.new_page()
     page.goto(webui_service.url)
 
 
-def test_e2e_custom_not_found_page(webui_service: WebUI, context: BrowserContext):
+def test_e2e_custom_not_found_page(webui_service: WebUI):
     """Checks that the custom 404 page is shown when navigating to a non-existent path. And user is able to navigate
-       back to the dashboard using the link on 404 page."""    
-    webui_service.log_in_as_admin()
-    webui_service.inject_session_cookie(context)
+       back to the dashboard using the link on 404 page."""
+    context = webui_service.log_in_as_admin()
     page = context.new_page()
     page.goto(webui_service.url + "/not/existent/path")
 
@@ -77,13 +73,6 @@ def test_e2e_login(webui_service: WebUI, page: Page):
     page.locator("#new-password").fill("r+YB4E3T['5n4RcShcw-")
     page.locator("#confirm-password").fill("r+YB4E3T['5n4RcShcw-")
     page.get_by_role("button", name=" Save").click()
-
-@pytest.mark.skip
-def test_e2e_codegen(webui_service: WebUI):
-
-    print("playwright codegen {}".format(webui_service.url))
-    while True:
-        pass
 
 def username_locator(page: Page):
     selector = (

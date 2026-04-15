@@ -10,7 +10,7 @@ from core import wrappers
 from core.utils import setup_logger
 from core import performance_chart
 from core.version import parse_version_info
-
+from playwright.sync_api import BrowserContext
 logger = setup_logger(__name__)
 
 
@@ -218,7 +218,7 @@ def server_service(request):
         yield wrapper
 
 @pytest.fixture
-def webui_service(server_service: wrappers.Server):
+def webui_service(server_service: wrappers.Server, context: BrowserContext):
     """
     A fixture that sets up the Stork WebUI service and guarantees that it is
     operational.
@@ -241,7 +241,7 @@ def webui_service(server_service: wrappers.Server):
     compose = create_docker_compose()
     compose.bootstrap(service_name)
     compose.wait_for_operational(service_name)
-    wrapper = wrappers.WebUI(compose, service_name, server_service)
+    wrapper = wrappers.WebUI(compose, service_name, server_service, context)
     return wrapper
 
 @pytest.fixture
