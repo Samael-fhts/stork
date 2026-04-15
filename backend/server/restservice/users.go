@@ -122,6 +122,10 @@ func (r *RestAPI) ExternalAuthentication(calloutUser *authenticationcallouts.Use
 			ID: systemGroupID,
 		})
 	}
+	if len(groups) == 0 && !calloutUser.ExternallyManagedGroups {
+		// User was authenticated but belongs to no group. Hook has group mapping disabled, so assign to read-only to have minimal Stork access.
+		groups = append(groups, &dbmodel.SystemGroup{ID: dbmodel.ReadOnlyGroupID})
+	}
 
 	systemUser := &dbmodel.SystemUser{
 		Login:                  calloutUser.Login,
@@ -148,7 +152,15 @@ func (r *RestAPI) ExternalAuthentication(calloutUser *authenticationcallouts.Use
 
 		systemUser.ID = dbUser.ID
 
-		if calloutUser.Groups == nil {
+		if len(calloutUser.Groups) == 0 && !calloutUser.ExternallyManagedGroups {
+			// User was authenticated but belongs to no group. Hook has group mapping disabled.
+			if len(dbUser.Groups) == 0 {
+				// We have that user in DB but with no groups assigned.
+				// Assign to read-only to have minimal Stork access.
+				dbUser.Groups = []*dbmodel.SystemGroup{
+					{ID: dbmodel.ReadOnlyGroupID},
+				}
+			}
 			// The groups are not managed by the hook.
 			systemUser.Groups = dbUser.Groups
 		}

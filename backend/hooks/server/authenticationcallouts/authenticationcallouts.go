@@ -55,6 +55,8 @@ type User struct {
 	// It must contain internal Stork group IDs. It means that the hook should
 	// map the authentication API identifiers.
 	Groups []UserGroupID
+	// If hook wants to manage user groups, this should be set to true.
+	ExternallyManagedGroups bool
 }
 
 // Set of callouts used to perform authentication.
