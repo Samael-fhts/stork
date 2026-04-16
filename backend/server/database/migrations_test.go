@@ -401,7 +401,7 @@ func TestMigrationFrom57DifferentHostData(t *testing.T) {
 	_ = dbmodel.AddSubnet(db, subnet)
 
 	var daemons []*dbmodel.Daemon
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		accessPoints := []*dbmodel.AccessPoint{{
 			Type:     dbmodel.AccessPointControl,
 			Address:  "localhost",
@@ -504,7 +504,7 @@ func TestMigrationFrom57DifferentHostData(t *testing.T) {
 	require.NotEmpty(t, initialHosts)
 
 	// The IP reservations has been merged.
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		require.Len(t,
 			actualHosts[0].LocalHosts[i].IPReservations,
 			len(initialHosts[0].LocalHosts[0].IPReservations)+
@@ -523,7 +523,7 @@ func TestMigrationFrom57DifferentHostData(t *testing.T) {
 	)
 
 	// Remove differences.
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		// Remove the IP reservations copied from another daemon.
 		actualHosts[0].LocalHosts[i].IPReservations = initialHosts[0].LocalHosts[i].IPReservations[0:2]
 	}

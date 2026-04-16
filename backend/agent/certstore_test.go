@@ -158,7 +158,7 @@ func TestWriteFingerprintAsToken(t *testing.T) {
 	store := NewCertStoreDefault()
 
 	var fingerprint [32]byte
-	for i := 0; i < len(fingerprint); i++ {
+	for i := range len(fingerprint) {
 		fingerprint[i] = byte(i)
 	}
 	expectedToken := storkutil.BytesToHex(fingerprint[:])

@@ -44,7 +44,7 @@ func TestSetRecipeForUpdate(t *testing.T) {
 	state := TransactionState[testRecipe]{
 		Updates: []*Update[testRecipe]{},
 	}
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		update := NewUpdate[testRecipe](dbmodel.ConfigOperationKeaHostUpdate, int64(i))
 		state.Updates = append(state.Updates, update)
 	}
@@ -81,7 +81,7 @@ func TestGetUpdates(t *testing.T) {
 	state := TransactionState[testRecipe]{
 		Updates: []*Update[testRecipe]{},
 	}
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		update := NewUpdate[testRecipe](dbmodel.ConfigOperationKeaHostUpdate, int64(i))
 		update.Recipe = testRecipe{
 			param: "foo",

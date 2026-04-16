@@ -78,7 +78,7 @@ func TestCheckerPreferenceToString(t *testing.T) {
 func addTestDaemons(db *pg.DB) (*Daemon, *Daemon, error) {
 	var createdDaemons []*Daemon
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		m := &Machine{
 			ID:        0,
 			Address:   "localhost",

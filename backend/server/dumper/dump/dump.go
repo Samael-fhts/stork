@@ -36,7 +36,7 @@ type StructArtifact interface {
 	Artifact
 	// Returns plain GoLang object. It must be
 	// serializable.
-	GetStruct() interface{}
+	GetStruct() any
 }
 
 // The artifact that contains raw bytes

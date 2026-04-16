@@ -71,7 +71,7 @@ func TestRegisterBasic(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		fmt.Printf("BODY: %v\n", string(body))
-		var req map[string]interface{}
+		var req map[string]any
 		err = json.Unmarshal(body, &req)
 		require.NoError(t, err)
 
@@ -96,7 +96,7 @@ func TestRegisterBasic(t *testing.T) {
 			require.NoError(t, innerErr)
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id":                    10,
 				"serverCACert":          string(rootCertPEM),
 				"agentCert":             string(agentCertPEM),
@@ -132,7 +132,7 @@ func TestRegisterBasic(t *testing.T) {
 			}
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id": 10,
 			}
 			json.NewEncoder(w).Encode(resp)
@@ -211,7 +211,7 @@ func TestRegisterBusyPort(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		fmt.Printf("BODY: %v\n", string(body))
-		var req map[string]interface{}
+		var req map[string]any
 		err = json.Unmarshal(body, &req)
 		require.NoError(t, err)
 
@@ -236,7 +236,7 @@ func TestRegisterBusyPort(t *testing.T) {
 			require.NoError(t, innerErr)
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id":                    10,
 				"serverCACert":          string(rootCertPEM),
 				"agentCert":             string(agentCertPEM),
@@ -272,7 +272,7 @@ func TestRegisterBusyPort(t *testing.T) {
 			}
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id": 10,
 			}
 			json.NewEncoder(w).Encode(resp)
@@ -322,10 +322,10 @@ func TestRegisterBadServer(t *testing.T) {
 	withAgentCert := true
 	withServerCertFingerprint := true
 
-	var idValue interface{}
-	var serverCertValue interface{}
-	var agentCertValue interface{}
-	var serverCertFingerprint interface{}
+	var idValue any
+	var serverCertValue any
+	var agentCertValue any
+	var serverCertFingerprint any
 	idValue = 10
 	serverCertValue = nil
 	agentCertValue = nil
@@ -338,7 +338,7 @@ func TestRegisterBadServer(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		fmt.Printf("BODY: %v\n", string(body))
-		var req map[string]interface{}
+		var req map[string]any
 		err = json.Unmarshal(body, &req)
 		require.NoError(t, err)
 
@@ -358,7 +358,7 @@ func TestRegisterBadServer(t *testing.T) {
 			initialFingerprint := [32]byte{42}
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id":                    idValue,
 				"serverCACert":          string(rootCertPEM),
 				"agentCert":             string(agentCertPEM),
@@ -403,7 +403,7 @@ func TestRegisterBadServer(t *testing.T) {
 			}
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id": 10,
 			}
 			json.NewEncoder(w).Encode(resp)
@@ -664,7 +664,7 @@ func TestWriteAgentTokenFileDuringRegistration(t *testing.T) {
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
-		var req map[string]interface{}
+		var req map[string]any
 		err = json.Unmarshal(body, &req)
 		require.NoError(t, err)
 
@@ -689,7 +689,7 @@ func TestWriteAgentTokenFileDuringRegistration(t *testing.T) {
 
 			w.WriteHeader(http.StatusOK)
 			fingerprint := [32]byte{42}
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id":                    10,
 				"serverCACert":          string(rootCertPEM),
 				"agentCert":             string(agentCertPEM),
@@ -704,7 +704,7 @@ func TestWriteAgentTokenFileDuringRegistration(t *testing.T) {
 			require.NotEmpty(t, agentToken)
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id": 10,
 			}
 			json.NewEncoder(w).Encode(resp)
@@ -769,7 +769,7 @@ func TestRepeatRegister(t *testing.T) {
 		body, err := io.ReadAll(r.Body)
 		require.NoError(t, err)
 		fmt.Printf("BODY: %v\n", string(body))
-		var req map[string]interface{}
+		var req map[string]any
 		err = json.Unmarshal(body, &req)
 		require.NoError(t, err)
 
@@ -789,7 +789,7 @@ func TestRepeatRegister(t *testing.T) {
 				locationHeaderValue := fmt.Sprintf("/api/machines/%s", machineID)
 				w.Header().Add("Location", locationHeaderValue)
 				w.WriteHeader(409)
-				resp := map[string]interface{}{
+				resp := map[string]any{
 					"serverCertFingerprint": serverCertFingerprintHeaderValue,
 				}
 				if machineIDInt, err := strconv.Atoi(machineID); err == nil {
@@ -814,7 +814,7 @@ func TestRepeatRegister(t *testing.T) {
 			require.NoError(t, innerErr)
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id":                    10,
 				"serverCACert":          string(rootCertPEM),
 				"agentCert":             string(agentCertPEM),
@@ -833,7 +833,7 @@ func TestRepeatRegister(t *testing.T) {
 			}
 
 			w.WriteHeader(http.StatusOK)
-			resp := map[string]interface{}{
+			resp := map[string]any{
 				"id": 10,
 			}
 			json.NewEncoder(w).Encode(resp)

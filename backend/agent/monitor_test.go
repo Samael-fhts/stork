@@ -120,36 +120,30 @@ func TestGetDaemonByAccessPoint(t *testing.T) {
 	var wg sync.WaitGroup
 
 	// find kea daemon
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		daemon := m.GetDaemonByAccessPoint(AccessPointControl, "1.2.3.1", 1234)
 		require.NotNil(t, daemon)
 		require.EqualValues(t, daemonname.CA, daemon.GetName())
-	}()
+	})
 	ret := <-m.(*monitor).requests
 	ret <- daemons
 	wg.Wait()
 
 	// find bind daemon
-	wg.Add(1) // expect 1 Done in the wait group
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		daemon := m.GetDaemonByAccessPoint(AccessPointControl, "2.3.4.4", 2345)
 		require.NotNil(t, daemon)
 		require.EqualValues(t, daemonname.Bind9, daemon.GetName())
-	}()
+	})
 	ret = <-m.(*monitor).requests
 	ret <- daemons
 	wg.Wait()
 
 	// find not existing daemon - should return nil
-	wg.Add(1) // expect 1 Done in the wait group
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		daemon := m.GetDaemonByAccessPoint(AccessPointControl, "0.0.0.0", 1)
 		require.Nil(t, daemon)
-	}()
+	})
 	ret = <-m.(*monitor).requests
 	ret <- daemons
 	wg.Wait()

@@ -98,7 +98,7 @@ func getHATestConfig(rootName, thisServerName, mode string, peerNames ...string)
 
 // Generates a response to the status-get command including two status
 // structures, one for DHCPv4 and one for DHCPv6.
-func mockGetStatusWithHA(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockGetStatusWithHA(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	var bytes string
 	switch callNo {
 	case 0:
@@ -220,7 +220,7 @@ func mockGetStatusWithHA(callNo int, daemon agentcomm.ControlledDaemon, cmdRespo
 // Generates a response to the status-get command including two status
 // structures, one for DHCPv4 and one for DHCPv6. Format supported by
 // Kea 1.7.8 onwards.
-func mockGetStatusWithHA178(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockGetStatusWithHA178(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	var bytes string
 	switch callNo {
 	case 0:
@@ -449,7 +449,7 @@ func mockGetStatusWithHAHub(callNo int, daemon agentcomm.ControlledDaemon, cmdRe
 
 // Generate test response to status-get command including status of the
 // HA pair doing load balancing.
-func mockGetStatusLoadBalancing(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockGetStatusLoadBalancing(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	bytes := `
         {
             "result": 0,
@@ -483,7 +483,7 @@ func mockGetStatusLoadBalancing(callNo int, daemon agentcomm.ControlledDaemon, c
 
 // Generate test response to status-get command including status of the
 // HA pair doing load balancing. Format supported by Kea 1.7.8 onwards.
-func mockGetStatusLoadBalancing178(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockGetStatusLoadBalancing178(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	bytes := `
         {
             "result": 0,
@@ -527,7 +527,7 @@ func mockGetStatusLoadBalancing178(callNo int, daemon agentcomm.ControlledDaemon
 
 // Generates test response to status-get command lacking a status of the
 // HA pair.
-func mockGetStatusNoHA(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockGetStatusNoHA(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	bytes := `
         {
             "result": 0,
@@ -546,7 +546,7 @@ func mockGetStatusNoHA(callNo int, daemon agentcomm.ControlledDaemon, cmdRespons
 
 // Generates test response to status-get command indicating an error and
 // lacking arguments.
-func mockGetStatusError(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockGetStatusError(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	bytes := `
         {
             "result": 1,

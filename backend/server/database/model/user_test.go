@@ -14,7 +14,7 @@ import (
 
 // Generates a bunch of users and stores them in the database.
 func generateTestUsers(t *testing.T, db *dbops.PgDB) {
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		login := fmt.Sprintf("user-%d", i)
 		user := &SystemUser{
 			Login:    login,

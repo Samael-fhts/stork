@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -609,10 +610,8 @@ func (e *testCommandExecutor) LookPath(command string) (string, error) {
 		"named-checkconf", "named", "rndc", "kea-ctrl-agent", "kea-dhcp4",
 		"kea-dhcp6", "pdns_server",
 	}
-	for _, allowedCommand := range allowedCommands {
-		if command == allowedCommand {
-			return "/usr/sbin/" + command, nil
-		}
+	if slices.Contains(allowedCommands, command) {
+		return "/usr/sbin/" + command, nil
 	}
 	return "", errors.New("command not found")
 }

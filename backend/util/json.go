@@ -116,7 +116,7 @@ func (v *NullableArray[T]) UnmarshalJSON(serial []byte) error {
 
 // Converts specified interface to int64. It expects that the interface already
 // has int64 type or json.Number type convertible to int64.
-func ConvertJSONInt64(value interface{}) (valueInt64 int64, err error) {
+func ConvertJSONInt64(value any) (valueInt64 int64, err error) {
 	var ok bool
 	if valueInt64, ok = value.(int64); ok {
 		return
@@ -133,7 +133,7 @@ func ConvertJSONInt64(value interface{}) (valueInt64 int64, err error) {
 // It extracts specified value from the map of interfaces and converts it to
 // int64. It expects that the value in the map is already an int64 value or
 // a json.Number convertible to int64.
-func ExtractJSONInt64(container map[string]interface{}, key string) (int64, error) {
+func ExtractJSONInt64(container map[string]any, key string) (int64, error) {
 	if value, ok := container[key]; ok {
 		return ConvertJSONInt64(value)
 	}

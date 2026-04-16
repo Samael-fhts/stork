@@ -14,9 +14,9 @@ import (
 
 // An interface to EventCenter.
 type EventCenter interface {
-	AddInfoEvent(text string, objects ...interface{})
-	AddWarningEvent(text string, objects ...interface{})
-	AddErrorEvent(text string, objects ...interface{})
+	AddInfoEvent(text string, objects ...any)
+	AddWarningEvent(text string, objects ...any)
+	AddErrorEvent(text string, objects ...any)
 	AddEvent(event *dbmodel.Event)
 	Shutdown()
 	ServeHTTP(w http.ResponseWriter, req *http.Request)
@@ -51,25 +51,25 @@ func NewEventCenter(db *pg.DB) EventCenter {
 
 // Add an event on info level to EventCenter. It takes event text and relating objects.
 // The event is stored in database and dispatched to subscribers.
-func (ec *eventCenter) AddInfoEvent(text string, objects ...interface{}) {
+func (ec *eventCenter) AddInfoEvent(text string, objects ...any) {
 	ec.addEvent(dbmodel.EvInfo, text, objects...)
 }
 
 // Add an event on warning level to EventCenter. It takes event text and relating objects.
 // The event is stored in database and dispatched to subscribers.
-func (ec *eventCenter) AddWarningEvent(text string, objects ...interface{}) {
+func (ec *eventCenter) AddWarningEvent(text string, objects ...any) {
 	ec.addEvent(dbmodel.EvWarning, text, objects...)
 }
 
 // Add an event on error level to EventCenter. It takes event text and relating objects.
 // The event is stored in database and dispatched to subscribers.
-func (ec *eventCenter) AddErrorEvent(text string, objects ...interface{}) {
+func (ec *eventCenter) AddErrorEvent(text string, objects ...any) {
 	ec.addEvent(dbmodel.EvError, text, objects...)
 }
 
 // Create an event without passing it to EventCenter. It can be added later using
 // AddEvent method of EventCenter. It takes event level, text and relating objects.
-func CreateEvent(level dbmodel.EventLevel, text string, objects ...interface{}) *dbmodel.Event {
+func CreateEvent(level dbmodel.EventLevel, text string, objects ...any) *dbmodel.Event {
 	relations := &dbmodel.Relations{}
 	streams := []dbmodel.SSEStream{}
 	var details string
@@ -135,7 +135,7 @@ func CreateEvent(level dbmodel.EventLevel, text string, objects ...interface{}) 
 	return e
 }
 
-func (ec *eventCenter) addEvent(level dbmodel.EventLevel, text string, objects ...interface{}) {
+func (ec *eventCenter) addEvent(level dbmodel.EventLevel, text string, objects ...any) {
 	e := CreateEvent(level, text, objects...)
 	ec.AddEvent(e)
 }

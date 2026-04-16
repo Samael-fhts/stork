@@ -45,8 +45,7 @@ func TestTextFileLogReaderFollowFromStart(t *testing.T) {
 	require.NotNil(t, reader)
 
 	// Create the context with cancellation to make sure that the read is stopped when the test is done.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Seek to the start of the file and follow the new lines. It should return the existing
 	// first log line.
@@ -115,8 +114,7 @@ func TestTextFileLogReaderReadFromStart(t *testing.T) {
 	require.NotNil(t, reader)
 
 	// Create the context with cancellation to make sure that the read is stopped when the test is done.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Read the file contents.
 	lines, err := reader.capture(ctx, logReaderCaptureOptionFileName(filepath.Join(sandbox.BasePath, "test.log")))
@@ -160,8 +158,7 @@ func TestTextFileLogReaderFollowFromEnd(t *testing.T) {
 	require.NotNil(t, reader)
 
 	// Create the context with cancellation to make sure that the read is stopped when the test is done.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Seek to the end of the file and follow the new lines. It should skip the existing
 	// first log line.
@@ -239,8 +236,7 @@ func TestTextFileLogReaderReadFromEnd(t *testing.T) {
 	reader := newTextFileLogReader(textLogReaderConfig{})
 	require.NotNil(t, reader)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Try to read the file contents from the end without following. It should return an error.
 	lines, err := reader.capture(ctx, logReaderCaptureOptionFileName(filepath.Join(sandbox.BasePath, "test.log")), logReaderCaptureOptionFromEnd())
@@ -301,8 +297,7 @@ func TestTextFileLogReaderFollowBeforeFileExists(t *testing.T) {
 	require.NotNil(t, reader)
 
 	// Create the context with cancellation to make sure that the read is stopped when the test is done.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Follow the new lines.
 	lines, err := reader.capture(ctx, logReaderCaptureOptionFileName(filepath.Join(sandbox.BasePath, "test.log")), logReaderCaptureOptionFollow())
@@ -539,8 +534,7 @@ func TestSystemdLogReaderReadFromEnd(t *testing.T) {
 	reader := newSystemdLogReader(executor)
 	require.NotNil(t, reader)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 
 	// Try to read the log contents from the end without following. It should return an error.
 	lines, err := reader.capture(ctx, logReaderCaptureOptionFromEnd())

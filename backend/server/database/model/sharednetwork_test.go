@@ -1122,7 +1122,7 @@ func TestDeleteDaemonsFromSharedNetwork(t *testing.T) {
 	// Add some shared networks with subnets. Each of them is associated
 	// with multiple daemons.
 	var networks []*SharedNetwork
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		network := &SharedNetwork{
 			Name:   fmt.Sprintf("network%d", i),
 			Family: 4,

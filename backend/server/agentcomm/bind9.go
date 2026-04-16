@@ -15,11 +15,11 @@ type Bind9Control struct {
 
 // Represents unmarshaled response from named statistics-channel.
 type NamedStatsGetResponse struct {
-	Views *map[string]interface{} `json:"views,omitempty"`
+	Views *map[string]any `json:"views,omitempty"`
 }
 
 // Parses response received from the named statistics-channel.
-func UnmarshalNamedStatsResponse(response string, parsed interface{}) error {
+func UnmarshalNamedStatsResponse(response string, parsed any) error {
 	err := json.Unmarshal([]byte(response), parsed)
 	if err != nil {
 		return errors.Wrapf(err, "failed to parse response from named statistics-channel: %s", response)

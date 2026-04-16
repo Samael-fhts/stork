@@ -10,10 +10,7 @@ type CalloutCarrier interface {
 }
 
 // Defines the standard set of methods that all hook settings must provide.
-type HookSettings interface {
-	// Nothing common but the HookSettings type is more descriptive than just
-	// any.
-}
+type HookSettings any
 
 type (
 	// A function that creates a callout carrier object with the callout

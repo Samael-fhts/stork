@@ -3,6 +3,7 @@ package dbmodel
 import (
 	"context"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/go-pg/pg/v10"
@@ -434,10 +435,8 @@ func (s Service) GetDaemonHAState(daemonID int64) HAState {
 	if s.HAService.SecondaryID == daemonID {
 		return s.HAService.SecondaryLastState
 	}
-	for _, id := range s.HAService.BackupID {
-		if id == daemonID {
-			return HAStateBackup
-		}
+	if slices.Contains(s.HAService.BackupID, daemonID) {
+		return HAStateBackup
 	}
 	return HAStateNone
 }

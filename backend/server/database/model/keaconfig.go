@@ -254,7 +254,7 @@ func NewSubnetFromKea(subnet keaconfig.Subnet, daemon *Daemon, source HostDataSo
 func NewHostFromKeaConfigReservation(reservation keaconfig.Reservation, daemon *Daemon, source HostDataSource, lookup keaconfig.DHCPOptionDefinitionLookup) (*Host, error) {
 	var host Host
 	hostname := reservation.Hostname
-	structType := reflect.TypeOf(reservation)
+	structType := reflect.TypeFor[keaconfig.Reservation]()
 	value := reflect.ValueOf(reservation)
 
 	// Iterate over the struct fields which may hold host identifiers.

@@ -146,7 +146,7 @@ func TestIncreaseAgentErrorCount(t *testing.T) {
 func TestResetAgentErrorCount(t *testing.T) {
 	stats := NewAgentStats()
 	require.NotNil(t, stats)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		require.EqualValues(t, i+1, stats.IncreaseAgentErrorCount(requestTypeFoo{}))
 	}
 	require.EqualValues(t, 10, stats.GetAgentErrorCount(requestTypeFoo{}))
@@ -162,10 +162,10 @@ func TestResetAgentErrorCount(t *testing.T) {
 func TestGetTotalErrorCount(t *testing.T) {
 	stats := NewAgentStats()
 	require.NotNil(t, stats)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		require.EqualValues(t, i+1, stats.IncreaseAgentErrorCount(requestTypeFoo{}))
 	}
-	for i := 0; i < 30; i++ {
+	for i := range 30 {
 		require.EqualValues(t, i+1, stats.IncreaseAgentErrorCount(requestTypeBar{}))
 	}
 	require.EqualValues(t, 10, stats.GetAgentErrorCount(requestTypeFoo{}))

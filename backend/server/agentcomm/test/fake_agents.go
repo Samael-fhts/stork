@@ -32,7 +32,7 @@ type FakeAgents struct {
 	mockRndcOutput  string
 
 	RecordedStatsURL string
-	mockNamedFunc    func(int, interface{})
+	mockNamedFunc    func(int, any)
 
 	MachineState   *agentcomm.State
 	GetStateCalled bool
@@ -61,7 +61,7 @@ server is up and running`
 
 // Creates new instance of the FakeAgents structure with the function returning
 // a custom response set.
-func NewFakeAgents(fnKea func(int, agentcomm.ControlledDaemon, []any), fnNamed func(int, interface{})) *FakeAgents {
+func NewFakeAgents(fnKea func(int, agentcomm.ControlledDaemon, []any), fnNamed func(int, any)) *FakeAgents {
 	fa := &FakeAgents{
 		mockNamedFunc:  fnNamed,
 		mockRndcOutput: mockRndcOutput(),
@@ -195,7 +195,7 @@ func (fa *FakeAgents) ForwardToKeaOverHTTP(ctx context.Context, daemon agentcomm
 // to this function so as they can be later validated. It also returns a custom
 // response to the command by calling the function specified in the
 // call to NewFakeAgents.
-func (fa *FakeAgents) ForwardToNamedStats(ctx context.Context, daemon agentcomm.ControlledDaemon, requestType agentcomm.ForwardToNamedStatsRequestType, statsOutput interface{}) error {
+func (fa *FakeAgents) ForwardToNamedStats(ctx context.Context, daemon agentcomm.ControlledDaemon, requestType agentcomm.ForwardToNamedStatsRequestType, statsOutput any) error {
 	accessPoint, _ := daemon.GetAccessPoint(dbmodel.AccessPointStatistics)
 	fa.RecordedStatsURL = storkutil.HostWithPortURL(accessPoint.Address, accessPoint.Port, string(accessPoint.Protocol))
 

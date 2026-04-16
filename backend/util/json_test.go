@@ -29,7 +29,7 @@ func TestConvertJSONInt64(t *testing.T) {
 
 // Test extracting an interface from map to int64.
 func TestExtractJSONInt64(t *testing.T) {
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 
 	// int64 value should be returned as is.
 	m["foo"] = int64(6)

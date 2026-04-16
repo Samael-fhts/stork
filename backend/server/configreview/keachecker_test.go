@@ -2370,15 +2370,15 @@ func TestSubnetsOverlappingReportForMultipleOverlap(t *testing.T) {
 	daemon := dbmodel.NewDaemon(&dbmodel.Machine{}, daemonname.DHCPv4, true, nil)
 	daemon.ID = 42
 
-	var subnetsConfig []interface{}
-	for i := 0; i < 12; i++ {
-		subnetsConfig = append(subnetsConfig, map[string]interface{}{
+	var subnetsConfig []any
+	for i := range 12 {
+		subnetsConfig = append(subnetsConfig, map[string]any{
 			"id":     i + 1,
 			"subnet": fmt.Sprintf("10.0.0.0/%d", 8+i),
 		})
 	}
-	config, _ := json.Marshal(map[string]interface{}{
-		"Dhcp4": map[string]interface{}{
+	config, _ := json.Marshal(map[string]any{
+		"Dhcp4": map[string]any{
 			"subnet4": subnetsConfig,
 		},
 	})
@@ -4339,8 +4339,8 @@ func TestGatheringStatsUnavailableReportForDifferentKeaVersions(t *testing.T) {
 	} }`
 
 	for major := 1; major < 5; major++ {
-		for minor := 0; minor < 5; minor++ {
-			for patch := 0; patch < 20; patch++ {
+		for minor := range 5 {
+			for patch := range 20 {
 				version := fmt.Sprintf("%d.%d.%d", major, minor, patch)
 				semanticVersion := storkutil.NewSemanticVersion(major, minor, patch)
 
@@ -4943,17 +4943,17 @@ func TestFindSharedNetworkExceedingDelegatedPrefixLimitForOverflowingGlobalSubne
 // subnets in which the out-of-pool host reservation mode is recommended.
 func BenchmarkReservationsOutOfPoolConfig(b *testing.B) {
 	// Create 10.000 subnets with a pool and out of pool reservation.
-	subnets := []interface{}{}
-	for i := 0; i < 10000; i++ {
+	subnets := []any{}
+	for i := range 10000 {
 		prefix := fmt.Sprintf("192.%d.%d", i/256, i%256)
-		subnet := map[string]interface{}{
+		subnet := map[string]any{
 			"subnet": fmt.Sprintf("%s.0/24", prefix),
-			"pools": []map[string]interface{}{
+			"pools": []map[string]any{
 				{
 					"pool": fmt.Sprintf("%s.10 - %s.100", prefix, prefix),
 				},
 			},
-			"reservations": []map[string]interface{}{
+			"reservations": []map[string]any{
 				{
 					"ip-address": fmt.Sprintf("%s.5", prefix),
 				},
@@ -4963,8 +4963,8 @@ func BenchmarkReservationsOutOfPoolConfig(b *testing.B) {
 	}
 
 	// Create Kea DHCPv4 configuration with the subnets.
-	configMap := map[string]interface{}{
-		"Dhcp4": map[string]interface{}{
+	configMap := map[string]any{
+		"Dhcp4": map[string]any{
 			"subnet4": subnets,
 		},
 	}
@@ -5018,17 +5018,17 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 	}
 
 	// Create 10.000 subnets with a pool and out of pool reservation.
-	subnets := []interface{}{}
-	for i := 0; i < 10000; i++ {
+	subnets := []any{}
+	for i := range 10000 {
 		prefix := fmt.Sprintf("192.%d.%d", i/256, i%256)
-		subnet := map[string]interface{}{
+		subnet := map[string]any{
 			"subnet": fmt.Sprintf("%s.0/24", prefix),
-			"pools": []map[string]interface{}{
+			"pools": []map[string]any{
 				{
 					"pool": fmt.Sprintf("%s.10 - %s.100", prefix, prefix),
 				},
 			},
-			"hooks-libraries": []map[string]interface{}{
+			"hooks-libraries": []map[string]any{
 				{
 					"library": "/usr/lib/kea/libdhcp_host_cmds.so",
 				},
@@ -5078,8 +5078,8 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 	}
 
 	// Create Kea DHCPv4 configuration with the subnets.
-	configMap := map[string]interface{}{
-		"Dhcp4": map[string]interface{}{
+	configMap := map[string]any{
+		"Dhcp4": map[string]any{
 			"subnet4": subnets,
 		},
 	}
@@ -5111,7 +5111,7 @@ func BenchmarkReservationsOutOfPoolDatabase(b *testing.B) {
 func getOverlappingSubnets(n int, overlappingFactor float32) (subnets []keaconfig.Subnet) {
 	overlappingStep := int(float32(n) * overlappingFactor)
 
-	for i := 0; i < n; i++ {
+	for i := range n {
 		id := int64(i + 1)
 		index := i
 		mask := 24

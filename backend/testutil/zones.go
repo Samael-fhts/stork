@@ -45,7 +45,7 @@ func generateRandomZones(existingZones []*Zone, num int, class, zoneType string,
 		// Generate the name that has up to 6 labels.
 		labelsCount := rand.IntN(5) + 1
 		// Generate the labels.
-		for j := 0; j < labelsCount; j++ {
+		for j := range labelsCount {
 			// Next label.
 			var label string
 			// If we cached some labels let's use them to generate

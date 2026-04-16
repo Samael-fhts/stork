@@ -69,7 +69,7 @@ func TestGracefulShutdown(t *testing.T) {
 	mutex := &sync.Mutex{}
 
 	// Register different checkers for different daemon types.
-	for i := 0; i < len(selectors); i++ {
+	for i := range selectors {
 		continueChan := make(chan bool)
 		channels[i] = continueChan
 		dispatcher.RegisterChecker(selectors[i], "test_checker", GetDefaultTriggers(), func(ctx *ReviewContext) (*Report, error) {
@@ -90,7 +90,7 @@ func TestGracefulShutdown(t *testing.T) {
 
 	// Schedule reviews for multiple daemons/daemon types. The checkers should
 	// now block reading from the continueChan.
-	for i := 0; i < len(daemonNames); i++ {
+	for i := range daemonNames {
 		daemon := &dbmodel.Daemon{
 			ID:   int64(i),
 			Name: daemonNames[i],
@@ -102,7 +102,7 @@ func TestGracefulShutdown(t *testing.T) {
 	// Unblock first three checkers. The remaining ones should still wait.
 	// That way we cause the situation that 3 reviews are done, and the
 	// other ones are still in progress.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		channels[i] <- true
 	}
 
@@ -110,11 +110,9 @@ func TestGracefulShutdown(t *testing.T) {
 	// need to do it in the goroutine because the dispatcher.Shutdown()
 	// is expected to block.
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		dispatcher.Shutdown()
-	}()
+	})
 
 	// Unblock remaining reviews.
 	for i := 3; i < 5; i++ {

@@ -39,7 +39,7 @@ func TestSettingsDumpExecute(t *testing.T) {
 
 	artifact := dump.GetArtifact(0).(dumppkg.StructArtifact)
 	artifactContent := artifact.GetStruct()
-	settings, ok := artifactContent.(map[string]interface{})
+	settings, ok := artifactContent.(map[string]any)
 
 	require.True(t, ok)
 	require.EqualValues(t, 42, settings["foo"])

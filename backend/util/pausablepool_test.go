@@ -32,7 +32,7 @@ func TestPausablePool(t *testing.T) {
 		wg       sync.WaitGroup
 	)
 	wg.Add(10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		ch := make(chan int)
 		channels = append(channels, ch)
 		value := i
@@ -47,7 +47,7 @@ func TestPausablePool(t *testing.T) {
 	wg.Wait()
 
 	// Read from several channels to unblock selected tasks.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		v := <-channels[i]
 		require.Equal(t, v, i)
 	}
@@ -82,7 +82,7 @@ func TestPausablePool(t *testing.T) {
 	pool.Resume()
 
 	// Submit new tasks.
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		value := i
 		err = pool.Submit(func() {
 			channels[i] <- value
@@ -91,7 +91,7 @@ func TestPausablePool(t *testing.T) {
 	}
 
 	// Read from the channels to unblock the tasks.
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		v := <-channels[i]
 		require.Equal(t, v, i)
 	}
@@ -118,7 +118,7 @@ func TestPausablePoolFinishTasksOnStop(t *testing.T) {
 		taskResults sync.Map
 	)
 	wg.Add(10)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		ch := make(chan int)
 		channels = append(channels, ch)
 		value := i
@@ -137,7 +137,7 @@ func TestPausablePoolFinishTasksOnStop(t *testing.T) {
 	wg.Wait()
 
 	// Read from several channels to unblock selected tasks.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		v := <-channels[i]
 		require.Equal(t, v, i)
 	}

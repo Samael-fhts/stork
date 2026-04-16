@@ -62,7 +62,7 @@ func TestAddZonesOverlap(t *testing.T) {
 
 	// Add two daemons that share zone information.
 	var daemons []*Daemon
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
@@ -590,7 +590,7 @@ func TestGetZonesWithDaemonIDFilter(t *testing.T) {
 
 	// Add several daemons.
 	var daemons []*Daemon
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
@@ -632,7 +632,7 @@ func TestGetZonesWithDaemonIDFilter(t *testing.T) {
 	})
 
 	// Make sure that the zones are returned for each daemon.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		filter := &GetZonesFilter{
 			DaemonID: storkutil.Ptr(daemons[i].ID),
 		}
@@ -671,7 +671,7 @@ func TestGetZonesWithDaemonIDFilterOverlappingZones(t *testing.T) {
 
 	// Add several daemons.
 	var daemons []*Daemon
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
@@ -729,7 +729,7 @@ func TestGetZonesWithDaemonIDFilterOverlappingZones(t *testing.T) {
 	}
 
 	// Make sure that the zones are returned for each daemon.
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		filter := &GetZonesFilter{
 			DaemonID: storkutil.Ptr(daemons[i].ID),
 		}
@@ -756,7 +756,7 @@ func TestGetZonesWithTextFilter(t *testing.T) {
 	err := AddMachine(db, machine)
 	require.NoError(t, err)
 
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		daemon := NewDaemon(machine, daemonname.Bind9, true, []*AccessPoint{
 			{
 				Type:    AccessPointControl,
@@ -880,7 +880,7 @@ func TestGetZoneCountStatsByDaemon(t *testing.T) {
 		return randomZones[i].Type > randomZones[j].Type
 	})
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		// Add overlapping zones using a sliding window between i and len(randomZones)-10+i (exclusive).
 		// It should result in getting 49 distinct zones and 24 builtin zones.
 		for _, randomZone := range randomZones[i : len(randomZones)-10+i] {
@@ -1423,7 +1423,7 @@ func BenchmarkGetDistinctZoneCount(b *testing.B) {
 
 	// Add the zones to the database to different views.
 	var views []string
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		views = append(views, fmt.Sprintf("view%d", i))
 	}
 

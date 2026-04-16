@@ -13,17 +13,17 @@ type FakeEventCenter struct {
 }
 
 // Creates and aggregates an info event.
-func (fec *FakeEventCenter) AddInfoEvent(text string, objects ...interface{}) {
+func (fec *FakeEventCenter) AddInfoEvent(text string, objects ...any) {
 	fec.AddEvent(eventcenter.CreateEvent(dbmodel.EvInfo, text, objects...))
 }
 
 // Creates and aggregates an warning event.
-func (fec *FakeEventCenter) AddWarningEvent(text string, objects ...interface{}) {
+func (fec *FakeEventCenter) AddWarningEvent(text string, objects ...any) {
 	fec.AddEvent(eventcenter.CreateEvent(dbmodel.EvWarning, text, objects...))
 }
 
 // Creates and aggregates an error event.
-func (fec *FakeEventCenter) AddErrorEvent(text string, objects ...interface{}) {
+func (fec *FakeEventCenter) AddErrorEvent(text string, objects ...any) {
 	fec.AddEvent(eventcenter.CreateEvent(dbmodel.EvError, text, objects...))
 }
 

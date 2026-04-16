@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io/fs"
+	"maps"
 	"net"
 	"net/url"
 	"os"
@@ -383,9 +384,7 @@ func readFileWithIncludes(path string, parentPaths map[string]bool) ([]byte, err
 
 		// Prepare the parent paths for the nested level
 		nestedParentPaths := make(map[string]bool, len(parentPaths)+1)
-		for k, v := range parentPaths {
-			nestedParentPaths[k] = v
-		}
+		maps.Copy(nestedParentPaths, parentPaths)
 		nestedParentPaths[nestedIncludePath] = true
 
 		// Recursive call
@@ -452,8 +451,8 @@ func FormatNoun(count int64, noun, postfix string) string {
 //
 // Source: https://stackoverflow.com/a/50487104 .
 // See: https://groups.google.com/g/golang-nuts/c/wnH302gBa4I
-func IsNilPtr(obj interface{}) bool {
-	return obj == nil || reflect.ValueOf(obj).Kind() == reflect.Ptr && reflect.ValueOf(obj).IsNil()
+func IsNilPtr(obj any) bool {
+	return obj == nil || reflect.ValueOf(obj).Kind() == reflect.Pointer && reflect.ValueOf(obj).IsNil()
 }
 
 // Returns a pointer to the specified value. It is useful to
@@ -463,7 +462,7 @@ func Ptr[T any](value T) *T {
 }
 
 // Checks if the specified value has a numeric type.
-func IsNumber(value interface{}) bool {
+func IsNumber(value any) bool {
 	if value == nil {
 		return false
 	}

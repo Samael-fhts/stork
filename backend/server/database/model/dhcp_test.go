@@ -96,7 +96,7 @@ func getTestConfigWithIPv6Subnets(t *testing.T) *KeaConfig {
 // Adds daemons to be used with subnet tests.
 func addTestSubnetDaemons(t *testing.T, db *dbops.PgDB) (daemons []*Daemon) {
 	// Add two machines with daemons.
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		m := &Machine{
 			ID:        0,
 			Address:   "localhost",

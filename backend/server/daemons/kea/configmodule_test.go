@@ -721,7 +721,7 @@ func TestCommitHostAdd(t *testing.T) {
 // Test that error is returned when Kea response contains error status code.
 func TestCommitHostAddResponseWithErrorStatus(t *testing.T) {
 	// Create the config manager instance "connected to" fake agents.
-	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		bytes := []byte(`
 			{
 				"result": 1,
@@ -1368,7 +1368,7 @@ func TestCommitHostUpdateResponseWithErrorStatus(t *testing.T) {
 		},
 	}
 	// Create the config manager instance "connected to" fake agents.
-	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		bytes := []byte(`
             {
                 "result": 1,
@@ -3081,7 +3081,7 @@ func TestCommitSharedNetworkUpdateResponseWithErrorStatus(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		bytes := []byte(`
 			{
 				"result": 1,
@@ -4925,7 +4925,7 @@ func TestCommitSubnetUpdateResponseWithErrorStatus(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	agents := agentcommtest.NewKeaFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		bytes := []byte(`
             {
                 "result": 1,

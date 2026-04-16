@@ -2244,7 +2244,7 @@ func TestUpdateGlobalParametersSubmitError(t *testing.T) {
 	require.NotNil(t, daemon)
 
 	// Create fake agents receiving commands.
-	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)

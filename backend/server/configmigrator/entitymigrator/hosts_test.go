@@ -1019,7 +1019,7 @@ func TestLoadAndCountItems(t *testing.T) {
 	hostPullerMock := NewMockPauser(ctrl)
 
 	// Add 20 hosts to the database.
-	for i := 0; i < 22; i++ {
+	for i := range 22 {
 		host := &dbmodel.Host{
 			HostIdentifiers: []dbmodel.HostIdentifier{
 				{
@@ -1126,7 +1126,7 @@ func TestLoadAndCountItemsWithFilter(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add 20 hosts to the database.
-	for i := 0; i < 22; i++ {
+	for i := range 22 {
 		host := &dbmodel.Host{
 			HostIdentifiers: []dbmodel.HostIdentifier{
 				{

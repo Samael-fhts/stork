@@ -660,7 +660,7 @@ func TestGetUnauthorizedMachinesCount(t *testing.T) {
 	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		m := &Machine{
 			Address:   fmt.Sprintf("machine%d", i),
 			AgentPort: 8080,

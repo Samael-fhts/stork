@@ -564,7 +564,7 @@ func TestDetectNetworksRemoveOrphanedSubnets(t *testing.T) {
             }
         }`
 	// Assign the same configuration to two daemon sets.
-	for i := 0; i < len(daemonsList); i++ {
+	for i := range daemonsList {
 		daemonsList[i] = createDaemonsWithSubnets(t, db, int64(i), v4Config, "")
 		err := CommitDaemonsIntoDB(db,
 			daemonsList[i],
@@ -657,7 +657,7 @@ func TestDetectNetworksRemoveOrphanedHosts(t *testing.T) {
             }
         }`
 	// Assign the same configuration to two daemon sets.
-	for i := 0; i < len(daemonsList); i++ {
+	for i := range daemonsList {
 		daemonsList[i] = createDaemonsWithSubnets(t, db, int64(i), v4Config, "")
 		err := CommitDaemonsIntoDB(db,
 			daemonsList[i],
@@ -909,7 +909,7 @@ func TestDetectNetworkUpdateDelegatedPrefixPool(t *testing.T) {
 func BenchmarkFindMatchingSubnet(b *testing.B) {
 	// Create many subnets.
 	subnets := []dbmodel.Subnet{}
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		subnet := dbmodel.Subnet{
 			Prefix: fmt.Sprintf("%d.%d.%d.%d/24", byte(i>>24), byte(i>>16), byte(i>>8), byte(i)),
 		}

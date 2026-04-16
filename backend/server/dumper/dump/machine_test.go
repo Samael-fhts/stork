@@ -153,7 +153,7 @@ func TestMachineDumpExecuteHideSecrets(t *testing.T) {
 		// have to iterate over them.
 		if daemon.Name == daemonname.DHCPv4 {
 			config, _ := daemon.KeaDaemon.Config.GetRawConfig()
-			secret := (config["Dhcp4"]).(map[string]interface{})["secret"]
+			secret := (config["Dhcp4"]).(map[string]any)["secret"]
 			require.Nil(t, secret)
 			require.Empty(t, machine.AgentToken)
 		}

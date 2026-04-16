@@ -135,7 +135,7 @@ func generateCSR(certStore *CertStore, agentAddr string, regenKey bool) ([]byte,
 
 // Prepare agent registration request payload to Stork Server in JSON format.
 func prepareRegistrationRequestPayload(csrPEM []byte, serverToken, agentToken, agentAddr string, agentPort int, caCertFingerprint [32]byte) (*bytes.Buffer, error) {
-	values := map[string]interface{}{
+	values := map[string]any{
 		"address":           agentAddr,
 		"agentPort":         agentPort,
 		"agentCSR":          string(csrPEM),
@@ -190,7 +190,7 @@ func registerAgentInServer(ctx context.Context, client *httpClient, baseSrvURL *
 	}
 
 	// Check if any error occurred.
-	var result map[string]interface{}
+	var result map[string]any
 	err = json.Unmarshal(body, &result)
 	if err != nil {
 		return 0, nil, nil, [32]byte{}, errors.Wrapf(err, "problem parsing server's response while registering the machine: %v", result)
@@ -280,7 +280,7 @@ func handleNewlyRegisteredResponse(result map[string]any) (machineID int64, serv
 func handleAlreadyRegisteredResponse(resp *http.Response, body []byte) (machineID int64, serverCertFingerprint [32]byte, err error) {
 	// The JSON body has been added in Stork 2.3.1.
 	if len(body) != 0 {
-		var result map[string]interface{}
+		var result map[string]any
 		err = json.Unmarshal(body, &result)
 		if err != nil {
 			return 0, [32]byte{}, errors.Wrap(err, "problem parsing server's response of the already registered machine")
@@ -355,7 +355,7 @@ func pingAgentViaServer(ctx context.Context, client *httpClient, baseSrvURL *url
 	if err != nil {
 		return errors.Wrapf(err, "problem preparing url %s + %s", baseSrvURL.String(), urlSuffix)
 	}
-	req := map[string]interface{}{
+	req := map[string]any{
 		"serverToken": serverToken,
 		"agentToken":  agentToken,
 	}
@@ -370,7 +370,7 @@ func pingAgentViaServer(ctx context.Context, client *httpClient, baseSrvURL *url
 	if err != nil {
 		return errors.Wrapf(err, "problem reading server's response while pinging machine")
 	}
-	var result map[string]interface{}
+	var result map[string]any
 	err = json.Unmarshal(data, &result)
 	// Normally the response is empty so unmarshalling is failing, if it didn't
 	// fail it means that there could be some error information.

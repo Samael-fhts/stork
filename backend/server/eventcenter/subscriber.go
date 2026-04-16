@@ -2,6 +2,7 @@ package eventcenter
 
 import (
 	"net/url"
+	"slices"
 	"strconv"
 
 	errors "github.com/pkg/errors"
@@ -178,11 +179,8 @@ func (s *Subscriber) findMatchingEventStreams(event *dbmodel.Event) (streams []d
 		if stream == dbmodel.SSERegularMessage && (!s.useFilter || s.filters.isInFilter(event)) {
 			streams = append(streams, dbmodel.SSERegularMessage)
 		} else {
-			for _, eventStream := range event.SSEStreams {
-				if eventStream == stream {
-					streams = append(streams, stream)
-					break
-				}
+			if slices.Contains(event.SSEStreams, stream) {
+				streams = append(streams, stream)
 			}
 		}
 	}

@@ -15,19 +15,19 @@ import (
 // Test that the hook manager is constructed properly.
 func TestNewHookManager(t *testing.T) {
 	// Arrange
-	type foo interface{}
-	type bar interface{}
+	type foo any
+	type bar any
 
 	// Act
 	hookManager := NewHookManager([]reflect.Type{
-		reflect.TypeOf((*foo)(nil)).Elem(),
-		reflect.TypeOf((*bar)(nil)).Elem(),
+		reflect.TypeFor[foo](),
+		reflect.TypeFor[bar](),
 	})
 
 	// Assert
 	require.NotNil(t, hookManager)
 	require.Len(t, hookManager.executor.registeredCarriers, 2)
-	require.Contains(t, hookManager.executor.registeredCarriers, reflect.TypeOf((*foo)(nil)).Elem())
+	require.Contains(t, hookManager.executor.registeredCarriers, reflect.TypeFor[foo]())
 }
 
 // Test that the hook manager can be constructed from the empty slice of the
@@ -62,7 +62,7 @@ func TestRegisterHooksFromDirectoryReturnErrorForInvalidPath(t *testing.T) {
 // Test that the callout carriers are registered properly.
 func TestRegisterCalloutCarriers(t *testing.T) {
 	// Arrange
-	specificationType := reflect.TypeOf((*io.Closer)(nil)).Elem()
+	specificationType := reflect.TypeFor[io.Closer]()
 
 	hookManager := NewHookManager([]reflect.Type{
 		specificationType,
@@ -92,7 +92,7 @@ func TestGetExecutor(t *testing.T) {
 // Test that the hook manager unregisters all callout carriers on close.
 func TestClose(t *testing.T) {
 	// Arrange
-	specificationType := reflect.TypeOf((*mockCalloutSpecificationFoo)(nil)).Elem()
+	specificationType := reflect.TypeFor[mockCalloutSpecificationFoo]()
 	mock := newMockCalloutCarrierFoo()
 
 	hookManager := NewHookManager([]reflect.Type{
@@ -121,8 +121,8 @@ func TestCloseCombineErrors(t *testing.T) {
 	mock2.closeErr = errors.New("bar")
 
 	hookManager := NewHookManager([]reflect.Type{
-		reflect.TypeOf((*mockCalloutSpecificationFoo)(nil)).Elem(),
-		reflect.TypeOf((*mockCalloutSpecificationBar)(nil)).Elem(),
+		reflect.TypeFor[mockCalloutSpecificationFoo](),
+		reflect.TypeFor[mockCalloutSpecificationBar](),
 	})
 
 	hookManager.RegisterCalloutCarriers([]hooks.CalloutCarrier{

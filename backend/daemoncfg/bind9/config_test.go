@@ -1185,10 +1185,10 @@ func TestConfigExpand(t *testing.T) {
 			}
 			os.WriteFile(
 				sourcePathInSandbox,
-				[]byte(fmt.Sprintf(`
+				fmt.Appendf(nil, `
 					controls { };
 					include "%s";
-				`, config.Statements[1].Include.Path)),
+				`, config.Statements[1].Include.Path),
 				0o644,
 			)
 

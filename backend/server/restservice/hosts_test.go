@@ -30,7 +30,7 @@ import (
 
 //go:generate mockgen -package=restservice -destination=migratormock_test.go isc.org/stork/server/configmigrator MigrationManager
 
-func mockStatusError(cmdResponses []interface{}) {
+func mockStatusError(cmdResponses []any) {
 	bytes := `{
             "result": 1,
             "text": "unable to communicate with the daemon"
@@ -1006,7 +1006,7 @@ func TestCreateHostSubmitError(t *testing.T) {
 
 	// Setup fake agents that return an error in response to reservation-add
 	// command.
-	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
@@ -1556,7 +1556,7 @@ func TestUpdateHostSubmitError(t *testing.T) {
 
 	// Setup fake agents that return an error in response to reservation-del
 	// command.
-	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)
@@ -1875,7 +1875,7 @@ func TestDeleteHostError(t *testing.T) {
 
 	// Setup fake agents that return an error in response to reservation-del
 	// command.
-	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		mockStatusError(cmdResponses)
 	}, nil)
 	require.NotNil(t, fa)

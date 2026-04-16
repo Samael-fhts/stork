@@ -261,12 +261,10 @@ func (response *RRResponse) applyFilter(filter *dbmodel.GetZoneRRsFilter, pos in
 
 	if len(filteredRRs) > 0 {
 		// Apply paging if requested.
-		start := filter.GetOffset() - pos
-		if start < 0 {
+		start := max(filter.GetOffset()-pos,
 			// Negative start means that we're passed the beginning of the
 			// desired range. Set the start to 0 to consume all RRs.
-			start = 0
-		}
+			0)
 		if start >= len(filteredRRs) {
 			// If the start is passed the end of the RRs, we haven't reached the
 			// desired offset. Set the start to the end of the current RRs set to
@@ -485,7 +483,7 @@ func (manager *managerImpl) FetchZones(poolSize, batchSize int, options ...Fetch
 		results := make(map[int64]*dbmodel.ZoneInventoryStateDetails)
 		// Create worker goroutines. The goroutines will read from the common
 		// channel and fetch the zones from the daemons listed in the channel.
-		for i := 0; i < poolSize; i++ {
+		for range poolSize {
 			go func(daemonsChan <-chan dbmodel.Daemon) {
 				// Read next daemon from the channel.
 				for daemon := range daemonsChan {

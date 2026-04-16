@@ -283,7 +283,7 @@ func mockLeases4Get(callNo int, daemon agentcomm.ControlledDaemon, responses []a
 
 // Generates a success mock response to commands fetching multiple
 // DHCPv6 leases.
-func mockLeases6Get(callNo int, daemon agentcomm.ControlledDaemon, responses []interface{}) {
+func mockLeases6Get(callNo int, daemon agentcomm.ControlledDaemon, responses []any) {
 	bytes := []byte(`
         {
             "result": 0,

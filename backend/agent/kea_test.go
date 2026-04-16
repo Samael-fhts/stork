@@ -81,7 +81,7 @@ func TestSendCommandInvalidResponse(t *testing.T) {
 		JSON(map[string]any{"command": "version-get", "service": []string{"dhcp4"}}).
 		Post("/").
 		Reply(200).
-		JSON([]map[string]interface{}{
+		JSON([]map[string]any{
 			{"result": 0, "text": "1.0.0", "arguments": 1},
 		})
 
@@ -157,7 +157,7 @@ func TestKeaAllowedLogs(t *testing.T) {
             }
         }
     }]`
-	caResponse := make([]map[string]interface{}, 1)
+	caResponse := make([]map[string]any, 1)
 	err := json.Unmarshal([]byte(caResponseJSON), &caResponse)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
@@ -185,7 +185,7 @@ func TestKeaAllowedLogs(t *testing.T) {
             }
         }
 	]`
-	dhcpV4Responses := make([]map[string]interface{}, 1)
+	dhcpV4Responses := make([]map[string]any, 1)
 	err = json.Unmarshal([]byte(dhcpV4ResponsesJSON), &dhcpV4Responses)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
@@ -213,7 +213,7 @@ func TestKeaAllowedLogs(t *testing.T) {
             }
         }
     ]`
-	dhcpV6Responses := make([]map[string]interface{}, 1)
+	dhcpV6Responses := make([]map[string]any, 1)
 	err = json.Unmarshal([]byte(dhcpV6ResponsesJSON), &dhcpV6Responses)
 	require.NoError(t, err)
 	require.NoError(t, err)
@@ -299,7 +299,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
             }
         }
     }]`
-	caResponse := make([]map[string]interface{}, 1)
+	caResponse := make([]map[string]any, 1)
 	err := json.Unmarshal([]byte(caResponseJSON), &caResponse)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
@@ -327,7 +327,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
             }
         }
 	]`
-	dhcpV4Response := make([]map[string]interface{}, 1)
+	dhcpV4Response := make([]map[string]any, 1)
 	err = json.Unmarshal([]byte(dhcpV4ResponsesJSON), &dhcpV4Response)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
@@ -355,7 +355,7 @@ func TestKeaAllowedLogsOutputOptionsWithDash(t *testing.T) {
             }
         }
     ]`
-	dhcpV6Response := make([]map[string]interface{}, 1)
+	dhcpV6Response := make([]map[string]any, 1)
 	err = json.Unmarshal([]byte(dhcpV6ResponsesJSON), &dhcpV6Response)
 	require.NoError(t, err)
 	gock.New("https://localhost:45634").
@@ -413,7 +413,7 @@ func TestKeaAllowedLogsConfigUnavailable(t *testing.T) {
 
 	gock.New("https://localhost:45634").
 		MatchHeader("Content-Type", "application/json").
-		JSON(map[string]interface{}{"command": "config-get"}).
+		JSON(map[string]any{"command": "config-get"}).
 		Post("/").
 		Reply(200).
 		JSON([]map[string]any{{

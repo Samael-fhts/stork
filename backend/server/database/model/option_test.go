@@ -22,7 +22,7 @@ func TestDHCPOptionInterface(t *testing.T) {
 		Fields: []DHCPOptionField{
 			{
 				FieldType: dhcpmodel.StringField,
-				Values:    []interface{}{"bar"},
+				Values:    []any{"bar"},
 			},
 		},
 		UnknownParameters: map[string]any{

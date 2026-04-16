@@ -2190,7 +2190,7 @@ func TestGetAuthenticationMethodsFromHooks(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	var mocks []hooks.CalloutCarrier
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		metadataMock := NewMockAuthenticationMetadata(ctrl)
 		metadataMock.EXPECT().
 			GetID().

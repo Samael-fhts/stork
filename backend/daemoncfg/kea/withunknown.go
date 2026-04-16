@@ -60,14 +60,14 @@ func (w *WithUnknown[T]) UnmarshalJSON(data []byte) error {
 
 	// If the type is not a structure, there are no unknown parameters.
 	// We can return early.
-	knownType := reflect.TypeOf((*T)(nil)).Elem()
+	knownType := reflect.TypeFor[T]()
 	if knownType.Kind() != reflect.Struct {
 		return nil
 	}
 
 	// Collect the tags into the map.
 	tags := make(map[string]bool)
-	for _, tag := range collectTags(reflect.TypeOf((*T)(nil)).Elem()) {
+	for _, tag := range collectTags(reflect.TypeFor[T]()) {
 		tags[tag] = true
 	}
 
@@ -104,7 +104,7 @@ func (w WithUnknown[T]) MarshalJSON() ([]byte, error) {
 
 	// If the type is not a structure, there are no unknown parameters.
 	// We can return early.
-	knownType := reflect.TypeOf((*T)(nil)).Elem()
+	knownType := reflect.TypeFor[T]()
 	if knownType.Kind() != reflect.Struct {
 		return kb, nil
 	}
@@ -118,7 +118,7 @@ func (w WithUnknown[T]) MarshalJSON() ([]byte, error) {
 	// Identify known parameter names. It will be used to distinguish unknown
 	// parameters from known parameters.
 	tags := make(map[string]bool)
-	for _, tag := range collectTags(reflect.TypeOf((*T)(nil)).Elem()) {
+	for _, tag := range collectTags(reflect.TypeFor[T]()) {
 		tags[tag] = true
 	}
 

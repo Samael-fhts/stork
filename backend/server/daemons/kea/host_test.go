@@ -210,7 +210,7 @@ func getTestConfigWithIPv6GlobalHosts() []byte {
 // command. This command fetches host reservations in chunks from the servers.
 // The detailed explanations how this function works are provided within the
 // function body.
-func mockReservationGetPage(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockReservationGetPage(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	// First 15 calls are for IPv4 reservations.
 	family := 4
 	if callNo/(3*5) > 0 {
@@ -247,7 +247,7 @@ func mockReservationGetPage(callNo int, daemon agentcomm.ControlledDaemon, cmdRe
 	if nonEmptyResponse {
 		// Fill in the response with 5 host reservations belonging to a given
 		// subnet.
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			host := keaconfig.Reservation{
 				HWAddress: fmt.Sprintf("01:02:03:04:05:%02d", callNo*5+i),
 				Hostname:  fmt.Sprintf("host%02d", callNo*5+i),
@@ -274,7 +274,7 @@ func mockReservationGetPage(callNo int, daemon agentcomm.ControlledDaemon, cmdRe
 	}
 
 	// Generate the response with filling in the values as appropriate.
-	bytes := []byte(fmt.Sprintf(`
+	bytes := fmt.Appendf(nil, `
         {
             "result": 0,
             "text": "Hosts found",
@@ -287,7 +287,7 @@ func mockReservationGetPage(callNo int, daemon agentcomm.ControlledDaemon, cmdRe
                 }
             }
         }
-    `, len(hosts), string(hostsAsJSON), fromValue, sourceIndex))
+    `, len(hosts), string(hostsAsJSON), fromValue, sourceIndex)
 
 	_ = json.Unmarshal(bytes, &cmdResponses[0])
 }
@@ -295,7 +295,7 @@ func mockReservationGetPage(callNo int, daemon agentcomm.ControlledDaemon, cmdRe
 // This function mocks the response of the Kea servers to the reservation-get-page
 // command. It should be used to test cases that the second attempt to fetch hosts
 // reduces the number of hosts in the database.
-func mockReservationGetPageReduceHosts(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockReservationGetPageReduceHosts(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	var str string
 	switch callNo {
 	case 1:
@@ -366,7 +366,7 @@ func mockReservationGetPageReduceHosts(callNo int, daemon agentcomm.ControlledDa
 // command. It is used to test the case when host reservations returned in the
 // first response to the reservation-get-page hasn't changed but the reservations
 // in the second response have changed.
-func mockReservationGetPagePartialChange(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockReservationGetPagePartialChange(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	var str string
 	switch callNo {
 	// No global hosts, third response returns empty response terminating the
@@ -461,7 +461,7 @@ func mockReservationGetPagePartialChange(callNo int, daemon agentcomm.Controlled
 
 // Verifies that the specified host contains the specified host identifier and
 // reserved IP address.
-func testHost(t *testing.T, reservation interface{}, identifier string, address string) {
+func testHost(t *testing.T, reservation any, identifier string, address string) {
 	var (
 		host *dbmodel.Host
 		err  error
@@ -1264,7 +1264,7 @@ func TestFetchHostsFromHostCmds(t *testing.T) {
 
 	// Detect hosts two times in the row. This simulates periodic
 	// pull of the hosts for the given daemon.
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		err = puller.pull()
 		require.NoError(t, err)
 
@@ -1377,7 +1377,7 @@ func TestPullHostsIntoDB(t *testing.T) {
 
 	// Detect hosts two times in the row. This simulates periodic
 	// pull of the hosts for the given daemon.
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		err = puller.pull()
 		require.NoError(t, err)
 
@@ -1720,7 +1720,7 @@ func TestUpdateHost(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	fa := agentcommtest.NewFakeAgents(func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		var str string
 		// Update option data - read reservation option is unsupported yet.
 		switch callNo {

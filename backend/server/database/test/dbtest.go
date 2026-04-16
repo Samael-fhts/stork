@@ -13,7 +13,7 @@ import (
 
 // Helper function to perform an error assertion.
 // It supports the testing (testing.T) and benchmark (testing.B) objects.
-func failOnError(testArg interface{}, err error) {
+func failOnError(testArg any, err error) {
 	if t, ok := (testArg).(*testing.T); ok {
 		require.NoError(t, err)
 	} else if b, ok := (testArg).(*testing.B); ok {
@@ -226,7 +226,7 @@ func prepareDBInstance(settings *dbops.DatabaseSettings) (*dbops.PgDB, func(), e
 // Prepares unit test setup by re-creating the database schema and
 // returns pointer to the teardown function. The specified argument
 // must be of a *testing.T or *testing.B type.
-func SetupDatabaseTestCase(testArg interface{}) (*dbops.PgDB, *dbops.DatabaseSettings, func()) {
+func SetupDatabaseTestCase(testArg any) (*dbops.PgDB, *dbops.DatabaseSettings, func()) {
 	settings, _, err := createDatabaseTestCase()
 	failOnError(testArg, err)
 	db, teardown, err := prepareDBInstance(settings)
@@ -238,7 +238,7 @@ func SetupDatabaseTestCase(testArg interface{}) (*dbops.PgDB, *dbops.DatabaseSet
 // returns pointer to the teardown function. The specified argument
 // must be of a *testing.T or *testing.B type. The database uses the maintenance
 // credentials.
-func SetupDatabaseTestCaseWithMaintenanceCredentials(testArg interface{}) (*dbops.PgDB, *dbops.DatabaseSettings, func()) {
+func SetupDatabaseTestCaseWithMaintenanceCredentials(testArg any) (*dbops.PgDB, *dbops.DatabaseSettings, func()) {
 	_, settings, err := createDatabaseTestCase()
 	failOnError(testArg, err)
 	db, teardown, err := prepareDBInstance(settings)
@@ -249,7 +249,7 @@ func SetupDatabaseTestCaseWithMaintenanceCredentials(testArg interface{}) (*dbop
 // Prepares unit test setup by restoring the database from a dump file and
 // returns pointer to the teardown function. The specified argument
 // must be of a *testing.T or *testing.B type.
-func SetupDatabaseTestCaseFromDump(testArg interface{}, backupFilePath string) (*dbops.PgDB, *dbops.DatabaseSettings, func()) {
+func SetupDatabaseTestCaseFromDump(testArg any, backupFilePath string) (*dbops.PgDB, *dbops.DatabaseSettings, func()) {
 	settings, _, err := restoreDatabaseTestCase(backupFilePath)
 	failOnError(testArg, err)
 	db, teardown, err := prepareDBInstance(settings)

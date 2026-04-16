@@ -76,14 +76,14 @@ func (s *SessionMgr) UpdateUser(ctx context.Context, user *dbmodel.SystemUser) e
 	// If any user groups are associated with the user, store them
 	// as a list of comma separated values.
 	if len(user.Groups) > 0 {
-		var groups string
+		var groups strings.Builder
 		for i, g := range user.Groups {
 			if i > 0 {
-				groups += ","
+				groups.WriteString(",")
 			}
-			groups += strconv.FormatInt(g.ID, 10)
+			groups.WriteString(strconv.FormatInt(g.ID, 10))
 		}
-		s.scsSessionMgr.Put(ctx, "userGroupIds", groups)
+		s.scsSessionMgr.Put(ctx, "userGroupIds", groups.String())
 	}
 
 	return nil
@@ -149,8 +149,8 @@ func (s *SessionMgr) Logged(ctx context.Context) (ok bool, user *dbmodel.SystemU
 	userGroups := s.scsSessionMgr.GetString(ctx, "userGroupIds")
 
 	if len(userGroups) > 0 {
-		groups := strings.Split(userGroups, ",")
-		for _, g := range groups {
+		groups := strings.SplitSeq(userGroups, ",")
+		for g := range groups {
 			if id, err := strconv.ParseInt(g, 10, 64); err == nil {
 				user.Groups = append(user.Groups, &dbmodel.SystemGroup{ID: id})
 			}

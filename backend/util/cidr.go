@@ -115,7 +115,7 @@ func ParseIPRange(ipRange string) (net.IP, net.IP, error) {
 	// Let's try to see if the range is specified as a pair of upper
 	// and lower bound addresses.
 	s := strings.Split(ipRange, "-")
-	for i := 0; i < len(s); i++ {
+	for i := range s {
 		s[i] = strings.TrimSpace(s[i])
 	}
 	// The length of 2 means that the two addresses with hyphen were specified.

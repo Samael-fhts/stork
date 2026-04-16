@@ -447,7 +447,7 @@ func ConvertIntField(field dhcpmodel.DHCPOptionFieldAccessor, textFormat bool) (
 		return "", errors.New("int option field value is not a number")
 	}
 	value := reflect.ValueOf(values[0])
-	ivalue := value.Convert(reflect.TypeOf((*int64)(nil)).Elem())
+	ivalue := value.Convert(reflect.TypeFor[int64]())
 	switch field.GetFieldType() {
 	case dhcpmodel.Uint8Field:
 		if ivalue.Int() < 0 || ivalue.Int() > math.MaxUint8 {
@@ -561,7 +561,7 @@ func ConvertIPv6PrefixField(field dhcpmodel.DHCPOptionFieldAccessor, textFormat 
 	if !storkutil.IsNumber(values[1]) {
 		return "", errors.New("IPv6 prefix length in the option field is not a number")
 	}
-	prefixLen := reflect.ValueOf(values[1]).Convert(reflect.TypeOf((*int64)(nil)).Elem())
+	prefixLen := reflect.ValueOf(values[1]).Convert(reflect.TypeFor[int64]())
 	if prefixLen.Int() <= 0 || prefixLen.Int() > 128 {
 		return "", errors.New("IPv6 prefix length must be a positive number not greater than 128")
 	}
@@ -591,11 +591,11 @@ func ConvertPsidField(field dhcpmodel.DHCPOptionFieldAccessor, textFormat bool) 
 			return "", errors.New("values in the psid option field must be numbers")
 		}
 	}
-	psid := reflect.ValueOf(values[0]).Convert(reflect.TypeOf((*int64)(nil)).Elem())
+	psid := reflect.ValueOf(values[0]).Convert(reflect.TypeFor[int64]())
 	if psid.Int() <= 0 || psid.Int() > math.MaxUint16 {
 		return "", errors.Errorf("psid value must be a positive number not greater than %d", math.MaxUint16)
 	}
-	psidLength := reflect.ValueOf(values[1]).Convert(reflect.TypeOf((*int64)(nil)).Elem())
+	psidLength := reflect.ValueOf(values[1]).Convert(reflect.TypeFor[int64]())
 	if psidLength.Int() <= 0 || psidLength.Int() > math.MaxUint8 {
 		return "", errors.Errorf("psid length must be a positive number must not be greater than %d", math.MaxUint8)
 	}

@@ -1264,8 +1264,7 @@ func TestGetZoneInViewDuringLongLastingTask(t *testing.T) {
 	})
 
 	t.Run("receiving zones", func(t *testing.T) {
-		ctx, cancel := context.WithCancel(context.Background())
-		defer cancel()
+		ctx := t.Context()
 
 		_, err := inventory.receiveZones(ctx, nil)
 		require.NoError(t, err)

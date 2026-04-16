@@ -666,7 +666,7 @@ func TestGetSubnetsByPage(t *testing.T) {
 							UpperBound: "192.0.2.30",
 						},
 					},
-					UserContext: map[string]interface{}{
+					UserContext: map[string]any{
 						"subnet-name": "subnet-name",
 					},
 				},
@@ -687,13 +687,13 @@ func TestGetSubnetsByPage(t *testing.T) {
 							UpperBound: "192.0.3.20",
 						},
 					},
-					UserContext: map[string]interface{}{
+					UserContext: map[string]any{
 						"subnet-name": "foo",
 					},
 				},
 				{
 					DaemonID: daemons[1].ID,
-					UserContext: map[string]interface{}{
+					UserContext: map[string]any{
 						"subnet-name": "bar",
 					},
 				},
@@ -847,7 +847,7 @@ func TestGetSubnetsByPageSorting(t *testing.T) {
 							UpperBound: "192.0.2.30",
 						},
 					},
-					UserContext: map[string]interface{}{
+					UserContext: map[string]any{
 						"subnet-name": "subnet-name",
 					},
 					LocalSubnetID: 9,
@@ -874,14 +874,14 @@ func TestGetSubnetsByPageSorting(t *testing.T) {
 							UpperBound: "192.0.3.20",
 						},
 					},
-					UserContext: map[string]interface{}{
+					UserContext: map[string]any{
 						"subnet-name": "foo",
 					},
 					LocalSubnetID: 10,
 				},
 				{
 					DaemonID: daemons[1].ID,
-					UserContext: map[string]interface{}{
+					UserContext: map[string]any{
 						"subnet-name": "bar",
 					},
 				},
@@ -1953,13 +1953,13 @@ func BenchmarkAddDaemonToSubnet(b *testing.B) {
 
 	// Add many subnets to the database.
 	subnets := []Subnet{}
-	keaSubnets := []interface{}{}
-	for i := 0; i < 10000; i++ {
+	keaSubnets := []any{}
+	for i := range 10000 {
 		prefix := fmt.Sprintf("%d.%d.%d.", uint8(i>>16), uint8(i>>8), uint8(i))
 		subnet := Subnet{
 			Prefix: prefix + "0/24",
 		}
-		keaSubnet := map[string]interface{}{
+		keaSubnet := map[string]any{
 			"id":     i + 1,
 			"subnet": prefix + "0/24",
 		}
@@ -1970,8 +1970,8 @@ func BenchmarkAddDaemonToSubnet(b *testing.B) {
 	tx.Commit()
 
 	// Also create the configuration including these subnets for the daemon.
-	rawConfig := map[string]interface{}{
-		"Dhcp4": map[string]interface{}{
+	rawConfig := map[string]any{
+		"Dhcp4": map[string]any{
 			"subnet4": keaSubnets,
 		},
 	}

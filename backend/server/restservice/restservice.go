@@ -132,7 +132,7 @@ type RestAPI struct {
 //
 // Upon adding new fields to the RestAPI, the function may be easily
 // extended to support them.
-func NewRestAPI(args ...interface{}) (*RestAPI, error) {
+func NewRestAPI(args ...any) (*RestAPI, error) {
 	api := &RestAPI{}
 
 	// Iterate over the variadic arguments.
@@ -146,7 +146,7 @@ func NewRestAPI(args ...interface{}) (*RestAPI, error) {
 		}
 
 		// Make sure that the specified argument is a pointer.
-		if argType.Kind() != reflect.Ptr {
+		if argType.Kind() != reflect.Pointer {
 			return nil, pkgerrors.Errorf("non-pointer argument specified for NewRestAPI at position %d", i)
 		}
 
@@ -161,65 +161,65 @@ func NewRestAPI(args ...interface{}) (*RestAPI, error) {
 		}
 
 		// Check if the specified argument is an interface.
-		if argType.Implements(reflect.TypeOf((*agentcomm.ConnectedAgents)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[agentcomm.ConnectedAgents]()) {
 			api.Agents = arg.(agentcomm.ConnectedAgents)
 			continue
 		}
-		if argType.Implements(reflect.TypeOf((*configreview.Dispatcher)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[configreview.Dispatcher]()) {
 			api.ReviewDispatcher = arg.(configreview.Dispatcher)
 			continue
 		}
-		if argType.Implements(reflect.TypeOf((*eventcenter.EventCenter)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[eventcenter.EventCenter]()) {
 			api.EventCenter = arg.(eventcenter.EventCenter)
 			continue
 		}
-		if argType.Implements(reflect.TypeOf((*metrics.Collector)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[metrics.Collector]()) {
 			api.MetricsCollector = arg.(metrics.Collector)
 			continue
 		}
-		if argType.Implements(reflect.TypeOf((*config.Manager)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[config.Manager]()) {
 			api.ConfigManager = arg.(config.Manager)
 			continue
 		}
-		if argType.Implements(reflect.TypeOf((*keaconfig.DHCPOptionDefinitionLookup)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[keaconfig.DHCPOptionDefinitionLookup]()) {
 			api.DHCPOptionDefinitionLookup = arg.(keaconfig.DHCPOptionDefinitionLookup)
 			continue
 		}
-		if argType.Implements(reflect.TypeOf((*dnsop.Manager)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[dnsop.Manager]()) {
 			api.DNSManager = arg.(dnsop.Manager)
 			continue
 		}
-		if argType.Implements(reflect.TypeOf((*configmigrator.MigrationManager)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[configmigrator.MigrationManager]()) {
 			api.MigrationService = arg.(configmigrator.MigrationManager)
 			continue
 		}
-		if argType.Implements(reflect.TypeOf((*config.DaemonLocker)(nil)).Elem()) {
+		if argType.Implements(reflect.TypeFor[config.DaemonLocker]()) {
 			api.DaemonLocker = arg.(config.DaemonLocker)
 			continue
 		}
 
 		// Check if the specified argument is one of our supported structures.
-		if argType.AssignableTo(reflect.TypeOf((*dbops.DatabaseSettings)(nil))) {
+		if argType.AssignableTo(reflect.TypeFor[*dbops.DatabaseSettings]()) {
 			api.DBSettings = arg.(*dbops.DatabaseSettings)
 			continue
 		}
-		if argType.AssignableTo(reflect.TypeOf((*pg.DB)(nil))) {
+		if argType.AssignableTo(reflect.TypeFor[*pg.DB]()) {
 			api.DB = arg.(*pg.DB)
 			continue
 		}
-		if argType.AssignableTo(reflect.TypeOf((*daemons.Pullers)(nil))) {
+		if argType.AssignableTo(reflect.TypeFor[*daemons.Pullers]()) {
 			api.Pullers = arg.(*daemons.Pullers)
 			continue
 		}
-		if argType.AssignableTo(reflect.TypeOf((*RestAPISettings)(nil))) {
+		if argType.AssignableTo(reflect.TypeFor[*RestAPISettings]()) {
 			api.Settings = arg.(*RestAPISettings)
 			continue
 		}
-		if argType.AssignableTo(reflect.TypeOf((*hookmanager.HookManager)(nil))) {
+		if argType.AssignableTo(reflect.TypeFor[*hookmanager.HookManager]()) {
 			api.HookManager = arg.(*hookmanager.HookManager)
 			continue
 		}
-		if argType.AssignableTo(reflect.TypeOf((*EndpointControl)(nil))) {
+		if argType.AssignableTo(reflect.TypeFor[*EndpointControl]()) {
 			api.EndpointControl = arg.(*EndpointControl)
 			continue
 		}
@@ -495,7 +495,7 @@ func (r *RestAPI) Serve() (err error) {
 		Logger:          log.Infof,
 		InnerMiddleware: r.InnerMiddleware,
 		Authorizer:      r.Authorizer,
-		AuthToken: func(token string) (interface{}, error) {
+		AuthToken: func(token string) (any, error) {
 			// In normal circumstances we'd need to return some
 			// user information here, but the authentication is
 			// currently done in the middleware anyway, so we

@@ -62,7 +62,7 @@ func TestIndexedSubnetsPopulate(t *testing.T) {
 func BenchmarkIndexedSubnetsPopulate(b *testing.B) {
 	// Create many subnets.
 	subnets := []Subnet{}
-	for i := 0; i < 10000; i++ {
+	for i := range 10000 {
 		subnet := Subnet{
 			Prefix: fmt.Sprintf("%d.%d.%d.%d/24", byte(i>>24), byte(i>>16), byte(i>>8), byte(i)),
 		}

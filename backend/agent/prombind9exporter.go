@@ -949,7 +949,7 @@ func (pbe *PromBind9Exporter) Shutdown() {
 }
 
 // getStat is an utility to get a statistic from a map.
-func getStat(statMap map[string]interface{}, statName string) interface{} {
+func getStat(statMap map[string]any, statName string) any {
 	value, ok := statMap[statName]
 	if !ok {
 		log.Infof("No '%s' in response:", statName)
@@ -959,12 +959,12 @@ func getStat(statMap map[string]interface{}, statName string) interface{} {
 }
 
 // scrapeServerStat is an utility to get a server statistic from a map.
-func (pbe *PromBind9Exporter) scrapeServerStat(statMap map[string]interface{}, statName string) (map[string]float64, error) {
+func (pbe *PromBind9Exporter) scrapeServerStat(statMap map[string]any, statName string) (map[string]float64, error) {
 	storageMap := make(map[string]float64)
 
 	statIfc := getStat(statMap, statName)
 	if statIfc != nil {
-		stats, ok := statIfc.(map[string]interface{})
+		stats, ok := statIfc.(map[string]any)
 		if !ok {
 			return nil, errors.Errorf("problem casting '%s' interface", statName)
 		}
@@ -982,7 +982,7 @@ func (pbe *PromBind9Exporter) scrapeServerStat(statMap map[string]interface{}, s
 }
 
 // scrapeTimeStats stores time related statistics from statMap.
-func (pbe *PromBind9Exporter) scrapeTimeStats(statMap map[string]interface{}) (err error) {
+func (pbe *PromBind9Exporter) scrapeTimeStats(statMap map[string]any) (err error) {
 	var timeVal time.Time
 	var timeStr string
 
@@ -1011,10 +1011,10 @@ func (pbe *PromBind9Exporter) scrapeTimeStats(statMap map[string]interface{}) (e
 	return nil
 }
 
-func (pbe *PromBind9Exporter) scrapeViewStats(viewName string, viewStatsIfc interface{}) {
+func (pbe *PromBind9Exporter) scrapeViewStats(viewName string, viewStatsIfc any) {
 	pbe.initViewStats(viewName)
 
-	viewStats, ok := viewStatsIfc.(map[string]interface{})
+	viewStats, ok := viewStatsIfc.(map[string]any)
 	if !ok {
 		log.Errorf("Problem casting viewStatsIfc: %+v", viewStatsIfc)
 		return
@@ -1026,7 +1026,7 @@ func (pbe *PromBind9Exporter) scrapeViewStats(viewName string, viewStatsIfc inte
 		log.Infof("No 'resolver' in viewStats: %+v", viewStats)
 		return
 	}
-	resolver, ok := resolverIfc.(map[string]interface{})
+	resolver, ok := resolverIfc.(map[string]any)
 	if !ok {
 		log.Errorf("Problem casting resolverIfc: %+v", resolverIfc)
 		return
@@ -1038,7 +1038,7 @@ func (pbe *PromBind9Exporter) scrapeViewStats(viewName string, viewStatsIfc inte
 		log.Infof("No 'stats' in resolver: %+v", resolver)
 		return
 	}
-	resolverStats, ok := statsIfc.(map[string]interface{})
+	resolverStats, ok := statsIfc.(map[string]any)
 	if !ok {
 		log.Errorf("Problem casting statsIfc: %+v", statsIfc)
 		return
@@ -1063,7 +1063,7 @@ func (pbe *PromBind9Exporter) scrapeViewStats(viewName string, viewStatsIfc inte
 		log.Infof("No 'qtypes' in resolver: %+v", resolver)
 		return
 	}
-	qtypes, ok := qtypesIfc.(map[string]interface{})
+	qtypes, ok := qtypesIfc.(map[string]any)
 	if !ok {
 		log.Errorf("Problem casting qtypesIfc: %+v", qtypesIfc)
 		return
@@ -1087,7 +1087,7 @@ func (pbe *PromBind9Exporter) scrapeViewStats(viewName string, viewStatsIfc inte
 		log.Infof("No 'cachestats' in resolver: %+v", resolver)
 		return
 	}
-	cacheRRsets, ok := cacheIfc.(map[string]interface{})
+	cacheRRsets, ok := cacheIfc.(map[string]any)
 	if !ok {
 		log.Errorf("Problem casting cacheIfc: %+v", cacheIfc)
 		return
@@ -1111,7 +1111,7 @@ func (pbe *PromBind9Exporter) scrapeViewStats(viewName string, viewStatsIfc inte
 		log.Infof("No 'cachestats' in resolver: %+v", resolver)
 		return
 	}
-	cachestats, ok := cachestatsIfc.(map[string]interface{})
+	cachestats, ok := cachestatsIfc.(map[string]any)
 	if !ok {
 		log.Errorf("Problem casting cachestatsIfc: %+v", cachestatsIfc)
 		return
@@ -1214,14 +1214,14 @@ func (pbe *PromBind9Exporter) setDaemonStats(stats map[string]any) (ret error) {
 	if !ok {
 		return errors.Errorf("no 'traffic' in response: %+v", stats)
 	}
-	traffic, ok := trafficIfc.(map[string]interface{})
+	traffic, ok := trafficIfc.(map[string]any)
 	if !ok {
 		return errors.Errorf("problem casting trafficIfc: %+v", trafficIfc)
 	}
 	trafficMap := make(map[string]PromBind9TrafficStats)
 	for trafficName, trafficStatsIfc := range traffic {
 		sizeCounts := make(map[string]float64)
-		trafficStats, ok := trafficStatsIfc.(map[string]interface{})
+		trafficStats, ok := trafficStatsIfc.(map[string]any)
 		if !ok {
 			return errors.Errorf("problem casting '%s' interface", trafficName)
 		}
@@ -1246,7 +1246,7 @@ func (pbe *PromBind9Exporter) setDaemonStats(stats map[string]any) (ret error) {
 		return errors.Errorf("no 'views' in response: %+v", stats)
 	}
 
-	views := viewsIfc.(map[string]interface{})
+	views := viewsIfc.(map[string]any)
 	if !ok {
 		return errors.Errorf("problem casting viewsIfc: %+v", viewsIfc)
 	}

@@ -18,7 +18,7 @@ import (
 // interface.
 type testDHCPOptionField struct {
 	fieldType string
-	values    []interface{}
+	values    []any
 }
 
 // DHCP option used in the tests implementing the DHCPOption interface.
@@ -33,7 +33,7 @@ type testDHCPOption struct {
 }
 
 // Convenience function creating new testDHCPOption instance.
-func newTestDHCPOptionField(fieldType string, values ...interface{}) *testDHCPOptionField {
+func newTestDHCPOptionField(fieldType string, values ...any) *testDHCPOptionField {
 	return &testDHCPOptionField{
 		fieldType: fieldType,
 		values:    values,
@@ -46,7 +46,7 @@ func (field testDHCPOptionField) GetFieldType() string {
 }
 
 // Returns option field values.
-func (field testDHCPOptionField) GetValues() []interface{} {
+func (field testDHCPOptionField) GetValues() []any {
 	return field.values
 }
 
@@ -160,55 +160,55 @@ func TestCreateSingleOptionDataMultipleFields(t *testing.T) {
 		fields: []testDHCPOptionField{
 			{
 				fieldType: "uint8",
-				values:    []interface{}{123},
+				values:    []any{123},
 			},
 			{
 				fieldType: "uint16",
-				values:    []interface{}{234},
+				values:    []any{234},
 			},
 			{
 				fieldType: "uint32",
-				values:    []interface{}{369},
+				values:    []any{369},
 			},
 			{
 				fieldType: "int8",
-				values:    []interface{}{-123},
+				values:    []any{-123},
 			},
 			{
 				fieldType: "int16",
-				values:    []interface{}{-234},
+				values:    []any{-234},
 			},
 			{
 				fieldType: "int32",
-				values:    []interface{}{-369},
+				values:    []any{-369},
 			},
 			{
 				fieldType: "bool",
-				values:    []interface{}{true},
+				values:    []any{true},
 			},
 			{
 				fieldType: "ipv4-address",
-				values:    []interface{}{"192.0.2.1"},
+				values:    []any{"192.0.2.1"},
 			},
 			{
 				fieldType: "ipv6-address",
-				values:    []interface{}{"3000:12::"},
+				values:    []any{"3000:12::"},
 			},
 			{
 				fieldType: "ipv6-prefix",
-				values:    []interface{}{"3001::", 64},
+				values:    []any{"3001::", 64},
 			},
 			{
 				fieldType: "psid",
-				values:    []interface{}{1644, 12},
+				values:    []any{1644, 12},
 			},
 			{
 				fieldType: "fqdn",
-				values:    []interface{}{"foobar.example.org"},
+				values:    []any{"foobar.example.org"},
 			},
 			{
 				fieldType: "string",
-				values:    []interface{}{"foobar"},
+				values:    []any{"foobar"},
 			},
 		},
 		name:  "bar",
@@ -250,7 +250,7 @@ func TestCreateSingleOptionDataBinaryField(t *testing.T) {
 		fields: []testDHCPOptionField{
 			{
 				fieldType: "binary",
-				values:    []interface{}{"01:02:03:04"},
+				values:    []any{"01:02:03:04"},
 			},
 		},
 	}
@@ -288,55 +288,55 @@ func TestCreateSingleOptionDataNoDefinition(t *testing.T) {
 		fields: []testDHCPOptionField{
 			{
 				fieldType: "uint8",
-				values:    []interface{}{123},
+				values:    []any{123},
 			},
 			{
 				fieldType: "uint16",
-				values:    []interface{}{234},
+				values:    []any{234},
 			},
 			{
 				fieldType: "uint32",
-				values:    []interface{}{369},
+				values:    []any{369},
 			},
 			{
 				fieldType: "int8",
-				values:    []interface{}{-123},
+				values:    []any{-123},
 			},
 			{
 				fieldType: "int16",
-				values:    []interface{}{-234},
+				values:    []any{-234},
 			},
 			{
 				fieldType: "int32",
-				values:    []interface{}{-369},
+				values:    []any{-369},
 			},
 			{
 				fieldType: "bool",
-				values:    []interface{}{true},
+				values:    []any{true},
 			},
 			{
 				fieldType: "ipv4-address",
-				values:    []interface{}{"192.0.2.1"},
+				values:    []any{"192.0.2.1"},
 			},
 			{
 				fieldType: "ipv6-address",
-				values:    []interface{}{"3000:12::"},
+				values:    []any{"3000:12::"},
 			},
 			{
 				fieldType: "ipv6-prefix",
-				values:    []interface{}{"3001::", 64},
+				values:    []any{"3001::", 64},
 			},
 			{
 				fieldType: "psid",
-				values:    []interface{}{1644, 12},
+				values:    []any{1644, 12},
 			},
 			{
 				fieldType: "fqdn",
-				values:    []interface{}{"foobar.example.org"},
+				values:    []any{"foobar.example.org"},
 			},
 			{
 				fieldType: "string",
-				values:    []interface{}{"foobar"},
+				values:    []any{"foobar"},
 			},
 		},
 		name:  "bar",

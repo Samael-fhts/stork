@@ -357,13 +357,13 @@ func (sm *monitor) run(ctx context.Context, storkAgent agentManager) {
 func splitDaemonsByTransition(previous, next []Daemon) (started, unchanged, unchangedDuplicated, stopped []Daemon) {
 	// Daemons no longer running.
 	stoppedMap := make(map[int]bool)
-	for i := 0; i < len(previous); i++ {
+	for i := range previous {
 		stoppedMap[i] = true
 	}
 
 	// Daemons newly started.
 	startedMap := make(map[int]bool)
-	for i := 0; i < len(next); i++ {
+	for i := range next {
 		startedMap[i] = true
 	}
 
