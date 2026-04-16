@@ -141,6 +141,8 @@ services:
       - $PWD/tests/system/config/kea/disabled.json:/etc/kea/hook-subnetcmds.json
       - $PWD/tests/system/config/kea/disabled.json:/etc/kea/hook-ha-dhcp4.json
       - $PWD/tests/system/config/kea/disabled.json:/etc/kea/hook-ha-dhcp6.json
+      - $PWD/tests/system/config/kea/disabled.json:/etc/kea/hook-cbcmds.json
+      - $PWD/tests/system/config/kea/disabled.json:/etc/kea/kea-config-control.json
       - $PWD/tests/system/config/kea/disabled.json:/etc/kea/kea-host-database.json
       - $PWD/tests/system/config/kea/kea-builtin-database-driver=${KEA_PRIOR_2_7_5-false}.json:/etc/kea/hook-database-driver.json
       - $PWD/tests/system/config/kea/kea-leases4.csv:/var/lib/kea/kea-leases4.csv
@@ -335,6 +337,28 @@ services:
       subnet6_01:
         ipv6_address: 3001:db8:1:42::101
         interface_name: eth5
+
+  agent-kea-premium-cb-database-base:
+    extends: agent-kea-premium
+    environment:
+      DB_TYPE: pgsql
+      DB_NAME: kea_cbcmds
+      DB_USER: kea_cbcmds
+      DB_PASSWORD: kea_cbcmds
+      DB_HOST: postgres
+      DB_ROOT_USER: stork
+      DB_ROOT_PASSWORD: stork
+    volumes:
+      - $PWD/tests/system/config/kea-premium-cb-database-1/kea-config-control.json:/etc/kea/kea-config-control.json
+      - $PWD/tests/system/config/kea-premium-cb-database-1/hook-cbcmds.json:/etc/kea/hook-cbcmds.json
+      - $PWD/tests/system/config/kea-premium-cb-database-1/init_pgsql_query.sql:/var/lib/db/init_pgsql_query.sql
+    profiles:
+      - premium
+
+  agent-kea-premium-cb-database:
+    extends: agent-kea-premium-cb-database-base
+    depends_on:
+      - postgres
 
   agent-kea-ha1:
     extends: agent-kea

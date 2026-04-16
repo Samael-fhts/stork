@@ -1,0 +1,13 @@
+"server-tag": "kea-cb-1",
+"config-control": {
+    "config-databases": [
+        {
+            "type": "postgresql",
+            "host": "postgres",
+            "name": "kea_cbcmds",
+            "user": "kea_cbcmds",
+            "password": "kea_cbcmds"
+        }
+    ],
+    "config-fetch-wait-time": 20
+},
