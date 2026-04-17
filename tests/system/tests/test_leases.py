@@ -2,7 +2,8 @@
 
 import ipaddress
 
-from core.wrappers import Server, Kea
+from core.wrappers import Server, Kea, WebUI
+from webui.lease_search import LeaseSearchPage
 
 
 def fetch_and_assert_declined_leases(version: (int, int, int), server_service: Server):
@@ -51,6 +52,7 @@ def fetch_and_assert_declined_leases(version: (int, int, int), server_service: S
         if version >= (2, 3, 8):
             assert data.items[10].ip_address == "3001:db8:1:42::1"
         assert data.conflicts is None
+    return data
 
 
 def test_search_leases(kea_service: Kea, server_service: Server):
@@ -102,6 +104,74 @@ def test_search_leases(kea_service: Kea, server_service: Server):
     # Blank search text should return none leases
     data = server_service.list_leases()
     assert data.items is None
+
+
+def test_search_leases_ui(kea_service: Kea,  webui_service: WebUI):
+    """Test various lease search queries"""
+    webui_service.log_in_as_admin()
+    server_service = webui_service.server()
+    server_service.authorize_all_machines()
+    state, *_ = server_service.wait_for_next_machine_states()
+    page = webui_service.new_page("/dhcp/leases")
+    lease_search_page = LeaseSearchPage(page)
+
+
+    daemons = state.daemons
+    assert len(daemons) == 3
+    version_raw = daemons[0].version
+    version = tuple(int(x) for x in version_raw.split("."))
+
+    # # Search by IPv4 address..
+    data = server_service.list_leases("192.0.2.1")
+    assert data.total == 1
+    assert data.items[0].ip_address == "192.0.2.1"
+    assert data.conflicts is None
+    lease_search_page.input_search("192.0.2.1")
+    lease_search_page.expect_visible(data)
+
+    # # Search by IPv6 address.
+    data = server_service.list_leases("3001:db8:1:42::1")
+    assert data.total == 1
+    assert data.items[0].ip_address == "3001:db8:1:42::1"
+    assert data.conflicts is None
+    lease_search_page.input_search("3001:db8:1:42::1")
+    lease_search_page.expect_visible(data)
+
+    # # Search by MAC.
+    data = server_service.list_leases("00:01:02:03:04:02")
+    assert data.total == 1
+    assert data.items[0].ip_address == "192.0.2.2"
+    assert data.conflicts is None
+    lease_search_page.input_search("00:01:02:03:04:02")
+    lease_search_page.expect_visible(data)
+
+
+    # # Search by client id and DUID.
+    data = server_service.list_leases("01:02:03:04")
+    assert data.total == 2
+    assert data.items[0].ip_address == "192.0.2.4"
+    assert data.items[1].ip_address == "3001:db8:1:42::4"
+    assert data.conflicts is None
+    lease_search_page.input_search("01:02:03:04")
+    lease_search_page.expect_visible(data)
+
+    # Search by hostname.
+    data = server_service.list_leases("host-6.example.org")
+    assert data.total == 2
+    assert data.items[0].ip_address == "192.0.2.6"
+    assert data.items[1].ip_address == "3001:db8:1:42::6"
+    assert data.conflicts is None
+    lease_search_page.input_search("host-6.example.org")
+    lease_search_page.expect_visible(data)
+
+    # Search declined leases.
+    data = fetch_and_assert_declined_leases(version, server_service)
+    lease_search_page.input_search("state:declined")
+    lease_search_page.expect_visible(data)
+    # Blank search text should return none leases
+    data = server_service.list_leases()
+    assert data.items is None
+
 
 
 def test_get_host_leases(kea_service: Kea, server_service: Server):

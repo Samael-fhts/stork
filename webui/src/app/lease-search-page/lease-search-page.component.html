@@ -14,7 +14,7 @@
 </app-breadcrumbs>
 
 <div class="flex flex-wrap gap-2 align-items-center">
-    <span class="hidden sm:inline-block">Search leases:</span>
+    <label for="leases-search-input" class="hidden sm:inline-block">Search leases:</label>
     <div class="flex flex-wrap gap-2">
         <p-iconfield iconPosition="left">
             <p-inputicon>
@@ -113,7 +113,7 @@
         </tr>
     </ng-template>
     <ng-template #body let-lease let-expanded="expanded">
-        <tr>
+        <tr attr.data-testid="lease-row-{{lease.daemonId}}-{{lease.id}}">
             <td>
                 <a [pRowToggler]="lease">
                     <i [ngClass]="expanded ? 'pi pi-chevron-down' : 'pi pi-chevron-right'"></i>
@@ -134,7 +134,7 @@
         </tr>
     </ng-template>
     <ng-template #expandedrow let-lease>
-        <tr>
+        <tr attr.data-testid="lease-row-expanded-{{lease.daemonId}}-{{lease.id}}">
             <td colspan="5">
                 <div class="flex flex-wrap gap-3">
                     <div *ngIf="lease.hwAddress || lease.clientId || lease.duid" class="flex-auto">

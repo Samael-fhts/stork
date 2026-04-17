@@ -48,6 +48,6 @@ class WebUI(ComposeServiceWrapper):
     def playwright_codegen_hook(self):
         """A hack to make us of Playwright's codegen easier. Stores browser state and pauses test."""
         self._context.storage_state(path="storage_state.json")
-        print("playwright codegen {} --target python-test --load-storage tests/system/storage_state.json".format(self._context.pages[0].url))
+        print("playwright codegen {} --target python-pytest --load-storage tests/system/storage_state.json".format(self._context.pages[0].url))
         while True:
             pass
