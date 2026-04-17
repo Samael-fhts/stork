@@ -5,12 +5,12 @@ import re
 
 
 
-def test_e2e_version(webui_service: WebUI, page: Page):
+def test_e2e_version(webui_service: WebUI):
 
     server = webui_service.server()
     version = server.read_version().version
 
-    page.goto(webui_service.url)
+    page = webui_service.new_page()
 
     expect(page.get_by_text("version:")).to_be_visible()
     expect(page.locator("app-login-screen")).to_contain_text("version: {}".format(version))
@@ -20,28 +20,29 @@ def test_e2e_version_popup(webui_service: WebUI):
     """Checks if the version tooltip is shown and contains correct version information."""
     server = webui_service.server()
     version = server.read_version().version
-    context = webui_service.log_in_as_admin()
+    webui_service.log_in_as_admin()
+    page = webui_service.new_page()
 
-    page = context.new_page()
-    page.goto(webui_service.url)
     page.get_by_role("link").filter(has_text=re.compile(r"^$")).hover()
-
     tooltip = page.get_by_role("tooltip")
+
     expect(tooltip).to_be_visible()
     expect(tooltip).to_contain_text("Version: {}".format(version))
 
-def test_e2e_inject_cookie(webui_service: WebUI):
-    context = webui_service.log_in_as_admin()
-    page = context.new_page()
-    page.goto(webui_service.url)
+def test_e2e_login_api(webui_service: WebUI):
+    webui_service.log_in_as_admin()
+
+    page = webui_service.new_page()
+
+    expect(page.get_by_role("button", name="Logout")).to_be_visible()
 
 
 def test_e2e_custom_not_found_page(webui_service: WebUI):
     """Checks that the custom 404 page is shown when navigating to a non-existent path. And user is able to navigate
        back to the dashboard using the link on 404 page."""
-    context = webui_service.log_in_as_admin()
-    page = context.new_page()
-    page.goto(webui_service.url + "/not/existent/path")
+
+    webui_service.log_in_as_admin() 
+    page = webui_service.new_page("/not/existent/path") 
 
     expect(page.get_by_role("alert")).to_contain_text("Page Not Found")
     goto_dashboard = page.get_by_role("link", name="Go to Dashboard page")
@@ -50,13 +51,13 @@ def test_e2e_custom_not_found_page(webui_service: WebUI):
     expect(page.get_by_text("Welcome to Stork!")).to_be_visible()
 
 
-def test_e2e_login(webui_service: WebUI, page: Page):
-    page.goto(webui_service.url)
+def test_e2e_login_ui(webui_service: WebUI, page: Page):
+    page.goto(webui_service._url)
 
     dropdown = page.get_by_role("button", name="dropdown trigger")
+
     dropdown.click()
     page.get_by_text("Internal").click()
-
 
     username = username_locator(page)
     expect(username).to_be_visible()
@@ -73,6 +74,8 @@ def test_e2e_login(webui_service: WebUI, page: Page):
     page.locator("#new-password").fill("r+YB4E3T['5n4RcShcw-")
     page.locator("#confirm-password").fill("r+YB4E3T['5n4RcShcw-")
     page.get_by_role("button", name=" Save").click()
+
+    expect(page.get_by_role("button", name="Logout")).to_be_visible()
 
 def username_locator(page: Page):
     selector = (

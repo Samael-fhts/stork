@@ -7,19 +7,25 @@ class WebUI(ComposeServiceWrapper):
 
         internal_port = 81
         mapped = self._compose.port(service_name, internal_port)
-        self.url = f"http://{mapped[0]}:{mapped[1]}/"
+        self._url = f"http://{mapped[0]}:{mapped[1]}/"
         self._server_service = server_service
         self._context = context
 
     def server(self):
+        """Returns the server service wrapper."""
         return self._server_service
+    
+    def new_page(self, path: str = ""):
+        """Returns a new page with session cookie injected. Navigates to the provided path."""
+        page = self._context.new_page()
+        page.goto(self._url + path)
+        return page
     
     def log_in_as_admin(self) -> BrowserContext:
         """Logs in an admin. Changes the password for the user. Injects session cookie into the provided browser context."""
         user = self._server_service.log_in_as_admin()
         self._server_service.change_password(user.id, "admin", "r+YB4E3T['5n4RcShcw-")
         self.inject_session_cookie(self._context)
-        return self._context
     
     def inject_session_cookie(self, context: BrowserContext):
         """Injects the session cookie into the browser context."""
@@ -36,12 +42,12 @@ class WebUI(ComposeServiceWrapper):
         context.add_cookies([{
             "name": "session", 
             "value": cookie_dict["session"], 
-            "url": self.url, 
+            "url": self._url, 
             }])
 
-    def playwright_codegen_hook(self, context: BrowserContext):
+    def playwright_codegen_hook(self):
         """A hack to make us of Playwright's codegen easier. Stores browser state and pauses test."""
-        context.storage_state(path="storage_state.json")
-        print("playwright codegen {} --target python-test --load-storage tests/system/storage_state.json".format(context.pages[0].url))
+        self._context.storage_state(path="storage_state.json")
+        print("playwright codegen {} --target python-test --load-storage tests/system/storage_state.json".format(self._context.pages[0].url))
         while True:
             pass
