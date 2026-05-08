@@ -209,7 +209,8 @@ go_tool_codebase = FileList[
     "backend/cmd/stork-tool/*",
     "backend/server/database/migrations/*",
     "backend/server/database/*.go",
-    "backend/server/database/test/*"
+    "backend/server/database/test/*",
+    swagger_server_dir
 ]
 
 go_common_codebase = FileList["backend/**/*"]
