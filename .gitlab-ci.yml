@@ -852,7 +852,7 @@ system_test:
     # because it is out-of-date.
     USE_SYSTEM_NODEJS: "true"
     # It must be an alias of the docker:dind service.
-    DEFAULT_MAPPED_ADDRESS: "docker"
+    # DEFAULT_MAPPED_ADDRESS: "docker"
   script:
     # - rake system_tests_ui
     - rake systemtest:build
