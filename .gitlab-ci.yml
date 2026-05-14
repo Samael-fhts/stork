@@ -827,7 +827,9 @@ system_test:
   <<: *checks_template
   needs: [ ] # this job doesn't need cache, so it can start right away
   services:
-    - docker:dind
+    # - docker:dind # locally i was not able run system tests with docker daemon running in docker:dind container.
+    # The images were build but volume mapping for started containers was not working properly. 
+    # But it appears that pkgs-compose:12 starts it's own docker daemon, is dind service used?
   rules:
     - if: *is_push_to_master_or_tag
     - *rule_manual_allow_failure
