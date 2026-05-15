@@ -655,7 +655,10 @@ func (d *keaDaemon) ensureWatchingLeasefile(ctx context.Context, config *keaconf
 			if err != nil {
 				return err
 			}
-			d.snooper.Start()
+			err = d.snooper.Start()
+			if err != nil {
+				return err
+			}
 		} else {
 			// ...and I am, but I should make sure I'm looking at the right file.
 			return d.snooper.EnsureWatching(*status.CSVLeaseFile)
