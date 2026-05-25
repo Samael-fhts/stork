@@ -612,10 +612,6 @@ mockgen_ver = 'v0.6.0'
 dlv_ver = 'v1.26.3'
 gdlv_ver = 'v1.16.0'
 govulncheck_ver = 'v1.1.4'
-goswagger_ver = 'v0.33.2'
-protoc_ver = '31.1'
-protoc_gen_go_ver = 'v1.36.11'
-protoc_gen_go_grpc_ver = 'v1.6.1'
 nfpm_ver = 'v2.45.2'
 golangcilint_ver = '2.8.0'
 
@@ -640,14 +636,10 @@ case OS
 when "macos"
     case ARCH
     when "amd64"
-        protoc_suffix = "osx-x86_64"
         golangcilint_suffix = "darwin-amd64"
-        goswagger_suffix = "darwin_amd64"
         shellcheck_suffix = "darwin.x86_64"
     when "arm64"
-        protoc_suffix = "osx-aarch_64"
         golangcilint_suffix = "darwin-arm64"
-        goswagger_suffix = "darwin_arm64"
         shellcheck_suffix = "darwin.aarch64"
         # Shellcheck has no binaries for Darwin ARM: https://github.com/koalaman/shellcheck/issues/2714
     end
@@ -656,14 +648,10 @@ when "macos"
 when "linux"
     case ARCH
     when "amd64"
-        protoc_suffix = "linux-x86_64"
         golangcilint_suffix = "linux-amd64"
-        goswagger_suffix = "linux_amd64"
         shellcheck_suffix = "linux.x86_64"
     when "arm64"
-        protoc_suffix = "linux-aarch_64"
         golangcilint_suffix = "linux-arm64"
-        goswagger_suffix = "linux_arm64"
         shellcheck_suffix = "linux.aarch64"
     end
 when "FreeBSD"
@@ -724,7 +712,6 @@ python_tools_dir = File.join(tools_dir, "python")
 pythonpath = File.join(python_tools_dir, "lib")
 pip_cache_dir = File.join(python_tools_dir, "pip_cache")
 node_bin_dir = File.join(node_dir, "bin")
-protoc_dir = go_tools_dir
 
 # Environment variables
 ENV["GEM_HOME"] = ruby_tools_dir
@@ -917,61 +904,23 @@ if !go_path.nil?
 end
 GO = require_manual_install_on("go", any_system)
 
-GOSWAGGER = File.join(go_tools_dir, "goswagger")
-file GOSWAGGER => [WGET, GO, TAR, go_tools_dir] do
-    if OS != 'FreeBSD' && OS != "OpenBSD"
-        fetch_file "https://github.com/go-swagger/go-swagger/releases/download/#{goswagger_ver}/swagger_#{goswagger_suffix}", GOSWAGGER
-        sh "chmod", "u+x", GOSWAGGER
-    else
-        # GoSwagger lacks the packages for BSD-like systems then it must be
-        # built from sources.
-        goswagger_archive = "#{GOSWAGGER}.tar.gz"
-        goswagger_dir = "#{GOSWAGGER}-sources"
-        sh "mkdir", goswagger_dir
-        fetch_file "https://github.com/go-swagger/go-swagger/archive/refs/tags/#{goswagger_ver}.tar.gz", goswagger_archive
-        sh TAR, "-zxf", goswagger_archive, "-C", goswagger_dir
-        # We cannot use --strip-components because OpenBSD tar doesn't support it.
-        goswagger_dir = File.join(goswagger_dir, "go-swagger-#{goswagger_ver[1..-1]}") # Trim 'v' letter
-        goswagger_build_dir = File.join(goswagger_dir, "cmd", "swagger")
-        Dir.chdir(goswagger_build_dir) do
-            sh GO, "build", "-ldflags=-X 'github.com/go-swagger/go-swagger/cmd/swagger/commands.Version=#{goswagger_ver}'"
-        end
-        sh "mv", File.join(goswagger_build_dir, "swagger"), GOSWAGGER
-        sh "rm", "-rf", goswagger_dir
-        sh "rm", goswagger_archive
-    end
-
-    sh "touch", "-c", GOSWAGGER
-    sh GOSWAGGER, "version"
-end
-add_version_guard(GOSWAGGER, goswagger_ver)
-
-protoc = File.join(protoc_dir, "protoc")
-file protoc => [WGET, UNZIP, go_tools_dir] do
-    Dir.chdir(go_tools_dir) do
-        fetch_file "https://github.com/protocolbuffers/protobuf/releases/download/v#{protoc_ver}/protoc-#{protoc_ver}-#{protoc_suffix}.zip", "protoc.zip"
-        sh UNZIP, "-o", "-j", "protoc.zip", "bin/protoc"
-        sh "rm", "protoc.zip"
-    end
-    sh protoc, "--version"
-    sh "touch", "-c", protoc
-end
-PROTOC = require_manual_install_on(protoc, freebsd_system, openbsd_system)
-add_version_guard(PROTOC, protoc_ver)
+# protoc is only needed for Python gRPC stub generation (system tests).
+# Go gRPC stubs are generated via `go tool buf`.
+PROTOC = require_manual_install_on("protoc", any_system)
 
 PROTOC_GEN_GO = File.join(gobin, "protoc-gen-go")
-file PROTOC_GEN_GO => [GO] do
-    sh GO, "install", "google.golang.org/protobuf/cmd/protoc-gen-go@#{protoc_gen_go_ver}"
+file PROTOC_GEN_GO => [GO, gobin] do
+    sh GO, "install", "google.golang.org/protobuf/cmd/protoc-gen-go"
     sh PROTOC_GEN_GO, "--version"
 end
-add_version_guard(PROTOC_GEN_GO, protoc_gen_go_ver)
+add_hash_guard(PROTOC_GEN_GO, "backend/go.mod")
 
 PROTOC_GEN_GO_GRPC = File.join(gobin, "protoc-gen-go-grpc")
-file PROTOC_GEN_GO_GRPC => [GO] do
-    sh GO, "install", "google.golang.org/grpc/cmd/protoc-gen-go-grpc@#{protoc_gen_go_grpc_ver}"
+file PROTOC_GEN_GO_GRPC => [GO, gobin] do
+    sh GO, "install", "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
     sh PROTOC_GEN_GO_GRPC, "--version"
 end
-add_version_guard(PROTOC_GEN_GO_GRPC, protoc_gen_go_grpc_ver)
+add_hash_guard(PROTOC_GEN_GO_GRPC, "backend/go.mod")
 
 golangcilint = File.join(go_tools_dir, "golangci-lint")
 file golangcilint => [WGET, GO, TAR, go_tools_dir] do

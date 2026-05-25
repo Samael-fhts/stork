@@ -107,10 +107,10 @@ std_dhcpv6_option_definitions_json = "codegen/std_dhcpv6_option_def.json"
 ###############
 
 swagger_server_dir = "backend/server/gen"
-file swagger_server_dir => [GOSWAGGER, SWAGGER_FILE] do
+file swagger_server_dir => [GO, SWAGGER_FILE] do
     swagger_abs = File.expand_path(SWAGGER_FILE)
     Dir.chdir("backend") do
-        sh GOSWAGGER, "generate", "server",
+        sh GO, "tool", "swagger", "generate", "server",
         "-m", "server/gen/models",
         "-s", "server/gen/restapi",
         "--exclude-main",
@@ -152,9 +152,9 @@ CLEAN.append swagger_server_dir
 agent_proto_file = "backend/api/agent.proto"
 agent_pb_go_file = "backend/api/agent.pb.go"
 agent_grpc_pb_go_file = "backend/api/agent_grpc.pb.go"
-file agent_pb_go_file => [agent_proto_file, PROTOC, PROTOC_GEN_GO, PROTOC_GEN_GO_GRPC] do
+file agent_pb_go_file => [agent_proto_file, GO, PROTOC_GEN_GO, PROTOC_GEN_GO_GRPC] do
     Dir.chdir("backend/api") do
-        sh PROTOC, "--proto_path=.", "--go_out=.", "--go-grpc_out=.", "agent.proto"
+        sh GO, "tool", "buf", "generate"
     end
 end
 file agent_grpc_pb_go_file => [agent_pb_go_file]
