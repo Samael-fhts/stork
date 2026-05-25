@@ -910,14 +910,18 @@ PROTOC = require_manual_install_on("protoc", any_system)
 
 PROTOC_GEN_GO = File.join(gobin, "protoc-gen-go")
 file PROTOC_GEN_GO => [GO, gobin] do
-    sh GO, "install", "google.golang.org/protobuf/cmd/protoc-gen-go"
+    Dir.chdir("backend") do
+        sh GO, "install", "google.golang.org/protobuf/cmd/protoc-gen-go"
+    end
     sh PROTOC_GEN_GO, "--version"
 end
 add_hash_guard(PROTOC_GEN_GO, "backend/go.mod")
 
 PROTOC_GEN_GO_GRPC = File.join(gobin, "protoc-gen-go-grpc")
 file PROTOC_GEN_GO_GRPC => [GO, gobin] do
-    sh GO, "install", "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
+    Dir.chdir("backend") do
+        sh GO, "install", "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
+    end
     sh PROTOC_GEN_GO_GRPC, "--version"
 end
 add_hash_guard(PROTOC_GEN_GO_GRPC, "backend/go.mod")
