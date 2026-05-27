@@ -49,7 +49,6 @@ describe('LeaseSearchPageComponent', () => {
         router = fixture.debugElement.injector.get(Router)
         route = fixture.debugElement.injector.get(ActivatedRoute)
         router.navigate(['dhcp/leases'])
-        fixture.detectChanges()
     })
 
     it('should create', () => {
@@ -57,6 +56,7 @@ describe('LeaseSearchPageComponent', () => {
     })
 
     it('should ignore empty search text', () => {
+        fixture.detectChanges()
         const searchInput = fixture.debugElement.query(By.css('#leases-search-input'))
         const searchInputElement = searchInput.nativeElement
 
@@ -73,6 +73,7 @@ describe('LeaseSearchPageComponent', () => {
     })
 
     it('should trigger leases search', fakeAsync(() => {
+        fixture.detectChanges()
         const searchInput = fixture.debugElement.query(By.css('#leases-search-input'))
         const searchInputElement = searchInput.nativeElement
 
@@ -578,6 +579,7 @@ describe('LeaseSearchPageComponent', () => {
     }))
 
     it('should display error message for partial IPv4 address', () => {
+        fixture.detectChanges()
         const searchInput = fixture.debugElement.query(By.css('#leases-search-input'))
         const searchInputElement = searchInput.nativeElement
 
@@ -616,6 +618,7 @@ describe('LeaseSearchPageComponent', () => {
     })
 
     it('should display error message for wrong use of colons', () => {
+        fixture.detectChanges()
         const searchInput = fixture.debugElement.query(By.css('#leases-search-input'))
         const searchInputElement = searchInput.nativeElement
 
@@ -660,6 +663,7 @@ describe('LeaseSearchPageComponent', () => {
     })
 
     it('should display error message when invalid state is specified', () => {
+        fixture.detectChanges()
         const searchInput = fixture.debugElement.query(By.css('#leases-search-input'))
         const searchInputElement = searchInput.nativeElement
 
@@ -732,6 +736,7 @@ describe('LeaseSearchPageComponent', () => {
     }))
 
     it('should have breadcrumbs', () => {
+        fixture.detectChanges()
         const breadcrumbsElement = fixture.debugElement.query(By.directive(BreadcrumbsComponent))
         expect(breadcrumbsElement).not.toBeNull()
         const breadcrumbsComponent = breadcrumbsElement.componentInstance as BreadcrumbsComponent
