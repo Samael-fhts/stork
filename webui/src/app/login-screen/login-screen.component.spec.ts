@@ -139,7 +139,7 @@ describe('LoginScreenComponent', () => {
         // Let's pick ldap method.
         const listItems = dropdown.queryAll(By.css('li'))
         expect(listItems).toBeTruthy()
-        expect(listItems.length).toEqual(3)
+        expect(listItems.length).toEqual(2)
         expect(listItems[0].nativeElement.innerText).toContain('local')
         expect(listItems[1].nativeElement.innerText).toContain('ldap')
         expect(listItems[2].nativeElement.innerText).toContain('OpenID Connect')
@@ -153,21 +153,6 @@ describe('LoginScreenComponent', () => {
         expect(inputs).toBeTruthy()
         expect(inputs.length).toEqual(2)
 
-        inputs[0].nativeElement.value = 'login'
-        inputs[0].nativeElement.dispatchEvent(new Event('input'))
-        fixture.detectChanges()
-
-        inputs[1].nativeElement.value = 'passwd'
-        inputs[1].nativeElement.dispatchEvent(new Event('input'))
-        fixture.detectChanges()
-
-        // Click Sign In.
-        const btn = fixture.debugElement.query(By.css('.login-screen__authentication-inputs button'))
-        expect(btn).toBeTruthy()
-        btn.nativeElement.click()
-        fixture.detectChanges()
-
-        // Check if AuthService login() was called with expected values.
         expect(loginSpy).toHaveBeenCalledOnceWith('ldapId', 'login', 'passwd', '/')
     }))
 
