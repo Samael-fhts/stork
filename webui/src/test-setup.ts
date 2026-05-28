@@ -216,7 +216,10 @@ function decorateSpy<T extends (...args: never[]) => unknown>(spy: T, originalIm
 
 function jasmineSpyOn<T extends object, K extends keyof T>(target: T, methodName: K): T[K] {
     const original = target[methodName]
-    const spy = vi.spyOn(target, methodName as string) as unknown as (...args: never[]) => unknown
+    const spy = (vi.spyOn as unknown as (obj: object, key: PropertyKey) => unknown)(
+        target,
+        methodName as PropertyKey
+    ) as unknown as (...args: never[]) => unknown
     return decorateSpy(spy as never, (original as never) ?? undefined) as never
 }
 
@@ -227,13 +230,15 @@ function jasmineSpyOnProperty<T extends object, K extends keyof T>(
 ): T[K] {
     const descriptor = Object.getOwnPropertyDescriptor(target, propertyName)
     const original = accessType === 'get' ? descriptor?.get : descriptor?.set
-    const spy = vi.spyOn(target, propertyName as string, accessType) as unknown as (...args: never[]) => unknown
+    const spy = (
+        vi.spyOn as unknown as (obj: object, key: PropertyKey, accessType: 'get' | 'set') => unknown
+    )(target, propertyName as PropertyKey, accessType) as unknown as (...args: never[]) => unknown
     return decorateSpy(spy as never, (original as never) ?? undefined) as never
 }
 
 const jasmineCompat = {
-    objectContaining: <T>(value: T) => expect.objectContaining(value),
-    arrayContaining: <T>(value: T[]) => expect.arrayContaining(value),
+    objectContaining: <T>(value: T) => (expect.objectContaining as (v: unknown) => unknown)(value),
+    arrayContaining: <T>(value: T[]) => (expect.arrayContaining as (v: unknown[]) => unknown)(value),
     arrayWithExactContents: <T>(value: T[]) => ({
         asymmetricMatch(actual: unknown) {
             if (!Array.isArray(actual) || actual.length !== value.length) {
