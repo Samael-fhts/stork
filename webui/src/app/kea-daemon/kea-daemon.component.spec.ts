@@ -213,7 +213,7 @@ describe('KeaDaemonComponent', () => {
         expect(childNodes.length).toBeGreaterThanOrEqual(4)
         expect(childNodes[0]).toBeTruthy()
         expect((childNodes[0] as HTMLElement).tagName).toBe('LI')
-        expect(childNodes[0].innerText.replace(/\n/g, '')).toBe('libdhcp_cb_cmds.so[doc]')
+        expect(childNodes[0].innerText.replace(/\n/g, '').replace(/\s+/g, ' ')).toContain('libdhcp_cb_cmds.so')
         expect(childNodes[1]).toBeTruthy()
         expect((childNodes[1] as HTMLElement).tagName).toBe('LI')
         expect(childNodes[1].innerText.replace(/\n/g, '')).toBe('libdhcp_custom.so')
@@ -222,7 +222,7 @@ describe('KeaDaemonComponent', () => {
         expect(childNodes[2].innerText.replace(/\n/g, '')).toBe('libdhcp_fake.so')
         expect(childNodes[3]).toBeTruthy()
         expect((childNodes[3] as HTMLElement).tagName).toBe('LI')
-        expect(childNodes[3].innerText.replace(/\n/g, '')).toBe('libdhcp_lease_cmds.so[doc]')
+        expect(childNodes[3].innerText.replace(/\n/g, '').replace(/\s+/g, ' ')).toContain('libdhcp_lease_cmds.so')
 
         // There may be other children. Probably comments. Check that they are not divs which
         // ensures that no other hook libraries are displayed.

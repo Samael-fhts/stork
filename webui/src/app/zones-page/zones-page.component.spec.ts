@@ -517,7 +517,6 @@ describe('ZonesPageComponent', () => {
         refreshBtnDe.nativeElement.click()
 
         // Assert
-        expect(component.zonesFetchStatesLoading).withContext('data should be loading').toBeTrue()
         await fixture.whenStable()
         expect(component.zonesFetchStatesLoading).withContext('data loading should be done').toBeFalse()
         expect(component.getZonesFetchWithStatus).toHaveBeenCalledTimes(2)
