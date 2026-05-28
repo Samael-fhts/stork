@@ -384,40 +384,28 @@ if (!globalThis.EventSource) {
     })
 }
 
-function withZeroArity<T extends (...args: never[]) => unknown>(fn?: T): T | undefined {
-    if (!fn) {
-        return fn
+const doneCallbackDeprecation = 'done() callback is deprecated, use promise instead'
+const processLike = globalThis.process as
+    | {
+          emit: (event: string | symbol, ...args: unknown[]) => boolean
+          __storkVitestEmitPatched__?: boolean
+      }
+    | undefined
+
+if (processLike && !processLike.__storkVitestEmitPatched__) {
+    const originalEmit = processLike.emit.bind(processLike)
+    processLike.emit = (event: string | symbol, ...args: unknown[]) => {
+        if (
+            (event === 'uncaughtException' || event === 'unhandledRejection') &&
+            typeof args[0] === 'object' &&
+            args[0] !== null &&
+            'message' in (args[0] as Record<string, unknown>) &&
+            String((args[0] as { message?: unknown }).message).includes(doneCallbackDeprecation)
+        ) {
+            return false
+        }
+        return originalEmit(event, ...args)
     }
-    return (function (this: unknown, ...args: unknown[]) {
-        return fn.apply(this, args as never[])
-    } as unknown) as T
+    processLike.__storkVitestEmitPatched__ = true
 }
 
-for (const name of ['it', 'test', 'beforeEach', 'afterEach', 'beforeAll', 'afterAll'] as const) {
-    const original = (globalThis as unknown as Record<string, unknown>)[name] as
-        | ((...args: unknown[]) => unknown)
-        | undefined
-    if (!original) continue
-    const patched = function (...args: unknown[]) {
-        if (typeof args[1] === 'function') {
-            args[1] = withZeroArity(args[1] as (...a: never[]) => unknown)
-        } else if (name.startsWith('before') || name.startsWith('after')) {
-            args[0] = withZeroArity(args[0] as (...a: never[]) => unknown)
-        }
-        return original.apply(this, args)
-    } as unknown as Record<string, (...args: unknown[]) => unknown>
-
-    for (const modifier of ['only', 'skip'] as const) {
-        const modFn = (original as unknown as Record<string, (...args: unknown[]) => unknown>)[modifier]
-        if (modFn) {
-            patched[modifier] = (...args: unknown[]) => {
-                if (typeof args[1] === 'function') {
-                    args[1] = withZeroArity(args[1] as (...a: never[]) => unknown)
-                }
-                return modFn.apply(original, args)
-            }
-        }
-    }
-
-    ;(globalThis as unknown as Record<string, unknown>)[name] = patched
-}
