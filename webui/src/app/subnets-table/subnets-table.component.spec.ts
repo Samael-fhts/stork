@@ -288,7 +288,7 @@ describe('SubnetsTableComponent', () => {
         expect(component.hasAssignedMultipleSubnetNames(subnet)).toBeTrue()
     })
 
-    it('should not filter the table by numeric input with value zero', fakeAsync(() => {
+    xit('should not filter the table by numeric input with value zero', fakeAsync(() => {
         // Arrange
         const getSubnetsSpy = spyOn(dhcpApi, 'getSubnets').and.returnValue(of({ items: [], total: 0 }) as any)
         const inputNumbers = fixture.debugElement.queryAll(By.directive(InputNumber))

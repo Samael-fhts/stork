@@ -1,4 +1,4 @@
-import { ComponentFixture, fakeAsync, flush, TestBed, tick, waitForAsync } from '@angular/core/testing'
+import { ComponentFixture, fakeAsync, flush, TestBed, tick } from '@angular/core/testing'
 import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { By } from '@angular/platform-browser'
 import { provideNoopAnimations } from '@angular/platform-browser/animations'
@@ -21,8 +21,8 @@ describe('HostTabComponent', () => {
     let confirmService: ConfirmationService
     let authService: AuthService
 
-    beforeEach(waitForAsync(() => {
-        TestBed.configureTestingModule({
+    beforeEach(async () => {
+        await TestBed.configureTestingModule({
             providers: [
                 DHCPService,
                 ConfirmationService,
@@ -33,7 +33,7 @@ describe('HostTabComponent', () => {
                 provideRouter([]),
             ],
         }).compileComponents()
-    }))
+    })
 
     beforeEach(() => {
         fixture = TestBed.createComponent(HostTabComponent)
