@@ -200,3 +200,368 @@ class MachinesPage:
 
     def close_install_dialog(self):
         self.page.get_by_role("button", name=re.compile(r"\bClose\b", re.I)).click()
+
+    def expect_dhcp_badges_on_row(self, row_key: str):
+        row = self.page.get_by_role("row", name=row_key, exact=True)
+        expect(
+            row.get_by_role("cell", name=re.compile(r"DHCPv4.*DHCPv6.*CA", re.I))
+        ).to_be_visible(timeout=3000)
+
+    def open_app_from_badges_cell(self, row_key: str):
+        self.page.get_by_role(
+            "cell", name=re.compile(r"DHCPv4.*DHCPv6.*CA", re.I)
+        ).click()
+
+    def expect_app_tabs_present(self):
+        # Left-side daemon tabs
+        for tab in ("DHCPv4", "DHCPv6", "CA"):
+            expect(
+                self.page.get_by_role("tab", name=re.compile(rf"\b{tab}\b", re.I))
+            ).to_be_visible(timeout=3000)
+        # Main action buttons row
+        for btn in (
+            "Host Reservations",
+            "Subnets",
+            "Shared Networks",
+            "Global Configuration",
+            "Raw configuration",
+        ):
+            expect(
+                self.page.get_by_role("button", name=re.compile(rf"\b{btn}\b", re.I))
+            ).to_be_visible(timeout=3000)
+
+    def app_click_refresh(self):
+        btn = self.page.get_by_role(
+            "button", name=re.compile(r"\bRefresh\s+App\b", re.I)
+        )
+        expect(btn).to_be_visible(timeout=3000)
+        btn.click()
+
+    def app_toggle_monitoring_off_on(self):
+        sw = self.page.get_by_role("switch", name="Monitoring")
+        sw.uncheck()
+        sw.check()
+
+    def app_open_dhcp4(self):
+        self.page.get_by_role("tab", name=re.compile(r"\bDHCPv4\b", re.I)).click()
+
+    def app_open_host_reservations(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bHost Reservations\b", re.I)
+        ).click()
+
+    def host_reservations_expect_loaded(self):
+        # Verify the left nav item is present
+        expect(
+            self.page.get_by_role("list")
+            .locator("a")
+            .filter(has_text="Host Reservations")
+        ).to_be_visible(timeout=3000)
+
+    # -------- Host Reservations: dialogs & actions --------
+    def host_click_migrate_to_db_and_cancel(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bMigrate to Database\b", re.I)
+        ).click()
+        expect(
+            self.page.get_by_text("Migrate host reservations to database")
+        ).to_be_visible(timeout=3000)
+        self.page.get_by_role("button", name=re.compile(r"^\s*No\s*$", re.I)).click()
+
+    def host_click_new_host_expect_tx_error_then_back(self):
+        self.page.get_by_role("button", name=re.compile(r"\bNew Host\b", re.I)).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(
+            timeout=3000
+        )
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    # -------- Host Reservations: filtering & totals --------
+    def host_filter_check_global_conflict(self):
+        self.page.get_by_role("checkbox", name="Global Conflict").check()
+
+    def host_expect_total_hosts_text(self, n: int):
+        expect(self.page.get_by_text(f"Total: {n} hosts")).to_be_visible(timeout=3000)
+
+    # -------- Host Reservations: table row & details --------
+    def host_click_first_row_link(self, link_text: str):
+        # e.g., "hw-address=(00:01:02:03:04:02)"
+        self.page.get_by_role("link", name=link_text).click()
+
+    def host_detail_expect_sections(self):
+        # Verify the host detail sections are present
+        expect(self.page.get_by_text("[1] Host in subnet 192.0.2.0/")).to_be_visible(
+            timeout=3000
+        )
+        expect(
+            self.page.get_by_role("group", name="DHCP Servers Using the Host")
+        ).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="DHCP Identifiers")).to_be_visible(
+            timeout=3000
+        )
+        expect(
+            self.page.get_by_role("group", name="Hostname /  All Servers")
+        ).to_be_visible(timeout=3000)
+        expect(
+            self.page.get_by_role("group", name="IP Reservations /  All Servers")
+        ).to_be_visible(timeout=3000)
+        expect(
+            self.page.get_by_role("group", name="Boot Fields /  All Servers")
+        ).to_be_visible(timeout=3000)
+        expect(
+            self.page.get_by_role("group", name="Client Classes /  All Servers")
+        ).to_be_visible(timeout=3000)
+
+    def host_click_leases_then_expect_dhcp_options_present(self):
+        self.page.get_by_role("button", name=re.compile(r"\bLeases\b", re.I)).click()
+        expect(
+            self.page.get_by_role(
+                "button", name=re.compile(r"\bDHCP Options\s*/\s* All Servers\b", re.I)
+            )
+        ).to_be_visible(timeout=3000)
+
+    def host_click_refresh_list(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bRefresh\s+List\b", re.I)
+        ).click()
+
+    def app_open_subnets(self):
+        self.page.get_by_role("button", name=re.compile(r"\bSubnets\b", re.I)).click()
+
+    def subnets_expect_loaded(self):
+        # Verify the Subnets tab is visible
+        expect(
+            self.page.get_by_role("tab", name=re.compile(r"\bSubnets\b", re.I))
+        ).to_be_visible(timeout=3000)
+
+    # -------- Subnets: totals, search, open result --------
+    def subnets_expect_total(self, n: int):
+        # Matches the footer text e.g. "Total: 9 subnets"
+        expect(self.page.get_by_text(f"Total: {n} subnets")).to_be_visible(timeout=3000)
+
+    def subnets_search(self, query: str):
+        self.page.get_by_role("textbox", name="Search IP or identifier").click()
+        self.page.get_by_role("textbox", name="Search IP or identifier").fill(query)
+
+    def subnets_open_search_result(self):
+        self.page.get_by_text("-192.0.5.50").click()
+        self.page.get_by_role("link", name="/24").click()
+
+    # -------- Subnet detail: header, edit/back, sections --------
+    def subnets_detail_expect_header(self, text: str):
+        expect(self.page.get_by_text(text)).to_be_visible(timeout=3000)
+
+    def subnets_click_edit_expect_tx_error_then_back(self):
+        self.page.get_by_role("button", name=re.compile(r"\bEdit\b", re.I)).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(
+            timeout=3000
+        )
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    def subnets_detail_expect_sections(self):
+        # Verify the subnet detail sections are present
+        expect(
+            self.page.get_by_role("group", name="DHCP Servers Using the Subnet")
+        ).to_be_visible(timeout=3000)
+        expect(self.page.get_by_text("Pools / All Servers")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_text("-192.0.5.50")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Statistics")).to_be_visible(
+            timeout=3000
+        )
+        expect(
+            self.page.get_by_role("group", name="User Context /  All Servers")
+        ).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="DHCP Parameters")).to_be_visible(
+            timeout=3000
+        )
+        expect(
+            self.page.get_by_role("group", name="DHCP Options /  All Servers")
+        ).to_be_visible(timeout=3000)
+
+    # -------- Subnets: back/clear/new/refresh --------
+    def subnets_back_to_tab(self):
+        self.page.get_by_role("tab", name="Subnets").click()
+
+    def subnets_click_new_subnet_expect_error_then_back(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bNew\s+Subnet\b", re.I)
+        ).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(
+            timeout=3000
+        )
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    def subnets_click_refresh_list(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bRefresh\s+List\b", re.I)
+        ).click()
+
+    def app_open_shared_networks(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bShared\s+Networks\b", re.I)
+        ).click()
+
+    def shared_networks_expect_loaded(self):
+        expect(
+            self.page.get_by_role(
+                "tab", name=re.compile(r"\bShared\s+Networks\b", re.I)
+            )
+        ).to_be_visible(timeout=3000)
+
+    # -------- Shared Networks: new / totals / search / open result --------
+    def shared_click_new_shared_network_expect_error_then_back(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bNew\s+Shared\s+Network\b", re.I)
+        ).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(
+            timeout=3000
+        )
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    def shared_expect_total(self, n: int):
+        # "Total: 2 shared networks"
+        expect(self.page.get_by_text(f"Total: {n} shared networks")).to_be_visible(
+            timeout=3000
+        )
+
+    def shared_search(self, query: str):
+        self.page.get_by_role(
+            "textbox", name=re.compile(r"\bSearch\s+shared\s+networks\b", re.I)
+        ).click()
+        self.page.get_by_role(
+            "textbox", name=re.compile(r"\bSearch\s+shared\s+networks\b", re.I)
+        ).fill(query)
+
+    def shared_open_result_by_name(self, name: str):
+        self.page.get_by_role("cell", name=name, exact=True).click()
+        self.page.get_by_role("link", name=name, exact=True).click()
+
+    # -------- Shared Network detail: header, edit/back, sections --------
+    def shared_detail_expect_header(self, name: str):
+        expect(self.page.get_by_text(f"Shared Network {name}")).to_be_visible(
+            timeout=3000
+        )
+
+    def shared_click_edit_expect_error_then_back(self):
+        self.page.get_by_role("button", name=re.compile(r"\bEdit\b", re.I)).click()
+        expect(self.page.get_by_text("Cannot create new transaction")).to_be_visible(
+            timeout=3000
+        )
+        self.page.get_by_role("button", name=re.compile(r"^\s*Back\s*$", re.I)).click()
+
+    def shared_detail_expect_sections(self):
+        # Verify the shared network detail sections are present
+        expect(
+            self.page.get_by_role(
+                "group", name=re.compile(r"DHCP\s+Servers\s+Using\s+the\s+Shared", re.I)
+            )
+        ).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Subnets")).to_be_visible(
+            timeout=3000
+        )
+        expect(self.page.get_by_role("group", name="Pools")).to_be_visible(timeout=3000)
+        expect(self.page.get_by_role("group", name="Statistics")).to_be_visible(
+            timeout=3000
+        )
+        expect(
+            self.page.get_by_role("group", name=re.compile(r"DHCP\s+Parameters", re.I))
+        ).to_be_visible(timeout=3000)
+        expect(
+            self.page.get_by_role(
+                "group", name=re.compile(r"DHCP\s+Options\s*/\s* All Servers", re.I)
+            )
+        ).to_be_visible(timeout=3000)
+
+    # -------- Shared Networks: back/clear/refresh --------
+    def shared_back_to_tab(self):
+        self.page.get_by_role(
+            "tab", name=re.compile(r"\bShared\s+Networks\b", re.I)
+        ).click()
+
+    def shared_click_refresh_list(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bRefresh\s+List\b", re.I)
+        ).click()
+
+    def app_open_global_configuration(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bGlobal\s+Configuration\b", re.I)
+        ).click()
+
+    def global_config_expect_sections(self):
+        # Verify the global configuration sections are present
+        expect(
+            self.page.get_by_role(
+                "group", name=re.compile(r"\bGlobal\s+DHCP\s+Parameters\b", re.I)
+            )
+        ).to_be_visible(timeout=3000)
+        expect(
+            self.page.get_by_role(
+                "group", name=re.compile(r"\bGlobal\s+DHCP\s+Options\b", re.I)
+            )
+        ).to_be_visible(timeout=3000)
+
+    # Edit flow
+    def global_config_click_edit(self):
+        self.page.get_by_role("button", name=re.compile(r"\bEdit\b", re.I)).click()
+
+    def global_config_expect_edit_sections(self):
+        # Verify the global parameters section in edit form is present
+        expect(
+            self.page.get_by_role(
+                "group", name=re.compile(r"\bGlobal\s+Parameters\b", re.I)
+            )
+        ).to_be_visible(timeout=3000)
+
+    def global_config_add_more_options(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bAdd\s+More\s+Options\b", re.I)
+        ).click()
+
+    def global_config_delete_option_at(self, index_zero_based: int):
+        self.page.get_by_role(
+            "button", name=re.compile(r"^\s*Delete\s+Option\s*$", re.I)
+        ).nth(index_zero_based).click()
+
+    def global_config_submit(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"^\s*Submit\s*$", re.I)
+        ).click()
+
+    def global_config_expect_submit_success(self):
+        expect(
+            self.page.locator("div").filter(has_text="Kea configuration").nth(3)
+        ).to_be_visible(timeout=5000)
+
+    def global_config_back_to_kea(self):
+        self.page.get_by_role(
+            "link", name=re.compile(r"Back\s+to\s+kea@", re.I)
+        ).click()
+
+    def app_open_raw_configuration(self):
+        self.page.get_by_role(
+            "button", name=re.compile(r"\bRaw\s+configuration\b", re.I)
+        ).click()
+
+    def raw_config_expand(self):
+        self.page.get_by_role("button", name=re.compile(r"\bExpand\b", re.I)).click()
+
+    def raw_config_expect_dhcp4_visible(self):
+        expect(self.page.get_by_text("Dhcp4", exact=True)).to_be_visible(timeout=3000)
+
+    def raw_config_collapse(self):
+        self.page.get_by_role("button", name=re.compile(r"\bCollapse\b", re.I)).click()
+
+    def raw_config_refresh(self):
+        self.page.get_by_role("button", name=re.compile(r"\bRefresh\b", re.I)).click()
+
+    def raw_config_back_to_kea(self):
+        self.page.get_by_role("link", name=re.compile(r"^kea@", re.I)).click()
+
+    def app_open_ca(self):
+        self.page.get_by_role("link", name=re.compile(r"^\s*CA\s*$", re.I)).click()
+
+    # ---- Raw config checks specific to CA ----
+    def raw_config_expect_control_agent_visible(self):
+        expect(self.page.get_by_text("Control-agent", exact=True)).to_be_visible(
+            timeout=3000
+        )
