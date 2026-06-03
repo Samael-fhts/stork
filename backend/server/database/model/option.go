@@ -56,7 +56,7 @@ func (s *DHCPOptionSet) IsEqualTo(other DHCPOptionSet) bool {
 // Represents a DHCP option field.
 type DHCPOptionField struct {
 	FieldType string
-	Values    []interface{}
+	Values    []any
 }
 
 // Represents a DHCP option.
@@ -77,7 +77,7 @@ func (field DHCPOptionField) GetFieldType() string {
 }
 
 // Returns option field values.
-func (field DHCPOptionField) GetValues() []interface{} {
+func (field DHCPOptionField) GetValues() []any {
 	return field.Values
 }
 

@@ -228,7 +228,7 @@ func TestConfigReportsPaging(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add several configuration reports.
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		configReport := &ConfigReport{
 			CheckerName: fmt.Sprintf("test%d", i),
 			Content:     newPtr(fmt.Sprintf("Here is the test report no %d", i)),
@@ -308,7 +308,7 @@ func TestCountConfigReports(t *testing.T) {
 	require.NoError(t, err)
 
 	// Add some empty reports
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		configReport := &ConfigReport{
 			CheckerName: fmt.Sprintf("empty %d", i),
 			Content:     nil,
@@ -321,7 +321,7 @@ func TestCountConfigReports(t *testing.T) {
 	}
 
 	// Add some reports with issues
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		configReport := &ConfigReport{
 			CheckerName: fmt.Sprintf("checker %d", i),
 			Content:     newPtr(fmt.Sprintf("content %d", i)),

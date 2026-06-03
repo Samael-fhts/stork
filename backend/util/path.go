@@ -3,7 +3,7 @@ package storkutil
 import (
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 
 	"github.com/pkg/errors"
 )
@@ -28,9 +28,7 @@ func ListFilePaths(directory string, sortByPath bool) ([]string, error) {
 
 	// Sorts files by name
 	if sortByPath {
-		sort.Slice(files, func(i, j int) bool {
-			return files[i] < files[j]
-		})
+		slices.Sort(files)
 	}
 
 	return files, nil

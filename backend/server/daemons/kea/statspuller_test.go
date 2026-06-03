@@ -23,8 +23,8 @@ import (
 // Prepares the Kea mock. It accepts list of serialized JSON responses in order:
 // 1. Statistic-get-all DHCPv4
 // 3. Statistic-get-all DHCPv6.
-func createKeaMock(t *testing.T, jsonFactory func(callNo int) (jsons []string)) func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
-	return func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func createKeaMock(t *testing.T, jsonFactory func(callNo int) (jsons []string)) func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
+	return func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		jsons := jsonFactory(callNo)
 		// DHCPv4
 		err := json.Unmarshal([]byte(jsons[0]), cmdResponses[0])
@@ -718,10 +718,10 @@ func getHATestConfigWithSubnets(rootName, thisServerName, mode string, peerNames
 	// This code comes from the old Stork days, though.
 	haRawConfig, _ := haConfig.GetRawConfig()
 	subnetsRawConfig, _ := subnetsConfig.GetRawConfig()
-	haHooks := haRawConfig[rootName].(map[string]interface{})["hooks-libraries"].([]interface{})
-	subnetHooks := subnetsRawConfig[rootName].(map[string]interface{})["hooks-libraries"].([]interface{})
+	haHooks := haRawConfig[rootName].(map[string]any)["hooks-libraries"].([]any)
+	subnetHooks := subnetsRawConfig[rootName].(map[string]any)["hooks-libraries"].([]any)
 	subnetHooks = append(subnetHooks, haHooks...)
-	subnetsRawConfig[rootName].(map[string]interface{})["hooks-libraries"] = subnetHooks
+	subnetsRawConfig[rootName].(map[string]any)["hooks-libraries"] = subnetHooks
 
 	// Repack the new configuration, so the changes are populated to the parsed
 	// data structures and not only reside in the Raw field.

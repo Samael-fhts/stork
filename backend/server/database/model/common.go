@@ -78,7 +78,7 @@ func prepareOrderAndDistinctExpr(tableName string, sortField string, sortDir Sor
 // existing entry. It determines whether this is new or existing entry by
 // examining a value of the id parameter. The id is equal to 0 if this is
 // a new entry.
-func upsertInTransaction(tx *pg.Tx, id int64, model interface{}) (err error) {
+func upsertInTransaction(tx *pg.Tx, id int64, model any) (err error) {
 	var result pg.Result
 	if id == 0 {
 		_, err = tx.Model(model).Insert()

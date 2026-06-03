@@ -1830,8 +1830,7 @@ func TestReceiveZonesZoneInventoryBusy(t *testing.T) {
 	}
 	// Start receiving zones but don't complete it. It turns the inventory
 	// into "busy" state.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	_, err = inventory.receiveZones(ctx, nil)
 	require.NoError(t, err)
 
@@ -2263,8 +2262,7 @@ func TestReceiveZoneRRsZoneInventoryBusy(t *testing.T) {
 	}
 	// Start receiving zones but don't complete it. It turns the inventory
 	// into "busy" state.
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	_, err = inventory.receiveZones(ctx, nil)
 	require.NoError(t, err)
 

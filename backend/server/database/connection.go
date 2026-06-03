@@ -43,7 +43,7 @@ func NewPgDBConn(settings *DatabaseSettings) (*PgDB, error) {
 
 	log.Printf("Checking connection to database")
 	// Test connection to database.
-	for tries := 0; tries < 10; tries++ {
+	for tries := range 10 {
 		var pgError pg.Error
 
 		err = db.Ping(db.Context())

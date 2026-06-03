@@ -205,15 +205,13 @@ func TestWaitForStandbyInPause(t *testing.T) {
 	<-iterationStarted
 
 	// Start the test goroutine that waits for the executor standby.
-	waitingFinished.Add(1)
-	go func() {
+	waitingFinished.Go(func() {
 		// Notify the test goroutine is running.
 		waitingStarted <- struct{}{}
 		// Block until the executor finishes the current iteration.
 		executor.Pause()
 		// Notify the test goroutine is finished.
-		waitingFinished.Done()
-	}()
+	})
 
 	// Wait until the test goroutine starts waiting.
 	<-waitingStarted

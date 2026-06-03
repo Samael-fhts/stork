@@ -208,7 +208,7 @@ func TestStatsPullerEmptyResponse(t *testing.T) {
 	defer teardown()
 
 	// prepare fake agents
-	bind9Mock := func(callNo int, statsOutput interface{}) {
+	bind9Mock := func(callNo int, statsOutput any) {
 		json := `{
                     "json-stats-version":"1.2"
                 }`

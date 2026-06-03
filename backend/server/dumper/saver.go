@@ -16,7 +16,7 @@ type namingConvention func(dump dump.Dump, artifact dump.Artifact) string
 
 // Serialize the Go object to the binary content. It is expected to
 // return human-readable output (e.g. JSON or YAML).
-type structSerializer func(interface{}) ([]byte, error)
+type structSerializer func(any) ([]byte, error)
 
 // Save the dumps to binary content in any format.
 // It is responsible for serialize the dump artifacts

@@ -149,7 +149,7 @@ func TestPrepareAuthenticationIconsExtractFromCarriers(t *testing.T) {
 
 	carrierMocks := []hooks.CalloutCarrier{}
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		metadataMock := NewMockAuthenticationMetadata(ctrl)
 		metadataMock.EXPECT().GetID().Return(fmt.Sprintf("mock-%d", i))
 		metadataMock.EXPECT().
@@ -157,7 +157,7 @@ func TestPrepareAuthenticationIconsExtractFromCarriers(t *testing.T) {
 			Return(
 				io.NopCloser(
 					bytes.NewReader(
-						[]byte(fmt.Sprintf("mock-%d", i)),
+						fmt.Appendf(nil, "mock-%d", i),
 					),
 				), nil,
 			)
@@ -176,7 +176,7 @@ func TestPrepareAuthenticationIconsExtractFromCarriers(t *testing.T) {
 	// Assert
 	require.NoError(t, err)
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		iconPath := path.Join(sb.BasePath, "assets", "authentication-methods", fmt.Sprintf("mock-%d.png", i))
 		require.FileExists(t, iconPath)
 		content, _ := os.ReadFile(iconPath)

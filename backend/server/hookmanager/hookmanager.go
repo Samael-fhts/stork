@@ -17,7 +17,7 @@ type HookManager struct {
 func NewHookManager() *HookManager {
 	return &HookManager{
 		HookManager: *hooksutil.NewHookManager([]reflect.Type{
-			reflect.TypeOf((*authenticationcallouts.AuthenticationCallouts)(nil)).Elem(),
+			reflect.TypeFor[authenticationcallouts.AuthenticationCallouts](),
 		}),
 	}
 }

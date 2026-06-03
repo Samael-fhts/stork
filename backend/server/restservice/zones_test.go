@@ -761,8 +761,8 @@ func TestGetZoneRRs(t *testing.T) {
 		require.Equal(t, dnslib.TypeToString[parsedRR.Header().Rrtype], rspOK.Payload.Items[i].RrType)
 		parsedFields := strings.Fields(rr)
 		require.Greater(t, len(parsedFields), 4)
-		fields := strings.Fields(rspOK.Payload.Items[i].Data)
-		for _, field := range fields {
+		fields := strings.FieldsSeq(rspOK.Payload.Items[i].Data)
+		for field := range fields {
 			require.Contains(t, parsedFields[4:], field)
 		}
 	}
@@ -830,8 +830,8 @@ func TestPutZoneRRsCache(t *testing.T) {
 		require.Equal(t, dnslib.TypeToString[parsedRR.Header().Rrtype], rspOK.Payload.Items[i].RrType)
 		parsedFields := strings.Fields(rr)
 		require.Greater(t, len(parsedFields), 4)
-		fields := strings.Fields(rspOK.Payload.Items[i].Data)
-		for _, field := range fields {
+		fields := strings.FieldsSeq(rspOK.Payload.Items[i].Data)
+		for field := range fields {
 			require.Contains(t, parsedFields[4:], field)
 		}
 	}

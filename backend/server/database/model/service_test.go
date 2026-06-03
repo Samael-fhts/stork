@@ -43,8 +43,8 @@ func accessPointArraysMatch(pts1, pts2 []*AccessPoint) bool {
 
 	found := make([]bool, len(pts1))
 
-	for i := 0; i < len(pts1); i++ {
-		for j := 0; j < len(pts2); j++ {
+	for i := range pts1 {
+		for j := range pts2 {
 			if accessPointsMatch(pts1[i], pts2[j]) {
 				found[i] = true
 				break
@@ -52,7 +52,7 @@ func accessPointArraysMatch(pts1, pts2 []*AccessPoint) bool {
 		}
 	}
 
-	for i := 0; i < len(pts1); i++ {
+	for i := range pts1 {
 		if !found[i] {
 			return false
 		}
@@ -106,8 +106,8 @@ func daemonArraysMatch(daemonArray1, daemonArray2 []*Daemon) bool {
 
 	found := make([]bool, len(daemonArray1))
 
-	for i := 0; i < len(daemonArray1); i++ {
-		for j := 0; j < len(daemonArray2); j++ {
+	for i := range daemonArray1 {
+		for j := range daemonArray2 {
 			if daemonsMatch(daemonArray1[i], daemonArray2[j]) {
 				found[i] = true
 				break
@@ -115,7 +115,7 @@ func daemonArraysMatch(daemonArray1, daemonArray2 []*Daemon) bool {
 		}
 	}
 
-	for i := 0; i < len(daemonArray1); i++ {
+	for i := range daemonArray1 {
 		if !found[i] {
 			return false
 		}
@@ -126,7 +126,7 @@ func daemonArraysMatch(daemonArray1, daemonArray2 []*Daemon) bool {
 // Adds 20 test daemons.
 func addTestDaemonsForServices(t *testing.T, db dbops.DBI) (daemons []*Daemon) {
 	// Add 10 machines, each including two Kea daemons.
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		m := &Machine{
 			ID:        0,
 			Address:   "localhost",

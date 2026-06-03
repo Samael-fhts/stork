@@ -116,7 +116,7 @@ func callCallout[TSpecification any, TOutput any](carrier TSpecification, caller
 
 // Calls the specific callout for all callout carriers sequentially, one by one.
 func CallSequential[TSpecification any, TOutput any](he *HookExecutor, caller func(TSpecification) TOutput) []TOutput {
-	t := reflect.TypeOf((*TSpecification)(nil)).Elem()
+	t := reflect.TypeFor[TSpecification]()
 	carriers, ok := he.registeredCarriers[t]
 	if !ok {
 		return nil
@@ -135,7 +135,7 @@ func CallSequential[TSpecification any, TOutput any](he *HookExecutor, caller fu
 // Call the specific callout for all callout carriers sequentially, but stop on
 // the first carrier that reports the call was processed.
 func CallSequentialUntilProcessed[TSpecification any, TOutput any](he *HookExecutor, caller func(TSpecification) (CallStatus, TOutput)) (processed bool, output TOutput) {
-	t := reflect.TypeOf((*TSpecification)(nil)).Elem()
+	t := reflect.TypeFor[TSpecification]()
 	carriers, ok := he.registeredCarriers[t]
 	if !ok {
 		return

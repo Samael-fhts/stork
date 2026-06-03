@@ -77,7 +77,7 @@ func TestNewCommandWithStructPtrArgs(t *testing.T) {
 func TestNewCommandWithInvalidArgTypes(t *testing.T) {
 	require.Nil(t, newCommand(valuesSetCommand, daemonname.DHCPv4, 123))
 	require.Nil(t, newCommand(valuesSetCommand, daemonname.DHCPv4, []int{123, 345}))
-	m := make(map[string]interface{})
+	m := make(map[string]any)
 	require.Nil(t, newCommand(valuesSetCommand, daemonname.DHCPv4, &m))
 }
 

@@ -2,6 +2,7 @@ package restservice
 
 import (
 	"fmt"
+	"maps"
 	"strconv"
 
 	errors "github.com/pkg/errors"
@@ -153,9 +154,7 @@ func (r *RestAPI) flattenDHCPOptions(optionSpace string, restOptions []*models.D
 				if option.UnknownParameters == nil {
 					option.UnknownParameters = make(map[string]any)
 				}
-				for key, value := range unknown {
-					option.UnknownParameters[key] = value
-				}
+				maps.Copy(option.UnknownParameters, unknown)
 			}
 		}
 		if len(restOption.Options) > 0 {

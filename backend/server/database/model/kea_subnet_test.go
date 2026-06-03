@@ -32,23 +32,23 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 	d4 := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
-	configRaw := &map[string]interface{}{
-		"Dhcp4": map[string]interface{}{
-			"subnet4": []map[string]interface{}{{
+	configRaw := &map[string]any{
+		"Dhcp4": map[string]any{
+			"subnet4": []map[string]any{{
 				"id":     1,
 				"subnet": "192.168.0.0/24",
-				"pools": []map[string]interface{}{{
+				"pools": []map[string]any{{
 					"pool": "192.168.0.1-192.168.0.100",
 				}, {
 					"pool": "192.168.0.150-192.168.0.200",
 				}},
 			}},
-			"shared-networks": []map[string]interface{}{{
+			"shared-networks": []map[string]any{{
 				"name": "frog",
-				"subnet4": []map[string]interface{}{{
+				"subnet4": []map[string]any{{
 					"id":     11,
 					"subnet": "192.1.0.0/24",
-					"pools": []map[string]interface{}{{
+					"pools": []map[string]any{{
 						"pool": "192.1.0.1-192.1.0.100",
 					}, {
 						"pool": "192.1.0.150-192.1.0.200",
@@ -56,10 +56,10 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 				}},
 			}, {
 				"name": "mouse",
-				"subnet4": []map[string]interface{}{{
+				"subnet4": []map[string]any{{
 					"id":     12,
 					"subnet": "192.2.0.0/24",
-					"pools": []map[string]interface{}{{
+					"pools": []map[string]any{{
 						"pool": "192.2.0.1-192.2.0.100",
 					}, {
 						"pool": "192.2.0.150-192.2.0.200",
@@ -174,15 +174,15 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 		},
 	}
 	d6 := NewDaemon(m, daemonname.DHCPv6, true, accessPoints6)
-	configRaw = &map[string]interface{}{
-		"Dhcp6": map[string]interface{}{
-			"subnet6": []map[string]interface{}{{
+	configRaw = &map[string]any{
+		"Dhcp6": map[string]any{
+			"subnet6": []map[string]any{{
 				"id":     2,
 				"subnet": "2001:db8:1::/64",
 			}},
-			"shared-networks": []map[string]interface{}{{
+			"shared-networks": []map[string]any{{
 				"name": "fox",
-				"subnet6": []map[string]interface{}{{
+				"subnet6": []map[string]any{{
 					"id":     21,
 					"subnet": "5001:db8:1::/64",
 				}},
@@ -241,12 +241,12 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			Key:     "",
 		},
 	})
-	configRaw = &map[string]interface{}{
-		"Dhcp4": &map[string]interface{}{
-			"subnet4": []map[string]interface{}{{
+	configRaw = &map[string]any{
+		"Dhcp4": &map[string]any{
+			"subnet4": []map[string]any{{
 				"id":     3,
 				"subnet": "192.118.0.0/24",
-				"pools": []map[string]interface{}{{
+				"pools": []map[string]any{{
 					"pool": "192.118.0.1-192.118.0.200",
 				}},
 			}},
@@ -267,15 +267,15 @@ func TestGetSubnetsByPageBasic(t *testing.T) {
 			Key:     "",
 		},
 	})
-	configRaw = &map[string]interface{}{
-		"Dhcp6": map[string]interface{}{
-			"subnet6": []map[string]interface{}{{
+	configRaw = &map[string]any{
+		"Dhcp6": map[string]any{
+			"subnet6": []map[string]any{{
 				"id":     4,
 				"subnet": "3001:db8:1::/64",
-				"pools": []map[string]interface{}{{
+				"pools": []map[string]any{{
 					"pool": "3001:db8:1::/80",
 				}},
-				"pd-pools": []map[string]interface{}{
+				"pd-pools": []map[string]any{
 					{
 						"prefix":        "3001:db8:1:1::",
 						"prefix-len":    80,
@@ -547,8 +547,8 @@ func TestGetSubnetsByPageNoSubnets(t *testing.T) {
 		},
 	}
 	d4 := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
-	configRaw := &map[string]interface{}{
-		"Dhcp4": &map[string]interface{}{},
+	configRaw := &map[string]any{
+		"Dhcp4": &map[string]any{},
 	}
 	configJSON, _ := json.Marshal(configRaw)
 	err = d4.SetKeaConfigFromJSON(configJSON)
@@ -586,22 +586,22 @@ func TestGetSharedNetworksByPageBasic(t *testing.T) {
 			Key:     "",
 		},
 	})
-	configRaw := &map[string]interface{}{
-		"Dhcp4": map[string]interface{}{
-			"subnet4": []map[string]interface{}{{
+	configRaw := &map[string]any{
+		"Dhcp4": map[string]any{
+			"subnet4": []map[string]any{{
 				"id":     1,
 				"subnet": "192.168.0.0/24",
-				"pools":  []map[string]interface{}{},
+				"pools":  []map[string]any{},
 			}},
-			"shared-networks": []map[string]interface{}{{
+			"shared-networks": []map[string]any{{
 				"name": "frog",
-				"subnet4": []map[string]interface{}{{
+				"subnet4": []map[string]any{{
 					"id":     11,
 					"subnet": "192.1.0.0/24",
 				}},
 			}, {
 				"name": "mouse",
-				"subnet4": []map[string]interface{}{{
+				"subnet4": []map[string]any{{
 					"id":     12,
 					"subnet": "192.2.0.0/24",
 				}, {
@@ -683,16 +683,16 @@ func TestGetSharedNetworksByPageBasic(t *testing.T) {
 			Key:     "",
 		},
 	})
-	configRaw = &map[string]interface{}{
-		"Dhcp6": map[string]interface{}{
-			"subnet6": []map[string]interface{}{{
+	configRaw = &map[string]any{
+		"Dhcp6": map[string]any{
+			"subnet6": []map[string]any{{
 				"id":     2,
 				"subnet": "2001:db8:1::/64",
-				"pools":  []map[string]interface{}{},
+				"pools":  []map[string]any{},
 			}},
-			"shared-networks": []map[string]interface{}{{
+			"shared-networks": []map[string]any{{
 				"name": "fox",
-				"subnet6": []map[string]interface{}{{
+				"subnet6": []map[string]any{{
 					"id":     21,
 					"subnet": "5001:db8:1::/64",
 				}, {

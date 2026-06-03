@@ -89,7 +89,7 @@ func TestCreateContext(t *testing.T) {
 	// Gather the generated context ids in the map to ensure
 	// that each created context has a unique context ID.
 	ids := make(map[int64]bool)
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		// Create new context with user ID between 0 and 9.
 		ctx, err := manager.CreateContext(int64(i))
 		require.NoError(t, err)

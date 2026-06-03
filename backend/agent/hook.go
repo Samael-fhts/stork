@@ -24,7 +24,7 @@ var _ forwardtokeaoverhttpcallouts.BeforeForwardToKeaOverHTTPCallouts = (*HookMa
 func NewHookManager() *HookManager {
 	return &HookManager{
 		HookManager: *hooksutil.NewHookManager([]reflect.Type{
-			reflect.TypeOf((*forwardtokeaoverhttpcallouts.BeforeForwardToKeaOverHTTPCallouts)(nil)).Elem(),
+			reflect.TypeFor[forwardtokeaoverhttpcallouts.BeforeForwardToKeaOverHTTPCallouts](),
 		}),
 	}
 }

@@ -192,7 +192,7 @@ func GetSettingPasswd(db *pg.DB, name string) (string, error) {
 }
 
 // Get all settings.
-func GetAllSettings(db *pg.DB) (map[string]interface{}, error) {
+func GetAllSettings(db *pg.DB) (map[string]any, error) {
 	settings := []*Setting{}
 	q := db.Model(&settings)
 	err := q.Select()
@@ -200,7 +200,7 @@ func GetAllSettings(db *pg.DB) (map[string]interface{}, error) {
 		return nil, pkgerrors.Wrapf(err, "problem getting all settings")
 	}
 
-	settingsMap := make(map[string]interface{})
+	settingsMap := make(map[string]any)
 
 	for _, s := range settings {
 		switch s.ValType {

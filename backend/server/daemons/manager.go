@@ -59,7 +59,7 @@ type configManagerImpl struct {
 // identify the configuration change transaction. To avoid possible
 // spoofing, the ID is randomized.
 func (manager *configManagerImpl) generateContextID() (int64, error) {
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		// Limit the maximum number to uint32. Previously, we tried larger
 		// values, i.e. int64, but it confused the typescript-based REST API
 		// client which apparently converts all numbers to float. It

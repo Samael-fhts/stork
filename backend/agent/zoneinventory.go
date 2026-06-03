@@ -851,9 +851,7 @@ func (inventory *zoneInventoryImpl) populate(block bool) (chan zoneInventoryAsyn
 		bufLen = 1
 	}
 	notifyChannel := make(chan zoneInventoryAsyncNotify, bufLen)
-	inventory.wg.Add(1)
-	go func() {
-		defer inventory.wg.Done()
+	inventory.wg.Go(func() {
 		// Fetch views and zones from the DNS server.
 		response, views, err := inventory.client.getViews(inventory.config.GetAPIKey(), inventory.host, inventory.port)
 		if err == nil {
@@ -881,7 +879,7 @@ func (inventory *zoneInventoryImpl) populate(block bool) (chan zoneInventoryAsyn
 			err,
 		}
 		close(notifyChannel)
-	}()
+	})
 	return notifyChannel, nil
 }
 

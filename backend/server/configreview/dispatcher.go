@@ -383,13 +383,11 @@ func (d *dispatcherImpl) awaitReports() {
 			// still in progress. We need to wait for them to complete.
 			allReviewsDone := int32(0)
 			wg := &sync.WaitGroup{}
-			wg.Add(1)
 
 			// Launch a goroutine waiting for the outstanding reviews. It needs
 			// a new goroutine because in the current goroutine we need to call
 			// a blocking d.reviewWg.Wait() to wait for all outstanding reviews.
-			go func() {
-				defer wg.Done()
+			wg.Go(func() {
 				for {
 					select {
 					case ctx := <-d.reviewDoneChan:
@@ -421,7 +419,7 @@ func (d *dispatcherImpl) awaitReports() {
 						time.Sleep(50 * time.Millisecond)
 					}
 				}
-			}()
+			})
 			// Wait for the outstanding reviews to complete.
 			d.reviewWg.Wait()
 

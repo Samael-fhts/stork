@@ -58,7 +58,7 @@ func NewPausablePool(size int) *PausablePool {
 	// Initialize the wait group to be waited for starting the pool.
 	var wg sync.WaitGroup
 	wg.Add(size)
-	for i := 0; i < size; i++ {
+	for i := range size {
 		pool.ctrlSignals[i] = make(chan pausablePoolCtrlSignal)
 		go pool.worker(&wg, i)
 	}

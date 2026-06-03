@@ -187,7 +187,7 @@ func TestNewSubnetFromKea(t *testing.T) {
 	require.Equal(t, "hw-address", parsedSubnet.Hosts[1].HostIdentifiers[0].Type)
 	require.Equal(t, []byte{1, 1, 1, 1, 1, 1}, parsedSubnet.Hosts[1].HostIdentifiers[0].Value)
 
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		require.Len(t, parsedSubnet.Hosts[i].LocalHosts, 1)
 		require.Len(t, parsedSubnet.Hosts[0].LocalHosts[0].IPReservations, 4)
 		require.Equal(t, "2001:db8:1::1", parsedSubnet.Hosts[1].LocalHosts[0].IPReservations[0].Address)
@@ -351,7 +351,7 @@ func TestKeaConfigAppendAndScanValue(t *testing.T) {
 	// Arrange
 	testCases := []struct {
 		label string
-		value map[string]interface{}
+		value map[string]any
 	}{
 		{
 			label: "nil",
@@ -359,11 +359,11 @@ func TestKeaConfigAppendAndScanValue(t *testing.T) {
 		},
 		{
 			label: "empty map",
-			value: map[string]interface{}{},
+			value: map[string]any{},
 		},
 		{
 			label: "flat map",
-			value: map[string]interface{}{
+			value: map[string]any{
 				"foo": "foo",
 				"bar": float64(42),
 				"baz": true,
@@ -371,10 +371,10 @@ func TestKeaConfigAppendAndScanValue(t *testing.T) {
 		},
 		{
 			label: "nested map",
-			value: map[string]interface{}{
-				"foo": map[string]interface{}{
-					"bar": map[string]interface{}{
-						"baz": map[string]interface{}{},
+			value: map[string]any{
+				"foo": map[string]any{
+					"bar": map[string]any{
+						"baz": map[string]any{},
 					},
 				},
 			},

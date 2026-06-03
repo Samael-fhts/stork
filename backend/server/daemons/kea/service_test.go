@@ -409,7 +409,7 @@ func TestDetectHAServices(t *testing.T) {
 	require.NoError(t, err)
 
 	// The services shouldn't be changed when they are detected again.
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		services = []dbmodel.Service{}
 		detected, err := DetectHAServices(db, daemonAnotherBackup)
 		require.NoError(t, err)

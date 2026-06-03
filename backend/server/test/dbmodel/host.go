@@ -17,7 +17,7 @@ import (
 // filter hosts.
 func AddTestHosts(t *testing.T, db *pg.DB) (hosts []dbmodel.Host, allDaemons []*dbmodel.Daemon) {
 	// Add two machines.
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		m := &dbmodel.Machine{
 			ID:        0,
 			Address:   "cool.example.org",

@@ -499,7 +499,7 @@ func hideSensitiveData(obj *map[string]any) {
 			continue
 		}
 		// Check if it is an array.
-		array, ok := entryValue.([]interface{})
+		array, ok := entryValue.([]any)
 		if ok {
 			for _, arrayItemValue := range array {
 				// Check if it is a subobject (or array).

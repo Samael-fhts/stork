@@ -39,7 +39,7 @@ func TestDHCPOptionDefinitionFieldTypeEmpty(t *testing.T) {
 	def := &dhcpOptionDefinition{
 		OptionType: EmptyOption,
 	}
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		fieldType, ok := GetDHCPOptionDefinitionFieldType(def, i)
 		require.False(t, ok)
 		require.Empty(t, fieldType)
@@ -69,7 +69,7 @@ func TestDHCPOptionDefinitionFieldTypeSimpleArray(t *testing.T) {
 		Array:      true,
 		OptionType: Uint8Option,
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		fieldType, ok := GetDHCPOptionDefinitionFieldType(def, i)
 		require.True(t, ok)
 		require.Equal(t, dhcpmodel.Uint8Field, fieldType)
@@ -112,7 +112,7 @@ func TestDHCPOptionDefinitionFieldTypeRecordArray(t *testing.T) {
 			Uint32Option,
 		},
 	}
-	for i := 0; i < 3; i++ {
+	for i := range 3 {
 		offset := i * len(def.RecordTypes)
 		fieldType, ok := GetDHCPOptionDefinitionFieldType(def, offset)
 		require.True(t, ok)

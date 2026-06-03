@@ -109,7 +109,7 @@ func getTestConfigWithGlobalReservations(t *testing.T, rootName string) *Config 
 			]
 		}
 	}`
-	cfg, err := NewConfig([]byte(fmt.Sprintf(configStr, rootName)))
+	cfg, err := NewConfig(fmt.Appendf(nil, configStr, rootName))
 	require.NoError(t, err)
 	require.NotNil(t, cfg)
 
@@ -1535,13 +1535,13 @@ func TestHideSensitiveData(t *testing.T) {
 	require.EqualValues(t, nil, data["token"])
 	require.EqualValues(t, nil, data["secret"])
 	// First level of the nesting
-	first := data["first"].(map[string]interface{})
+	first := data["first"].(map[string]any)
 	require.EqualValues(t, "baz", first["foo"])
 	require.EqualValues(t, nil, first["Password"])
 	require.EqualValues(t, nil, first["Token"])
 	require.EqualValues(t, nil, first["Secret"])
 	// Second level of the nesting
-	second := first["second"].(map[string]interface{})
+	second := first["second"].(map[string]any)
 	require.EqualValues(t, "biz", second["foo"])
 	require.EqualValues(t, nil, second["passworD"])
 	require.EqualValues(t, nil, second["tokeN"])
@@ -1721,7 +1721,7 @@ func TestGetSharedNetworks4(t *testing.T) {
 	sharedNetworks := cfg.GetSharedNetworks(false)
 	require.Len(t, sharedNetworks, 2)
 
-	for i := 0; i < len(sharedNetworks); i++ {
+	for i := range sharedNetworks {
 		require.IsType(t, (*SharedNetwork4)(nil), sharedNetworks[i])
 	}
 	require.Equal(t, "foo", sharedNetworks[0].GetName())
@@ -1739,7 +1739,7 @@ func TestGetSharedNetworks6(t *testing.T) {
 	sharedNetworks := cfg.GetSharedNetworks(false)
 	require.Len(t, sharedNetworks, 2)
 
-	for i := 0; i < len(sharedNetworks); i++ {
+	for i := range sharedNetworks {
 		require.IsType(t, (*SharedNetwork6)(nil), sharedNetworks[i])
 	}
 	require.Equal(t, "foo", sharedNetworks[0].GetName())
@@ -1758,7 +1758,7 @@ func TestGetSubnets4(t *testing.T) {
 	subnets := cfg.GetSubnets()
 	require.Len(t, subnets, 3)
 
-	for i := 0; i < len(subnets); i++ {
+	for i := range subnets {
 		require.IsType(t, (*Subnet4)(nil), subnets[i])
 	}
 	require.EqualValues(t, 123, subnets[0].GetID())
@@ -1778,7 +1778,7 @@ func TestGetSubnets6(t *testing.T) {
 	subnets := cfg.GetSubnets()
 	require.Len(t, subnets, 3)
 
-	for i := 0; i < len(subnets); i++ {
+	for i := range subnets {
 		require.IsType(t, (*Subnet6)(nil), subnets[i])
 	}
 	require.EqualValues(t, 123, subnets[0].GetID())

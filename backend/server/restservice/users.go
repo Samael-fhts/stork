@@ -129,10 +129,7 @@ func (r *RestAPI) CreateSession(ctx context.Context, params users.CreateSessionP
 	// identifier field.
 	safeIdentifier := "<nil>"
 	if params.Credentials.Identifier != nil {
-		end := len(*params.Credentials.Identifier)
-		if end > 255 {
-			end = 255
-		}
+		end := min(len(*params.Credentials.Identifier), 255)
 		safeIdentifier = (*params.Credentials.Identifier)[0:end]
 		if len(*params.Credentials.Identifier) > 255 {
 			safeIdentifier += "..."

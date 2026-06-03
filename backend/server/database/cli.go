@@ -106,7 +106,7 @@ func setFieldsBasedOnTags(obj any, tagName string, valueLookup func(string) (str
 		switch field.Type.Kind() {
 		case reflect.Int64:
 			// Is it time.Duration?
-			if field.Type.AssignableTo(reflect.TypeOf(time.Duration(0))) {
+			if field.Type.AssignableTo(reflect.TypeFor[time.Duration]()) {
 				duration, err := time.ParseDuration(value)
 				if err != nil {
 					return

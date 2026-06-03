@@ -18,7 +18,7 @@ import (
 
 // Generates a success mock response to a command fetching a DHCPv4
 // lease by IP address.
-func mockLease4Get(callNo int, daemon agentcomm.ControlledDaemon, responses []interface{}) {
+func mockLease4Get(callNo int, daemon agentcomm.ControlledDaemon, responses []any) {
 	bytes := []byte(`
         {
             "result": 0,
@@ -43,7 +43,7 @@ func mockLease4Get(callNo int, daemon agentcomm.ControlledDaemon, responses []in
 
 // Generates a success mock response to a command fetching a DHCPv4
 // lease by IP address.
-func mockLease6Get(callNo int, daemon agentcomm.ControlledDaemon, responses []interface{}) {
+func mockLease6Get(callNo int, daemon agentcomm.ControlledDaemon, responses []any) {
 	bytes := []byte(`
         {
             "result": 0,
@@ -66,7 +66,7 @@ func mockLease6Get(callNo int, daemon agentcomm.ControlledDaemon, responses []in
 
 // Generates a success mock response to a command fetching DHCPv6 leases
 // by DUID.
-func mockLeases6Get(callNo int, daemon agentcomm.ControlledDaemon, responses []interface{}) {
+func mockLeases6Get(callNo int, daemon agentcomm.ControlledDaemon, responses []any) {
 	bytes := []byte(`
         {
             "result": 0,
@@ -113,7 +113,7 @@ func mockLeases6Get(callNo int, daemon agentcomm.ControlledDaemon, responses []i
 }
 
 // Generates an error response to lease4-get command.
-func mockLease4GetError(callNo int, daemon agentcomm.ControlledDaemon, responses []interface{}) {
+func mockLease4GetError(callNo int, daemon agentcomm.ControlledDaemon, responses []any) {
 	bytes := []byte(`
         {
             "result": 1,
@@ -124,7 +124,7 @@ func mockLease4GetError(callNo int, daemon agentcomm.ControlledDaemon, responses
 }
 
 // Generates response to declined leases searching on the DHCPv4 and DHCPv6 server.
-func mockLeasesGetDeclined(callNo int, daemon agentcomm.ControlledDaemon, responses []interface{}) {
+func mockLeasesGetDeclined(callNo int, daemon agentcomm.ControlledDaemon, responses []any) {
 	switch callNo % 2 {
 	case 0:
 		bytes := []byte(`
@@ -250,10 +250,10 @@ func TestFindLeases4(t *testing.T) {
 	require.EqualValues(t, 3600, *lease.ValidLifetime)
 	require.NotNil(t, lease.UserContext)
 	require.Len(t, lease.UserContext, 1)
-	userContext := lease.UserContext.(map[string]interface{})
+	userContext := lease.UserContext.(map[string]any)
 	require.NotNil(t, userContext["ISC"])
 	require.Len(t, userContext["ISC"], 1)
-	context := userContext["ISC"].(map[string]interface{})
+	context := userContext["ISC"].(map[string]any)
 	require.NotNil(t, context["client-classes"])
 	require.Len(t, context["client-classes"], 3)
 	require.Equal(t, "ALL", context["client-classes"].([]any)[0])
@@ -361,10 +361,10 @@ func TestFindLeases6(t *testing.T) {
 	require.EqualValues(t, 3600, *lease.ValidLifetime)
 	require.NotNil(t, lease.UserContext)
 	require.Len(t, lease.UserContext, 1)
-	userContext := lease.UserContext.(map[string]interface{})
+	userContext := lease.UserContext.(map[string]any)
 	require.NotNil(t, userContext["ISC"])
 	require.Len(t, userContext["ISC"], 1)
-	context := userContext["ISC"].(map[string]interface{})
+	context := userContext["ISC"].(map[string]any)
 	require.NotNil(t, context["client-classes"])
 	require.Len(t, context["client-classes"], 3)
 	require.Equal(t, "ALL", context["client-classes"].([]any)[0])
@@ -397,10 +397,10 @@ func TestFindLeases6(t *testing.T) {
 	require.EqualValues(t, 3600, *lease.ValidLifetime)
 	require.NotNil(t, lease.UserContext)
 	require.Len(t, lease.UserContext, 1)
-	userContext = lease.UserContext.(map[string]interface{})
+	userContext = lease.UserContext.(map[string]any)
 	require.NotNil(t, userContext["ISC"])
 	require.Len(t, userContext["ISC"], 1)
-	context = userContext["ISC"].(map[string]interface{})
+	context = userContext["ISC"].(map[string]any)
 	require.NotNil(t, context["client-classes"])
 	require.Len(t, context["client-classes"], 3)
 	require.Equal(t, "ALL", context["client-classes"].([]any)[0])

@@ -562,7 +562,7 @@ func TestFetchZones(t *testing.T) {
 	randomZones := testutil.GenerateRandomZones(1000)
 
 	// Generate many machines and daemons.
-	for i := 0; i < 100; i++ {
+	for i := range 100 {
 		machine := &dbmodel.Machine{
 			ID:        0,
 			Address:   "localhost",
@@ -1512,14 +1512,12 @@ func TestGetZoneRRsAnotherRequestInProgress(t *testing.T) {
 	// This wait group is used to ensure that the background goroutine is
 	// finished before we complete the test.
 	var wg3 sync.WaitGroup
-	wg3.Add(1)
-	go func() {
-		defer wg3.Done()
+	wg3.Go(func() {
 		responses := manager.GetZoneRRs(zone.ID, daemon.ID, "_default", nil)
 		for response := range responses {
 			require.NoError(t, response.Err)
 		}
-	}()
+	})
 
 	// Wait for the first request to start.
 	wg1.Wait()
@@ -1687,9 +1685,7 @@ func TestGetZoneRRsAnotherRequestInProgressDifferentZone(t *testing.T) {
 	// This wait group is used to ensure that the background goroutine is
 	// finished before we complete the test.
 	var wg3 sync.WaitGroup
-	wg3.Add(1)
-	go func() {
-		defer wg3.Done()
+	wg3.Go(func() {
 		responses := manager.GetZoneRRs(zones[0].ID, daemon1.ID, "_default", nil)
 		for response := range responses {
 			// Since these responses will be read in the cleanup phase, it is expected
@@ -1698,7 +1694,7 @@ func TestGetZoneRRsAnotherRequestInProgressDifferentZone(t *testing.T) {
 			// ensure they are not nil.
 			require.NotNil(t, response)
 		}
-	}()
+	})
 
 	// Wait for the first request to start.
 	wg1.Wait()
@@ -2305,14 +2301,12 @@ func TestGetBind9FormattedConfigAnotherRequestInProgress(t *testing.T) {
 	// This wait group is used to ensure that the background goroutine is
 	// finished before we complete the test.
 	var wg3 sync.WaitGroup
-	wg3.Add(1)
-	go func() {
-		defer wg3.Done()
+	wg3.Go(func() {
 		responses := manager.GetBind9FormattedConfig(t.Context(), daemon.ID, nil, nil)
 		for response := range responses {
 			require.NoError(t, response.Err)
 		}
-	}()
+	})
 
 	// Wait for the first request to start.
 	wg1.Wait()
@@ -2421,9 +2415,7 @@ func TestGetBind9FormattedConfigAnotherRequestInProgressDifferentDaemon(t *testi
 	// This wait group is used to ensure that the background goroutine is
 	// finished before we complete the test.
 	var wg3 sync.WaitGroup
-	wg3.Add(1)
-	go func() {
-		defer wg3.Done()
+	wg3.Go(func() {
 		responses := manager.GetBind9FormattedConfig(t.Context(), daemon1.ID, nil, nil)
 		for response := range responses {
 			// Since these responses will be read in the cleanup phase, it is expected
@@ -2432,7 +2424,7 @@ func TestGetBind9FormattedConfigAnotherRequestInProgressDifferentDaemon(t *testi
 			// ensure they are not nil.
 			require.NotNil(t, response)
 		}
-	}()
+	})
 
 	// Wait for the first request to start.
 	wg1.Wait()

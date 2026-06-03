@@ -33,18 +33,18 @@ func (agents *connectedAgentsImpl) communicationLoop() {
 }
 
 type channelResp struct {
-	Response interface{}
+	Response any
 	Err      error
 }
 
 type commLoopReq struct {
 	AgentAddr string
-	ReqData   interface{}
+	ReqData   any
 	RespChan  chan *channelResp
 }
 
 // Send a request to agent and receive response using channel to communication loop.
-func (agents *connectedAgentsImpl) sendAndRecvViaQueue(agentAddr string, in interface{}) (interface{}, error) {
+func (agents *connectedAgentsImpl) sendAndRecvViaQueue(agentAddr string, in any) (any, error) {
 	respChan := make(chan *channelResp)
 	req := &commLoopReq{AgentAddr: agentAddr, ReqData: in, RespChan: respChan}
 	agents.commLoopReqs <- req
@@ -53,8 +53,8 @@ func (agents *connectedAgentsImpl) sendAndRecvViaQueue(agentAddr string, in inte
 }
 
 // Pass given request directly to an agent.
-func doCall(ctx context.Context, agent *agentState, in interface{}) (interface{}, error) {
-	var response interface{}
+func doCall(ctx context.Context, agent *agentState, in any) (any, error) {
+	var response any
 	var err error
 	// The options passed to the commands that can receive a big response (>4MiB).
 	compressOption := grpc.UseCompressor(gzip.Name)

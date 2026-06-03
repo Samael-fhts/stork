@@ -34,7 +34,7 @@ func TestRpsWorkerEmptyOrInvalidResponses(t *testing.T) {
 	rps, err := NewRpsWorker(db)
 	require.NoError(t, err)
 
-	for call := 0; call < len(jsonResponses); call++ {
+	for call := range jsonResponses {
 		err := rpsTestInvokeResponse4Handler(rps, dhcp4Daemon, jsonResponses[call])
 		require.Error(t, err)
 
@@ -193,7 +193,7 @@ func TestRpsWorkerValuePermutations(t *testing.T) {
 	rps, err := NewRpsWorker(db)
 	require.NoError(t, err)
 
-	for pass := 0; pass < len(statValues); pass++ {
+	for pass := range statValues {
 		// Process the next command response
 		err = rpsTestInvokeResponse4Handler(rps, dhcp4Daemon, makeJSON4(statValues[pass]))
 		require.NoError(t, err)
@@ -284,7 +284,7 @@ func getExpectedRps(rpsIntervals []*dbmodel.RpsInterval, endIdx int) float32 {
 	var responses int64
 	var duration int64
 
-	for idx := 0; idx < endIdx; idx++ {
+	for idx := range endIdx {
 		responses += rpsIntervals[idx].Responses
 		duration += rpsIntervals[idx].Duration
 	}

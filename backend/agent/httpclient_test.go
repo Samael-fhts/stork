@@ -230,8 +230,7 @@ func TestCallTimeout(t *testing.T) {
 		wgClient   sync.WaitGroup
 	)
 	// Ensure that the client returned before we check an error code.
-	wgClient.Add(1)
-	go func() {
+	wgClient.Go(func() {
 		// Use HTTP client to communicate with the server. This call
 		// should return with a timeout because the server response
 		// is blocked.
@@ -247,8 +246,7 @@ func TestCallTimeout(t *testing.T) {
 		}()
 		// Indicate that the client has returned so we can now check
 		// an error code returned.
-		wgClient.Done()
-	}()
+	})
 	// The timeout is 100ms. Let's wait up to 2 seconds for the timeout.
 	require.Eventually(t, func() bool {
 		mutex.RLock()

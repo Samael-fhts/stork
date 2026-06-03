@@ -66,7 +66,7 @@ func TestSafeBufferNoRace(t *testing.T) {
 	var wg sync.WaitGroup
 
 	writer := func(i int) {
-		_, err := buffer.Write([]byte(fmt.Sprint(i)))
+		_, err := buffer.Write(fmt.Append(nil, i))
 		wg.Done()
 		require.NoError(t, err)
 	}

@@ -19,7 +19,7 @@ import (
 
 // Kea servers' response to config-get command from CA. The argument indicates if
 // it is a response from a single server or two servers.
-func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
+func mockGetConfigFromCAResponse(daemons int, cmdResponses []any) {
 	versionResp := cmdResponses[0].(*VersionGetResponse)
 	*versionResp = VersionGetResponse{
 		ResponseHeader: keactrl.ResponseHeader{
@@ -37,14 +37,14 @@ func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
 		},
 	}
 	if daemons > 1 {
-		configArgs := map[string]interface{}{
-			"Control-agent": map[string]interface{}{
-				"control-sockets": map[string]interface{}{
-					"dhcp4": map[string]interface{}{
+		configArgs := map[string]any{
+			"Control-agent": map[string]any{
+				"control-sockets": map[string]any{
+					"dhcp4": map[string]any{
 						"socket-name": "aaa",
 						"socket-type": "unix",
 					},
-					"dhcp6": map[string]interface{}{
+					"dhcp6": map[string]any{
 						"socket-name": "bbbb",
 						"socket-type": "unix",
 					},
@@ -54,29 +54,29 @@ func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
 		configBytes, _ := json.Marshal(configArgs)
 		configResp.Arguments = configBytes
 	} else {
-		configArgs := map[string]interface{}{
-			"Control-agent": map[string]interface{}{
-				"control-sockets": map[string]interface{}{
-					"dhcp4": map[string]interface{}{
+		configArgs := map[string]any{
+			"Control-agent": map[string]any{
+				"control-sockets": map[string]any{
+					"dhcp4": map[string]any{
 						"socket-name": "aaa",
 						"socket-type": "unix",
 					},
 				},
-				"loggers": []interface{}{
-					map[string]interface{}{
+				"loggers": []any{
+					map[string]any{
 						"name":     "kea-ca",
 						"severity": "DEBUG",
-						"output_options": []interface{}{
-							map[string]interface{}{
+						"output_options": []any{
+							map[string]any{
 								"output": "stdout",
 							},
 						},
 					},
-					map[string]interface{}{
+					map[string]any{
 						"name":     "kea-ca.sockets",
 						"severity": "DEBUG",
-						"output_options": []interface{}{
-							map[string]interface{}{
+						"output_options": []any{
+							map[string]any{
 								"output": "/tmp/kea-ca-sockets.log",
 							},
 						},
@@ -92,7 +92,7 @@ func mockGetConfigFromCAResponse(daemons int, cmdResponses []interface{}) {
 // Kea servers' response to config-get command from other Kea daemons. The
 // argument indicates of the IP family related to the daemon.
 
-func mockGetConfigFromOtherDaemonsResponse(family int, cmdResponses []interface{}) {
+func mockGetConfigFromOtherDaemonsResponse(family int, cmdResponses []any) {
 	// For non-CA daemons, we have version-get, config-get, and status-get responses
 	versionResp := cmdResponses[0].(*VersionGetResponse)
 	*versionResp = VersionGetResponse{
@@ -110,13 +110,13 @@ func mockGetConfigFromOtherDaemonsResponse(family int, cmdResponses []interface{
 			Result: 0,
 		},
 	}
-	configArgs := map[string]interface{}{
-		fmt.Sprintf("Dhcp%d", family): map[string]interface{}{
-			"hooks-libraries": []interface{}{
-				map[string]interface{}{
+	configArgs := map[string]any{
+		fmt.Sprintf("Dhcp%d", family): map[string]any{
+			"hooks-libraries": []any{
+				map[string]any{
 					"library": "hook_abc.so",
 				},
-				map[string]interface{}{
+				map[string]any{
 					"library": "hook_def.so",
 				},
 			},
@@ -177,7 +177,7 @@ func TestGetDaemonStateWith1Daemon(t *testing.T) {
 	ctx := context.Background()
 
 	// check getting config of 1 daemon
-	keaMock := func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	keaMock := func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		require.LessOrEqual(t, callNo, 2)
 		mockGetConfigFromCAResponse(1, cmdResponses)
 	}
@@ -220,7 +220,7 @@ func TestGetDaemonStateWith2Daemons(t *testing.T) {
 	ctx := context.Background()
 
 	// check getting configs of 2 daemons
-	keaMock := func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	keaMock := func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		switch callNo {
 		case 0:
 			mockGetConfigFromCAResponse(2, cmdResponses)
@@ -256,7 +256,7 @@ func TestGetDaemonStateForExistingDaemon(t *testing.T) {
 	ctx := context.Background()
 
 	// check getting config of 1 daemon
-	keaMock := func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+	keaMock := func(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 		// Since we're testing with a CA daemon, always use CA response
 		mockGetConfigFromCAResponse(1, cmdResponses)
 	}

@@ -30,7 +30,7 @@ func TestBatch(t *testing.T) {
 	})
 	require.NotNil(t, batch)
 
-	for i := 0; i < 9; i++ {
+	for i := range 9 {
 		_ = batch.Add(i)
 		require.Zero(t, callCount)
 	}
@@ -80,7 +80,7 @@ func TestBatchFlushAndAdd(t *testing.T) {
 	require.NotNil(t, batch)
 
 	// Add 5 items without the flush.
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		_ = batch.Add(i)
 		require.Zero(t, callCount)
 		require.Zero(t, capturedItems)

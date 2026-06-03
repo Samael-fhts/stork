@@ -151,10 +151,10 @@ func TestReadConfigurationWithoutIncludes(t *testing.T) {
 	raw, err := ReadFileWithIncludes(path)
 	require.NoError(t, err)
 
-	var content interface{}
+	var content any
 	err = json.Unmarshal(raw, &content)
 	require.NoError(t, err)
-	data := content.(map[string]interface{})
+	data := content.(map[string]any)
 
 	require.Contains(t, data, "foo", "bar", "baz")
 	foo := int(data["foo"].(float64))
@@ -171,10 +171,10 @@ func TestReadFileWithIncludes(t *testing.T) {
 	raw, err := ReadFileWithIncludes(path)
 	require.NoError(t, err)
 
-	var content interface{}
+	var content any
 	err = json.Unmarshal(raw, &content)
 	require.NoError(t, err)
-	data := content.(map[string]interface{})
+	data := content.(map[string]any)
 	require.Contains(t, data, "biz", "buz", "boz")
 
 	// Non-imported content
@@ -184,7 +184,7 @@ func TestReadFileWithIncludes(t *testing.T) {
 	require.EqualValues(t, boz, "zob")
 
 	// Imported content
-	buz := data["buz"].(map[string]interface{})
+	buz := data["buz"].(map[string]any)
 	require.Contains(t, buz, "foo", "bar", "baz")
 	foo := int(buz["foo"].(float64))
 	require.EqualValues(t, foo, 42)
@@ -200,10 +200,10 @@ func TestReadFileWithIncludesNonJSONExtension(t *testing.T) {
 	raw, err := ReadFileWithIncludes(path)
 	require.NoError(t, err)
 
-	var content interface{}
+	var content any
 	err = json.Unmarshal(raw, &content)
 	require.NoError(t, err)
-	data := content.(map[string]interface{})
+	data := content.(map[string]any)
 	require.Contains(t, data, "biz", "buz", "boz")
 
 	// Non-imported content
@@ -213,7 +213,7 @@ func TestReadFileWithIncludesNonJSONExtension(t *testing.T) {
 	require.EqualValues(t, boz, "zob")
 
 	// Imported content
-	buz := data["buz"].(map[string]interface{})
+	buz := data["buz"].(map[string]any)
 	require.Contains(t, buz, "foo", "bar", "baz")
 	foo := int(buz["foo"].(float64))
 	require.EqualValues(t, foo, 42)
@@ -229,14 +229,14 @@ func TestReadConfigurationWithNestedIncludes(t *testing.T) {
 	raw, err := ReadFileWithIncludes(path)
 	require.NoError(t, err)
 
-	var content interface{}
+	var content any
 	err = json.Unmarshal(raw, &content)
 	require.NoError(t, err)
-	data := content.(map[string]interface{})
+	data := content.(map[string]any)
 	require.Contains(t, data, "ban")
 
 	// Non-imported content
-	ban := data["ban"].([]interface{})
+	ban := data["ban"].([]any)
 	require.EqualValues(t, len(ban), 5)
 	require.Equal(t, ban[0], float64(0))
 	require.Equal(t, ban[1], float64(1))
@@ -244,7 +244,7 @@ func TestReadConfigurationWithNestedIncludes(t *testing.T) {
 	require.Equal(t, ban[4], float64(4))
 
 	// 1-level nesting
-	firstNest := ban[3].(map[string]interface{})
+	firstNest := ban[3].(map[string]any)
 	require.Contains(t, firstNest, "biz", "buz", "boz")
 	biz := firstNest["biz"].(string)
 	require.EqualValues(t, biz, "zib")
@@ -252,7 +252,7 @@ func TestReadConfigurationWithNestedIncludes(t *testing.T) {
 	require.EqualValues(t, boz, "zob")
 
 	// 2-level nesting
-	buz := firstNest["buz"].(map[string]interface{})
+	buz := firstNest["buz"].(map[string]any)
 	require.Contains(t, buz, "foo", "bar", "baz")
 	foo := int(buz["foo"].(float64))
 	require.EqualValues(t, foo, 42)
@@ -276,14 +276,14 @@ func TestReadConfigurationWithMultipleTheSameIncludes(t *testing.T) {
 	raw, err := ReadFileWithIncludes(path)
 	require.NoError(t, err)
 
-	var content interface{}
+	var content any
 	err = json.Unmarshal(raw, &content)
 	require.NoError(t, err)
-	data := content.(map[string]interface{})
+	data := content.(map[string]any)
 	require.Contains(t, data, "biz", "buz", "boz")
 
 	for _, key := range []string{"biz", "buz", "boz"} {
-		nested := data[key].(map[string]interface{})
+		nested := data[key].(map[string]any)
 		require.Contains(t, nested, "foo", "bar", "baz")
 		foo := int(nested["foo"].(float64))
 		require.EqualValues(t, foo, 42)
@@ -417,7 +417,7 @@ func TestIsNumber(t *testing.T) {
 	// Not whole numbers.
 	require.False(t, IsNumber("foo"))
 	require.False(t, IsNumber(struct{}{}))
-	require.False(t, IsNumber(interface{}(nil)))
+	require.False(t, IsNumber(any(nil)))
 	u8 := uint8(123)
 	require.False(t, IsNumber(&u8))
 }

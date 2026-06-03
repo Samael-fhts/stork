@@ -3,6 +3,7 @@ package restservice
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
 	"sort"
 	"time"
@@ -307,9 +308,7 @@ func convertUnknownParametersFromRestAPI(restParameters any) (unknownParameters 
 		return
 	}
 	unknownParameters = make(map[string]any)
-	for key, value := range unknown {
-		unknownParameters[key] = value
-	}
+	maps.Copy(unknownParameters, unknown)
 	return
 }
 

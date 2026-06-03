@@ -124,7 +124,7 @@ func TestGetMachineStateOnly(t *testing.T) {
 	require.Empty(t, okRsp.Payload.Daemons)
 }
 
-func mockGetDaemonsState(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []interface{}) {
+func mockGetDaemonsState(callNo int, daemon agentcomm.ControlledDaemon, cmdResponses []any) {
 	versionResponse := cmdResponses[0].(*kea.VersionGetResponse)
 	*versionResponse = kea.VersionGetResponse{
 		ResponseHeader: keactrl.ResponseHeader{
@@ -965,7 +965,7 @@ func TestGetUnauthorizedMachinesCount(t *testing.T) {
 	db, dbSettings, teardown := dbtest.SetupDatabaseTestCase(t)
 	defer teardown()
 
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		machine := &dbmodel.Machine{
 			Address:   fmt.Sprintf("machine%d", i),
 			AgentPort: 8080,

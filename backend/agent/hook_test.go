@@ -68,7 +68,7 @@ func TestHookManagerFromCallouts(t *testing.T) {
 	})
 
 	// Assert
-	require.True(t, hookManager.GetExecutor().HasRegistered(reflect.TypeOf((*forwardtokeaoverhttpcallouts.BeforeForwardToKeaOverHTTPCallouts)(nil)).Elem()))
+	require.True(t, hookManager.GetExecutor().HasRegistered(reflect.TypeFor[forwardtokeaoverhttpcallouts.BeforeForwardToKeaOverHTTPCallouts]()))
 }
 
 // Test that the hook manager is closing properly.

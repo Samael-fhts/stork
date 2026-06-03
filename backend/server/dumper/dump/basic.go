@@ -78,12 +78,12 @@ func (a *BasicArtifact) GetExtension() string {
 // must be serializable.
 type BasicStructArtifact struct {
 	BasicArtifact
-	content interface{}
+	content any
 }
 
 // Constructs the artifact with the Go object as content.
 // The content must be serializable.
-func NewBasicStructArtifact(name string, content interface{}) *BasicStructArtifact {
+func NewBasicStructArtifact(name string, content any) *BasicStructArtifact {
 	return &BasicStructArtifact{
 		*NewBasicArtifact(name, ".json"),
 		content,
@@ -91,13 +91,13 @@ func NewBasicStructArtifact(name string, content interface{}) *BasicStructArtifa
 }
 
 // The content getter. Part of the StructArtifact interface.
-func (a *BasicStructArtifact) GetStruct() interface{} {
+func (a *BasicStructArtifact) GetStruct() any {
 	return a.content
 }
 
 // The content setter. It is useful in case when the artifact
 // object is created before the content is ready.
-func (a *BasicStructArtifact) SetStruct(content interface{}) {
+func (a *BasicStructArtifact) SetStruct(content any) {
 	a.content = content
 }
 

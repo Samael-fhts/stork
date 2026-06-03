@@ -62,7 +62,7 @@ func addMachineDaemonsAndSubnets(t *testing.T, db *pg.DB) []*Daemon {
 	require.NoError(t, err)
 
 	daemons := []*Daemon{}
-	for i := 0; i < 2; i++ {
+	for i := range 2 {
 		accessPoints := []*AccessPoint{
 			{
 				Type:    AccessPointControl,

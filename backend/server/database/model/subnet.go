@@ -141,7 +141,7 @@ func (s Stats) MarshalJSON() ([]byte, error) {
 // During the serialization we lost the original data type of the number.
 // We assume that strings with positive numbers are uint64 and negative numbers are int64.
 func (s *Stats) UnmarshalJSON(data []byte) error {
-	toUnmarshal := make(map[string]interface{})
+	toUnmarshal := make(map[string]any)
 	err := json.Unmarshal(data, &toUnmarshal)
 	if err != nil {
 		return err

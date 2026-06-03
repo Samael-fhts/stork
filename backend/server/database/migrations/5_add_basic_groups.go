@@ -30,7 +30,7 @@ func init() {
 	migrations.MustRegisterTx(func(db migrations.DB) error {
 		// Create system_group and system_user_to_group tables. Enable foreign key
 		// constraints and create the tables only if they don't exist.
-		for _, model := range []interface{}{&systemGroup{}, &systemUserToGroup{}} {
+		for _, model := range []any{&systemGroup{}, &systemUserToGroup{}} {
 			err := db.Model(model).CreateTable(&orm.CreateTableOptions{
 				FKConstraints: true,
 				IfNotExists:   true,
@@ -83,7 +83,7 @@ func init() {
 	}, func(db migrations.DB) error {
 		// Drop the new tables. This also removes all associations between the
 		// users and groups.
-		for _, model := range []interface{}{&systemGroup{}, &systemUserToGroup{}} {
+		for _, model := range []any{&systemGroup{}, &systemUserToGroup{}} {
 			err := db.Model(model).DropTable(&orm.DropTableOptions{
 				IfExists: true,
 				Cascade:  true,

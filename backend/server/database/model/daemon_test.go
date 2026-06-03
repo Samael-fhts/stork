@@ -593,11 +593,9 @@ func TestGetBind9DaemonsForUpdate(t *testing.T) {
 	mutex.Lock()
 	ch := make(chan struct{})
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 
 	// Actually run the goroutine.
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		// The main thread is waiting for this conditional to ensure that the
 		// goroutine is started before the test continues.
 		ch <- struct{}{}
@@ -605,7 +603,7 @@ func TestGetBind9DaemonsForUpdate(t *testing.T) {
 		// and the daemons are locked for update. This should block until the
 		// main transaction is committed or rolled back.
 		result, _ = db.Model(daemon).WherePK().Delete()
-	}()
+	})
 
 	// Wait for the goroutine to begin.
 	<-ch
@@ -716,11 +714,9 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 	mutex.Lock()
 	cond := sync.NewCond(mutex)
 	wg := &sync.WaitGroup{}
-	wg.Add(1)
 
 	// Actually run the goroutine.
-	go func() {
-		defer wg.Done()
+	wg.Go(func() {
 		// The main thread is waiting for this conditional to ensure that the
 		// goroutine is started before the test continues.
 		cond.Signal()
@@ -728,7 +724,7 @@ func TestGetKeaDaemonsForUpdate(t *testing.T) {
 		// and the daemons are locked for update. This should block until the
 		// main transaction is committed or rolled back.
 		result, _ = db.Model(daemon1).WherePK().Delete()
-	}()
+	})
 
 	// Wait for the goroutine to begin.
 	cond.Wait()
@@ -1221,15 +1217,15 @@ func BenchmarkGetDaemonByID(b *testing.B) {
 		},
 	}
 
-	for i := 0; i < 300; i++ {
+	for range 300 {
 		daemon := NewDaemon(m, daemonname.DHCPv4, true, accessPoints)
 		_ = AddDaemon(db, daemon)
 	}
-	for i := 0; i < 300; i++ {
+	for range 300 {
 		daemon := NewDaemon(m, daemonname.Bind9, true, accessPoints)
 		_ = AddDaemon(db, daemon)
 	}
-	for i := 0; i < 300; i++ {
+	for range 300 {
 		daemon := NewDaemon(m, daemonname.PDNS, true, accessPoints)
 		_ = AddDaemon(db, daemon)
 	}
@@ -1458,14 +1454,14 @@ func TestGetDaemonsByPage(t *testing.T) {
 	err = AddMachine(db, m2)
 	require.NoError(t, err)
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		d := NewDaemon(m, daemonname.DHCPv4, true, []*AccessPoint{})
 		d.Version = "1.0"
 		err = AddDaemon(db, d)
 		require.NoError(t, err)
 	}
 
-	for i := 0; i < 5; i++ {
+	for range 5 {
 		d := NewDaemon(m2, daemonname.DHCPv6, true, []*AccessPoint{})
 		d.Version = "2.0"
 		err = AddDaemon(db, d)
