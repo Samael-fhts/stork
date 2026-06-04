@@ -812,7 +812,7 @@ namespace :lint do
     namespace :python do
         desc 'Runs pylint, python linter tool'
         task :pylint => [PYLINT, FLASK] do
-            python_files, exit_code = Open3.capture2('git', 'ls-files', '*.py')
+            python_files, exit_code = Open3.capture2('git', 'ls-files', '*.py', ':(exclude)tests/**')
             python_files = python_files.split("\n").map{ |string| string.strip }
             puts "Running pylint:"
             sh PYLINT, '--rcfile', '.pylint', *python_files
@@ -820,7 +820,7 @@ namespace :lint do
 
         desc 'Runs flake8, python linter tool'
         task :flake8 => [FLAKE8] do
-            python_files, exit_code = Open3.capture2('git', 'ls-files', '*.py')
+            python_files, exit_code = Open3.capture2('git', 'ls-files', '*.py', ':(exclude)tests/**')
             python_files = python_files.split("\n").map{ |string| string.strip }
             puts "Running flake8:"
             sh FLAKE8, '--config', '.flake8', '--color=auto', *python_files
@@ -829,7 +829,7 @@ namespace :lint do
         desc 'Runs black, python linter tool
         To run it in fixing mode, please use fmt:python task'
         task :black => [BLACK] do
-            python_files, exit_code = Open3.capture2('git', 'ls-files', '*.py')
+            python_files, exit_code = Open3.capture2('git', 'ls-files', '*.py', ':(exclude)tests/**') 
             python_files = python_files.split("\n").map{ |string| string.strip }
             puts "Running black (check mode):"
             sh BLACK, "--check", *python_files
