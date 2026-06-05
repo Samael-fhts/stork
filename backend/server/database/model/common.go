@@ -2,6 +2,7 @@ package dbmodel
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -103,6 +104,11 @@ var _ types.ValueAppender = (*Utilization)(nil)
 
 var _ types.ValueScanner = (*Utilization)(nil)
 
+// clamp restricts the value of a float64 to at most maxf and at least minf.
+func clamp(value, minf, maxf float64) float64 {
+	return min(max(value, minf), maxf)
+}
+
 // Converts the utilization to the integer value. The value is multiplied by
 // 1000 to store it in the smallint column. The value is rounded to the nearest
 // integer value.
@@ -111,8 +117,22 @@ func (u Utilization) AppendValue(b []byte, quote int) ([]byte, error) {
 		b = append(b, '\'')
 	}
 
-	s := strconv.FormatFloat(float64(u)*1000., 'f', 0, 64)
-	b = append(b, []byte(s)...)
+	// Utilization is usually in the range 0-1. It can be slightly above 1 in
+	// some special cases (e.g., when out-of-pool reservations are specified in
+	// pools).
+	// However, in some extreme cases (e.g., when the daemons are duplicated)
+	// the utilization can be much higher than 1. In such cases, we don't want
+	// to interrupt statistics update with an error because it turned out to
+	// be confused for the end-users. Instead, we clip the value to the column
+	// limits and let the users to investigate the root cause of such high
+	// utilization.
+	utilizationFloat := clamp(
+		float64(u)*1000.,
+		float64(math.MinInt16),
+		float64(math.MaxInt16),
+	)
+	utilizationString := strconv.FormatFloat(utilizationFloat, 'f', 0, 64)
+	b = append(b, []byte(utilizationString)...)
 
 	if quote == 1 {
 		b = append(b, '\'')
