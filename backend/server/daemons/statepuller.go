@@ -3,8 +3,11 @@ package daemons
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 	"time"
 
+	"github.com/go-pg/pg/v10"
 	"github.com/pkg/errors"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/sync/singleflight"
@@ -106,7 +109,7 @@ func (puller *StatePuller) UpdateMachineAndDaemonsState(ctx context.Context, mac
 }
 
 // Store updated machine fields in to database.
-func updateMachineFields(db *dbops.PgDB, dbMachine *dbmodel.Machine, m *agentcomm.State) error {
+func updateMachineFields(ctx context.Context, db *dbops.PgDB, dbMachine *dbmodel.Machine, m *agentcomm.State) error {
 	// update state fields in machine
 	dbMachine.State.AgentVersion = m.AgentVersion
 	dbMachine.State.Cpus = m.Cpus
@@ -126,11 +129,53 @@ func updateMachineFields(db *dbops.PgDB, dbMachine *dbmodel.Machine, m *agentcom
 	dbMachine.State.HostID = m.HostID
 	dbMachine.LastVisitedAt = m.LastVisitedAt
 	dbMachine.Error = m.Error
-	err := dbmodel.UpdateMachine(db, dbMachine)
-	if err != nil {
-		return errors.Wrapf(err, "problem updating machine %+v", dbMachine)
+
+	currentInterfacesHash := dbMachine.State.HostNetworkInterfacesHash
+
+	// Compute the hash of the network interfaces.
+	// Start by sorting the interfaces by name.
+	slices.SortFunc(m.Interfaces, func(iface1, iface2 agentcomm.NetworkInterface) int {
+		return strings.Compare(iface1.Name, iface2.Name)
+	})
+	// For each interface, sort the IP addresses by IP address.
+	for _, iface := range m.Interfaces {
+		slices.Sort(iface.IPAddresses)
 	}
-	return nil
+	// Compute the hash of the network interfaces.
+	newInterfacesHash := storkutil.Fnv128(m.Interfaces)
+	// Replace the hash.
+	dbMachine.State.HostNetworkInterfacesHash = newInterfacesHash
+
+	err := db.RunInTransaction(ctx, func(tx *pg.Tx) error {
+		err := dbmodel.UpdateMachine(tx, dbMachine)
+		if err != nil {
+			return errors.Wrapf(err, "problem updating machine with ID %d", dbMachine.ID)
+		}
+		// Only update the network interfaces if anything has changed.
+		if currentInterfacesHash != newInterfacesHash {
+			var interfaces []dbmodel.MachineNetworkInterface
+			for _, iface := range m.Interfaces {
+				var ipAddresses []dbmodel.MachineNetworkInterfaceIPAddress
+				for _, addr := range iface.IPAddresses {
+					ipAddresses = append(ipAddresses, dbmodel.MachineNetworkInterfaceIPAddress{
+						IPAddress: addr,
+					})
+				}
+				interfaces = append(interfaces, dbmodel.MachineNetworkInterface{
+					Name:            iface.Name,
+					Flags:           iface.Flags,
+					HardwareAddress: iface.HardwareAddress,
+					IPAddresses:     ipAddresses,
+				})
+			}
+			err = dbmodel.UpsertMachineNetworkInterfaces(tx, dbMachine.ID, interfaces...)
+			if err != nil {
+				return errors.Wrapf(err, "problem upserting network interfaces for machine with ID %d", dbMachine.ID)
+			}
+		}
+		return nil
+	})
+	return errors.Wrapf(err, "problem updating machine with ID %d", dbMachine.ID)
 }
 
 // It is an index key for comparing daemons. The daemons are considered equal
@@ -338,7 +383,7 @@ func updateMachineAndDaemonsState(ctx context.Context, db *dbops.PgDB, machineID
 	isStorkAgentChanged := false
 
 	// store machine's state in db
-	err = updateMachineFields(db, dbMachine, state)
+	err = updateMachineFields(ctx, db, dbMachine, state)
 	if err != nil {
 		return nil, err
 	}

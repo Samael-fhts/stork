@@ -1,6 +1,7 @@
 package daemons
 
 import (
+	"net"
 	"sort"
 	"sync"
 	"testing"
@@ -21,6 +22,7 @@ import (
 )
 
 //go:generate mockgen -package=daemons -destination=dispatchermock_test.go isc.org/stork/server/configreview Dispatcher
+//go:generate mockgen -package=daemons -destination=connectedagentsmock_test.go isc.org/stork/server/agentcomm ConnectedAgents
 
 // Check creating and shutting down StatePuller.
 func TestStatsPullerBasic(t *testing.T) {
@@ -141,6 +143,12 @@ func TestStatePullerPullData(t *testing.T) {
 				}},
 			},
 		},
+		Interfaces: []agentcomm.NetworkInterface{{
+			Name:            "eth0",
+			Flags:           uint32(net.FlagUp),
+			HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+			IPAddresses:     []string{"1.1.1.1", "2.2.2.2"},
+		}},
 	}
 
 	// prepare fake event center
@@ -228,6 +236,225 @@ func TestStatePullerPullData(t *testing.T) {
 	require.Len(t, keaDaemons[1].AccessPoints, 1)
 	require.EqualValues(t, keaDaemons[1].AccessPoints[0].Address, "203.0.113.123")
 	require.True(t, keaDaemons[1].Active)
+
+	// Make sure that the IP addresses are present in the database.
+	addrs, err := dbmodel.GetMachineNetworkInterfaceIPAddresses(db, dbmodel.MachineNetworkInterfaceIPAddressRelationInterface)
+	require.NoError(t, err)
+	require.Len(t, addrs, 2)
+	require.NotNil(t, addrs[0].Interface)
+	require.Equal(t, "eth0", addrs[0].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[0].Interface.Flags)
+	require.Contains(t, addrs[0].IPAddress, "1.1.1.1")
+	require.Contains(t, addrs[1].IPAddress, "2.2.2.2")
+}
+
+// Test that the network interfaces are correctly updated in the database when the
+// agent returns different lists of network interfaces.
+func TestStatePullerPullDataNetworkInterfacesOverride(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	// Mock responses from the agents. First two calls return the same list of IP addresses,
+	// the third call returns a different list of IP addresses.
+	mock := NewMockConnectedAgents(ctrl)
+	mock.EXPECT().GetState(gomock.Any(), gomock.Any()).Return(&agentcomm.State{
+		AgentVersion: "2.4.0",
+		Interfaces: []agentcomm.NetworkInterface{
+			{
+				Name:            "eth0",
+				Flags:           uint32(net.FlagUp),
+				HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+				IPAddresses:     []string{"1.1.1.1", "3.3.3.3"},
+			},
+			{
+				Name:            "eth1",
+				Flags:           uint32(net.FlagUp),
+				HardwareAddress: []byte{7, 8, 9, 10, 11, 12},
+				IPAddresses:     []string{"2.2.2.2", "4.4.4.4"},
+			},
+		},
+	}, nil)
+	mock.EXPECT().GetState(gomock.Any(), gomock.Any()).Return(&agentcomm.State{
+		AgentVersion: "2.4.0",
+		Interfaces: []agentcomm.NetworkInterface{
+			{
+				Name:            "eth1",
+				Flags:           uint32(net.FlagUp),
+				HardwareAddress: []byte{7, 8, 9, 10, 11, 12},
+				IPAddresses:     []string{"4.4.4.4", "2.2.2.2"},
+			},
+			{
+				Name:            "eth0",
+				Flags:           uint32(net.FlagUp),
+				HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+				IPAddresses:     []string{"1.1.1.1", "3.3.3.3"},
+			},
+		},
+	}, nil)
+	mock.EXPECT().GetState(gomock.Any(), gomock.Any()).Return(&agentcomm.State{
+		AgentVersion: "2.4.0",
+		Interfaces: []agentcomm.NetworkInterface{
+			{
+				Name:            "eth0",
+				Flags:           uint32(net.FlagUp),
+				HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+				IPAddresses:     []string{"1.1.1.1", "3.3.3.3"},
+			},
+			{
+				Name:            "eth1",
+				Flags:           uint32(net.FlagUp),
+				HardwareAddress: []byte{7, 8, 9, 10, 11, 12},
+				IPAddresses:     []string{"2.2.2.2", "4.4.4.4"},
+			},
+			{
+				Name:            "eth2",
+				Flags:           uint32(net.FlagUp),
+				HardwareAddress: []byte{13, 14, 15, 16, 17, 18},
+				IPAddresses:     []string{"5.5.5.5"},
+			},
+		},
+	}, nil)
+
+	// Add a machine.
+	m := &dbmodel.Machine{
+		ID:         0,
+		Address:    "localhost",
+		AgentPort:  8080,
+		Authorized: true,
+	}
+	err := dbmodel.AddMachine(db, m)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, m.ID)
+
+	// This setting is required by the puller.
+	setting := dbmodel.Setting{
+		Name:    "state_puller_interval",
+		ValType: dbmodel.SettingValTypeInt,
+		Value:   "60",
+	}
+	_, err = db.Model(&setting).Insert()
+	require.NoError(t, err)
+
+	sp, err := NewStatePuller(db, mock, &storktest.FakeEventCenter{}, nil, dbmodel.NewDHCPOptionDefinitionLookup())
+	require.NoError(t, err)
+	defer sp.Shutdown()
+
+	// Trigger the puller to fetch and update the IP addresses.
+	err = sp.pullData()
+	require.NoError(t, err)
+
+	// Make sure that the addrs are present in the database.
+	addrs, err := dbmodel.GetMachineNetworkInterfaceIPAddresses(db, dbmodel.MachineNetworkInterfaceIPAddressRelationInterface)
+	require.NoError(t, err)
+	require.Len(t, addrs, 4)
+
+	require.NotNil(t, addrs[0].Interface)
+	require.Equal(t, "eth0", addrs[0].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[0].Interface.Flags)
+	require.Contains(t, addrs[0].IPAddress, "1.1.1.1")
+
+	require.NotNil(t, addrs[1].Interface)
+	require.Equal(t, "eth1", addrs[1].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[1].Interface.Flags)
+	require.Contains(t, addrs[1].IPAddress, "2.2.2.2")
+
+	require.NotNil(t, addrs[2].Interface)
+	require.Equal(t, "eth0", addrs[2].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[2].Interface.Flags)
+	require.Contains(t, addrs[2].IPAddress, "3.3.3.3")
+
+	require.NotNil(t, addrs[3].Interface)
+	require.Equal(t, "eth1", addrs[3].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[3].Interface.Flags)
+	require.Contains(t, addrs[3].IPAddress, "4.4.4.4")
+
+	// Make sure that the IP addresses hash is present in the database.
+	machine, err := dbmodel.GetMachineByID(db, m.ID)
+	require.NoError(t, err)
+	require.NotNil(t, machine)
+	hash1 := machine.State.HostNetworkInterfacesHash
+	require.NotEmpty(t, hash1)
+
+	err = sp.pullData()
+	require.NoError(t, err)
+
+	// The interfaces should not change.
+	addrs, err = dbmodel.GetMachineNetworkInterfaceIPAddresses(db, dbmodel.MachineNetworkInterfaceIPAddressRelationInterface)
+	require.NoError(t, err)
+	require.Len(t, addrs, 4)
+
+	require.NotNil(t, addrs[0].Interface)
+	require.Equal(t, "eth0", addrs[0].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[0].Interface.Flags)
+	require.Contains(t, addrs[0].IPAddress, "1.1.1.1")
+
+	require.NotNil(t, addrs[1].Interface)
+	require.Equal(t, "eth1", addrs[1].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[1].Interface.Flags)
+	require.Contains(t, addrs[1].IPAddress, "2.2.2.2")
+
+	require.NotNil(t, addrs[2].Interface)
+	require.Equal(t, "eth0", addrs[2].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[2].Interface.Flags)
+	require.Contains(t, addrs[2].IPAddress, "3.3.3.3")
+
+	require.NotNil(t, addrs[3].Interface)
+	require.Equal(t, "eth1", addrs[3].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[3].Interface.Flags)
+	require.Contains(t, addrs[3].IPAddress, "4.4.4.4")
+
+	// The hash should not change.
+	machine, err = dbmodel.GetMachineByID(db, m.ID)
+	require.NoError(t, err)
+	require.NotNil(t, machine)
+	hash2 := machine.State.HostNetworkInterfacesHash
+	require.NotEmpty(t, hash2)
+	require.Equal(t, hash1, hash2)
+
+	err = sp.pullData()
+	require.NoError(t, err)
+
+	// The interfaces should change.
+	addrs, err = dbmodel.GetMachineNetworkInterfaceIPAddresses(db, dbmodel.MachineNetworkInterfaceIPAddressRelationInterface)
+	require.NoError(t, err)
+	require.Len(t, addrs, 5)
+
+	require.NotNil(t, addrs[0].Interface)
+	require.Equal(t, "eth0", addrs[0].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[0].Interface.Flags)
+	require.Contains(t, addrs[0].IPAddress, "1.1.1.1")
+
+	require.NotNil(t, addrs[1].Interface)
+	require.Equal(t, "eth1", addrs[1].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[1].Interface.Flags)
+	require.Contains(t, addrs[1].IPAddress, "2.2.2.2")
+
+	require.NotNil(t, addrs[2].Interface)
+	require.Equal(t, "eth0", addrs[2].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[2].Interface.Flags)
+	require.Contains(t, addrs[2].IPAddress, "3.3.3.3")
+
+	require.NotNil(t, addrs[3].Interface)
+	require.Equal(t, "eth1", addrs[3].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[3].Interface.Flags)
+	require.Contains(t, addrs[3].IPAddress, "4.4.4.4")
+
+	require.NotNil(t, addrs[4].Interface)
+	require.Equal(t, "eth2", addrs[4].Interface.Name)
+	require.EqualValues(t, net.FlagUp, addrs[4].Interface.Flags)
+	require.Contains(t, addrs[4].IPAddress, "5.5.5.5")
+
+	// The hash should change.
+	machine, err = dbmodel.GetMachineByID(db, m.ID)
+	require.NoError(t, err)
+	require.NotNil(t, machine)
+
+	hash3 := machine.State.HostNetworkInterfacesHash
+	require.NotEmpty(t, hash3)
+	require.NotEqual(t, hash1, hash3)
 }
 
 // Check if puller correctly pulls data from an agent that can communicate only

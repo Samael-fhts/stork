@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"iter"
+	"net"
 	"strings"
 	"testing"
 	"time"
@@ -187,6 +188,14 @@ func TestGetState(t *testing.T) {
 				}},
 			},
 		},
+		MachineNetworkInterfaces: []*agentapi.NetworkInterface{
+			{
+				Name:            "eth0",
+				Flags:           uint32(net.FlagUp),
+				HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+				IpAddresses:     []string{"1.1.1.1", "2.2.2.2"},
+			},
+		},
 	}
 	mockAgentClient.EXPECT().
 		GetState(gomock.Any(), gomock.Any(), newGZIPMatcher()).
@@ -219,6 +228,13 @@ func TestGetState(t *testing.T) {
 	require.Equal(t, "1.2.3.5", state.Daemons[1].AccessPoints[0].Address)
 	require.EqualValues(t, 4321, state.Daemons[1].AccessPoints[0].Port)
 	require.Equal(t, protocoltype.RNDC, state.Daemons[1].AccessPoints[0].Protocol)
+
+	require.Len(t, state.Interfaces, 1)
+	require.Equal(t, "eth0", state.Interfaces[0].Name)
+	require.EqualValues(t, net.FlagUp, state.Interfaces[0].Flags)
+	require.Len(t, state.Interfaces[0].IPAddresses, 2)
+	require.Contains(t, state.Interfaces[0].IPAddresses, "1.1.1.1")
+	require.Contains(t, state.Interfaces[0].IPAddresses, "2.2.2.2")
 
 	agent, err := agents.getConnectedAgent("127.0.0.1:8080")
 	require.NoError(t, err)

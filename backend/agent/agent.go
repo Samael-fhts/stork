@@ -268,6 +268,34 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 		})
 	}
 
+	// Get the host network interfaces along with their IP addresses
+	// and return to the server.
+	var (
+		errText                  string
+		machineNetworkInterfaces []*agentapi.NetworkInterface
+	)
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		errText = err.Error()
+	}
+	for _, iface := range ifaces {
+		addrs, err := iface.Addrs()
+		if err != nil {
+			errText = err.Error()
+			break
+		}
+		ipAddrs := make([]string, 0, len(addrs))
+		for _, addr := range addrs {
+			ipAddrs = append(ipAddrs, addr.String())
+		}
+		machineNetworkInterfaces = append(machineNetworkInterfaces, &agentapi.NetworkInterface{
+			Name:            iface.Name,
+			Flags:           uint32(iface.Flags),
+			HardwareAddress: iface.HardwareAddr,
+			IpAddresses:     ipAddrs,
+		})
+	}
+
 	state := agentapi.GetStateRsp{
 		AgentVersion:         stork.Version,
 		Daemons:              daemons,
@@ -286,11 +314,12 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 		VirtualizationSystem: hostInfo.VirtualizationSystem,
 		VirtualizationRole:   hostInfo.VirtualizationRole,
 		HostID:               hostInfo.HostID,
-		Error:                "",
+		Error:                errText,
 		// This field is not used by the agent. It is here to keep the
 		// API backward compatibility. The Stork Server should not rely
 		// on this field.
 		AgentUsesHTTPCredentials: false,
+		MachineNetworkInterfaces: machineNetworkInterfaces,
 	}
 
 	return &state, nil

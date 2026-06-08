@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/rand"
+	"net"
 	"net/http"
 	"os"
 	"path"
@@ -295,6 +296,26 @@ func TestGetState(t *testing.T) {
 	require.NoError(t, err)
 	// Deprecated parameter. Always false.
 	require.False(t, rsp.AgentUsesHTTPCredentials) //nolint:staticcheck,deprecated
+
+	// Make sure that the network interfaces are returned correctly.
+	ifaces, err := net.Interfaces()
+	require.NoError(t, err)
+	for _, iface := range ifaces {
+		index := slices.IndexFunc(rsp.MachineNetworkInterfaces, func(returnedIface *agentapi.NetworkInterface) bool {
+			return returnedIface.Name == iface.Name
+		})
+		require.GreaterOrEqual(t, index, 0)
+		returnedIface := rsp.MachineNetworkInterfaces[index]
+		require.Equal(t, iface.Name, returnedIface.Name)
+		require.EqualValues(t, iface.Flags, returnedIface.Flags)
+		require.EqualValues(t, iface.HardwareAddr, returnedIface.HardwareAddress)
+		addrs, err := iface.Addrs()
+		require.NoError(t, err)
+		require.Len(t, returnedIface.IpAddresses, len(addrs))
+		for _, addr := range addrs {
+			require.Contains(t, returnedIface.IpAddresses, addr.String())
+		}
+	}
 }
 
 // Check if GetState works even if the daemon has multiple access points of
