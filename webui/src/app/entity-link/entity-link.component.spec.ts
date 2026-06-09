@@ -250,7 +250,7 @@ describe('EntityLinkComponent', () => {
         // Show the identifier.
         fixture.componentRef.setInput('showIdentifier', true)
         fixture.detectChanges()
-        expect(link.nativeElement.innerText).toEqual('[8] fe80::/64')
+        expect(link.nativeElement.innerText).toEqual('[8]\u00a0fe80::/64')
     })
 
     it('should construct a shared network link', () => {

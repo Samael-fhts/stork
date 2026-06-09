@@ -706,7 +706,7 @@ describe('JsonTreeComponent-ExternalTemplates', () => {
         expect(element).not.toBeNull()
         const nativeElement = element.nativeElement as HTMLElement
         expect(nativeElement).not.toBeNull()
-        const content = nativeElement.textContent
+        const content = nativeElement.textContent.trim()
         expect(content).toBe('biz')
     })
 
@@ -760,7 +760,7 @@ describe('JsonTreeComponent-ExternalTemplates', () => {
         expect(element).not.toBeNull()
         const nativeElement = element.nativeElement as HTMLElement
         expect(nativeElement).not.toBeNull()
-        const content = nativeElement.textContent
+        const content = nativeElement.textContent.trim()
         expect(content).toBe('biz')
     })
 })

@@ -6,6 +6,10 @@
             <a
                 id="daemon-link-{{ attrs.daemonId || attrs.id || 0 }}"
                 routerLink="/daemons/{{ attrs.daemonId || +attrs.id || '' }}"
+                [textContent]="
+                    (attrs.daemonId || +attrs.id ? '[' + (attrs.daemonId || attrs.id) + ']\u00A0' : '') +
+                    (attrs.daemonLabel || (attrs.name | daemonNiceName) || attrs.label)
+                "
             >
                 <!-- This entity link may be rendered by passing three different
         structures:
@@ -16,10 +20,6 @@
         - LocalSubnet/LocalSharedNetwork/LocalHost/LocalZone: they provide 'daemonId' and
         'daemonLabel' attributes (note they also have their own 'id')
         - LeasesSearchErredDaemon: they provide 'id' and 'label' attributes -->
-                @if (attrs.daemonId || +attrs.id) {
-                    [{{ attrs.daemonId || attrs.id }}]&nbsp;
-                }
-                {{ attrs.daemonLabel || (attrs.name | daemonNiceName) || attrs.label }}
             </a>
         }
         <!-- machine -->
@@ -32,14 +32,15 @@
         <!-- subnet -->
         @case ('subnet') {
             {{ showEntityName ? 'subnet ' : '' }}
-            <a id="subnet-link" routerLink="/dhcp/subnets/{{ attrs.id }}" class="white-space-nowrap">
+            <a
+                id="subnet-link"
+                routerLink="/dhcp/subnets/{{ attrs.id }}"
+                class="white-space-nowrap"
+                [textContent]="(showIdentifier() ? '[' + attrs.id + ']\u00A0' : '') + (attrs.subnet || attrs.prefix)"
+            >
                 <!-- Subnet property is included in the API responses. -->
                 <!-- Prefix property is included in the event content. -->
-                @if (showIdentifier()) {
-                    [{{ attrs.id }}]
-                }
-                {{ attrs.subnet || attrs.prefix }}</a
-            >
+            </a>
         }
         <!-- user -->
         @case ('user') {
@@ -51,22 +52,22 @@
         <!-- host reservation -->
         @case ('host') {
             {{ showEntityName ? 'host' : '' }}
-            <a id="host-link" routerLink="/dhcp/hosts/{{ attrs.id }}">
-                @if (showIdentifier()) {
-                    [{{ attrs.id }}]&nbsp;
-                }
-                {{ attrs.label }}</a
+            <a
+                id="host-link"
+                routerLink="/dhcp/hosts/{{ attrs.id }}"
+                [textContent]="(showIdentifier() ? '[' + attrs.id + ']\u00A0' : '') + attrs.label"
             >
+            </a>
         }
         <!-- shared network -->
         @case ('shared-network') {
             {{ showEntityName ? 'shared network' : '' }}
-            <a id="shared-network-link" routerLink="/dhcp/shared-networks/{{ attrs.id }}">
-                @if (showIdentifier()) {
-                    [{{ attrs.id }}]&nbsp;
-                }
-                {{ attrs.name }}</a
+            <a
+                id="shared-network-link"
+                routerLink="/dhcp/shared-networks/{{ attrs.id }}"
+                [textContent]="(showIdentifier() ? '[' + attrs.id + ']\u00A0' : '') + attrs.name"
             >
+            </a>
         }
         <!-- unsupported -->
         @default {
