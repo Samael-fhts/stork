@@ -95,16 +95,18 @@ func generateCSR(certStore *CertStore, agentAddr string, regenKey bool) ([]byte,
 	case regenKey:
 		log.Info("Forced agent certificates regeneration.")
 	default:
-		// Special case for the agent that was authorized before 1.15.1.
-		// Create a server cert fingerprint file with zero value.
-		if ok, err := certStore.IsServerCertFingerprintFileExist(); !ok && err == nil {
-			err := certStore.WriteServerCertFingerprint([32]byte{})
-			if err != nil {
-				return nil, errors.WithMessage(err, "cannot write zero server cert fingerprint")
+		// Clean up after the improper handling of the missing server cert
+		// fingerprint in 1.15.1. There was a zeroed fingerprint written.
+		if ok, _ := certStore.IsServerCertFingerprintZero(); ok {
+			if err := certStore.RemoveServerCertFingerprint(); err != nil {
+				return nil, errors.WithMessage(err, "cannot remove zeroed server cert fingerprint")
 			}
 		}
 
-		if err := certStore.IsValid(); err != nil {
+		// Special case for the agent that was authorized before 1.15.1.
+		if err := certStore.IsConditionallyValid(ValidationOptions{
+			AllowMissingServerCertFingerprint: true,
+		}); err != nil {
 			log.WithError(err).Warn("The agent certificates are invalid - they will be regenerated.")
 			regenKey = true
 		}

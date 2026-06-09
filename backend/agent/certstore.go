@@ -76,6 +76,9 @@ func (*CertStore) isValidServerCertFingerprint(content []byte) error {
 	if len(fingerprint) != 32 {
 		return errors.New("file content is not a valid 32-byte fingerprint")
 	}
+	if [32]byte{} == [32]byte(fingerprint) {
+		return errors.New("file content contains a zero fingerprint")
+	}
 
 	return nil
 }
@@ -380,10 +383,23 @@ func (s *CertStore) RemoveServerCertFingerprint() error {
 	return s.removeIfExist(s.serverCertFingerprintPath)
 }
 
+// Contains options for the validation of the cert store.
+type ValidationOptions struct {
+	AllowMissingServerCertFingerprint bool
+}
+
 // Checks if all files managed by the cert store are valid (they exist and
 // have proper contents). Returns an error that describes all occurred
 // problems. Returns nil if all is OK.
 func (s *CertStore) IsValid() error {
+	return s.IsConditionallyValid(ValidationOptions{})
+}
+
+// Checks if all files managed by the cert store are valid (they exist and
+// have proper contents). Returns an error that describes all occurred
+// problems. Returns nil if all is OK.
+// Particular checks can be disabled by providing options.
+func (s *CertStore) IsConditionallyValid(options ValidationOptions) error {
 	var validationErrors []error
 	content, err := s.readCert()
 	if err != nil {
@@ -414,7 +430,9 @@ func (s *CertStore) IsValid() error {
 	}
 
 	content, err = s.readServerCertFingerprint()
-	if err != nil {
+	if options.AllowMissingServerCertFingerprint && errors.Is(err, os.ErrNotExist) {
+		// Ignore missing server cert fingerprint file.
+	} else if err != nil {
 		validationErrors = append(validationErrors, err)
 	} else if err = s.isValidServerCertFingerprint(content); err != nil {
 		validationErrors = append(validationErrors, err)
@@ -423,9 +441,18 @@ func (s *CertStore) IsValid() error {
 	return storkutil.CombineErrors("cert store is not valid", validationErrors)
 }
 
-// Check if the server cert fingerprint file exists.
-func (s *CertStore) IsServerCertFingerprintFileExist() (bool, error) {
-	return s.isExist(s.serverCertFingerprintPath)
+// Check if the server cert fingerprint is zero.
+func (s *CertStore) IsServerCertFingerprintZero() (bool, error) {
+	content, err := s.readServerCertFingerprint()
+	if err != nil {
+		return false, err
+	}
+	fingerprint := storkutil.HexToBytes(string(content))
+	if len(fingerprint) != 32 {
+		return false, errors.New("file content is not a valid 32-byte fingerprint")
+	}
+
+	return [32]byte{} == [32]byte(fingerprint), nil
 }
 
 // Check if all files managed by the cert store are missing.

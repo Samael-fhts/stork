@@ -594,6 +594,7 @@ func TestGenerateCSRHelper(t *testing.T) {
 	// 3) generate again but now regenKey is true, result should be be different
 	regenKey = true
 	csrPEM3, err := generateCSR(certStore, agentAddr, regenKey)
+	regenKey = false
 	require.NoError(t, err)
 	require.NotEmpty(t, csrPEM3)
 	agentToken3, err := certStore.ReadToken()
@@ -609,12 +610,11 @@ func TestGenerateCSRHelper(t *testing.T) {
 	require.NotEqualValues(t, privKeyPEM2, privKeyPEM3)
 	evaluateCSR(csrPEM3)
 
-	// 4) generate again but the server cert fingerprint is missing
-	regenKey = false
-	_ = os.Remove(ServerCertFingerprintFile)
+	// 4) don't generate again if the server cert fingerprint is zero.
+	certStore.WriteServerCertFingerprint([32]byte{})
 	csrPEM4, err := generateCSR(certStore, agentAddr, regenKey)
 	require.NoError(t, err)
-	require.NotEmpty(t, csrPEM2)
+	require.NotEmpty(t, csrPEM4)
 	agentToken4, err := certStore.ReadToken()
 	require.NoError(t, err)
 	require.NotEmpty(t, agentToken4)
@@ -627,6 +627,24 @@ func TestGenerateCSRHelper(t *testing.T) {
 	require.NotEmpty(t, privKeyPEM4)
 	require.EqualValues(t, privKeyPEM3, privKeyPEM4)
 	evaluateCSR(csrPEM4)
+
+	// 5) don't generate again if the server cert fingerprint is missing.
+	_ = certStore.RemoveServerCertFingerprint()
+	csrPEM5, err := generateCSR(certStore, agentAddr, regenKey)
+	require.NoError(t, err)
+	require.NotEmpty(t, csrPEM5)
+	agentToken5, err := certStore.ReadToken()
+	require.NoError(t, err)
+	require.NotEmpty(t, agentToken5)
+	// CSR is regenerated but no agent token
+	require.NotEqualValues(t, csrPEM4, csrPEM5)
+	require.EqualValues(t, agentToken4, agentToken5)
+	// but key in the file is the same
+	privKeyPEM5, err := os.ReadFile(KeyPEMFile)
+	require.NoError(t, err)
+	require.NotEmpty(t, privKeyPEM5)
+	require.EqualValues(t, privKeyPEM4, privKeyPEM5)
+	evaluateCSR(csrPEM5)
 }
 
 // Check if generating agent token file works and a value in the file
