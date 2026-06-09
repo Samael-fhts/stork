@@ -33,7 +33,7 @@ import { AddressPoolFormComponent } from '../address-pool-form/address-pool-form
 import { SelectableDaemon } from '../forms/selectable-daemon'
 import { PrefixPoolFormComponent } from '../prefix-pool-form/prefix-pool-form.component'
 import { lastValueFrom } from 'rxjs'
-import { NgIf, NgFor } from '@angular/common'
+
 import { Fieldset } from 'primeng/fieldset'
 import { FloatLabel } from 'primeng/floatlabel'
 import { MultiSelect } from 'primeng/multiselect'
@@ -59,7 +59,6 @@ import { Message } from 'primeng/message'
     templateUrl: './subnet-form.component.html',
     styleUrls: ['./subnet-form.component.sass'],
     imports: [
-        NgIf,
         FormsModule,
         ReactiveFormsModule,
         Fieldset,
@@ -69,7 +68,6 @@ import { Message } from 'primeng/message'
         InputText,
         Select,
         Checkbox,
-        NgFor,
         Divider,
         Tag,
         Accordion,
