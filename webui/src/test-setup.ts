@@ -17,7 +17,11 @@ function asymmetricMatchOrDeepEqual(actual: unknown, expected: unknown): boolean
 }
 
 function normalizeText(value: string): string {
-    return value.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase()
+    return value
+        .replace(/\u00a0/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase()
 }
 
 expect.extend({
@@ -230,9 +234,11 @@ function jasmineSpyOnProperty<T extends object, K extends keyof T>(
 ): T[K] {
     const descriptor = Object.getOwnPropertyDescriptor(target, propertyName)
     const original = accessType === 'get' ? descriptor?.get : descriptor?.set
-    const spy = (
-        vi.spyOn as unknown as (obj: object, key: PropertyKey, accessType: 'get' | 'set') => unknown
-    )(target, propertyName as PropertyKey, accessType) as unknown as (...args: never[]) => unknown
+    const spy = (vi.spyOn as unknown as (obj: object, key: PropertyKey, accessType: 'get' | 'set') => unknown)(
+        target,
+        propertyName as PropertyKey,
+        accessType
+    ) as unknown as (...args: never[]) => unknown
     return decorateSpy(spy as never, (original as never) ?? undefined) as never
 }
 
@@ -360,7 +366,6 @@ if (!Object.getOwnPropertyDescriptor(HTMLElement.prototype, 'clientHeight')) {
     })
 }
 
-
 if (!globalThis.ResizeObserver) {
     class ResizeObserverMock {
         observe(): void {}
@@ -413,4 +418,3 @@ if (processLike && !processLike.__storkVitestEmitPatched__) {
     }
     processLike.__storkVitestEmitPatched__ = true
 }
-
