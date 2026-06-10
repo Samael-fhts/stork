@@ -49,7 +49,7 @@ file CHROME_LINK => [NPX, NODE_MODULES, playwright_browsers_dir] do
             # system dependencies. It may occur when running on the system that
             # is not officially supported by Playwright and, for example,
             # misses apt-get. In some cases dependencies may be installed manually in OS specific way.
-            # We ignore this error and try first to install without dependencies and if that fails too, 
+            # We ignore this error and try first to install without dependencies and if that fails too,
             # we fallback to detection of system-wide chromium.
             puts stdout
             puts stderr
@@ -266,17 +266,7 @@ namespace :unittest do
             opts += ["--include", test_path]
         end
 
-        opts += ["--progress", debug]
         opts += ["--watch", debug]
-
-        opts += ["--browsers"]
-        if debug == "true"
-            opts += ["Chrome"]
-            ENV["CHROME_BIN"] = File.expand_path File.readlink(CHROME_LINK)
-        else
-            opts += ["ChromeNoSandboxHeadless"]
-            ENV["CHROME_BIN"] = File.expand_path File.readlink(CHROME_HEADLESS_LINK)
-        end
 
         Dir.chdir('webui') do
             sh NPX, "ng", "test", *opts
