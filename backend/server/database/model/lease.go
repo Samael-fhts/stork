@@ -31,7 +31,11 @@ type Lease struct {
 // Adds a new lease into the database within a transaction.
 func addLease(tx *pg.Tx, lease *Lease) (err error) {
 	// Add the subnet first.
-	_, err = tx.Model(lease).Insert()
+	_, err = tx.Model(lease).
+		OnConflict("(ip_address, hw_address, daemon_id) DO UPDATE").
+		OnConflict("(ip_address, duid, daemon_id) DO UPDATE").
+		OnConflict("(ip_address, client_id, daemon_id) DO UPDATE").
+		Insert()
 	if err != nil {
 		if lease == nil {
 			err = pkgerrors.Wrapf(err, "cannot insert nil lease into database")
