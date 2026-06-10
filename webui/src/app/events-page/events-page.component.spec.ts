@@ -1,5 +1,5 @@
 import { By } from '@angular/platform-browser'
-import { ComponentFixture, fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing'
+import { ComponentFixture, fakeAsync, TestBed, waitForAsync } from '@angular/core/testing'
 
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
 import { EventsPageComponent } from './events-page.component'
@@ -8,12 +8,13 @@ import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { ConfirmationService, MessageService } from 'primeng/api'
 import { ServerSentEventsService, ServerSentEventsTestingService } from '../server-sent-events.service'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
-import { provideRouter, Router } from '@angular/router'
+import { provideRouter } from '@angular/router'
+import { ActivatedRoute } from '@angular/router'
 
 describe('EventsPageComponent', () => {
     let component: EventsPageComponent
     let fixture: ComponentFixture<EventsPageComponent>
-    let router: Router
+    let route: ActivatedRoute
 
     beforeEach(waitForAsync(() => {
         TestBed.configureTestingModule({
@@ -31,7 +32,7 @@ describe('EventsPageComponent', () => {
 
     beforeEach(() => {
         fixture = TestBed.createComponent(EventsPageComponent)
-        router = fixture.debugElement.injector.get(Router)
+        route = fixture.debugElement.injector.get(ActivatedRoute)
         component = fixture.componentInstance
         fixture.detectChanges()
     })
@@ -51,8 +52,12 @@ describe('EventsPageComponent', () => {
     })
 
     it('should retrieve filter parameters from route', fakeAsync(() => {
-        router.navigate(['events'], { queryParams: { level: '2', machineId: '3', daemonName: 'dhcp4', userId: '4' } })
-        tick()
+        ;(route.snapshot as { queryParams: Record<string, string> }).queryParams = {
+            level: '2',
+            machineId: '3',
+            daemonName: 'dhcp4',
+            userId: '4',
+        }
         component.ngOnInit()
 
         expect(component.machineId).toBe(3)

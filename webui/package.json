@@ -5,7 +5,9 @@
         "ng": "ng",
         "start": "ng serve",
         "build": "ng build",
-        "test": "ng test",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "test:ng": "ng test",
         "lint": "ng lint",
         "storybook": "npm run storybook dev -p 6006",
         "build-storybook": "npm run storybook build",
@@ -41,6 +43,8 @@
         "zone.js": "^0.15.1"
     },
     "devDependencies": {
+        "@analogjs/vite-plugin-angular": "^2.5.2",
+        "@analogjs/vitest-angular": "^2.5.2",
         "@angular-devkit/build-angular": "^21.2.12",
         "@angular-devkit/schematics": "^21.2.12",
         "@angular-eslint/builder": "^21.4.0",
@@ -73,19 +77,14 @@
         "http-server": "^14.1.1",
         "jasmine-core": "^5.13.0",
         "jasmine-spec-reporter": "^7.0.0",
-        "karma": "^6.4.4",
-        "karma-chrome-launcher": "^3.2.0",
-        "karma-coverage-istanbul-reporter": "^3.0.3",
-        "karma-jasmine": "^5.1.0",
-        "karma-jasmine-html-reporter": "^2.2.0",
-        "karma-junit-reporter": "^2.0.1",
-        "karma-spec-reporter": "^0.0.36",
+        "jsdom": "^29.1.1",
         "prettier": "^3.8.1",
         "storybook": "^10.2.14",
         "storybook-addon-mock": "^6.0.1",
         "ts-node": "^10.9.2",
         "tslint-config-prettier": "^1.18.0",
         "typescript": "5.9.3",
+        "vitest": "^4.1.7",
         "wait-on": "^7.2.0"
     }
 }

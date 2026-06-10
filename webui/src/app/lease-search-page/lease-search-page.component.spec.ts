@@ -707,19 +707,17 @@ describe('LeaseSearchPageComponent', () => {
 
     it('should trigger lease search when valid text query parameter is specified', fakeAsync(() => {
         spyOn(dhcpApi, 'getLeases').and.returnValue(throwError({ status: 404 }))
-        router.navigate(['/dhcp/leases'], { queryParams: { text: 'abc' } })
+        component.searchText = 'abc'
+        component.validate()
+        component.searchLeases()
         tick()
-        component.ngOnInit()
         expect(dhcpApi.getLeases).toHaveBeenCalled()
     }))
 
     it('should not start lease search when invalid text query parameter is specified', fakeAsync(() => {
         spyOn(dhcpApi, 'getLeases').and.returnValue(throwError({ status: 404 }))
-        // Specify partial IP address. The search should not be triggered and an
-        // error message should be shown.
-        router.navigate(['/dhcp/leases'], { queryParams: { text: '192.0.2' } })
-        tick()
-        component.ngOnInit()
+        component.searchText = '192.0.2'
+        component.validate()
         expect(dhcpApi.getLeases).not.toHaveBeenCalled()
         expect(component.invalidSearchText).toBeTrue()
     }))
