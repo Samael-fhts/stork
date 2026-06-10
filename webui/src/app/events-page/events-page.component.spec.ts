@@ -1,5 +1,5 @@
 import { By } from '@angular/platform-browser'
-import { ComponentFixture, fakeAsync, TestBed, tick, waitForAsync } from '@angular/core/testing'
+import { ComponentFixture, fakeAsync, TestBed, waitForAsync } from '@angular/core/testing'
 
 import { BreadcrumbsComponent } from '../breadcrumbs/breadcrumbs.component'
 import { EventsPageComponent } from './events-page.component'
@@ -8,13 +8,12 @@ import { provideHttpClientTesting } from '@angular/common/http/testing'
 import { ConfirmationService, MessageService } from 'primeng/api'
 import { ServerSentEventsService, ServerSentEventsTestingService } from '../server-sent-events.service'
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
-import { provideRouter, Router } from '@angular/router'
+import { provideRouter } from '@angular/router'
 import { ActivatedRoute } from '@angular/router'
 
 describe('EventsPageComponent', () => {
     let component: EventsPageComponent
     let fixture: ComponentFixture<EventsPageComponent>
-    let router: Router
     let route: ActivatedRoute
 
     beforeEach(waitForAsync(() => {
@@ -33,7 +32,6 @@ describe('EventsPageComponent', () => {
 
     beforeEach(() => {
         fixture = TestBed.createComponent(EventsPageComponent)
-        router = fixture.debugElement.injector.get(Router)
         route = fixture.debugElement.injector.get(ActivatedRoute)
         component = fixture.componentInstance
         fixture.detectChanges()

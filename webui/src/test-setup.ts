@@ -9,6 +9,7 @@ setupTestBed({
     teardown: { destroyAfterEach: false },
 })
 
+/** Compares values using Jasmine asymmetric matchers or deep equality. */
 function asymmetricMatchOrDeepEqual(actual: unknown, expected: unknown): boolean {
     if (expected && typeof expected === 'object' && 'asymmetricMatch' in (expected as Record<string, unknown>)) {
         return Boolean((expected as { asymmetricMatch: (value: unknown) => boolean }).asymmetricMatch(actual))
@@ -16,6 +17,7 @@ function asymmetricMatchOrDeepEqual(actual: unknown, expected: unknown): boolean
     return isDeepStrictEqual(actual, expected)
 }
 
+/** Normalizes whitespace and case for string comparisons in tests. */
 function normalizeText(value: string): string {
     return value
         .replace(/\u00a0/g, ' ')
@@ -126,6 +128,7 @@ expect.extend({
     },
 })
 
+/** Adds Jasmine-style spy API on top of a Vitest mock function. */
 function decorateSpy<T extends (...args: never[]) => unknown>(spy: T, originalImpl?: T): T {
     const callsApi = {
         count: () => (spy as unknown as { mock: { calls: unknown[] } }).mock.calls.length,
@@ -218,6 +221,7 @@ function decorateSpy<T extends (...args: never[]) => unknown>(spy: T, originalIm
     return spy
 }
 
+/** Jasmine-compatible spyOn wrapper around vi.spyOn. */
 function jasmineSpyOn<T extends object, K extends keyof T>(target: T, methodName: K): T[K] {
     const original = target[methodName]
     const spy = (vi.spyOn as unknown as (obj: object, key: PropertyKey) => unknown)(
@@ -227,6 +231,7 @@ function jasmineSpyOn<T extends object, K extends keyof T>(target: T, methodName
     return decorateSpy(spy as never, (original as never) ?? undefined) as never
 }
 
+/** Jasmine-compatible spyOnProperty wrapper around vi.spyOn. */
 function jasmineSpyOnProperty<T extends object, K extends keyof T>(
     target: T,
     propertyName: K,

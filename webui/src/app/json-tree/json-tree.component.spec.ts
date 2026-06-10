@@ -609,7 +609,6 @@ describe('JsonTreeComponent', () => {
 
         // Extract element
         const valueElement = fixture.debugElement.query(By.css('.tree-level--leaf .tree-level__value'))
-        const valueNativeElement = valueElement.nativeElement as HTMLElement
         const summaryElement = valueElement.query(By.css('summary'))
         expect(summaryElement).not.toBeNull()
     })
