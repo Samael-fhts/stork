@@ -61,13 +61,18 @@ describe('LoginScreenComponent', () => {
     }))
 
     beforeEach(() => {
+        localStorage.clear()
         fixture = TestBed.createComponent(LoginScreenComponent)
         component = fixture.componentInstance
         router = fixture.debugElement.injector.get(Router)
         msgSrv = fixture.debugElement.injector.get(MessageService)
-        fixture.detectChanges()
-        localStorage.clear()
     })
+
+    /** Stabilizes the view after async init (Angular 21 change detection). */
+    function refreshView(): void {
+        fixture.detectChanges()
+        fixture.detectChanges()
+    }
 
     it('should create', () => {
         expect(component).toBeTruthy()
@@ -77,7 +82,7 @@ describe('LoginScreenComponent', () => {
         spyOn(component.http, 'get').and.returnValue(of('This is a welcome message'))
         component.ngOnInit()
         tick()
-        fixture.detectChanges()
+        refreshView()
 
         const welcomeMessage = fixture.debugElement.query(By.css('.login-screen__welcome'))
         expect(welcomeMessage).toBeTruthy()
@@ -88,7 +93,7 @@ describe('LoginScreenComponent', () => {
         spyOn(component.http, 'get').and.returnValue(of('a'.repeat(2049)))
         component.ngOnInit()
         tick()
-        fixture.detectChanges()
+        refreshView()
 
         const welcomeMessage = fixture.debugElement.query(By.css('.login-screen__welcome'))
         expect(welcomeMessage).toBeFalsy()
@@ -99,7 +104,7 @@ describe('LoginScreenComponent', () => {
         fixture.debugElement.injector.get(AuthService)
         component.ngOnInit()
         tick()
-        fixture.detectChanges()
+        refreshView()
 
         // Check if data was received from AuthService getAuthenticationMethods().
         expect(component.authenticationMethods).toBeTruthy()
@@ -110,7 +115,7 @@ describe('LoginScreenComponent', () => {
         expect(dropdown).toBeTruthy()
 
         dropdown.nativeElement.click()
-        fixture.detectChanges()
+        refreshView()
 
         // Dropdown should display two methods.
         const listItems = dropdown.queryAll(By.css('.p-select-list li'))
@@ -127,31 +132,45 @@ describe('LoginScreenComponent', () => {
         const loginSpy = spyOn(authService, 'login').and.callThrough()
         component.ngOnInit()
         tick()
-        fixture.detectChanges()
+        refreshView()
 
         // There should be a dropdown visible.
         const dropdown = fixture.debugElement.query(By.css('.login-screen__authentication-selector .p-select'))
         expect(dropdown).toBeTruthy()
 
         dropdown.nativeElement.click()
-        fixture.detectChanges()
+        refreshView()
 
         // Let's pick ldap method.
         const listItems = dropdown.queryAll(By.css('li'))
         expect(listItems).toBeTruthy()
-        expect(listItems.length).toEqual(2)
+        expect(listItems.length).toEqual(3)
         expect(listItems[0].nativeElement.innerText).toContain('local')
         expect(listItems[1].nativeElement.innerText).toContain('ldap')
         expect(listItems[2].nativeElement.innerText).toContain('OpenID Connect')
 
         listItems[1].nativeElement.click()
         tick()
-        fixture.detectChanges()
+        refreshView()
 
         // Provide login and password.
         const inputs = fixture.debugElement.queryAll(By.css('.login-screen__authentication-inputs input'))
         expect(inputs).toBeTruthy()
         expect(inputs.length).toEqual(2)
+
+        inputs[0].nativeElement.value = 'login'
+        inputs[0].nativeElement.dispatchEvent(new Event('input'))
+        refreshView()
+
+        inputs[1].nativeElement.value = 'passwd'
+        inputs[1].nativeElement.dispatchEvent(new Event('input'))
+        refreshView()
+
+        // Click Sign In.
+        const btn = fixture.debugElement.query(By.css('.login-screen__authentication-inputs button'))
+        expect(btn).toBeTruthy()
+        btn.nativeElement.click()
+        refreshView()
 
         expect(loginSpy).toHaveBeenCalledOnceWith('ldapId', 'login', 'passwd', '/')
     }))

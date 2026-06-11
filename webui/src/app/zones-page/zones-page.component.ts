@@ -525,6 +525,7 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
      */
     refreshFetchStatusTable() {
         this.zonesFetchStatesLoading = true
+        this.cd.detectChanges()
         lastValueFrom(this.getZonesFetchWithStatus())
             .then((resp) => {
                 switch (resp.status) {
@@ -591,7 +592,10 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
                     life: 10000,
                 })
             })
-            .finally(() => (this.zonesFetchStatesLoading = false))
+            .finally(() => {
+                this.zonesFetchStatesLoading = false
+                this.cd.detectChanges()
+            })
     }
 
     /**
@@ -760,7 +764,10 @@ export class ZonesPageComponent implements OnInit, OnDestroy {
                     life: 10000,
                 })
             })
-            .finally(() => (this.zonesLoading = false))
+            .finally(() => {
+                this.zonesLoading = false
+                this.cd.detectChanges()
+            })
     }
 
     /**

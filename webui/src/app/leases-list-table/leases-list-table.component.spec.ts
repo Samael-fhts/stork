@@ -78,10 +78,14 @@ describe('LeasesListTableComponent', () => {
         component = fixture.componentInstance
         getLeaseListSpy = spyOn(dhcpService, 'getLeaseList')
         messageService = fixture.debugElement.injector.get(MessageService)
+    })
+
+    /** Renders the table and stubs state persistence (must run after @ViewChild is set). */
+    function renderTable(): void {
         fixture.detectChanges()
         // Do not save table state between tests, because that makes tests unstable.
         spyOn(component.table, 'saveState').and.callFake(() => {})
-    })
+    }
 
     it('should create', () => {
         expect(component).toBeTruthy()
@@ -89,6 +93,7 @@ describe('LeasesListTableComponent', () => {
 
     it('should not filter the table by numeric input with value zero', fakeAsync(() => {
         // Arrange
+        renderTable()
         const inputNumbers = fixture.debugElement.queryAll(By.directive(InputNumber))
         expect(inputNumbers).toBeTruthy()
         expect(inputNumbers.length).toEqual(3)
@@ -97,16 +102,12 @@ describe('LeasesListTableComponent', () => {
         // Act
         component.table.clear()
         tick()
-        fixture.detectChanges()
         inputNumbers[0].componentInstance.handleOnInput(new InputEvent('input'), '', 0) // machineId
         tick(300)
-        fixture.detectChanges()
         inputNumbers[1].componentInstance.handleOnInput(new InputEvent('input'), '', 0) // subnetId
         tick(300)
-        fixture.detectChanges()
         inputNumbers[2].componentInstance.handleOnInput(new InputEvent('input'), '', 0) // keaSubnetId
         tick(300)
-        fixture.detectChanges()
 
         // Assert
         expect(dhcpService.getLeaseList).toHaveBeenCalled()
@@ -123,6 +124,7 @@ describe('LeasesListTableComponent', () => {
     }))
 
     it('should contain a refresh button', fakeAsync(() => {
+        renderTable()
         const refreshBtn = fixture.debugElement.query(By.css('[label="Refresh List"] button'))
         expect(refreshBtn).toBeTruthy()
         spyOn(component, 'loadData')
@@ -135,14 +137,13 @@ describe('LeasesListTableComponent', () => {
     }))
 
     it('should be filtered by subnetId', fakeAsync(() => {
+        renderTable()
         component.dataCollection = [exampleV6Lease]
-        fixture.detectChanges()
 
         getLeaseListSpy.and.callThrough()
 
         component.filterTable(8, <FilterMetadata>component.table.filters['daemonId'])
         tick(300)
-        fixture.detectChanges()
 
         expect(router.navigate).toHaveBeenCalledWith([], {
             queryParams: {
@@ -156,14 +157,13 @@ describe('LeasesListTableComponent', () => {
     }))
 
     it('should be filtered by localSubnetId', fakeAsync(() => {
+        renderTable()
         component.dataCollection = [exampleV4Lease]
-        fixture.detectChanges()
 
         getLeaseListSpy.and.callThrough()
 
         component.filterTable(10, <FilterMetadata>component.table.filters['localSubnetId'])
         tick(300)
-        fixture.detectChanges()
 
         expect(router.navigate).toHaveBeenCalledWith([], {
             queryParams: {
@@ -177,8 +177,8 @@ describe('LeasesListTableComponent', () => {
     }))
 
     it('should display errors using the MessageService', fakeAsync(() => {
+        renderTable()
         component.dataCollection = [exampleV4Lease]
-        fixture.detectChanges()
 
         getLeaseListSpy.and.returnValue(
             throwError(() => new HttpErrorResponse({ status: 401, statusText: 'unauthorized' }))
@@ -188,7 +188,6 @@ describe('LeasesListTableComponent', () => {
         // This is what the refresh button does.
         component.loadData(component.table.createLazyLoadMetadata())
         tick(300)
-        fixture.detectChanges()
 
         expect(messageService.add).toHaveBeenCalledOnceWith(
             jasmine.objectContaining({
@@ -199,14 +198,13 @@ describe('LeasesListTableComponent', () => {
         )
     }))
     it('should be filtered by machineId', fakeAsync(() => {
+        renderTable()
         component.dataCollection = [exampleV4Lease]
-        fixture.detectChanges()
 
         getLeaseListSpy.and.callThrough()
 
         component.filterTable(100, <FilterMetadata>component.table.filters['machineId'])
         tick(300)
-        fixture.detectChanges()
 
         expect(router.navigate).toHaveBeenCalledWith([], {
             queryParams: {

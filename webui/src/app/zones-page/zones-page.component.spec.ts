@@ -305,7 +305,7 @@ describe('ZonesPageComponent', () => {
             of(zoneFetchStates) as Observable<any>
         )
 
-        fixture.detectChanges()
+        refreshView()
         expect(component.zonesLoading).withContext('zones data does not load on init').toBeFalse()
         expect(component.zonesFetchStatesLoading).withContext('zones fetch status data loads on init').toBeTrue()
 
@@ -316,12 +316,19 @@ describe('ZonesPageComponent', () => {
         // 1. Zones Fetch Status table data is fetched on every init
         // 2. Zones table data is lazily loaded on every init
         tick()
+        refreshView()
 
         expect(component.zonesLoading).withContext('Zones table data loading should be done').toBeFalse()
         expect(component.zonesFetchStatesLoading)
             .withContext('Zones Fetch Status table data loading should be done')
             .toBeFalse()
     }))
+
+    /** Stabilizes the view after async updates (Angular 21 change detection). */
+    function refreshView(): void {
+        fixture.detectChanges()
+        fixture.detectChanges()
+    }
 
     it('should create', () => {
         expect(component).toBeTruthy()
@@ -884,7 +891,7 @@ describe('ZonesPageComponent without superadmin privileges', () => {
         expect(component.toolbarButtons[1].disabled).toBeTrue()
         // it should react on privilege change
         component.hasFetchZonesPrivileges.set(true)
-        fixture.detectChanges()
+        TestBed.flushEffects()
         expect(component.toolbarButtons[1].disabled).toBeFalse()
     })
 })
