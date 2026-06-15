@@ -598,7 +598,12 @@ any_system = true
 
 ### Define package versions
 # Golang-related
-go_ver = '1.25.11'
+
+# Minimum version of Golang that has a realistic chance of compiling the code.
+# It is recommended to use the latest version, as older go versions might have
+# vulnerabilities or other issues.
+go_min_ver = '1.24'
+
 gocover_cobertura_ver = 'v1.4.0'
 tparse_ver = 'v0.18.0'
 go_junit_report_ver = 'v2.1.0'
@@ -607,16 +612,16 @@ mockgen_ver = 'v0.6.0'
 dlv_ver = 'v1.26.3'
 gdlv_ver = 'v1.16.0'
 govulncheck_ver = 'v1.1.4'
-goswagger_ver = 'v0.33.2'
-protoc_ver = '31.1'
-protoc_gen_go_ver = 'v1.36.11'
-protoc_gen_go_grpc_ver = 'v1.6.1'
 nfpm_ver = 'v2.45.2'
 golangcilint_ver = '2.8.0'
 
 # UI-related
-node_ver = '20.20.2'
-npm_ver = '11.13.0'
+# Minimum version of Node.js and NPMthat have a realistic chance of compiling the code.
+# It is recommended to use the latest version, as older node versions might have
+# vulnerabilities or other issues.
+node_min_ver = '20'
+npm_min_ver = '10'
+
 yamlinc_ver = '0.1.10'
 openapi_generator_ver = '7.19.0'
 
@@ -631,18 +636,10 @@ case OS
 when "macos"
     case ARCH
     when "amd64"
-        go_suffix = "darwin-amd64"
-        protoc_suffix = "osx-x86_64"
-        node_suffix = "darwin-x64"
         golangcilint_suffix = "darwin-amd64"
-        goswagger_suffix = "darwin_amd64"
         shellcheck_suffix = "darwin.x86_64"
     when "arm64"
-        go_suffix = "darwin-arm64"
-        protoc_suffix = "osx-aarch_64"
-        node_suffix = "darwin-arm64"
         golangcilint_suffix = "darwin-arm64"
-        goswagger_suffix = "darwin_arm64"
         shellcheck_suffix = "darwin.aarch64"
         # Shellcheck has no binaries for Darwin ARM: https://github.com/koalaman/shellcheck/issues/2714
     end
@@ -651,24 +648,15 @@ when "macos"
 when "linux"
     case ARCH
     when "amd64"
-        go_suffix = "linux-amd64"
-        protoc_suffix = "linux-x86_64"
-        node_suffix = "linux-x64"
         golangcilint_suffix = "linux-amd64"
-        goswagger_suffix = "linux_amd64"
         shellcheck_suffix = "linux.x86_64"
     when "arm64"
-        go_suffix = "linux-arm64"
-        protoc_suffix = "linux-aarch_64"
-        node_suffix = "linux-arm64"
         golangcilint_suffix = "linux-arm64"
-        goswagger_suffix = "linux_arm64"
         shellcheck_suffix = "linux.aarch64"
     end
 when "FreeBSD"
     case ARCH
     when "amd64"
-         go_suffix = "freebsd-amd64"
          golangcilint_suffix = "freebsd-amd64"
     when "arm64"
         golangcilint_suffix = "freebsd-armv7"
@@ -719,11 +707,11 @@ directory ruby_tools_bin_bundle_dir
 # Automatically created directories by tools
 ruby_tools_gems_dir = File.join(ruby_tools_dir, "gems")
 gobin = File.join(go_tools_dir, "go", "bin")
+directory gobin
 python_tools_dir = File.join(tools_dir, "python")
 pythonpath = File.join(python_tools_dir, "lib")
 pip_cache_dir = File.join(python_tools_dir, "pip_cache")
 node_bin_dir = File.join(node_dir, "bin")
-protoc_dir = go_tools_dir
 
 # Environment variables
 ENV["GEM_HOME"] = ruby_tools_dir
@@ -839,44 +827,41 @@ file DANGER => [ruby_tools_bin_bundle_dir, ruby_tools_dir, BUNDLE] do
 end
 add_hash_guard(DANGER, danger_gemfile)
 
-node = File.join(node_bin_dir, "node")
-file node => [TAR, WGET, node_dir] do
-    Dir.chdir(node_dir) do
-        FileUtils.rm_rf(FileList["*"])
-        fetch_file "https://nodejs.org/dist/v#{node_ver}/node-v#{node_ver}-#{node_suffix}.tar.xz", "node.tar.xz"
-        sh TAR, "-Jxf", "node.tar.xz", "--strip-components=1"
-        sh "rm", "node.tar.xz"
+node_path = which("node")
+if !node_path.nil?
+    output = `#{node_path} --version 2>/dev/null`.strip
+    m = output.match(/^v(\d+\.\d+(?:\.\d+)?)/)
+    if m.nil?
+        puts "WARNING: Could not parse Node.js version from: '#{output}'"
+    else
+        installed = Gem::Version.new(m[1])
+        required  = Gem::Version.new(node_min_ver)
+        if installed < required
+            puts "WARNING: Node.js #{installed} found, but #{required} or later is recommended."
+            puts "WARNING: The build may fail. Install a newer Node.js to silence this."
+        end
     end
-    sh "touch", "-c", node
-    sh node, "--version"
 end
-node = require_manual_install_on(node, libc_musl_system, freebsd_system, openbsd_system)
-add_version_guard(node, node_ver)
+NODE = require_manual_install_on("node", any_system)
 
-npm = File.join(node_bin_dir, "npm")
-file npm => [node] do
-    ci_opts = []
-    if ENV["CI"] == "true"
-        ci_opts += ["--no-audit", "--no-progress", "--cache", File.expand_path(NODE_CACHE)]
+npm_path = which("npm")
+if !npm_path.nil?
+    output = `#{npm_path} --version 2>/dev/null`.strip
+    m = output.match(/^(\d+\.\d+(?:\.\d+)?)/)
+    if m.nil?
+        puts "WARNING: Could not parse npm version from: '#{output}'"
+    else
+        installed = Gem::Version.new(m[1])
+        required  = Gem::Version.new(npm_min_ver)
+        if installed < required
+            puts "WARNING: npm #{installed} found, but #{required} or later is recommended."
+            puts "WARNING: The build may fail. Install a newer npm to silence this."
+        end
     end
-
-    # NPM is initially installed with NodeJS.
-    sh npm, "install",
-            "-g",
-            *ci_opts,
-            "npm@#{npm_ver}"
-    sh "touch", "-c", npm
-    sh npm, "--version"
 end
-NPM = require_manual_install_on(npm, libc_musl_system, freebsd_system, openbsd_system)
-add_version_guard(NPM, npm_ver)
+NPM = require_manual_install_on("npm", any_system)
 
-npx = File.join(node_bin_dir, "npx")
-file npx => [NPM] do
-    sh npx, "--version"
-    sh "touch", "-c", npx
-end
-NPX = require_manual_install_on(npx, libc_musl_system, freebsd_system, openbsd_system)
+NPX = require_manual_install_on("npx", any_system)
 
 YAMLINC = File.join(node_dir, "node_modules", "lib", "node_modules", "yamlinc", "bin", "yamlinc")
 file YAMLINC => [NPM] do
@@ -902,75 +887,44 @@ file OPENAPI_GENERATOR => [WGET, tools_dir] do
 end
 add_version_guard(OPENAPI_GENERATOR, openapi_generator_ver)
 
-go = File.join(gobin, "go")
-file go => [WGET, go_tools_dir] do
-    Dir.chdir(go_tools_dir) do
-        FileUtils.rm_rf("go")
-        fetch_file "https://dl.google.com/go/go#{go_ver}.#{go_suffix}.tar.gz", "go.tar.gz"
-        sh "tar", "-zxf", "go.tar.gz"
-        sh "rm", "go.tar.gz"
-    end
-    sh "touch", "-c", go
-    sh go, "version"
-end
-GO = require_manual_install_on(go, openbsd_system, freebsd_arm64_system)
-add_version_guard(GO, go_ver)
-
-GOSWAGGER = File.join(go_tools_dir, "goswagger")
-file GOSWAGGER => [WGET, GO, TAR, go_tools_dir] do
-    if OS != 'FreeBSD' && OS != "OpenBSD"
-        fetch_file "https://github.com/go-swagger/go-swagger/releases/download/#{goswagger_ver}/swagger_#{goswagger_suffix}", GOSWAGGER
-        sh "chmod", "u+x", GOSWAGGER
+go_path = which("go")
+if !go_path.nil?
+    output = `#{go_path} version 2>/dev/null`.strip
+    m = output.match(/go version go(\d+\.\d+(?:\.\d+)?)/)
+    if m.nil?
+        puts "WARNING: Could not parse Go version from: '#{output}'"
     else
-        # GoSwagger lacks the packages for BSD-like systems then it must be
-        # built from sources.
-        goswagger_archive = "#{GOSWAGGER}.tar.gz"
-        goswagger_dir = "#{GOSWAGGER}-sources"
-        sh "mkdir", goswagger_dir
-        fetch_file "https://github.com/go-swagger/go-swagger/archive/refs/tags/#{goswagger_ver}.tar.gz", goswagger_archive
-        sh TAR, "-zxf", goswagger_archive, "-C", goswagger_dir
-        # We cannot use --strip-components because OpenBSD tar doesn't support it.
-        goswagger_dir = File.join(goswagger_dir, "go-swagger-#{goswagger_ver[1..-1]}") # Trim 'v' letter
-        goswagger_build_dir = File.join(goswagger_dir, "cmd", "swagger")
-        Dir.chdir(goswagger_build_dir) do
-            sh GO, "build", "-ldflags=-X 'github.com/go-swagger/go-swagger/cmd/swagger/commands.Version=#{goswagger_ver}'"
+        installed = Gem::Version.new(m[1])
+        required  = Gem::Version.new(go_min_ver)
+        if installed < required
+            puts "WARNING: Go #{installed} found, but Go #{required} or later is recommended."
+            puts "WARNING: The build may fail. Install a newer Go toolchain to silence this."
         end
-        sh "mv", File.join(goswagger_build_dir, "swagger"), GOSWAGGER
-        sh "rm", "-rf", goswagger_dir
-        sh "rm", goswagger_archive
     end
-
-    sh "touch", "-c", GOSWAGGER
-    sh GOSWAGGER, "version"
 end
-add_version_guard(GOSWAGGER, goswagger_ver)
+GO = require_manual_install_on("go", any_system)
 
-protoc = File.join(protoc_dir, "protoc")
-file protoc => [WGET, UNZIP, go_tools_dir] do
-    Dir.chdir(go_tools_dir) do
-        fetch_file "https://github.com/protocolbuffers/protobuf/releases/download/v#{protoc_ver}/protoc-#{protoc_ver}-#{protoc_suffix}.zip", "protoc.zip"
-        sh UNZIP, "-o", "-j", "protoc.zip", "bin/protoc"
-        sh "rm", "protoc.zip"
-    end
-    sh protoc, "--version"
-    sh "touch", "-c", protoc
-end
-PROTOC = require_manual_install_on(protoc, freebsd_system, openbsd_system)
-add_version_guard(PROTOC, protoc_ver)
+# protoc is only needed for Python gRPC stub generation (system tests).
+# Go gRPC stubs are generated via `go tool buf`.
+PROTOC = require_manual_install_on("protoc", any_system)
 
 PROTOC_GEN_GO = File.join(gobin, "protoc-gen-go")
-file PROTOC_GEN_GO => [GO] do
-    sh GO, "install", "google.golang.org/protobuf/cmd/protoc-gen-go@#{protoc_gen_go_ver}"
+file PROTOC_GEN_GO => [GO, gobin] do
+    Dir.chdir("backend") do
+        sh GO, "install", "google.golang.org/protobuf/cmd/protoc-gen-go"
+    end
     sh PROTOC_GEN_GO, "--version"
 end
-add_version_guard(PROTOC_GEN_GO, protoc_gen_go_ver)
+add_hash_guard(PROTOC_GEN_GO, "backend/go.mod")
 
 PROTOC_GEN_GO_GRPC = File.join(gobin, "protoc-gen-go-grpc")
-file PROTOC_GEN_GO_GRPC => [GO] do
-    sh GO, "install", "google.golang.org/grpc/cmd/protoc-gen-go-grpc@#{protoc_gen_go_grpc_ver}"
+file PROTOC_GEN_GO_GRPC => [GO, gobin] do
+    Dir.chdir("backend") do
+        sh GO, "install", "google.golang.org/grpc/cmd/protoc-gen-go-grpc"
+    end
     sh PROTOC_GEN_GO_GRPC, "--version"
 end
-add_version_guard(PROTOC_GEN_GO_GRPC, protoc_gen_go_grpc_ver)
+add_hash_guard(PROTOC_GEN_GO_GRPC, "backend/go.mod")
 
 golangcilint = File.join(go_tools_dir, "golangci-lint")
 file golangcilint => [WGET, GO, TAR, go_tools_dir] do
