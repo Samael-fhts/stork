@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"math"
 	"net"
 	"runtime"
 	"slices"
@@ -288,12 +289,32 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 		for _, addr := range addrs {
 			ipAddrs = append(ipAddrs, addr.String())
 		}
+
+		flags := uint(iface.Flags)
+		if flags >= math.MaxUint32 {
+			err = errors.New("interface flags exceed uint32 limit")
+			errText = err.Error()
+			break
+		}
+
 		machineNetworkInterfaces = append(machineNetworkInterfaces, &agentapi.NetworkInterface{
 			Name:            iface.Name,
-			Flags:           uint32(iface.Flags),
+			Flags:           uint32(flags),
 			HardwareAddress: iface.HardwareAddr,
 			IpAddresses:     ipAddrs,
 		})
+	}
+
+	memoryTotal := vm.Total / (1024 * 1024 * 1024) // in GB
+	var memoryTotalSafe int64 = math.MaxInt64
+	if memoryTotal <= math.MaxInt64 {
+		memoryTotalSafe = int64(memoryTotal)
+	}
+
+	uptime := hostInfo.Uptime / (60 * 60 * 24) // in days
+	var uptimeSafe int64 = math.MaxInt64
+	if uptime <= math.MaxInt64 {
+		uptimeSafe = int64(uptime)
 	}
 
 	state := agentapi.GetStateRsp{
@@ -302,9 +323,9 @@ func (sa *StorkAgent) GetState(ctx context.Context, in *agentapi.GetStateReq) (*
 		Hostname:             hostInfo.Hostname,
 		Cpus:                 int64(runtime.NumCPU()),
 		CpusLoad:             loadStr,
-		Memory:               int64(vm.Total / (1024 * 1024 * 1024)), // in GiB
+		Memory:               memoryTotalSafe,
 		UsedMemory:           int64(vm.UsedPercent),
-		Uptime:               int64(hostInfo.Uptime / (60 * 60 * 24)), // in days
+		Uptime:               uptimeSafe, // in days
 		Os:                   hostInfo.OS,
 		Platform:             hostInfo.Platform,
 		PlatformFamily:       hostInfo.PlatformFamily,
