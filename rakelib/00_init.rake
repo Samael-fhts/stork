@@ -602,7 +602,7 @@ any_system = true
 # Minimum version of Golang that has a realistic chance of compiling the code.
 # It is recommended to use the latest version, as older go versions might have
 # vulnerabilities or other issues.
-go_min_ver = '1.25.11'
+go_min_ver = '1.24.0'
 
 gocover_cobertura_ver = 'v1.4.0'
 tparse_ver = 'v0.18.0'
