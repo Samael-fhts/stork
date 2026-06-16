@@ -11,13 +11,10 @@ describe('DelegatedPrefixBarComponent', () => {
 
         fixture = TestBed.createComponent(DelegatedPrefixBarComponent)
         component = fixture.componentInstance
-
-        component.pool = {
+        fixture.componentRef.setInput('pool', {
             prefix: 'fe80::/64',
             delegatedLength: 80,
-        }
-
-        fixture.detectChanges()
+        })
     })
 
     it('should create', () => {
@@ -25,6 +22,7 @@ describe('DelegatedPrefixBarComponent', () => {
     })
 
     it('should display prefix and length', () => {
+        fixture.detectChanges()
         expect(
             (fixture.debugElement.nativeElement as HTMLElement).textContent
                 .trim()
@@ -49,7 +47,11 @@ describe('DelegatedPrefixBarComponent', () => {
     })
 
     it('should display an excluded prefix', () => {
-        component.pool.excludedPrefix = 'fe80:42::/96'
+        fixture.componentRef.setInput('pool', {
+            prefix: 'fe80::/64',
+            delegatedLength: 80,
+            excludedPrefix: 'fe80:42::/96',
+        })
         fixture.detectChanges()
         expect(
             (fixture.debugElement.nativeElement as HTMLElement).textContent

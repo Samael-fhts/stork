@@ -11,7 +11,6 @@ describe('HostDataSourceLabelComponent', () => {
 
         fixture = TestBed.createComponent(HostDataSourceLabelComponent)
         component = fixture.componentInstance
-        fixture.detectChanges()
     })
 
     it('should create', () => {
@@ -19,21 +18,21 @@ describe('HostDataSourceLabelComponent', () => {
     })
 
     it('should display config label', () => {
-        component.dataSource = 'config'
+        fixture.componentRef.setInput('dataSource', 'config')
         fixture.detectChanges()
         const compiled = fixture.nativeElement
         expect(compiled.querySelector('span').textContent).toContain('config')
     })
 
     it('should display api label', () => {
-        component.dataSource = 'api'
+        fixture.componentRef.setInput('dataSource', 'api')
         fixture.detectChanges()
         const compiled = fixture.nativeElement
         expect(compiled.querySelector('span').textContent).toContain('host_cmds')
     })
 
     it('should display unknown label', () => {
-        component.dataSource = 'unknown'
+        fixture.componentRef.setInput('dataSource', 'unknown')
         fixture.detectChanges()
         const compiled = fixture.nativeElement
         expect(compiled.innerText).toContain('unknown')

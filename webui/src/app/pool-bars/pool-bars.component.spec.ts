@@ -14,7 +14,6 @@ describe('PoolBarsComponent', () => {
         fixture = TestBed.createComponent(PoolBarsComponent)
         component = fixture.componentInstance
         component.source = {}
-        fixture.detectChanges()
     })
 
     it('should create', () => {
