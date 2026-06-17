@@ -26,14 +26,15 @@ const AuthenticationMethodIDInternal string = "internal"
 
 // Represents a user held in system_user table in the database.
 type SystemUser struct {
-	ID                     int64
-	Login                  string
-	Email                  string
-	Lastname               string
-	Name                   string
-	AuthenticationMethodID string `pg:"auth_method"`
-	ExternalID             string
-	ChangePassword         bool `pg:",use_zero"`
+	ID                      int64
+	Login                   string
+	Email                   string
+	Lastname                string
+	Name                    string
+	AuthenticationMethodID  string `pg:"auth_method"`
+	ExternalID              string
+	ChangePassword          bool `pg:",use_zero"`
+	ExternallyManagedGroups bool `pg:",use_zero"`
 
 	Groups []*SystemGroup `pg:"many2many:system_user_to_group,fk:user_id,join_fk:group_id"`
 }
@@ -438,13 +439,14 @@ func AddOrUpdateExternalUser(db *dbops.PgDB, externalUser *authdata.User, method
 	defer dbops.RollbackOnError(tx, &err)
 
 	systemUser := &SystemUser{
-		Login:                  externalUser.Login,
-		Email:                  externalUser.Email,
-		Lastname:               externalUser.Lastname,
-		Name:                   externalUser.Name,
-		AuthenticationMethodID: methodID,
-		ExternalID:             externalUser.ID,
-		ChangePassword:         false,
+		Login:                   externalUser.Login,
+		Email:                   externalUser.Email,
+		Lastname:                externalUser.Lastname,
+		Name:                    externalUser.Name,
+		AuthenticationMethodID:  methodID,
+		ExternalID:              externalUser.ID,
+		ChangePassword:          false,
+		ExternallyManagedGroups: externalUser.ExternallyManagedGroups,
 	}
 	login := (*string)(nil)
 	email := (*string)(nil)
@@ -459,6 +461,7 @@ func AddOrUpdateExternalUser(db *dbops.PgDB, externalUser *authdata.User, method
 		Set("email = ?", email).
 		Set("name = ?", externalUser.Name).
 		Set("lastname = ?", externalUser.Lastname).
+		Set("externally_managed_groups = ?", externalUser.ExternallyManagedGroups).
 		Set("change_password = ?", false).Insert()
 	if err != nil {
 		var pgError pg.Error

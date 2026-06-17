@@ -22,15 +22,16 @@ import (
 // user instance returned from the database.
 func newRestUser(u dbmodel.SystemUser) *models.User {
 	r := &models.User{
-		Email:                  u.Email,
-		Name:                   u.Name,
-		ID:                     &u.ID,
-		Lastname:               u.Lastname,
-		Login:                  u.Login,
-		AuthenticationMethodID: &u.AuthenticationMethodID,
-		ExternalID:             u.ExternalID,
-		Groups:                 []int64{},
-		ChangePassword:         u.ChangePassword,
+		Email:                   u.Email,
+		Name:                    u.Name,
+		ID:                      &u.ID,
+		Lastname:                u.Lastname,
+		Login:                   u.Login,
+		AuthenticationMethodID:  &u.AuthenticationMethodID,
+		ExternalID:              u.ExternalID,
+		Groups:                  []int64{},
+		ChangePassword:          u.ChangePassword,
+		ExternallyManagedGroups: u.ExternallyManagedGroups,
 	}
 
 	// Append an array of groups.
