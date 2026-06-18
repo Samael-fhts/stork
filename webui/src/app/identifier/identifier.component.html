@@ -12,7 +12,7 @@
             <span *ngIf="!!label">(</span>
             <!-- Hex format. -->
             <ng-container *ngIf="hexFormat; else identifierTextTemplate">
-                <span>{{ hexValue }}</span>
+                <span>{{ displayHexValue }}</span>
             </ng-container>
             <!-- Text format. -->
             <ng-template #identifierTextTemplate>

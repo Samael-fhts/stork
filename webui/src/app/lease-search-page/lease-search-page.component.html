@@ -218,7 +218,58 @@
                     <div *ngIf="lease.userContext" class="flex-auto">
                         <p-fieldset legend="User Context" styleClass="max-width-100vw">
                             <!-- JSON viewer -->
-                            <app-json-tree-root [value]="lease.userContext"></app-json-tree-root>
+                            <app-json-tree-root
+                                [value]="lease.userContext"
+                                [customValueTemplates]="{
+                                    'remote-id': hexLeafTemplate,
+                                    'relay-id': hexLeafTemplate,
+                                    'circuit-id': hexLeafTemplate,
+                                    'subscriber-id': hexLeafTemplate,
+                                    'sub-options': subOptionsTemplate,
+                                }"
+                            ></app-json-tree-root>
+                            <!-- Template rendering hex-encoded user-context leaves
+                                 (e.g. relay-agent-info) with a hex/text toggle. -->
+                            <ng-template #hexLeafTemplate let-key="key" let-value="value">
+                                <app-identifier
+                                    *ngIf="isHexLeaf(value); else plainLeafTemplate"
+                                    [hexValue]="stripHexPrefix(value)"
+                                    [defaultHexFormat]="true"
+                                    [separateHexBytes]="false"
+                                    styleClass="user-context-hex"
+                                ></app-identifier>
+                                <ng-template #plainLeafTemplate>{{ value }}</ng-template>
+                            </ng-template>
+                            <!-- Template rendering the relay agent information option
+                                 (option 82) payload as labeled sub-option fields. The
+                                 TLV parser handles the sub-options in any order. When
+                                 the value is not a valid TLV sequence, it falls back
+                                 to the generic hex/text rendering. -->
+                            <ng-template #subOptionsTemplate let-key="key" let-value="value">
+                                <ng-container
+                                    *ngIf="parseRelayAgentSubOptions(value) as fields; else hexFallbackTemplate"
+                                >
+                                    <div class="sub-options-fields">
+                                        <div *ngFor="let field of fields" class="sub-options-field">
+                                            <span
+                                                class="sub-options-field__name"
+                                                title="sub-option {{ field.code }}"
+                                                >[{{ field.code }}] {{ field.name }}:</span
+                                            >
+                                            <app-identifier
+                                                [hexValue]="field.hexValue"
+                                                [separateHexBytes]="false"
+                                                styleClass="user-context-hex"
+                                            ></app-identifier>
+                                        </div>
+                                    </div>
+                                </ng-container>
+                                <ng-template #hexFallbackTemplate>
+                                    <ng-container
+                                        *ngTemplateOutlet="hexLeafTemplate; context: { key: key, value: value }"
+                                    ></ng-container>
+                                </ng-template>
+                            </ng-template>
                         </p-fieldset>
                     </div>
                     <div *ngIf="lease.hostname" class="flex-auto">
