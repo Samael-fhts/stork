@@ -95,13 +95,17 @@ func upsertMachineNetworkInterfaces(tx *pg.Tx, machineID int64, interfaces ...Ma
 		}
 		// Delete IP addresses that are not in the list of new IP addresses
 		// for the given interface.
-		_, err := tx.Model((*MachineNetworkInterfaceIPAddress)(nil)).
-			Where("machine_network_interface_id = ?", iface.ID).
-			Where("ip_address NOT IN (?)", pg.In(addrs)).
-			Delete()
+		query := tx.Model((*MachineNetworkInterfaceIPAddress)(nil)).
+			Where("machine_network_interface_id = ?", iface.ID)
+
+		if len(addrs) > 0 {
+			query = query.Where("ip_address NOT IN (?)", pg.In(addrs))
+		}
+		_, err := query.Delete()
 		if err != nil {
 			return errors.Wrapf(err, "problem deleting IP addresses for machine network interface %d", iface.ID)
 		}
+
 		// Insert new IP addresses for the given interface.
 		for _, addr := range iface.IPAddresses {
 			ipAddresses = append(ipAddresses, MachineNetworkInterfaceIPAddress{
@@ -110,9 +114,13 @@ func upsertMachineNetworkInterfaces(tx *pg.Tx, machineID int64, interfaces ...Ma
 			})
 		}
 	}
-	_, err = tx.Model(&ipAddresses).OnConflict("(machine_network_interface_id, ip_address) DO NOTHING").
-		Insert()
-	return errors.Wrapf(err, "problem inserting host interfaces for machine %d", machineID)
+
+	if len(ipAddresses) > 0 {
+		_, err = tx.Model(&ipAddresses).OnConflict("(machine_network_interface_id, ip_address) DO NOTHING").
+			Insert()
+		err = errors.Wrapf(err, "problem inserting host interfaces for machine %d", machineID)
+	}
+	return err
 }
 
 // Updates interfaces detected on the given machine. It removes the interfaces that

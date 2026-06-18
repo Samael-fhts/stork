@@ -41,6 +41,12 @@ func TestUpsertMachineNetworkInterfaces(t *testing.T) {
 			HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
 			IPAddresses:     []MachineNetworkInterfaceIPAddress{{IPAddress: "192.168.1.3"}, {IPAddress: "192.168.1.4"}},
 		},
+		// The interface with no IP addresses should be inserted as well.
+		{
+			Name:            "eth-none",
+			Flags:           uint32(net.FlagUp),
+			HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+		},
 	}
 	err = UpsertMachineNetworkInterfaces(db, m.ID, interfaces...)
 	require.NoError(t, err)
@@ -54,7 +60,8 @@ func TestUpsertMachineNetworkInterfaces(t *testing.T) {
 	require.Equal(t, "192.168.1.3", ipAddresses[2].IPAddress)
 	require.Equal(t, "192.168.1.4", ipAddresses[3].IPAddress)
 
-	// Preserve one of the interfaces and replace the other one.
+	// Preserve one of the interfaces, replace the other one, remove the third
+	// one.
 	interfaces[1] = MachineNetworkInterface{
 		Name:            "eth2",
 		Flags:           uint32(net.FlagUp),
@@ -64,6 +71,7 @@ func TestUpsertMachineNetworkInterfaces(t *testing.T) {
 			{IPAddress: "192.168.1.6"},
 		},
 	}
+	interfaces = interfaces[:2]
 	err = UpsertMachineNetworkInterfaces(db, m.ID, interfaces...)
 	require.NoError(t, err)
 
@@ -121,13 +129,20 @@ func TestUpsertMachineHostInterfacesRemove(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEqual(t, 0, m.ID)
 
-	// Insert two IP addresses.
-	err = UpsertMachineNetworkInterfaces(db, m.ID, MachineNetworkInterface{
-		Name:            "eth0",
-		Flags:           uint32(net.FlagUp),
-		HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
-		IPAddresses:     []MachineNetworkInterfaceIPAddress{{IPAddress: "192.168.1.1"}, {IPAddress: "192.168.1.2"}},
-	})
+	// Insert two IP addresses and an interface with no IP addresses.
+	err = UpsertMachineNetworkInterfaces(db, m.ID,
+		MachineNetworkInterface{
+			Name:            "eth0",
+			Flags:           uint32(net.FlagUp),
+			HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+			IPAddresses:     []MachineNetworkInterfaceIPAddress{{IPAddress: "192.168.1.1"}, {IPAddress: "192.168.1.2"}},
+		},
+		MachineNetworkInterface{
+			Name:            "eth1",
+			Flags:           uint32(net.FlagUp),
+			HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+		},
+	)
 	require.NoError(t, err)
 
 	// Make sure that the IP addresses are present in the database.
@@ -271,6 +286,38 @@ func TestGetMachinesByNetworkInterfaceIPAddress(t *testing.T) {
 		require.Empty(t, machines[0].MachineNetworkInterfaces[0].IPAddresses)
 		require.Empty(t, machines[0].MachineNetworkInterfaces[1].IPAddresses)
 	})
+}
+
+func TestUpsertMachineInterfaceHasNoIPAddresses(t *testing.T) {
+	db, _, teardown := dbtest.SetupDatabaseTestCase(t)
+	defer teardown()
+
+	m := &Machine{
+		ID:        0,
+		Address:   "localhost",
+		AgentPort: 8080,
+	}
+	err := AddMachine(db, m)
+	require.NoError(t, err)
+	require.NotEqual(t, 0, m.ID)
+
+	// Insert an interface with no IP addresses.
+	err = UpsertMachineNetworkInterfaces(db, m.ID, MachineNetworkInterface{
+		Name:            "eth0",
+		Flags:           uint32(net.FlagUp),
+		HardwareAddress: []byte{1, 2, 3, 4, 5, 6},
+	})
+	require.NoError(t, err)
+
+	// Make sure that the interface is present in the database.
+	machines, err := GetAllMachinesWithRelations(db, nil, MachineRelationNetworkInterfaces)
+	require.NoError(t, err)
+	require.Len(t, machines, 1)
+	require.Len(t, machines[0].MachineNetworkInterfaces, 1)
+	require.Equal(t, "eth0", machines[0].MachineNetworkInterfaces[0].Name)
+	require.Equal(t, uint32(net.FlagUp), machines[0].MachineNetworkInterfaces[0].Flags)
+	require.Equal(t, []byte{1, 2, 3, 4, 5, 6}, machines[0].MachineNetworkInterfaces[0].HardwareAddress)
+	require.Empty(t, machines[0].MachineNetworkInterfaces[0].IPAddresses)
 }
 
 // This benchmark tests performance of a query that returns machines holding the
