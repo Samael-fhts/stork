@@ -2,3 +2,40 @@
 :host ::ng-deep .max-width-100vw
   // full viewport width minus some space for margins and paddings
   max-width: calc(100vw - 2.5rem)
+
+// Match the JSON tree string-leaf appearance for the hex/text identifiers
+// rendered in the user context via the custom value template.
+:host ::ng-deep .user-context-hex
+  display: inline-flex
+  font-family: monospace, Courier New, Courier
+  line-height: 1.5
+  color: magenta
+
+  // Curly quotes around the value, like other string leaves in the tree.
+  .block::before
+    content: open-quote
+  .block::after
+    content: close-quote
+
+  // Keep the toggle button compact so the row height matches plain leaves.
+  .p-togglebutton
+    padding: 0 0.4rem
+    font-size: 0.8rem
+    line-height: 1.2
+
+// Parsed relay agent information sub-option fields, styled to match
+// the JSON tree key/value appearance.
+:host ::ng-deep .sub-options-fields
+  display: inline-block
+  font-family: monospace, Courier New, Courier
+  line-height: 1.5
+
+  .sub-options-field
+    display: flex
+    align-items: baseline
+    flex-wrap: wrap
+
+  .sub-options-field__name
+    color: var(--p-primary-color)
+    margin-right: 1em
+    white-space: nowrap
